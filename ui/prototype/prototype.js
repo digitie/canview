@@ -26,32 +26,38 @@ document.querySelectorAll("[data-profile]").forEach((button) => {
   });
 });
 
-document.querySelectorAll(".adaptive-toggle, .sport-toggle").forEach((button) => {
+document.querySelectorAll(".adaptive-toggle, .sport-toggle, .setting-toggle").forEach((button) => {
   button.addEventListener("click", () => {
     const next = button.getAttribute("aria-pressed") !== "true";
     button.setAttribute("aria-pressed", String(next));
-    button.textContent = button.classList.contains("sport-toggle")
-      ? (next ? "감시 중" : "사용 안 함")
-      : (next ? "사용 중" : "꺼짐");
+    button.textContent = next ? "사용" : "끔";
+    if (button.classList.contains("setting-toggle")) {
+      brightness.disabled = next;
+    }
   });
 });
 
-const focusPuck = document.querySelector(".sound-focus");
-let focusX = 0;
-let focusY = 0;
-document.querySelectorAll("[data-direction]").forEach((button) => {
+let volume = 18;
+const volumeValue = document.querySelector("[data-volume-value]");
+document.querySelectorAll("[data-volume-step]").forEach((button) => {
   button.addEventListener("click", () => {
-    const direction = button.dataset.direction;
-    if (direction === "left") {
-      focusX = Math.max(-18, focusX - 6);
-    } else if (direction === "right") {
-      focusX = Math.min(18, focusX + 6);
-    } else if (direction === "up") {
-      focusY = Math.max(-18, focusY - 6);
-    } else if (direction === "down") {
-      focusY = Math.min(18, focusY + 6);
-    }
-    focusPuck.style.transform = `translate(${focusX}px, ${focusY}px)`;
+    volume = Math.max(0, Math.min(40, volume + Number(button.dataset.volumeStep)));
+    volumeValue.textContent = String(volume);
+  });
+});
+
+const brightness = document.querySelector("#brightness");
+const brightnessValue = document.querySelector(".brightness-value");
+brightness.addEventListener("input", () => {
+  brightnessValue.value = `${brightness.value}%`;
+});
+
+document.querySelectorAll("[data-unit]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll("[data-unit]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+    const metric = button.dataset.unit === "metric";
+    document.querySelectorAll("[data-speed-value]").forEach((item) => { item.textContent = metric ? "82" : "51"; });
+    document.querySelectorAll("[data-speed-unit]").forEach((item) => { item.textContent = metric ? "km/h" : "mph"; });
   });
 });
 

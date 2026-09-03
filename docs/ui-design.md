@@ -6,10 +6,10 @@ CANView UI는 2017 Tucson TL의 순정 계기판을 대체하지 않는다. 일�
 
 핵심 목표는 다음과 같다.
 
-1. **주행 중 한눈에 읽기**: 속도, 4WD 후륜 결합 추정, DPF 경고처럼 현재 판단에 필요한 값만 크게 보인다.
-2. **상태와 제어 분리**: 주행 화면은 상태 확인, 오디오 화면은 편의 기능, 자동화 화면은 정책과 잠금 상태를 담당한다.
-3. **프리미엄 가전의 차분함**: 검은 계기판 위에 정보를 계속 번쩍이기보다, 매트한 흑연색 표면과 한 가지 서리빛 청색을 사용한다.
-4. **검증 수준 공개**: DBC 후보값을 확정값처럼 꾸미지 않는다. `후보`, `추정`, `확인`, `끊김`을 값과 함께 표시한다.
+1. **주행 중 한눈에 읽기**: 원형 속도·RPM 계기와 4WD·DPF처럼 현재 판단에 필요한 값만 크게 보인다.
+2. **상태와 제어 분리**: 주행, 소리, FFT, 자동화, 설정을 독립 화면으로 나눈다.
+3. **프리미엄 가전의 차분함**: 현대 표준형 5W 내비게이션처럼 흑색·딥네이비 표면에 선명한 청색 활성선을 제한적으로 사용한다.
+4. **운전자 화면의 절제**: DBC 후보명, raw code, 판단 경로, 무선 진단값은 일반 화면에서 감추고 개발 로그와 서비스 진단에 보존한다.
 5. **실수 방지**: 주행 중 세부 조정, 미검증 제어, 연결이 불안정한 상태의 명령을 잠근다.
 
 ## 2. Hallmark 적용 판단
@@ -25,7 +25,7 @@ Hallmark는 이 프로젝트의 **시각적 품질 프레임**으로 적절하�
 
 이 영역은 Hyundai 사용설명서, Google Design for Driving의 glanceability·touch 지침, 실차 검증 결과, [`feature-design.md`](feature-design.md)와 [`esp-now-protocol.md`](esp-now-protocol.md)를 우선한다.
 
-Hallmark 기준으로 선택한 구성은 `Workbench` macrostructure, `N9` 상단 상태, `C4` 상시 노출 하단 탭이다. 테마는 프로젝트 전용 `Nocturne Alloy`이며 분위기 축은 “automotive clarity, appliance calm, technical precision”이다.
+Hallmark 기준으로 선택한 구성은 수치를 화면의 주인공으로 두는 `Stat-Led` macrostructure, `N9` 상단 상태, `C4` 상시 노출 하단 탭이다. 프로젝트 전용 테마는 현대 표준형 5W 내비게이션의 색 관계를 참고하며 분위기 축은 “automotive clarity, appliance calm, technical precision”이다.
 
 ## 3. 조사·벤치마크
 
@@ -33,8 +33,9 @@ Hallmark 기준으로 선택한 구성은 `Workbench` macrostructure, `N9` 상�
 |---|---|---|
 | [Google Design for Driving interaction principles](https://developers.google.com/cars/design/design-foundations/interaction-principles) | 약 2초 안의 glanceability, 즉각적인 피드백, 단순하고 중단 가능한 흐름 | Android Automotive의 화면 구조를 그대로 복제하지 않음 |
 | [Google Automotive OS sizing](https://developers.google.com/cars/design/automotive-os/design-system/sizing) | 최소 76×76 dp touch target을 주요 내비게이션과 profile에 반영 | 320×480의 76 px가 실제 76 dp와 같다고 단정하지 않음 |
+| [현대자동차 내비게이션 업데이트 FAQ의 표준형 5W 화면](https://update.hyundai.com/KR/KO/cs/faq/2351) | 거의 검은 바탕, 딥네이비 선택면, 밝은 청색 활성선, 흰색 본문과 회색 보조 정보의 관계 | 순정 메뉴 구조·아이콘·그래픽을 그대로 복제하지 않음 |
 | [Hyundai Quiet Mode](https://ownersmanual.hyundai.com/ivi/ccNC/AVNT/KOR/English/Quietmode.html) | 뒤 스피커를 끄고 앞 음량을 조정하는 사용자 개념 | 최신 ccNC의 그래픽을 복제하지 않음 |
-| [Hyundai sound settings](https://ownersmanual.hyundai.com/ivi/DA_GEN2_V/AV/AUS/English/010_Settings_sound.html) | 차량 도식 기반 sound position과 speed-dependent volume 개념 | 대상 차량에서 CAN 제어가 검증됐다고 간주하지 않음 |
+| [Hyundai sound settings](https://ownersmanual.hyundai.com/ivi/DA_GEN2_V/AV/AUS/English/010_Settings_sound.html) | speed-dependent volume 개념 | 대상 차량에서 CAN 제어가 검증됐다고 간주하지 않음 |
 | [2018 Tucson TL 설명서](https://www.hyundaicanada.com/-/media/hyundai/feature/ownerssection/manuals/english/2018/tuscon/tl-can-eng-4.pdf) | fader/balance의 상·하·좌·우 조작과 SDVC를 같은 세대 참고로 사용 | 한국형 2017 BlueLink와 동일 사양이라고 단정하지 않음 |
 | [RealDash 공식 앱 설명](https://play.google.com/store/apps/details?id=com.napko.RealDash) | 상세 진단 화면의 사용자 구성·알람 개념만 참고 | 주행 홈에 작은 gauge를 다수 배치하는 방식은 배제 |
 | [LVGL 8.4 meter](https://lvgl.io/docs/open/8.4/widgets/extra/meter), [button matrix](https://lvgl.io/docs/open/8.4/widgets/core/btnmatrix), [tabview](https://lvgl.io/docs/open/8.4/widgets/extra/tabview) | arc/bar/button과 상태 style을 임베디드 primitive로 구현 | 기본 widget 외형을 그대로 사용하지 않음 |
@@ -46,46 +47,52 @@ Hallmark 기준으로 선택한 구성은 `Workbench` macrostructure, `N9` 상�
 ```text
 상단 36 px: CANView / 활성 CAN bus / ESP-NOW 상태
 본문 368 px
-├─ 주행: 속도·RPM / 후륜 결합 추정 / DPF / 주행 mode
-├─ 오디오: 취침·뒷좌석+ / sound position / 소음 보정
-└─ 자동: SPORT 감시 / 판단 입력 / 제어 잠금·무선 진단
-하단 76 px: 주행 / 오디오 / 자동
+├─ 주행: 원형 속도·RPM / DPF / 주행 mode / 4WD
+├─ 소리: 취침·뒷좌석+ / 음량 / 소음 보정
+├─ FFT: 원형 속도·RPM / spectrum / peak 주파수·레벨
+├─ 자동: SPORT 자동화 / 현재 mode / 사용 여부
+└─ 설정: 화면 밝기 / 자동 밝기 / 속도 단위
+하단 76 px: 주행 / 소리 / FFT / 자동 / 설정
 ```
 
 주행 중 기본 화면은 항상 `주행`이다. 알림이 발생해도 앱이 임의로 탭을 바꾸지 않고, 상단 상태 또는 해당 카드의 색·문구만 바꾼다. 치명적인 링크 단절은 현재 값을 `stale`로 바꾸되 마지막 값을 지워 운전자가 갑작스러운 숫자 변화를 실제 상태 변화로 오해하지 않게 한다.
 
 ### 4.1 주행 화면
 
-읽기 순서는 속도 → 후륜 결합 추정 → DPF → 보조 상태다.
+읽기 순서는 속도·RPM → DPF → 주행 mode·4WD다.
 
-- 속도는 가장 큰 숫자이며 단위는 작고 고정된 위치에 둔다.
-- RPM은 정밀 눈금 대신 짧은 bar와 숫자를 함께 둔다.
-- 중앙 drivetrain 도식은 실제 전·후 축 토크 비율이 아니라 `_4WD11.CLU_DUTY` 기반 `후륜 결합 추정`이다.
-- `_4WD_TQC_CUR`는 차량 검증 전 `DBC 후보값`을 항상 붙인다.
-- DPF는 lamp와 상세 sensor 검증 여부를 분리한다. 정상처럼 보이는 데모값도 `세부 센서 미검증`을 남긴다.
-- 자동 SPORT는 초기 release에서 `감시 전용`이다.
+- 속도와 RPM은 동일한 원형 계기 문법을 쓰되 속도 숫자를 조금 더 크게 둔다.
+- 원형 arc는 각각 표시 범위 대비 현재값을 나타내며 정밀 판독은 중앙 숫자로 한다.
+- 4WD에는 `_4WD11.CLU_DUTY` 기반 결합률과 `_4WD_TQC_CUR` 기반 토크값을 나란히 표시한다.
+- DBC 검증 수준과 raw DPF code는 서비스 진단에 기록하되 일반 운전자 화면에는 노출하지 않는다.
+- 경고가 없을 때는 `DPF 정상`, 경고가 있을 때만 `DPF 확인`으로 바뀐다.
 
 ### 4.2 오디오 화면
 
-상단의 `취침`, `뒷좌석 +`는 상호 배타적인 76 px 이상 profile 버튼이다. 중앙 sound position은 차량 도식과 상·하·좌·우 48 px 보조 버튼으로 구성한다. 이 버튼은 주행 중 disabled 상태가 되어야 하며, 정차 상태에서만 반복 입력을 허용한다.
+상단의 `취침`, `뒷좌석 +`는 상호 배타적인 76 px 이상 profile 버튼이다. 임의 sound position 조작은 제공하지 않고, 중앙에는 현재 음량과 `−`/`+` 한 단계 조절만 둔다.
 
 - `취침`: 가능하면 rear speaker mute, 불가능하면 front bias와 quiet volume cap
 - `뒷좌석 +`: rear mute 해제, 검증된 방향으로 fader 2 step, 사용자 cap 안에서 선택적 volume +1
 - profile 해제: 중앙값이 아니라 적용 전 OEM snapshot 복원
 - 차량 head unit에서 직접 조작 감지: 자동 쓰기 중단 후 새 상태를 채택
-- `주행 소음 보정`: 상대 noise와 적용 중인 volume offset을 함께 표시
+- `주행 소음 보정`: 적용 중인 volume offset만 짧게 표시
 
 ### 4.3 자동화 화면
 
-SPORT 자동화는 기술 설정 화면이 아니라 일반 사용자용 상태 화면으로 표현한다.
+SPORT 자동화는 일반 사용자용 상태 화면으로 표현한다. 화면에는 `SPORT 자동`, 현재 mode(`NORMAL`, `SPORT`, `UNKNOWN`), `사용`/`끔`만 남긴다. 가속도 threshold, decision path, encryption, TX lock, RTT는 서비스 진단으로 이동한다. 실제 제어를 열 때도 즉시 취소, cooldown, 사용자 수동 변경 우선 규칙은 상위 제어 계층에서 유지한다.
 
-- 큰 문장: `필요할 때만 SPORT`
-- 현재 단계: `감시 → 조건 유지 → 제안`
-- 현재 mode: `NORMAL`, `SPORT`, `UNKNOWN`
-- 정책 입력 예: longitudinal acceleration과 진입 threshold
-- 하단 진단: encryption, TX lock, RTT
+### 4.4 FFT 화면
 
-실제 전환 기능이 검증되기 전에는 버튼 label을 `감시 중`으로 제한한다. 향후 실제 제어를 열더라도 `자동 전환`이라는 별도 opt-in 문구, 즉시 취소, cooldown, 사용자 수동 변경 우선 규칙이 필요하다.
+실내 마이크 또는 별도 microphone board에서 만든 FFT bin을 표시한다. 상단에는 차속과 RPM을 작은 원형 계기로 함께 유지해 소음 peak가 주행 조건과 동시에 읽히게 한다.
+
+- 23개 log-frequency bin을 50 Hz–8 kHz 범위의 막대로 표시한다.
+- 가장 큰 성분은 `PEAK` 주파수와 `LEVEL` dB 값으로 분리해 표시한다.
+- 화면은 분석 결과만 표시하며 운행 중 calibration이나 microphone gain을 조정하지 않는다.
+- dB 값은 microphone·ADC·window·reference calibration 전에는 상대 레벨이며, 절대 SPL로 표기하려면 별도 보정 절차가 필요하다.
+
+### 4.5 설정 화면
+
+설정은 화면 밝기, 자동 밝기, 속도 단위만 제공한다. pairing, CAN 송신 허용, DBC 선택 같은 엔지니어링 항목은 운전자 설정 화면에 두지 않는다.
 
 ## 5. 시각 시스템
 
@@ -96,7 +103,7 @@ SPORT 자동화는 기술 설정 화면이 아니라 일반 사용자용 상태 
 | 바탕 | `--color-paper` | 청색기가 약한 짙은 흑연색 |
 | 카드 | `--color-paper-2` | 바탕과 작은 명도 차이만 둔 매트 표면 |
 | 구분 | `--color-rule`, `--color-rule-2` | 그림자 대신 1 px 경계 사용 |
-| 강조 | `--color-accent` | 연결·활성·현재값에만 쓰는 서리빛 청색 |
+| 강조 | `--color-accent` | 현대 5W 화면을 참고한 선명한 시안블루. 연결·활성·현재값에만 사용 |
 | 주의 | `--color-warning` | DPF 확인 등 행동이 필요한 상태 |
 | 오류 | `--color-error` | bus-off, 제어 실패처럼 실제 오류에만 사용 |
 
@@ -110,29 +117,31 @@ SPORT 자동화는 기술 설정 화면이 아니라 일반 사용자용 상태 
 |---|---|---|
 | app | `0,0,320,480` | scroll 없음 |
 | top status | 높이 36 | 12 px 좌우 padding |
-| content | `y=36`, 높이 368 | 12 px 좌우, 10/8 px 상하 padding |
-| bottom nav | `y=404`, 높이 76 | 탭 3개, 각 약 106×76 |
+| content | `y=36`, 높이 368 | 12 px 좌우, 8 px 상하 padding |
+| bottom nav | `y=404`, 높이 76 | 탭 5개, 각 64×76 |
 | 기본 gap | 8 | 4 px spacing 계열 |
-| primary touch | 최소 76×76 | profile·navigation |
-| secondary touch | 최소 48×48 | 정차 시 sound position |
+| primary touch | 최소 76×76 | profile·주요 toggle |
+| bottom navigation | 64×76 | 5개 고정 탭; 실제 장착 거리에서 별도 검증 |
+| secondary touch | 최소 48×48 | 음량 step, toggle, 단위 선택 |
 
 320×480은 실제 hardware의 정본 viewport다. 브라우저 prototype은 375, 414, 768 px에서도 320 px app을 중앙 정렬해 화면 비율과 터치 좌표가 바뀌지 않게 한다. 펌웨어에서는 회전·해상도를 고정하고 display flush buffer만 조정한다.
 
-Google의 76 dp 지침을 여기서는 76 logical px로 먼저 옮겼다. 실제 패널 크기·운전자 거리·장갑 사용 환경에서 물리 표적 크기를 측정하고, 부족하면 보조 버튼도 76 px로 확대하거나 주행 중 잠금 범위를 늘린다.
+Google의 76 dp 지침을 주요 profile과 toggle에는 76 logical px로 먼저 옮겼다. 하단 5개 탭은 화면 폭 때문에 64×76 px이며 탭 전체 면적이 hit target이다. 실제 패널 크기·운전자 거리·장갑 사용 환경에서 측정해 부족하면 설정을 상단 진입점으로 옮겨 탭 수를 줄인다.
 
 ## 7. 구성요소와 LVGL 매핑
 
 | UI 구성요소 | Web prototype | LVGL 8.4 | 상태 입력 |
 |---|---|---|---|
 | 상단 연결 상태 | flex status row | `lv_obj` + `lv_label` | bus count, RSSI, stale |
-| 속도/RPM | metric text + bar | `lv_label`, `lv_bar` | vehicle speed, RPM |
-| 후륜 결합 | hand-built SVG | `lv_arc` + labels | duty/quality/age |
+| 속도/RPM | SVG circular gauge | `lv_arc` + `lv_label` | vehicle speed, RPM |
+| 4WD | 결합률·토크 readout | card + labels | duty, torque, quality |
 | DPF 상태 | semantic status row | card + labels | lamp raw/decoded quality |
 | audio profile | 76 px buttons | checkable `lv_btn` | desired + feedback revision |
-| cabin focus | SVG cabin map | styled `lv_obj` geometry | fader/balance steps |
-| 방향 조작 | four 48 px buttons | four `lv_btn` | semantic step delta |
-| SPORT monitor | mode card/dial | `lv_arc`, button, labels | mode, accel, policy state |
-| bottom nav | fixed tabs | three `lv_btn` | current screen |
+| 음량 | large number + step buttons | `lv_label` + two `lv_btn` | OEM volume level |
+| FFT | SVG bar spectrum | `lv_chart` bar series | 23 bins, peak Hz/dB |
+| SPORT 자동 | mode card/dial | `lv_arc`, button, labels | mode, enabled |
+| 화면 설정 | range + toggle + unit buttons | `lv_slider`, `lv_btn` | brightness, sensor, units |
+| bottom nav | fixed tabs | five `lv_btn` | current screen |
 
 [`canview_ui.c`](../ui/lvgl/canview_ui.c)는 단일 320×480 인스턴스를 제공한다. 화면은 `canview_ui_model_t`만 받고 사용자 입력은 `CANVIEW_UI_CMD_*` 콜백으로만 내보낸다. callback에서 raw CAN frame을 만들지 않고 제어 정책 queue에 복사해야 한다.
 
@@ -160,10 +169,11 @@ Google의 76 dp 지침을 여기서는 76 logical px로 먼저 옮겼다. 실제
 |---|---|---|---|
 | 화면 탭 전환 | 허용 | 허용, 한 번의 터치 | 짧은 상태 조회 |
 | 취침/뒷좌석 profile | 허용 | 검증 후 한 번의 터치만 고려 | 즉시 취소 가능해야 함 |
-| sound position step | 허용 | 금지 | 반복 조작·시선 분산 |
+| 음량 한 단계 조절 | 허용 | 검증 후 허용 | 한 번의 터치와 즉각 취소 |
 | 소음 보정 on/off | 허용 | 상태 조회만 권장 | calibration 변경은 정차 |
+| FFT 조회 | 허용 | 허용 | 조작 없는 상태 조회 |
 | SPORT 감시 on/off | 허용 | off는 허용, on은 정차 | 운전자 의도 우선 |
-| pairing/configuration | 허용 | 금지 | 통신·보안 설정 |
+| 밝기·단위 설정 | 허용 | 금지 | 반복 조작·시선 분산 |
 
 ## 9. 화면 prototype
 
@@ -173,20 +183,30 @@ Google의 76 dp 지침을 여기서는 76 logical px로 먼저 옮겼다. 실제
 
 ![CANView 주행 화면 prototype](images/ui-drive.png)
 
-### 오디오 기능
+### 소리 제어
 
 ![CANView 오디오 화면 prototype](images/ui-audio.png)
+
+### 소리 FFT
+
+![CANView FFT 화면 prototype](images/ui-fft.png)
 
 ### SPORT 자동화
 
 ![CANView 자동화 화면 prototype](images/ui-automation.png)
+
+### 설정
+
+![CANView 설정 화면 prototype](images/ui-settings.png)
 
 브라우저에서 [`ui/prototype/index.html`](../ui/prototype/index.html)을 열고 query parameter를 바꾸면 각 화면을 확인할 수 있다.
 
 ```text
 index.html?screen=drive
 index.html?screen=audio
+index.html?screen=fft
 index.html?screen=automation
+index.html?screen=settings
 ```
 
 ## 10. 검증 체크리스트
@@ -195,9 +215,10 @@ index.html?screen=automation
 
 - 320×480에서 잘림과 수평 scroll이 없어야 한다.
 - 375/414/768 px browser viewport에서도 app 내부 좌표가 변하지 않아야 한다.
-- 주요 터치 표적은 76 px, 정차 전용 보조 표적은 48 px 이상이다.
+- 주요 touch target은 76 px, 하단 탭은 64×76 px, 보조 표적은 48×48 px 이상이다.
 - 한글·숫자 baseline과 단위 위치를 실제 LVGL font에서 재검증한다.
-- 100%, 50%, 0% coupling과 긴 error 문구에서도 넘침이 없어야 한다.
+- 100%, 50%, 0% coupling과 0/6500 rpm에서도 넘침이 없어야 한다.
+- 23개 FFT bin이 320 px 화면에서 서로 붙지 않고 peak 값과 함께 보여야 한다.
 - 색각 이상 simulation에서도 label만으로 상태를 구분할 수 있어야 한다.
 - 야간 최소 밝기에서 accent가 번지지 않고 muted text가 읽혀야 한다.
 

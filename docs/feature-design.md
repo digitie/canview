@@ -326,7 +326,23 @@ Waveshare 공식 FAQ는 이 보드에 ES8311 audio codec, speaker, SMD microphon
  -> relative cabin noise + confidence
 ```
 
-정식 dBA 계측기 calibration 전에는 `dBA`가 아니라 `상대 소음 dB`로 표시한다. 94 dB calibrator 또는 비교 계측기로 offset을 맞춘 경우에만 dBA label을 쓴다.
+FFT 화면용 분석은 같은 16 kHz capture에서 별도 저우선순위 task로 계산한다.
+
+```text
+1024 sample frame (64 ms)
+ -> DC blocker
+ -> Hann window
+ -> 1024-point real FFT (15.625 Hz/bin)
+ -> magnitude squared
+ -> 50 Hz–8 kHz의 23개 log-frequency display bin으로 energy 합산
+ -> peak bin의 인접 3점 포물선 보간
+ -> attack 120 ms / release 600 ms smoothing
+ -> UI 8 Hz 갱신
+```
+
+`canview_ui_model_t`에는 `fft_bins[23]`, `fft_peak_hz`, `fft_peak_tenth_db`만 전달한다. raw PCM과 complex FFT buffer는 audio task 내부에만 두고 LVGL task나 ESP-NOW payload로 복사하지 않는다. FFT bin은 화면 높이에 맞춘 0–100 상대값이며, peak level도 calibration 전에는 상대 dB다. 8 kHz는 16 kHz sampling의 Nyquist 경계이므로 마지막 display bin은 8 kHz 미만 유효 bin만 합산한다. clipping, sample underrun, microphone mute 시에는 이전 spectrum을 유지하지 말고 invalid 상태로 전환한다.
+
+정식 dBA 계측기 calibration 전에는 `dBA`가 아니라 `상대 소음 dB`로 취급한다. 94 dB calibrator 또는 비교 계측기로 offset을 맞춘 경우에만 dBA label을 쓴다.
 
 음성·음악 오염을 완전히 분리할 수 없으므로 다음 guard를 둔다.
 
