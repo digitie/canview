@@ -23,7 +23,7 @@ static void test_can_brightness_debounce_and_stale_hold(void)
     assert(output.status == CANVIEW_BRIGHTNESS_CAN_DAY);
     assert(output.brightness_percent == 80U);
 
-    input.exterior_lamps_on = true;
+    input.tail_lamps_on = true;
     for (int i = 0; i < 4; ++i) {
         output = canview_auto_brightness_update(&state, &config, &input, 100U);
         assert(output.status == CANVIEW_BRIGHTNESS_CAN_DAY);
@@ -33,10 +33,101 @@ static void test_can_brightness_debounce_and_stale_hold(void)
     assert(output.brightness_percent == 31U);
 
     input.lighting_age_ms = 600U;
-    input.exterior_lamps_on = false;
+    input.tail_lamps_on = false;
     output = canview_auto_brightness_update(&state, &config, &input, 1000U);
     assert(output.status == CANVIEW_BRIGHTNESS_CAN_STALE);
     assert(output.brightness_percent == 31U);
+}
+
+static void test_idle_return_touch_restore_and_warning_priority(void)
+{
+    canview_auto_brightness_config_t config = canview_auto_brightness_default_config();
+    config.transition_ms = 0U;
+    config.idle_timeout_ms = 30000U;
+    config.speed_warning_on_confirm_ms = 500U;
+    config.speed_warning_off_confirm_ms = 1000U;
+    canview_auto_brightness_state_t state = {0};
+    canview_auto_brightness_input_t input = {
+        .enabled = true,
+        .lighting_valid = true,
+        .manual_percent = 80U,
+        .speed_limit_valid = true,
+        .speed_limit_active = true,
+        .speed_limit_kph = 70U,
+        .speed_tenth_kph = 700U,
+    };
+
+    canview_auto_brightness_output_t output =
+        canview_auto_brightness_update(&state, &config, &input, 29900U);
+    assert(!output.idle_dimmed);
+    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    assert(output.idle_dimmed);
+    assert(output.return_to_default_screen);
+    assert(output.brightness_percent == 28U);
+
+    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    assert(output.idle_dimmed);
+    assert(!output.return_to_default_screen);
+
+    input.user_interaction = true;
+    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    assert(!output.idle_dimmed);
+    assert(output.brightness_percent == 80U);
+    input.user_interaction = false;
+
+    input.speed_tenth_kph = 770U;
+    for (int i = 0; i < 4; ++i) {
+        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+        assert(!output.speed_warning_active);
+    }
+    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    assert(output.speed_warning_active);
+    assert(output.brightness_percent == 90U);
+
+    input.speed_tenth_kph = 730U;
+    for (int i = 0; i < 10; ++i) {
+        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    }
+    assert(!output.speed_warning_active);
+    assert(output.brightness_percent == 80U);
+
+    input.speed_tenth_kph = 700U;
+    output = canview_auto_brightness_update(&state, &config, &input, 30000U);
+    assert(output.idle_dimmed);
+    assert(output.brightness_percent == 28U);
+
+    input.speed_tenth_kph = 770U;
+    output = canview_auto_brightness_update(&state, &config, &input, 500U);
+    assert(output.idle_dimmed);
+    assert(output.speed_warning_active);
+    assert(output.brightness_percent == 90U);
+
+    input.speed_tenth_kph = 730U;
+    output = canview_auto_brightness_update(&state, &config, &input, 1000U);
+    assert(output.idle_dimmed);
+    assert(!output.speed_warning_active);
+    assert(output.brightness_percent == 28U);
+}
+
+static void test_night_mode_tracks_tail_lamps_with_auto_brightness_off(void)
+{
+    canview_auto_brightness_config_t config = canview_auto_brightness_default_config();
+    config.transition_ms = 0U;
+    canview_auto_brightness_state_t state = {0};
+    canview_auto_brightness_input_t input = {
+        .enabled = false,
+        .lighting_valid = true,
+        .tail_lamps_on = true,
+        .manual_percent = 60U,
+    };
+
+    canview_auto_brightness_output_t output = {0};
+    for (int i = 0; i < 5; ++i) {
+        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    }
+    assert(output.status == CANVIEW_BRIGHTNESS_MANUAL);
+    assert(output.night_mode_active);
+    assert(output.brightness_percent == 60U);
 }
 
 static void test_adaptive_volume_attack_release_and_manual_hold(void)
@@ -192,6 +283,8 @@ int main(void)
     assert(CANVIEW_PROTOCOL_MINOR == 1U);
     assert(sizeof(canview_config_record_t) == 8U);
     test_can_brightness_debounce_and_stale_hold();
+    test_idle_return_touch_restore_and_warning_priority();
+    test_night_mode_tracks_tail_lamps_with_auto_brightness_off();
     test_adaptive_volume_attack_release_and_manual_hold();
     test_auto_sport_speed_hysteresis_and_restore();
     test_auto_sport_mid_speed_acceleration_and_manual_priority();

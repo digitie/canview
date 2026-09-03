@@ -1,12 +1,12 @@
 # CANView LVGL UI
 
-이 디렉터리는 `ESP32-S3-Touch-LCD-3.5`의 320×480 세로 화면을 위한 LVGL 8.4 UI 계층이다. HTML 프로토타입의 정보 구조와 색 토큰을 임베디드 화면으로 옮기되, CAN 프레임 생성·ESP-NOW 재전송·차량 제어 정책은 포함하지 않는다.
+`ESP32-S3-Touch-LCD-3.5`의 320×480 세로 화면을 위한 LVGL 8.4 UI 계층이다. 주행·소리·FFT·자동화·설정 화면, 지속 속도, 제한속도 overlay와 짧은 animation을 포함한다. CAN frame 생성, ESP-NOW 재전송과 차량 제어 정책은 포함하지 않는다.
 
-## 포함 파일
+## 파일
 
-- `canview_ui.h`: 화면에 주입할 표시 모델과 의미 기반 명령 콜백
-- `canview_ui.c`: 주행·소리·FFT·자동화·scroll 설정 화면 및 76 px 하단 내비게이션
-- `canview_theme.h`: `tokens.css`를 RGB565로 변환하기 전의 sRGB 기준 색상
+- `canview_ui.h`: 화면에 주입할 표시 모델과 의미 기반 명령 callback
+- `canview_ui.c`: 5개 화면, 전역 overlay, 값 보간과 화면 fade
+- `canview_theme.h`: `tokens.css`의 LVGL sRGB 색상
 
 ## 통합 예
 
@@ -15,8 +15,7 @@
 
 static void on_ui_command(const canview_ui_command_t *command, void *user_data)
 {
-    /* 여기서는 command를 제어 정책 큐에 복사만 한다.
-     * 사전조건, lease, ACK, OEM 상태 복원은 상위 계층에서 처리한다. */
+    /* command를 정책 queue에 복사한다. CAN payload는 여기서 만들지 않는다. */
 }
 
 void app_ui_start(void)
@@ -30,23 +29,34 @@ void app_ui_start(void)
 }
 ```
 
-CAN/ESP-NOW 작업 스레드에서 `canview_ui_update()`를 직접 호출하면 안 된다. 수신 값을 표시 모델로 정규화한 뒤 LVGL 작업 큐 또는 UI 태스크에서 호출한다.
+CAN/ESP-NOW task에서 `canview_ui_update()`를 직접 호출하지 않는다. 수신값을 `canview_ui_model_t`로 정규화한 뒤 LVGL task에서 갱신한다. 모든 press는 `CANVIEW_UI_CMD_USER_ACTIVITY`를 발생시켜 유휴 감광을 해제한다.
+
+## 화면 계약
+
+- 주행: 중앙 차량과 네 wheel의 구동 지수·TPMS, 평균/순간 연비, DPF, 작은 원형 속도·RPM
+- 소리: 취침/뒷좌석+ profile, 현재 음량, Cabin FFT. 임의 sound position과 volume ± control 없음
+- FFT: `PEAK`와 `LEVEL`을 chart 내부 상단에 둔 대형 spectrum
+- 자동화: 원 장식 없는 mode 상태. SPORT red, NORMAL blue, ECO green
+- 설정: 밝기 slider, toggle, 제한된 `lv_dropdown`. 자유 숫자 text input과 속도 단위 설정 없음
+- 전역: 현재 속도와 speed-limit overlay. overlay는 click flag가 없어 아래 control을 가로채지 않음
+
+실행 중 telemetry 값은 180–300 ms animation으로 이어지고 screen은 160 ms fade한다. idle 진입은 주행 화면으로 복귀하며, warning overlay는 model의 blink 상태를 그대로 따른다.
 
 ## 폰트와 메모리
 
-소스의 한글 문자열은 프로젝트에서 변환한 한글 폰트가 필요하다. `lv_font_conv`로 실제 화면에 쓰는 글리프만 추출하고 `canview_ui_config_t.font`에 지정한다. 폰트를 지정하지 않으면 `LV_FONT_DEFAULT`를 사용하므로 기본 설정에서는 한글이 보이지 않을 수 있다.
+한글은 `lv_font_conv`로 실제 글리프만 변환해 `font`에 지정한다. 대형 숫자·영문은 `metric_font`에 따로 주입한다. 생략하면 `LV_FONT_DEFAULT`를 사용하므로 기본 빌드에서는 한글이 보이지 않을 수 있다.
 
-대형 숫자용 영문 폰트는 `metric_font`에 별도로 지정한다. 생략하면 일반 UI 폰트를 사용한다.
+최신 공식 데모의 설계 패턴을 참고했지만 코드는 LVGL 8.4 API만 사용하고 `lv_demos`에 runtime 의존하지 않는다. 채용·제외 내역은 [공식 데모 검토](../../docs/lvgl-demo-review.md)에 있다.
 
 ## 안전 경계
 
-- UI 콜백은 `CANVIEW_UI_CMD_*` 의미 명령만 생성한다.
-- 상위 제어 계층이 정차 여부, 차량 상태, 사용자 수동 조작, lease와 복원 스냅샷을 확인한다.
-- `four_wd_quality`가 `VERIFIED`가 아니면 후륜 결합률은 실제 축 토크 배분으로 표현하지 않는다.
-- 네 바퀴 구동 gauge와 TPMS pressure는 서로 다른 quality를 사용한다. unavailable pressure는 `0`이 아니라 `—`로 표시한다.
-- DPF raw code와 상세 신호 검증 상태는 일반 UI가 아니라 서비스 진단에 보존한다.
-- FFT의 dB 값은 microphone chain을 보정하기 전에는 상대 레벨로 취급한다.
-- 자동 밝기는 외부 sensor가 아니라 차량 등화·rheostat CAN을 입력으로 사용한다.
-- 주행 중에는 밝기·소음/Sport preset·단위 설정을 상위 계층에서 `LV_STATE_DISABLED`로 전환한다.
+- UI callback은 `CANVIEW_UI_CMD_*` 의미 명령만 만든다.
+- 상위 계층이 정차, 신호 freshness, lease, feedback과 OEM snapshot 복원을 확인한다.
+- `four_wd_quality`가 검증되지 않으면 wheel 값을 실제 바퀴 torque로 해석하지 않는다.
+- 4WD와 TPMS quality는 독립이며 unavailable은 `0` 대신 `—`다.
+- DPF load는 검증된 source가 없으면 unavailable로 둔다.
+- FFT dB는 microphone chain 보정 전 상대 레벨이다.
+- 자동 밝기는 차량 미등·rheostat CAN만 사용한다.
+- 주행 중 설정 control은 상위 계층에서 `LV_STATE_DISABLED`로 전환한다.
 
-상세 상호작용과 상태 표는 [`../../docs/ui-design.md`](../../docs/ui-design.md), 제어·신호 근거는 [`../../docs/feature-design.md`](../../docs/feature-design.md), 무선 명령 수명주기는 [`../../docs/esp-now-protocol.md`](../../docs/esp-now-protocol.md)를 참고한다.
+상세 화면 계약은 [운전자 UI 설계](../../docs/ui-design.md), 자동화는 [자동 제어 로직](../../docs/automation-control.md), 무선 명령 수명주기는 [ESP-NOW 프로토콜](../../docs/esp-now-protocol.md)을 참고한다.

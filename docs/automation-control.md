@@ -2,11 +2,13 @@
 
 ## 1. 범위와 실행 위치
 
-이 문서는 자동 밝기, 주행 소음 기반 음량 보정, 자동 SPORT 전환의 실행 가능한 초기 로직을 정의한다. 세 기능은 같은 자동화처럼 보여도 입력과 실패 영향이 다르므로 다음처럼 나눈다.
+이 문서는 CAN 자동 밝기, 무조작 감광·기본 화면 복귀, 제한속도 경고, 주행 소음 기반 음량 보정, 자동 SPORT 전환의 실행 가능한 초기 로직을 정의한다. 기능마다 입력과 실패 영향이 다르므로 다음처럼 나눈다.
 
 | 기능 | 실행 위치 | 주 입력 | 출력 |
 |---|---|---|---|
 | CAN 자동 밝기 | Controller | 차량 조명 점등, 클러스터 rheostat | LCD backlight PWM 목표값 |
+| 무조작 감광 | Controller | 마지막 touch 시각, 사용자 timeout | 주행 화면 복귀와 낮은 PWM 목표값 |
+| 제한속도 경고 | Controller | 현재 속도, 유효한 내비 제한속도 | 전역 overlay blink와 임시 PWM boost |
 | FFT 소음 보정 | Controller | microphone FFT 특징, 차속, 오디오 상태 | 제한된 음량 offset 의도 명령 |
 | 자동 SPORT | Communicator STM32 | 차속, CAN 종가속도, 기어·브레이크·ESC, 현재 mode | 검증된 drive-mode button event |
 
@@ -49,6 +51,21 @@ rheostat 미수신 야간 목표 = 30%
 ```
 
 밝기 출력은 `GPIO6` LEDC PWM에 적용하되 목표값이 바뀌어도 즉시 점프시키지 않는다. 조명 신호가 500 ms 넘게 stale이면 주간 100%로 되돌아가 운전자를 눈부시게 하지 않고 마지막 유효 밝기를 유지한다. 재수신 시 새 목표까지 다시 ramp한다.
+
+### 2.3 무조작 감광과 제한속도 경고
+
+마지막 touch부터 설정 시간이 지나면 `idle_dimmed`를 latch하고 `return_to_default_screen`을 한 번 발생시킨다. 기본 timeout은 30초이며 UI에서 15/30/60/120초만 고를 수 있다. 유휴 밝기는 기본 35%다. touch 입력은 현재 screen에 관계없이 latch를 즉시 해제하고 정상 day/night 목표로 ramp한다.
+
+제한속도는 `speed_limit_active`, source valid, 현재 속도 freshness가 모두 참일 때만 평가한다. 진입과 해제 문턱을 분리한다.
+
+```text
+경고 진입 = speed >= limit × 1.10 상태가 500 ms 지속
+경고 해제 = speed <  limit × 1.05 상태가 1,000 ms 지속
+표지 blink = 400 ms 간격
+경고 중 목표 밝기 = 기존 목표와 90% 중 큰 값
+```
+
+경고는 touch를 가로채지 않고 idle latch도 지우지 않는다. 따라서 이미 감광된 상태에서 과속하면 경고 기간에만 밝아지고, 해제 뒤에는 다시 35% 유휴 밝기로 부드럽게 돌아간다. 밝기 우선순위는 `주간/야간 base → idle dim → speed warning boost`다. warning blink는 인지성을 위해 단계 전환하고 backlight는 급격한 점프를 막기 위해 ramp한다.
 
 ## 3. FFT 기반 주행 소음 음량 보정
 
@@ -185,9 +202,9 @@ ARMED
 | 그룹 | 항목 | 값 |
 |---|---|---|
 | DISPLAY | 화면 밝기, CAN 자동 밝기 | 10–100%, 사용/끔 |
+| DISPLAY | 무조작 복귀 | `15/30/60/120초`, 기본 `30초` |
 | ROAD NOISE | 소음 보정, 주파수 대역, 민감도, 반응, 최대 보정 | preset과 `+2/+3/+4` |
 | SPORT AUTO | 자동 전환, 진입 속도, 급가속 감지 | 사용/끔, `60/70/80 km/h` |
-| UNITS | 속도 단위 | km/h, mph |
 
 Controller-local 값인 밝기와 FFT preset은 Controller NVS에 저장한다. SPORT 설정은 `CONFIG_SET`으로 Communicator에 보내고 ACK 뒤에만 Controller NVS mirror를 갱신한다. 저장 중 전원이 끊겨도 이전 valid generation을 복원할 수 있도록 version, length, CRC가 있는 두 slot을 번갈아 commit한다.
 
@@ -197,6 +214,9 @@ Controller-local 값인 밝기와 FFT preset은 Controller NVS에 저장한다. 
 
 - 조명 신호 300 ms pulse로 밝기가 야간 mode로 바뀌지 않는다.
 - 조명 signal stale에서 밝기가 갑자기 최대값으로 이동하지 않는다.
+- 무조작 30초에 한 번만 주행 화면 복귀 pulse가 발생하고 touch가 감광을 해제한다.
+- 제한속도 110% 미만의 순간 spike로 경고가 켜지지 않고 105–110% 구간에서 상태가 왕복하지 않는다.
+- 감광 중 제한속도 경고가 끝나면 감광 밝기로 복귀하고 touch는 항상 계속 동작한다.
 - 선택 대역의 높은 소음이 attack 시간보다 짧으면 음량이 오르지 않는다.
 - peak가 짧게 대역을 벗어나도 음량이 즉시 내려가지 않는다.
 - 지속 release에서 1 step씩, step interval보다 빠르지 않게 내려간다.

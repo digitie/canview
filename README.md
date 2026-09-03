@@ -20,14 +20,16 @@
 - [Communicator 내부 4 Mbps UART 프로토콜](docs/communicator-uart-protocol.md)
 - [DBC 파일과 차량 적용 지침](dbc/README.md)
 - [1차 대상 차량 검증 메모](docs/target-vehicle-2017-tucson.md)
+- [내비·엔진·4WD·BCM·IPS·오디오 CAN 신호 후보 카탈로그](docs/can-signal-catalog.md)
 - [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
 - [자동 밝기·소음 음량·SPORT 제어 로직](docs/automation-control.md)
 - [ESP-NOW 양방향 프로토콜](docs/esp-now-protocol.md)
 - [운전자 UI·LVGL 설계](docs/ui-design.md)
+- [LVGL 공식 데모 전체 검토](docs/lvgl-demo-review.md)
 
 ## UI prototype
 
-320×480 세로 화면에 맞춘 주행·소리·FFT·자동화·설정 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 주행 화면의 네 바퀴 게이지에는 구동 지수와 TPMS 공기압을 함께 표현한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
+320×480 세로 화면에 맞춘 주행·소리·FFT·자동화·설정 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 현대 표준형 5W의 짙은 청색 tone과 LVGL 공식 eBike·Music 등 전체 데모의 유효한 패턴을 선별했다. 주행 화면은 4WD를 가장 크게 두고 네 바퀴 구동 지수·TPMS, 평균/순간 연비, DPF, 원형 속도·RPM 순으로 배치한다. 현재 속도와 제한속도는 모든 화면에서 유지한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
 
 | 주행 상태 | 소리 제어 | FFT 분석 |
 |---|---|---|

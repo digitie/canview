@@ -27,8 +27,8 @@ UI와 구현 issue에는 모든 차량 신호에 다음 등급을 붙인다.
 | 등급 | 의미 | UI 표현 | 제어 사용 |
 |---|---|---|---|
 | A | 대상 차량에서 반복 capture·물리 동작과 대조 완료 | 일반 표시 | 별도 안전 검증 후 가능 |
-| B | 저장 DBC에 정의됐으나 대상 연식·트림 미검증 | `후보` 또는 `추정` | 금지 |
-| C | 여러 신호로 계산한 heuristic | `추정`+confidence | 금지 |
+| B | 저장 DBC에 정의됐으나 대상 연식·트림 미검증 | 일반 UI에는 값 숨김, service log에 `candidate` | 금지 |
+| C | 여러 신호로 계산한 heuristic | 일반 UI에는 값 숨김, service log에 confidence | 금지 |
 | D | 존재 미확인·community 주장뿐 | 진단 화면에만 | 금지 |
 
 현재 이 문서의 대상 차량 신호는 모두 B 이하에서 시작한다. 이름이 그럴듯하거나 다른 Hyundai 차량에서 동작했다는 사실은 A 승격 근거가 아니다.
@@ -514,20 +514,22 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 - 사용자의 physical mode 조작 감지
 - 차량 profile이 exact target으로 승인되지 않음
 
-UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `주행 모드 신호 끊김`, `검증 전`처럼 한 가지 최우선 inhibit 이유를 설명한다.
+일반 UI는 toggle과 mode 상태만 중립적으로 비활성화한다. inhibit 이유와 decision path는 service log에서 확인한다.
 
 ## 9. CAN 기반 자동 밝기
 
 `C_TailLampActivity`, `CF_Gway_HeadLampLow`, `CF_Gway_LightSwState`, `CF_Clu_RheostatLevel`을 후보로 사용한다. 실제 tail/low-beam 활성 신호를 1순위로 하고 rheostat를 야간 밝기 범위에 매핑한다. 점등은 500 ms, 소등은 1.5초 확인하며 1.2초 ramp로 PWM을 바꾼다. 신호 stale에서는 갑자기 밝아지지 않고 마지막 유효 밝기를 유지한다. 상세값과 구현은 [자동 제어 로직](automation-control.md)에 있다.
 
+같은 Controller 상태기계가 기본 30초 무조작 시 감광과 주행 화면 복귀를 수행한다. 유효한 내비 제한속도보다 10% 이상 빠른 상태가 확인되면 모든 화면 위의 제한속도 표지를 400 ms 간격으로 점멸하고 밝기를 일시적으로 높인다. 해제 threshold는 5%로 낮춰 경계 왕복을 막으며 overlay는 touch event를 가로채지 않는다.
+
 ## 10. 공통 UI 요구사항
 
 - 주행 중 한 화면에서 핵심 상태를 2초 이내 읽을 수 있어야 한다.
 - 320×480에서 주요 touch target은 76×76 px 이상을 목표로 한다.
-- 움직이는 장식, auto-scrolling text, 실시간 그래프 남용을 피한다.
+- 움직이는 장식과 auto-scrolling text는 피한다. 주행 값·FFT·화면 전환은 160–300 ms 보간으로 부드럽게 갱신한다.
 - 숫자는 tabular figure를 사용하고 단위는 숫자보다 한 단계 작게 둔다.
 - `0`과 `미수신`을 시각적으로 구분한다.
-- 추정값에는 `추정` label과 quality를 함께 보낸다.
+- 추정값의 quality는 model과 service log에 보존하되 일반 UI에는 검증 전 숫자를 표시하지 않는다.
 - warning은 색상뿐 아니라 icon과 문구를 함께 쓴다.
 - audio와 automation 설정의 multi-step 편집은 speed 0에서만 연다.
 - touch 후 250 ms 안에 pressed/pending feedback을 표시한다.
@@ -555,6 +557,8 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 - onboard microphone relative noise meter
 - signal quality/catalog revision
 - CAN 자동 밝기 monitor와 PWM ramp
+- 평균·순간 연비와 전역 제한속도 표시
+- 무조작 감광·주행 화면 자동 복귀
 
 ### P2 — 안전한 audio 기능
 
@@ -590,6 +594,8 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 | Auto volume | 0/40/80/110 km/h | hysteresis crossing | mic clip, music contamination |
 | SPORT | entry/exit | threshold hover | brake, reverse, ESC, link loss |
 | 자동 밝기 | lamp on/off, rheostat | 500 ms/1.5 s debounce | 조명 신호 stale |
+| 제한속도 | valid limit·현재속도 | 110% 진입/105% 해제 | source invalid, touch overlay |
+| 유휴 화면 | touch·timeout | 15/30/60/120초 | warning 종료 뒤 dim 복귀 |
 | 공통 | ignition cycle | session/sequence wrap | Communicator/Controller reboot |
 
 모든 제어 test는 “명령을 보냈다”가 아니라 feedback state와 물리 결과까지 확인해야 통과다.
@@ -606,3 +612,5 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 - [Waveshare 고정 예제 commit](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/tree/283ec84c566c096f8c30493b93dcd4b0bb608de7)
 - [Google Design for Driving — interaction principles](https://developers.google.com/cars/design/design-foundations/interaction-principles)
 - [Google Design for Driving — sizing](https://developers.google.com/cars/design/automotive-os/design-system/sizing)
+
+DBC 전 영역 후보와 도어 잠금·IPS 안전 경계는 [CAN 신호 후보 카탈로그](can-signal-catalog.md)에 있다.
