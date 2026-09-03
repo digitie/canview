@@ -15,8 +15,6 @@ typedef enum {
     ACTION_NAV_SETTINGS,
     ACTION_QUIET,
     ACTION_REAR_BOOST,
-    ACTION_VOLUME_DOWN,
-    ACTION_VOLUME_UP,
     ACTION_ADAPTIVE_VOLUME,
     ACTION_SPORT_MONITOR,
     ACTION_AUTO_BRIGHTNESS,
@@ -27,8 +25,6 @@ typedef enum {
     ACTION_NOISE_MAX_OFFSET,
     ACTION_SPORT_ENTRY_SPEED,
     ACTION_SPORT_ACCELERATION,
-    ACTION_UNITS_METRIC,
-    ACTION_UNITS_IMPERIAL,
 } action_t;
 
 typedef struct {
@@ -41,30 +37,34 @@ typedef struct {
 
     lv_obj_t *bus_label;
     lv_obj_t *link_label;
+    lv_obj_t *header_speed_label;
+    lv_obj_t *speed_limit_overlay;
+    lv_obj_t *speed_limit_label;
     lv_obj_t *speed_arc;
     lv_obj_t *speed_label;
-    lv_obj_t *speed_unit_label;
     lv_obj_t *rpm_arc;
     lv_obj_t *rpm_label;
+    lv_obj_t *average_economy_label;
+    lv_obj_t *instant_economy_label;
     lv_obj_t *dpf_label;
+    lv_obj_t *dpf_load_label;
+    lv_obj_t *dpf_load_bar;
     lv_obj_t *drive_mode_label;
     lv_obj_t *four_wd_label;
     lv_obj_t *wheel_drive_bars[CANVIEW_UI_WHEEL_COUNT];
+    lv_obj_t *wheel_drive_labels[CANVIEW_UI_WHEEL_COUNT];
     lv_obj_t *wheel_pressure_labels[CANVIEW_UI_WHEEL_COUNT];
     lv_obj_t *wheel_objects[CANVIEW_UI_WHEEL_COUNT];
 
     lv_obj_t *quiet_button;
     lv_obj_t *rear_button;
     lv_obj_t *volume_label;
-    lv_obj_t *adaptive_button;
-    lv_obj_t *adaptive_button_label;
     lv_obj_t *volume_offset_label;
+    lv_obj_t *audio_fft_chart;
+    lv_chart_series_t *audio_fft_series;
+    lv_obj_t *audio_peak_frequency_label;
+    lv_obj_t *audio_peak_level_label;
 
-    lv_obj_t *fft_speed_arc;
-    lv_obj_t *fft_speed_label;
-    lv_obj_t *fft_speed_unit_label;
-    lv_obj_t *fft_rpm_arc;
-    lv_obj_t *fft_rpm_label;
     lv_obj_t *fft_chart;
     lv_chart_series_t *fft_series;
     lv_obj_t *fft_peak_frequency_label;
@@ -72,7 +72,7 @@ typedef struct {
 
     lv_obj_t *sport_button;
     lv_obj_t *sport_button_label;
-    lv_obj_t *sport_dial;
+    lv_obj_t *sport_mode_field;
     lv_obj_t *sport_mode_label;
     lv_obj_t *sport_return_label;
 
@@ -91,8 +91,7 @@ typedef struct {
     lv_obj_t *sport_entry_speed_button_label;
     lv_obj_t *sport_acceleration_button;
     lv_obj_t *sport_acceleration_button_label;
-    lv_obj_t *metric_button;
-    lv_obj_t *imperial_button;
+    lv_obj_t *idle_timeout_dropdown;
 } ui_state_t;
 
 static ui_state_t ui;
@@ -210,16 +209,6 @@ static void emit_enabled(canview_ui_command_id_t id, bool enabled)
     ui.config.command_cb(&command, ui.config.command_user_data);
 }
 
-static void emit_step(canview_ui_command_id_t id, int8_t step_delta)
-{
-    if (ui.config.command_cb == NULL) {
-        return;
-    }
-    canview_ui_command_t command = {.id = id};
-    command.value.step_delta = step_delta;
-    ui.config.command_cb(&command, ui.config.command_user_data);
-}
-
 static void emit_percent(canview_ui_command_id_t id, uint8_t percent)
 {
     if (ui.config.command_cb == NULL) {
@@ -227,6 +216,15 @@ static void emit_percent(canview_ui_command_id_t id, uint8_t percent)
     }
     canview_ui_command_t command = {.id = id};
     command.value.percent = percent;
+    ui.config.command_cb(&command, ui.config.command_user_data);
+}
+
+static void emit_activity(void)
+{
+    if (ui.config.command_cb == NULL) {
+        return;
+    }
+    const canview_ui_command_t command = {.id = CANVIEW_UI_CMD_USER_ACTIVITY};
     ui.config.command_cb(&command, ui.config.command_user_data);
 }
 
@@ -244,6 +242,7 @@ static void action_event(lv_event_t *event)
 {
     lv_obj_t *target = lv_event_get_target(event);
     action_t action = (action_t)(uintptr_t)lv_obj_get_user_data(target);
+    emit_activity();
 
     switch (action) {
     case ACTION_NAV_DRIVE:
@@ -266,12 +265,6 @@ static void action_event(lv_event_t *event)
         break;
     case ACTION_REAR_BOOST:
         emit_enabled(CANVIEW_UI_CMD_SET_REAR_BOOST, !ui.model.rear_boost_enabled);
-        break;
-    case ACTION_VOLUME_DOWN:
-        emit_step(CANVIEW_UI_CMD_STEP_VOLUME, -1);
-        break;
-    case ACTION_VOLUME_UP:
-        emit_step(CANVIEW_UI_CMD_STEP_VOLUME, 1);
         break;
     case ACTION_ADAPTIVE_VOLUME:
         emit_enabled(CANVIEW_UI_CMD_SET_ADAPTIVE_VOLUME, !ui.model.adaptive_volume_enabled);
@@ -320,12 +313,6 @@ static void action_event(lv_event_t *event)
         emit_enabled(CANVIEW_UI_CMD_SET_SPORT_ACCELERATION,
                      !ui.model.sport_acceleration_enabled);
         break;
-    case ACTION_UNITS_METRIC:
-        emit_enabled(CANVIEW_UI_CMD_SET_METRIC_UNITS, true);
-        break;
-    case ACTION_UNITS_IMPERIAL:
-        emit_enabled(CANVIEW_UI_CMD_SET_METRIC_UNITS, false);
-        break;
     default:
         break;
     }
@@ -334,7 +321,25 @@ static void action_event(lv_event_t *event)
 static void brightness_event(lv_event_t *event)
 {
     lv_obj_t *slider = lv_event_get_target(event);
+    emit_activity();
     emit_percent(CANVIEW_UI_CMD_SET_BRIGHTNESS, (uint8_t)lv_slider_get_value(slider));
+}
+
+static void idle_timeout_event(lv_event_t *event)
+{
+    static const uint16_t timeouts[] = {15U, 30U, 60U, 120U};
+    lv_obj_t *dropdown = lv_event_get_target(event);
+    const uint16_t selected = lv_dropdown_get_selected(dropdown);
+    emit_activity();
+    if (selected < sizeof(timeouts) / sizeof(timeouts[0])) {
+        emit_option(CANVIEW_UI_CMD_SET_IDLE_TIMEOUT, timeouts[selected]);
+    }
+}
+
+static void activity_event(lv_event_t *event)
+{
+    (void)event;
+    emit_activity();
 }
 
 static void bind_button(lv_obj_t *button)
@@ -355,6 +360,8 @@ static lv_obj_t *make_screen(void)
     lv_obj_set_style_pad_row(screen, 8, 0);
     lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
     lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(screen, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(screen, activity_event, LV_EVENT_PRESSED, NULL);
     return screen;
 }
 
@@ -369,6 +376,42 @@ static void configure_arc(lv_obj_t *arc, int32_t maximum, lv_coord_t width)
     lv_obj_set_style_arc_width(arc, width, LV_PART_MAIN);
     lv_obj_set_style_arc_color(arc, CANVIEW_COLOR_ACCENT, LV_PART_INDICATOR);
     lv_obj_set_style_arc_width(arc, width, LV_PART_INDICATOR);
+}
+
+static void arc_animation_exec(void *object, int32_t value)
+{
+    lv_arc_set_value((lv_obj_t *)object, value);
+}
+
+static void opacity_animation_exec(void *object, int32_t value)
+{
+    lv_obj_set_style_opa((lv_obj_t *)object, (lv_opa_t)value, 0);
+}
+
+static void animate_arc_to(lv_obj_t *arc, int32_t value)
+{
+    lv_anim_del(arc, arc_animation_exec);
+    lv_anim_t animation;
+    lv_anim_init(&animation);
+    lv_anim_set_var(&animation, arc);
+    lv_anim_set_values(&animation, lv_arc_get_value(arc), value);
+    lv_anim_set_time(&animation, 180U);
+    lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&animation, arc_animation_exec);
+    lv_anim_start(&animation);
+}
+
+static void fade_screen_in(lv_obj_t *screen)
+{
+    lv_anim_del(screen, opacity_animation_exec);
+    lv_anim_t animation;
+    lv_anim_init(&animation);
+    lv_anim_set_var(&animation, screen);
+    lv_anim_set_values(&animation, LV_OPA_TRANSP, LV_OPA_COVER);
+    lv_anim_set_time(&animation, 160U);
+    lv_anim_set_path_cb(&animation, lv_anim_path_ease_out);
+    lv_anim_set_exec_cb(&animation, opacity_animation_exec);
+    lv_anim_start(&animation);
 }
 
 static void make_gauge(lv_obj_t *parent, lv_coord_t width, lv_coord_t height,
@@ -422,24 +465,56 @@ static void create_header(void)
     lv_obj_set_style_border_side(header, LV_BORDER_SIDE_BOTTOM, 0);
     lv_obj_set_style_pad_left(header, 12, 0);
     lv_obj_set_style_pad_right(header, 12, 0);
-    lv_obj_set_flex_flow(header, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(header, LV_FLEX_ALIGN_SPACE_BETWEEN,
-                          LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_clear_flag(header, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t *brand = make_label(header, "• CANVIEW");
+    lv_obj_t *brand = make_label(header, "• CV");
+    lv_obj_align(brand, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_set_style_text_color(brand, CANVIEW_COLOR_INK_2, 0);
     lv_obj_set_style_text_letter_space(brand, 1, 0);
 
+    ui.header_speed_label = make_label(header, "0");
+    lv_obj_align(ui.header_speed_label, LV_ALIGN_CENTER, -8, 0);
+    lv_obj_set_style_text_color(ui.header_speed_label, CANVIEW_COLOR_INK, 0);
+    lv_obj_set_style_text_font(ui.header_speed_label,
+                               ui.config.metric_font != NULL ? ui.config.metric_font
+                                                             : LV_FONT_DEFAULT,
+                               0);
+    lv_obj_t *speed_unit = make_label(header, "km/h");
+    lv_obj_align(speed_unit, LV_ALIGN_CENTER, 23, 7);
+    lv_obj_add_style(speed_unit, &style_label_micro, 0);
+
     lv_obj_t *right = lv_obj_create(header);
     lv_obj_remove_style_all(right);
+    lv_obj_align(right, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_height(right, LV_SIZE_CONTENT);
     lv_obj_set_width(right, LV_SIZE_CONTENT);
     lv_obj_set_style_pad_column(right, 8, 0);
     lv_obj_set_flex_flow(right, LV_FLEX_FLOW_ROW);
-    ui.bus_label = make_label(right, "BUS 0/3");
+    ui.bus_label = make_label(right, "●●●");
     lv_obj_add_style(ui.bus_label, &style_label_micro, 0);
-    ui.link_label = make_label(right, "연결 대기");
+    lv_obj_set_style_text_color(ui.bus_label, CANVIEW_COLOR_ACCENT, 0);
+    ui.link_label = make_label(right, "—");
     lv_obj_set_style_text_color(ui.link_label, CANVIEW_COLOR_INK_2, 0);
+
+    ui.speed_limit_overlay = lv_obj_create(ui.root);
+    lv_obj_remove_style_all(ui.speed_limit_overlay);
+    lv_obj_set_pos(ui.speed_limit_overlay, 257, 50);
+    lv_obj_set_size(ui.speed_limit_overlay, 51, 51);
+    lv_obj_set_style_radius(ui.speed_limit_overlay, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(ui.speed_limit_overlay, CANVIEW_COLOR_INK, 0);
+    lv_obj_set_style_bg_opa(ui.speed_limit_overlay, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(ui.speed_limit_overlay, CANVIEW_COLOR_ERROR, 0);
+    lv_obj_set_style_border_width(ui.speed_limit_overlay, 4, 0);
+    lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_SCROLLABLE);
+    ui.speed_limit_label = make_label(ui.speed_limit_overlay, "—");
+    lv_obj_center(ui.speed_limit_label);
+    lv_obj_set_style_text_color(ui.speed_limit_label, CANVIEW_COLOR_PAPER, 0);
+    lv_obj_set_style_text_font(ui.speed_limit_label,
+                               ui.config.metric_font != NULL ? ui.config.metric_font
+                                                             : LV_FONT_DEFAULT,
+                               0);
+    lv_obj_add_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_drive_screen(void)
@@ -447,48 +522,18 @@ static void create_drive_screen(void)
     lv_obj_t *screen = make_screen();
     ui.screens[CANVIEW_UI_SCREEN_DRIVE] = screen;
 
-    lv_obj_t *gauges = make_card(screen, LV_PCT(100), 150, false);
-    lv_obj_set_style_pad_all(gauges, 0, 0);
-    lv_obj_set_flex_flow(gauges, LV_FLEX_FLOW_ROW);
-    make_gauge(gauges, 147, 150, 116, "SPEED", "km/h", 2400,
-               &ui.speed_arc, &ui.speed_label, &ui.speed_unit_label);
-    make_gauge(gauges, 147, 150, 116, "RPM", "×1000", 6500,
-               &ui.rpm_arc, &ui.rpm_label, NULL);
-
-    lv_obj_t *status = lv_obj_create(screen);
-    lv_obj_remove_style_all(status);
-    lv_obj_set_size(status, LV_PCT(100), 48);
-    lv_obj_set_style_pad_column(status, 8, 0);
-    lv_obj_set_flex_flow(status, LV_FLEX_FLOW_ROW);
-
-    lv_obj_t *dpf = make_card(status, 142, 48, true);
-    lv_obj_set_style_pad_all(dpf, 8, 0);
-    lv_obj_t *dpf_title = make_label(dpf, "DPF");
-    lv_obj_align(dpf_title, LV_ALIGN_LEFT_MID, 0, 0);
-    ui.dpf_label = make_label(dpf, "정보 없음");
-    lv_obj_align(ui.dpf_label, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_ACCENT, 0);
-
-    lv_obj_t *mode = make_card(status, 142, 48, true);
-    lv_obj_set_style_pad_all(mode, 8, 0);
-    lv_obj_t *mode_title = make_label(mode, "DRIVE MODE");
-    lv_obj_add_style(mode_title, &style_label_micro, 0);
-    ui.drive_mode_label = make_label(mode, "UNKNOWN");
-    lv_obj_align(ui.drive_mode_label, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_set_style_text_color(ui.drive_mode_label, CANVIEW_COLOR_INK, 0);
-
-    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 138, false);
+    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 150, false);
     lv_obj_set_style_pad_all(four_wd, 8, 0);
     lv_obj_t *four_wd_title = make_label(four_wd, "4WD · PSI");
     lv_obj_add_style(four_wd_title, &style_label_micro, 0);
 
-    static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {0, 202, 0, 202};
-    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {26, 26, 76, 76};
+    static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {6, 208, 6, 208};
+    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {27, 27, 84, 84};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *wheel = lv_obj_create(four_wd);
         lv_obj_remove_style_all(wheel);
         lv_obj_set_pos(wheel, wheel_x[i], wheel_y[i]);
-        lv_obj_set_size(wheel, 70, 40);
+        lv_obj_set_size(wheel, 70, 42);
         lv_obj_set_style_bg_color(wheel, CANVIEW_COLOR_PAPER_3, 0);
         lv_obj_set_style_bg_opa(wheel, LV_OPA_COVER, 0);
         lv_obj_set_style_border_color(wheel, CANVIEW_COLOR_RULE, 0);
@@ -499,16 +544,8 @@ static void create_drive_screen(void)
 
         lv_obj_t *bar = lv_bar_create(wheel);
         lv_obj_remove_style_all(bar);
-        lv_obj_set_size(bar, 5, 28);
-        lv_obj_align(bar, i == CANVIEW_UI_WHEEL_FRONT_RIGHT ||
-                              i == CANVIEW_UI_WHEEL_REAR_RIGHT
-                          ? LV_ALIGN_RIGHT_MID
-                          : LV_ALIGN_LEFT_MID,
-                     i == CANVIEW_UI_WHEEL_FRONT_RIGHT ||
-                              i == CANVIEW_UI_WHEEL_REAR_RIGHT
-                          ? -4
-                          : 4,
-                     0);
+        lv_obj_set_size(bar, 6, 32);
+        lv_obj_align(bar, LV_ALIGN_LEFT_MID, 4, 0);
         lv_bar_set_range(bar, 0, 100);
         lv_obj_set_style_bg_color(bar, CANVIEW_COLOR_RULE, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
@@ -516,10 +553,15 @@ static void create_drive_screen(void)
         lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_INDICATOR);
         lv_obj_set_style_radius(bar, 3, LV_PART_MAIN);
         lv_obj_set_style_radius(bar, 3, LV_PART_INDICATOR);
+        lv_obj_set_style_anim_time(bar, 180U, 0);
         ui.wheel_drive_bars[i] = bar;
 
+        ui.wheel_drive_labels[i] = make_label(wheel, "—%");
+        lv_obj_align(ui.wheel_drive_labels[i], LV_ALIGN_TOP_LEFT, 18, 3);
+        lv_obj_set_style_text_color(ui.wheel_drive_labels[i], CANVIEW_COLOR_ACCENT, 0);
+
         ui.wheel_pressure_labels[i] = make_label(wheel, "—");
-        lv_obj_center(ui.wheel_pressure_labels[i]);
+        lv_obj_align(ui.wheel_pressure_labels[i], LV_ALIGN_BOTTOM_LEFT, 18, -3);
         lv_obj_set_style_text_font(ui.wheel_pressure_labels[i],
                                    ui.config.metric_font != NULL ? ui.config.metric_font
                                                                  : LV_FONT_DEFAULT,
@@ -528,8 +570,8 @@ static void create_drive_screen(void)
 
     lv_obj_t *vehicle = lv_obj_create(four_wd);
     lv_obj_remove_style_all(vehicle);
-    lv_obj_set_pos(vehicle, 107, 25);
-    lv_obj_set_size(vehicle, 58, 92);
+    lv_obj_set_pos(vehicle, 111, 29);
+    lv_obj_set_size(vehicle, 58, 94);
     lv_obj_set_style_bg_color(vehicle, CANVIEW_COLOR_PAPER_3, 0);
     lv_obj_set_style_bg_opa(vehicle, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(vehicle, CANVIEW_COLOR_RULE, 0);
@@ -540,13 +582,115 @@ static void create_drive_screen(void)
     lv_obj_center(ui.four_wd_label);
     lv_obj_set_style_text_align(ui.four_wd_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(ui.four_wd_label, CANVIEW_COLOR_ACCENT, 0);
+
+    lv_obj_t *economy = make_card(screen, LV_PCT(100), 68, true);
+    lv_obj_set_style_pad_all(economy, 0, 0);
+    lv_obj_set_flex_flow(economy, LV_FLEX_FLOW_ROW);
+    for (uint8_t i = 0; i < 2U; ++i) {
+        lv_obj_t *cell = lv_obj_create(economy);
+        lv_obj_remove_style_all(cell);
+        lv_obj_set_size(cell, LV_PCT(50), 68);
+        lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
+        if (i == 1U) {
+            lv_obj_set_style_border_color(cell, CANVIEW_COLOR_RULE_2, 0);
+            lv_obj_set_style_border_width(cell, 1, 0);
+            lv_obj_set_style_border_side(cell, LV_BORDER_SIDE_LEFT, 0);
+        }
+        lv_obj_t *title = make_label(cell, i == 0U ? "평균 연비" : "순간 연비");
+        lv_obj_set_pos(title, 10, 7);
+        lv_obj_add_style(title, &style_label_micro, 0);
+        lv_obj_t *value = make_label(cell, "—");
+        lv_obj_set_pos(value, 10, 28);
+        lv_obj_set_style_text_font(value,
+                                   ui.config.metric_font != NULL ? ui.config.metric_font
+                                                                 : LV_FONT_DEFAULT,
+                                   0);
+        lv_obj_t *unit = make_label(cell, "km/L");
+        lv_obj_align(unit, LV_ALIGN_BOTTOM_RIGHT, -9, -8);
+        lv_obj_add_style(unit, &style_label_micro, 0);
+        if (i == 0U) {
+            ui.average_economy_label = value;
+        } else {
+            ui.instant_economy_label = value;
+        }
+    }
+
+    lv_obj_t *dpf = make_card(screen, LV_PCT(100), 50, true);
+    lv_obj_set_style_pad_all(dpf, 8, 0);
+    lv_obj_t *dpf_title = make_label(dpf, "DPF");
+    lv_obj_align(dpf_title, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_add_style(dpf_title, &style_label_micro, 0);
+    ui.dpf_label = make_label(dpf, "—");
+    lv_obj_align(ui.dpf_label, LV_ALIGN_LEFT_MID, 35, 0);
+    lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_ACCENT, 0);
+    ui.dpf_load_bar = lv_bar_create(dpf);
+    lv_obj_set_size(ui.dpf_load_bar, 145, 5);
+    lv_obj_align(ui.dpf_load_bar, LV_ALIGN_LEFT_MID, 78, 0);
+    lv_bar_set_range(ui.dpf_load_bar, 0, 100);
+    lv_obj_set_style_bg_color(ui.dpf_load_bar, CANVIEW_COLOR_RULE, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(ui.dpf_load_bar, CANVIEW_COLOR_ACCENT, LV_PART_INDICATOR);
+    lv_obj_set_style_anim_time(ui.dpf_load_bar, 300U, 0);
+    ui.dpf_load_label = make_label(dpf, "—%");
+    lv_obj_align(ui.dpf_load_label, LV_ALIGN_RIGHT_MID, 0, 0);
+
+    lv_obj_t *gauges = lv_obj_create(screen);
+    lv_obj_remove_style_all(gauges);
+    lv_obj_set_size(gauges, LV_PCT(100), 60);
+    lv_obj_set_style_pad_column(gauges, 8, 0);
+    lv_obj_set_flex_flow(gauges, LV_FLEX_FLOW_ROW);
+    make_gauge(gauges, 62, 60, 58, "SPEED", "km/h", 2400,
+               &ui.speed_arc, &ui.speed_label, NULL);
+    make_gauge(gauges, 62, 60, 58, "RPM", "×1000", 6500,
+               &ui.rpm_arc, &ui.rpm_label, NULL);
+    lv_obj_t *mode = make_card(gauges, 156, 60, true);
+    lv_obj_set_style_pad_all(mode, 8, 0);
+    lv_obj_set_style_border_color(mode, CANVIEW_COLOR_ACCENT_LINE, 0);
+    lv_obj_set_style_border_width(mode, 2, 0);
+    lv_obj_set_style_border_side(mode, LV_BORDER_SIDE_LEFT, 0);
+    lv_obj_t *mode_title = make_label(mode, "DRIVE MODE");
+    lv_obj_add_style(mode_title, &style_label_micro, 0);
+    ui.drive_mode_label = make_label(mode, "UNKNOWN");
+    lv_obj_align(ui.drive_mode_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_set_style_text_color(ui.drive_mode_label, CANVIEW_COLOR_ACCENT, 0);
 }
 
 static lv_obj_t *make_profile_button(lv_obj_t *parent, const char *title, action_t action)
 {
-    lv_obj_t *button = make_button(parent, 142, 82, title, action);
+    lv_obj_t *button = make_button(parent, 142, 76, title, action);
     bind_button(button);
     return button;
+}
+
+static lv_obj_t *make_fft_chart(lv_obj_t *card, lv_coord_t height,
+                                lv_chart_series_t **series_out)
+{
+    lv_obj_t *chart = lv_chart_create(card);
+    lv_obj_set_size(chart, LV_PCT(100), height);
+    lv_obj_align(chart, LV_ALIGN_BOTTOM_MID, 0, -10);
+    lv_chart_set_type(chart, LV_CHART_TYPE_BAR);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
+    lv_chart_set_point_count(chart, CANVIEW_UI_FFT_BIN_COUNT);
+    lv_chart_set_div_line_count(chart, 4, 0);
+    lv_obj_set_style_bg_opa(chart, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(chart, 0, 0);
+    lv_obj_set_style_line_color(chart, CANVIEW_COLOR_RULE_2, LV_PART_MAIN);
+    lv_obj_set_style_line_width(chart, 1, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(chart, 0, 0);
+    *series_out = lv_chart_add_series(chart, CANVIEW_COLOR_ACCENT_LINE,
+                                      LV_CHART_AXIS_PRIMARY_Y);
+    return chart;
+}
+
+static void make_fft_metric(lv_obj_t *card, const char *caption, lv_align_t align,
+                            lv_coord_t x, lv_obj_t **value_out)
+{
+    lv_obj_t *caption_label = make_label(card, caption);
+    lv_obj_align(caption_label, align, x, 0);
+    lv_obj_add_style(caption_label, &style_label_micro, 0);
+    lv_obj_t *value = make_label(card, "—");
+    lv_obj_align(value, align, x, 16);
+    lv_obj_set_style_text_color(value, CANVIEW_COLOR_INK, 0);
+    *value_out = value;
 }
 
 static void create_audio_screen(void)
@@ -556,41 +700,35 @@ static void create_audio_screen(void)
 
     lv_obj_t *quick = lv_obj_create(screen);
     lv_obj_remove_style_all(quick);
-    lv_obj_set_size(quick, LV_PCT(100), 82);
+    lv_obj_set_size(quick, LV_PCT(100), 76);
     lv_obj_set_style_pad_column(quick, 8, 0);
     lv_obj_set_flex_flow(quick, LV_FLEX_FLOW_ROW);
     ui.quiet_button = make_profile_button(quick, "취침", ACTION_QUIET);
     ui.rear_button = make_profile_button(quick, "뒷좌석 +", ACTION_REAR_BOOST);
 
-    lv_obj_t *volume = make_card(screen, LV_PCT(100), 178, false);
-    lv_obj_t *volume_title = make_label(volume, "VOLUME");
+    lv_obj_t *volume = make_card(screen, LV_PCT(100), 70, false);
+    lv_obj_t *volume_title = make_label(volume, "CURRENT VOLUME");
     lv_obj_add_style(volume_title, &style_label_micro, 0);
     ui.volume_label = make_label(volume, "—");
-    lv_obj_align(ui.volume_label, LV_ALIGN_LEFT_MID, 0, 8);
+    lv_obj_align(ui.volume_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
     lv_obj_set_style_text_font(ui.volume_label,
                                ui.config.metric_font != NULL ? ui.config.metric_font
                                                              : (ui.config.font != NULL ? ui.config.font
                                                                                        : LV_FONT_DEFAULT),
                                0);
-    lv_obj_t *down = make_button(volume, 60, 60, LV_SYMBOL_MINUS, ACTION_VOLUME_DOWN);
-    lv_obj_align(down, LV_ALIGN_RIGHT_MID, -68, 8);
-    lv_obj_clear_flag(down, LV_OBJ_FLAG_CHECKABLE);
-    bind_button(down);
-    lv_obj_t *up = make_button(volume, 60, 60, LV_SYMBOL_PLUS, ACTION_VOLUME_UP);
-    lv_obj_align(up, LV_ALIGN_RIGHT_MID, 0, 8);
-    lv_obj_clear_flag(up, LV_OBJ_FLAG_CHECKABLE);
-    bind_button(up);
-
-    lv_obj_t *adaptive = make_card(screen, LV_PCT(100), 76, true);
-    lv_obj_t *adaptive_title = make_label(adaptive, "주행 소음 보정");
-    lv_obj_align(adaptive_title, LV_ALIGN_LEFT_MID, 0, 0);
-    ui.volume_offset_label = make_label(adaptive, "—");
-    lv_obj_align(ui.volume_offset_label, LV_ALIGN_LEFT_MID, 112, 0);
+    lv_obj_t *adaptive_title = make_label(volume, "소음 보정");
+    lv_obj_align(adaptive_title, LV_ALIGN_RIGHT_MID, -36, 0);
+    lv_obj_add_style(adaptive_title, &style_label_micro, 0);
+    ui.volume_offset_label = make_label(volume, "—");
+    lv_obj_align(ui.volume_offset_label, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_style_text_color(ui.volume_offset_label, CANVIEW_COLOR_ACCENT, 0);
-    ui.adaptive_button = make_button(adaptive, 76, 48, "끔", ACTION_ADAPTIVE_VOLUME);
-    lv_obj_align(ui.adaptive_button, LV_ALIGN_RIGHT_MID, 0, 0);
-    ui.adaptive_button_label = lv_obj_get_child(ui.adaptive_button, 0);
-    bind_button(ui.adaptive_button);
+
+    lv_obj_t *spectrum = make_card(screen, LV_PCT(100), 190, true);
+    make_fft_metric(spectrum, "PEAK", LV_ALIGN_TOP_LEFT, 0,
+                    &ui.audio_peak_frequency_label);
+    make_fft_metric(spectrum, "LEVEL", LV_ALIGN_TOP_RIGHT, -52,
+                    &ui.audio_peak_level_label);
+    ui.audio_fft_chart = make_fft_chart(spectrum, 130, &ui.audio_fft_series);
 }
 
 static void create_fft_screen(void)
@@ -598,48 +736,16 @@ static void create_fft_screen(void)
     lv_obj_t *screen = make_screen();
     ui.screens[CANVIEW_UI_SCREEN_FFT] = screen;
 
-    lv_obj_t *gauges = make_card(screen, LV_PCT(100), 132, false);
-    lv_obj_set_style_pad_all(gauges, 0, 0);
-    lv_obj_set_flex_flow(gauges, LV_FLEX_FLOW_ROW);
-    make_gauge(gauges, 147, 132, 104, "", "km/h", 2400,
-               &ui.fft_speed_arc, &ui.fft_speed_label, &ui.fft_speed_unit_label);
-    make_gauge(gauges, 147, 132, 104, "", "×1000 rpm", 6500,
-               &ui.fft_rpm_arc, &ui.fft_rpm_label, NULL);
-
-    lv_obj_t *spectrum = make_card(screen, LV_PCT(100), 148, true);
-    lv_obj_t *spectrum_title = make_label(spectrum, "CABIN FFT");
-    lv_obj_add_style(spectrum_title, &style_label_micro, 0);
-    lv_obj_t *live = make_label(spectrum, "LIVE");
-    lv_obj_align(live, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_t *spectrum = make_card(screen, LV_PCT(100), 352, false);
+    make_fft_metric(spectrum, "PEAK", LV_ALIGN_TOP_LEFT, 0,
+                    &ui.fft_peak_frequency_label);
+    make_fft_metric(spectrum, "LEVEL", LV_ALIGN_TOP_RIGHT, -52,
+                    &ui.fft_peak_level_label);
+    lv_obj_t *live = make_label(spectrum, "● CABIN FFT");
+    lv_obj_align(live, LV_ALIGN_TOP_LEFT, 0, 34);
+    lv_obj_add_style(live, &style_label_micro, 0);
     lv_obj_set_style_text_color(live, CANVIEW_COLOR_ACCENT, 0);
-
-    ui.fft_chart = lv_chart_create(spectrum);
-    lv_obj_set_size(ui.fft_chart, LV_PCT(100), 94);
-    lv_obj_align(ui.fft_chart, LV_ALIGN_BOTTOM_MID, 0, 0);
-    lv_chart_set_type(ui.fft_chart, LV_CHART_TYPE_BAR);
-    lv_chart_set_range(ui.fft_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
-    lv_chart_set_point_count(ui.fft_chart, CANVIEW_UI_FFT_BIN_COUNT);
-    lv_chart_set_div_line_count(ui.fft_chart, 3, 0);
-    lv_obj_set_style_bg_opa(ui.fft_chart, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(ui.fft_chart, 0, 0);
-    lv_obj_set_style_line_color(ui.fft_chart, CANVIEW_COLOR_RULE_2, LV_PART_MAIN);
-    lv_obj_set_style_line_width(ui.fft_chart, 1, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(ui.fft_chart, 0, 0);
-    ui.fft_series = lv_chart_add_series(ui.fft_chart, CANVIEW_COLOR_ACCENT_LINE,
-                                        LV_CHART_AXIS_PRIMARY_Y);
-
-    lv_obj_t *peak = make_card(screen, LV_PCT(100), 56, true);
-    lv_obj_set_style_pad_top(peak, 8, 0);
-    lv_obj_set_style_pad_bottom(peak, 8, 0);
-    lv_obj_t *peak_title = make_label(peak, "PEAK");
-    lv_obj_add_style(peak_title, &style_label_micro, 0);
-    ui.fft_peak_frequency_label = make_label(peak, "—");
-    lv_obj_align(ui.fft_peak_frequency_label, LV_ALIGN_TOP_LEFT, 72, 0);
-    lv_obj_t *level_title = make_label(peak, "LEVEL");
-    lv_obj_align(level_title, LV_ALIGN_TOP_LEFT, 146, 0);
-    lv_obj_add_style(level_title, &style_label_micro, 0);
-    ui.fft_peak_level_label = make_label(peak, "—");
-    lv_obj_align(ui.fft_peak_level_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+    ui.fft_chart = make_fft_chart(spectrum, 274, &ui.fft_series);
 }
 
 static void create_automation_screen(void)
@@ -650,29 +756,32 @@ static void create_automation_screen(void)
     lv_obj_t *sport = make_card(screen, LV_PCT(100), 352, false);
     lv_obj_t *eyebrow = make_label(sport, "SPORT AUTOMATION");
     lv_obj_add_style(eyebrow, &style_label_micro, 0);
-    lv_obj_t *title = make_label(sport, "SPORT 자동");
-    lv_obj_set_pos(title, 0, 24);
-    lv_obj_set_style_text_color(title, CANVIEW_COLOR_INK, 0);
-
-    ui.sport_dial = lv_arc_create(sport);
-    lv_obj_set_size(ui.sport_dial, 190, 190);
-    lv_obj_align(ui.sport_dial, LV_ALIGN_CENTER, 0, 8);
-    configure_arc(ui.sport_dial, 2, 7);
+    ui.sport_mode_field = lv_obj_create(sport);
+    lv_obj_remove_style_all(ui.sport_mode_field);
+    lv_obj_set_pos(ui.sport_mode_field, 0, 44);
+    lv_obj_set_size(ui.sport_mode_field, LV_PCT(100), 190);
+    lv_obj_set_style_border_color(ui.sport_mode_field, CANVIEW_COLOR_MODE_SPORT, 0);
+    lv_obj_set_style_border_width(ui.sport_mode_field, 4, 0);
+    lv_obj_set_style_border_side(ui.sport_mode_field, LV_BORDER_SIDE_BOTTOM, 0);
+    lv_obj_clear_flag(ui.sport_mode_field, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *current_mode = make_label(sport, "현재 모드");
-    lv_obj_align(current_mode, LV_ALIGN_CENTER, 0, -4);
+    lv_obj_set_pos(current_mode, 0, 70);
     lv_obj_add_style(current_mode, &style_label_micro, 0);
     ui.sport_mode_label = make_label(sport, "UNKNOWN");
-    lv_obj_align(ui.sport_mode_label, LV_ALIGN_CENTER, 0, 21);
+    lv_obj_set_pos(ui.sport_mode_label, 0, 102);
     lv_obj_set_style_text_font(ui.sport_mode_label,
                                ui.config.metric_font != NULL ? ui.config.metric_font
                                                              : (ui.config.font != NULL ? ui.config.font
                                                                                        : LV_FONT_DEFAULT),
                                0);
-    ui.sport_return_label = make_label(sport, "복귀 —");
-    lv_obj_align(ui.sport_return_label, LV_ALIGN_CENTER, 0, 50);
-    lv_obj_add_style(ui.sport_return_label, &style_label_micro, 0);
+    lv_obj_set_style_text_color(ui.sport_mode_label, CANVIEW_COLOR_MODE_SPORT, 0);
+    lv_obj_t *return_title = make_label(sport, "해제 후");
+    lv_obj_set_pos(return_title, 0, 252);
+    lv_obj_add_style(return_title, &style_label_micro, 0);
+    ui.sport_return_label = make_label(sport, "—");
+    lv_obj_align(ui.sport_return_label, LV_ALIGN_TOP_RIGHT, 0, 247);
 
-    ui.sport_button = make_button(sport, 120, 48, "끔", ACTION_SPORT_MONITOR);
+    ui.sport_button = make_button(sport, LV_PCT(100), 48, "끔", ACTION_SPORT_MONITOR);
     lv_obj_align(ui.sport_button, LV_ALIGN_BOTTOM_MID, 0, 0);
     ui.sport_button_label = lv_obj_get_child(ui.sport_button, 0);
     bind_button(ui.sport_button);
@@ -743,9 +852,10 @@ static void create_settings_screen(void)
     lv_obj_set_style_bg_color(ui.brightness_slider, CANVIEW_COLOR_ACCENT,
                               LV_PART_INDICATOR);
     lv_obj_set_style_bg_color(ui.brightness_slider, CANVIEW_COLOR_ACCENT, LV_PART_KNOB);
+    lv_obj_set_style_anim_time(ui.brightness_slider, 240U, 0);
     lv_obj_add_event_cb(ui.brightness_slider, brightness_event, LV_EVENT_RELEASED, NULL);
 
-    lv_obj_t *automatic = make_card(screen, LV_PCT(100), 96, true);
+    lv_obj_t *automatic = make_card(screen, LV_PCT(100), 76, true);
     lv_obj_t *sensor = make_label(automatic, "CAN");
     lv_obj_add_style(sensor, &style_label_micro, 0);
     lv_obj_t *automatic_title = make_label(automatic, "자동 밝기");
@@ -755,6 +865,21 @@ static void create_settings_screen(void)
     lv_obj_align(ui.auto_brightness_button, LV_ALIGN_RIGHT_MID, 0, 0);
     ui.auto_brightness_button_label = lv_obj_get_child(ui.auto_brightness_button, 0);
     bind_button(ui.auto_brightness_button);
+
+    lv_obj_t *idle = make_card(screen, LV_PCT(100), 76, true);
+    lv_obj_t *idle_title = make_label(idle, "대기 후 복귀");
+    lv_obj_align(idle_title, LV_ALIGN_LEFT_MID, 0, 0);
+    ui.idle_timeout_dropdown = lv_dropdown_create(idle);
+    lv_dropdown_set_options(ui.idle_timeout_dropdown, "15초\n30초\n60초\n120초");
+    lv_obj_set_size(ui.idle_timeout_dropdown, 104, 44);
+    lv_obj_align(ui.idle_timeout_dropdown, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_set_style_bg_color(ui.idle_timeout_dropdown, CANVIEW_COLOR_PAPER_3, 0);
+    lv_obj_set_style_text_color(ui.idle_timeout_dropdown, CANVIEW_COLOR_INK_2, 0);
+    lv_obj_set_style_border_color(ui.idle_timeout_dropdown, CANVIEW_COLOR_RULE, 0);
+    lv_obj_set_style_border_width(ui.idle_timeout_dropdown, 1, 0);
+    lv_obj_set_style_radius(ui.idle_timeout_dropdown, CANVIEW_RADIUS_SM, 0);
+    lv_obj_add_event_cb(ui.idle_timeout_dropdown, idle_timeout_event,
+                        LV_EVENT_VALUE_CHANGED, NULL);
 
     lv_obj_t *noise = make_settings_group(screen, 302, "ROAD NOISE");
     make_setting_button_row(noise, "소음 보정", "끔", ACTION_SETTINGS_ADAPTIVE,
@@ -779,17 +904,6 @@ static void create_settings_screen(void)
                             &ui.sport_acceleration_button,
                             &ui.sport_acceleration_button_label);
 
-    lv_obj_t *units = make_card(screen, LV_PCT(100), 76, true);
-    lv_obj_t *units_title = make_label(units, "UNITS");
-    lv_obj_add_style(units_title, &style_label_micro, 0);
-    lv_obj_t *speed_units = make_label(units, "속도 단위");
-    lv_obj_align(speed_units, LV_ALIGN_LEFT_MID, 0, 10);
-    ui.metric_button = make_button(units, 66, 44, "km/h", ACTION_UNITS_METRIC);
-    lv_obj_align(ui.metric_button, LV_ALIGN_RIGHT_MID, -70, 0);
-    bind_button(ui.metric_button);
-    ui.imperial_button = make_button(units, 66, 44, "mph", ACTION_UNITS_IMPERIAL);
-    lv_obj_align(ui.imperial_button, LV_ALIGN_RIGHT_MID, 0, 0);
-    bind_button(ui.imperial_button);
 }
 
 static void create_nav(void)
@@ -845,6 +959,20 @@ static const char *drive_mode_text(canview_ui_drive_mode_t mode)
     }
 }
 
+static lv_color_t drive_mode_color(canview_ui_drive_mode_t mode)
+{
+    switch (mode) {
+    case CANVIEW_UI_DRIVE_SPORT:
+        return CANVIEW_COLOR_MODE_SPORT;
+    case CANVIEW_UI_DRIVE_ECO:
+        return CANVIEW_COLOR_MODE_ECO;
+    case CANVIEW_UI_DRIVE_NORMAL:
+        return CANVIEW_COLOR_ACCENT;
+    default:
+        return CANVIEW_COLOR_INK_2;
+    }
+}
+
 static const char *noise_band_text(canview_ui_noise_band_t band)
 {
     static const char *labels[CANVIEW_UI_NOISE_BAND_COUNT] = {
@@ -872,7 +1000,6 @@ lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
     if (config != NULL) {
         ui.config = *config;
     }
-    ui.model.metric_units = true;
     ui.model.audio_volume_level = 18;
     ui.model.display_brightness_percent = 42;
     ui.model.adaptive_noise_band = CANVIEW_UI_NOISE_BAND_BALANCED;
@@ -881,6 +1008,7 @@ lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
     ui.model.adaptive_max_offset_steps = 4U;
     ui.model.sport_entry_speed_kph = 70U;
     ui.model.sport_acceleration_enabled = true;
+    ui.model.idle_timeout_seconds = 30U;
     if (!styles_ready) {
         init_styles(ui.config.font);
     }
@@ -899,6 +1027,7 @@ lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
     create_automation_screen();
     create_settings_screen();
     create_nav();
+    lv_obj_move_foreground(ui.speed_limit_overlay);
     canview_ui_show_screen(CANVIEW_UI_SCREEN_DRIVE);
     canview_ui_update(&ui.model);
     return ui.root;
@@ -912,13 +1041,23 @@ void canview_ui_show_screen(canview_ui_screen_t screen)
     ui.screen = screen;
     for (int i = 0; i < CANVIEW_UI_SCREEN_COUNT; ++i) {
         if (i == (int)screen) {
+            const bool was_hidden = lv_obj_has_flag(ui.screens[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(ui.screens[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_state(ui.nav_buttons[i], LV_STATE_CHECKED);
+            if (was_hidden) {
+                fade_screen_in(ui.screens[i]);
+            }
         } else {
             lv_obj_add_flag(ui.screens[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_state(ui.nav_buttons[i], LV_STATE_CHECKED);
         }
     }
+    const bool touch_screen = screen == CANVIEW_UI_SCREEN_AUDIO ||
+                              screen == CANVIEW_UI_SCREEN_AUTOMATION ||
+                              screen == CANVIEW_UI_SCREEN_SETTINGS;
+    lv_obj_set_style_opa(ui.speed_limit_overlay,
+                         touch_screen ? LV_OPA_60 : LV_OPA_COVER, 0);
+    lv_obj_move_foreground(ui.speed_limit_overlay);
 }
 
 canview_ui_screen_t canview_ui_current_screen(void)
@@ -931,34 +1070,44 @@ void canview_ui_update(const canview_ui_model_t *model)
     if (ui.root == NULL || model == NULL) {
         return;
     }
+    const bool idle_started = model->idle_dimmed && !ui.model.idle_dimmed;
     ui.model = *model;
+    if (idle_started) {
+        canview_ui_show_screen(CANVIEW_UI_SCREEN_DRIVE);
+    }
 
-    lv_label_set_text_fmt(ui.bus_label, "BUS %u/3", model->active_bus_count);
+    static const char *bus_states[] = {"○○○", "●○○", "●●○", "●●●"};
+    const uint8_t bus_count = model->active_bus_count > 3U ? 3U : model->active_bus_count;
+    lv_label_set_text(ui.bus_label, bus_states[bus_count]);
     if (model->esp_now_rssi_dbm == 0) {
-        lv_label_set_text(ui.link_label, "연결 대기");
+        lv_label_set_text(ui.link_label, "—");
     } else {
-        lv_label_set_text_fmt(ui.link_label, "연결 · %d dBm", model->esp_now_rssi_dbm);
+        lv_label_set_text_fmt(ui.link_label, "%d", model->esp_now_rssi_dbm);
     }
 
-    uint16_t speed_value = model->speed_tenth_kph / 10U;
-    if (!model->metric_units) {
-        speed_value = (uint16_t)(((uint32_t)model->speed_tenth_kph * 621U + 5000U) / 10000U);
-    }
+    const uint16_t speed_value = model->speed_tenth_kph / 10U;
+    lv_label_set_text_fmt(ui.header_speed_label, "%u", speed_value);
     lv_label_set_text_fmt(ui.speed_label, "%u", speed_value);
-    lv_label_set_text_fmt(ui.fft_speed_label, "%u", speed_value);
-    lv_label_set_text(ui.speed_unit_label, model->metric_units ? "km/h" : "mph");
-    lv_label_set_text(ui.fft_speed_unit_label, model->metric_units ? "km/h" : "mph");
-    lv_arc_set_value(ui.speed_arc, model->speed_tenth_kph);
-    lv_arc_set_value(ui.fft_speed_arc, model->speed_tenth_kph);
+    animate_arc_to(ui.speed_arc, model->speed_tenth_kph);
 
     lv_label_set_text_fmt(ui.rpm_label, "%u.%u", model->engine_rpm / 1000U,
                           (model->engine_rpm % 1000U) / 100U);
-    lv_label_set_text_fmt(ui.fft_rpm_label, "%u.%u", model->engine_rpm / 1000U,
-                          (model->engine_rpm % 1000U) / 100U);
-    lv_arc_set_value(ui.rpm_arc, model->engine_rpm);
-    lv_arc_set_value(ui.fft_rpm_arc, model->engine_rpm);
+    animate_arc_to(ui.rpm_arc, model->engine_rpm);
+
+    if (model->fuel_economy_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        lv_label_set_text(ui.average_economy_label, "—");
+        lv_label_set_text(ui.instant_economy_label, "—");
+    } else {
+        lv_label_set_text_fmt(ui.average_economy_label, "%u.%u",
+                              model->average_fuel_economy_tenth_kmpl / 10U,
+                              model->average_fuel_economy_tenth_kmpl % 10U);
+        lv_label_set_text_fmt(ui.instant_economy_label, "%u.%u",
+                              model->instant_fuel_economy_tenth_kmpl / 10U,
+                              model->instant_fuel_economy_tenth_kmpl % 10U);
+    }
 
     lv_label_set_text(ui.drive_mode_label, drive_mode_text(model->drive_mode));
+    lv_obj_set_style_text_color(ui.drive_mode_label, drive_mode_color(model->drive_mode), 0);
     if (model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
         lv_label_set_text(ui.four_wd_label, "4WD\n—");
     } else {
@@ -973,7 +1122,12 @@ void canview_ui_update(const canview_ui_model_t *model)
                          model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE
                              ? 0
                              : drive_value,
-                         LV_ANIM_OFF);
+                         LV_ANIM_ON);
+        if (model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+            lv_label_set_text(ui.wheel_drive_labels[i], "—%");
+        } else {
+            lv_label_set_text_fmt(ui.wheel_drive_labels[i], "%u%%", drive_value);
+        }
         const bool pressure_valid =
             model->tire_pressure_quality != CANVIEW_UI_QUALITY_UNAVAILABLE &&
             model->tire_pressure_tenth_psi[i] > 0U;
@@ -995,19 +1149,38 @@ void canview_ui_update(const canview_ui_model_t *model)
                                                      : CANVIEW_COLOR_INK_2,
                                     0);
     }
-    if (model->dpf_lamp_on) {
+    const uint8_t dpf_load = model->dpf_load_percent > 100U
+                                 ? 100U
+                                 : model->dpf_load_percent;
+    if (model->dpf_lamp_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        lv_label_set_text(ui.dpf_label, "—");
+        lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_MUTED, 0);
+    } else if (model->dpf_lamp_on) {
         lv_label_set_text(ui.dpf_label, "확인");
         lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_WARNING, 0);
     } else {
         lv_label_set_text(ui.dpf_label, "정상");
         lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_ACCENT, 0);
     }
+    if (model->dpf_load_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        lv_label_set_text(ui.dpf_load_label, "—%");
+        lv_bar_set_value(ui.dpf_load_bar, 0, LV_ANIM_ON);
+        lv_obj_set_style_bg_color(ui.dpf_load_bar, CANVIEW_COLOR_ACCENT,
+                                  LV_PART_INDICATOR);
+    } else {
+        lv_label_set_text_fmt(ui.dpf_load_label, "%u%%", dpf_load);
+        lv_bar_set_value(ui.dpf_load_bar, dpf_load, LV_ANIM_ON);
+        lv_obj_set_style_bg_color(ui.dpf_load_bar,
+                                  model->dpf_lamp_quality != CANVIEW_UI_QUALITY_UNAVAILABLE &&
+                                          model->dpf_lamp_on
+                                      ? CANVIEW_COLOR_WARNING
+                                      : CANVIEW_COLOR_ACCENT,
+                                  LV_PART_INDICATOR);
+    }
 
     set_checked(ui.quiet_button, model->quiet_mode_enabled);
     set_checked(ui.rear_button, model->rear_boost_enabled);
     lv_label_set_text_fmt(ui.volume_label, "%u", model->audio_volume_level);
-    set_checked(ui.adaptive_button, model->adaptive_volume_enabled);
-    lv_label_set_text(ui.adaptive_button_label, model->adaptive_volume_enabled ? "사용" : "끔");
     lv_label_set_text_fmt(ui.volume_offset_label, "%+d", model->volume_offset_step);
     set_checked(ui.settings_adaptive_button, model->adaptive_volume_enabled);
     lv_label_set_text(ui.settings_adaptive_button_label,
@@ -1022,16 +1195,27 @@ void canview_ui_update(const canview_ui_model_t *model)
                           model->adaptive_max_offset_steps);
 
     for (uint16_t i = 0; i < CANVIEW_UI_FFT_BIN_COUNT; ++i) {
+        lv_chart_set_value_by_id(ui.audio_fft_chart, ui.audio_fft_series, i,
+                                 model->fft_bins[i]);
         lv_chart_set_value_by_id(ui.fft_chart, ui.fft_series, i, model->fft_bins[i]);
     }
+    lv_chart_refresh(ui.audio_fft_chart);
     lv_chart_refresh(ui.fft_chart);
     if (model->fft_peak_hz >= 1000U) {
+        lv_label_set_text_fmt(ui.audio_peak_frequency_label, "%u.%02u kHz",
+                              model->fft_peak_hz / 1000U,
+                              (model->fft_peak_hz % 1000U) / 10U);
         lv_label_set_text_fmt(ui.fft_peak_frequency_label, "%u.%02u kHz",
                               model->fft_peak_hz / 1000U,
                               (model->fft_peak_hz % 1000U) / 10U);
     } else {
+        lv_label_set_text_fmt(ui.audio_peak_frequency_label, "%u Hz",
+                              model->fft_peak_hz);
         lv_label_set_text_fmt(ui.fft_peak_frequency_label, "%u Hz", model->fft_peak_hz);
     }
+    lv_label_set_text_fmt(ui.audio_peak_level_label, "%u.%u dB",
+                          model->fft_peak_tenth_db / 10U,
+                          model->fft_peak_tenth_db % 10U);
     lv_label_set_text_fmt(ui.fft_peak_level_label, "%u.%u dB",
                           model->fft_peak_tenth_db / 10U,
                           model->fft_peak_tenth_db % 10U);
@@ -1046,13 +1230,17 @@ void canview_ui_update(const canview_ui_model_t *model)
     set_checked(ui.sport_acceleration_button, model->sport_acceleration_enabled);
     lv_label_set_text(ui.sport_acceleration_button_label,
                       model->sport_acceleration_enabled ? "사용" : "끔");
-    lv_arc_set_value(ui.sport_dial, model->drive_mode == CANVIEW_UI_DRIVE_SPORT ? 2 : 1);
     lv_label_set_text(ui.sport_mode_label, drive_mode_text(model->drive_mode));
+    const lv_color_t mode_color = drive_mode_color(model->drive_mode);
+    lv_obj_set_style_text_color(ui.sport_mode_label, mode_color, 0);
+    lv_obj_set_style_border_color(ui.sport_mode_field, mode_color, 0);
     if (model->sport_previous_mode == CANVIEW_UI_DRIVE_UNKNOWN) {
-        lv_label_set_text(ui.sport_return_label, "복귀 —");
+        lv_label_set_text(ui.sport_return_label, "—");
     } else {
-        lv_label_set_text_fmt(ui.sport_return_label, "복귀 %s",
+        lv_label_set_text_fmt(ui.sport_return_label, "%s",
                               drive_mode_text(model->sport_previous_mode));
+        lv_obj_set_style_text_color(ui.sport_return_label,
+                                    drive_mode_color(model->sport_previous_mode), 0);
     }
 
     uint8_t brightness = model->display_brightness_percent;
@@ -1061,16 +1249,43 @@ void canview_ui_update(const canview_ui_model_t *model)
     } else if (brightness > 100U) {
         brightness = 100U;
     }
-    lv_slider_set_value(ui.brightness_slider, brightness, LV_ANIM_OFF);
+    lv_slider_set_value(ui.brightness_slider, brightness, LV_ANIM_ON);
     lv_label_set_text_fmt(ui.brightness_label, "%u%%", brightness);
     set_checked(ui.auto_brightness_button, model->auto_brightness_enabled);
     lv_label_set_text(ui.auto_brightness_button_label,
                       model->auto_brightness_enabled ? "사용" : "끔");
-    if (model->auto_brightness_enabled) {
-        lv_obj_add_state(ui.brightness_slider, LV_STATE_DISABLED);
+    uint16_t idle_selected = 1U;
+    if (model->idle_timeout_seconds <= 15U) {
+        idle_selected = 0U;
+    } else if (model->idle_timeout_seconds <= 30U) {
+        idle_selected = 1U;
+    } else if (model->idle_timeout_seconds <= 60U) {
+        idle_selected = 2U;
     } else {
-        lv_obj_clear_state(ui.brightness_slider, LV_STATE_DISABLED);
+        idle_selected = 3U;
     }
-    set_checked(ui.metric_button, model->metric_units);
-    set_checked(ui.imperial_button, !model->metric_units);
+    lv_dropdown_set_selected(ui.idle_timeout_dropdown, idle_selected);
+
+    if (model->speed_limit_active && model->speed_limit_kph > 0U) {
+        lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text_fmt(ui.speed_limit_label, "%u", model->speed_limit_kph);
+        const bool touch_screen = ui.screen == CANVIEW_UI_SCREEN_AUDIO ||
+                                  ui.screen == CANVIEW_UI_SCREEN_AUTOMATION ||
+                                  ui.screen == CANVIEW_UI_SCREEN_SETTINGS;
+        lv_opa_t overlay_opacity = touch_screen ? LV_OPA_60 : LV_OPA_COVER;
+        if (model->speed_limit_warning_active) {
+            overlay_opacity = model->speed_limit_warning_visible
+                                  ? (touch_screen ? LV_OPA_80 : LV_OPA_COVER)
+                                  : LV_OPA_30;
+        }
+        lv_obj_set_style_opa(ui.speed_limit_overlay, overlay_opacity, 0);
+    } else {
+        lv_obj_add_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
+    }
+    lv_obj_set_style_text_color(ui.header_speed_label,
+                                model->speed_limit_warning_active
+                                    ? CANVIEW_COLOR_WARNING
+                                    : CANVIEW_COLOR_INK,
+                                0);
+    lv_obj_move_foreground(ui.speed_limit_overlay);
 }

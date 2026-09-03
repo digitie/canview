@@ -32,6 +32,7 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 | 기능 | Message | CAN ID | 주요 신호 | 비고 |
 |---|---|---:|---|---|
 | 계기판 속도/크루즈 | `CLU11` | `0x4F1` (1265) | `CF_Clu_Vanz`, cruise 상태 | 속도 단위 신호 확인 |
+| 내비 제한속도 | `Sign_Detection`/`Navi_HU` | `0x4EC`/`0x544` | `SpeedLim_Nav_*`, source flag | 5W 표시와 unit·valid 대조 |
 | 주행거리 | `CLU12` | `0x5B0` (1456) | `CF_Clu_Odometer` | 단위 `km` |
 | 네 바퀴 속도 | `WHL_SPD11` | `0x386` (902) | `WHL_SPD_FL/FR/RL/RR` | 각 14 bit, factor 0.03125 km/h |
 | 엔진 기본 | `EMS11` | `0x316` (790) | `N`, `TQI`, `VS` | RPM·토크 요구율·속도 후보 |
@@ -48,7 +49,11 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 | 조향각 | `SAS11` | `0x2B0` (688) | `SAS_Angle` | signed 0.1 deg 후보 |
 | 조향 토크/각 | `MDPS11`/`MDPS12` | `0x381`/`0x251` | `CR_Mdps_StrAng`, `CR_Mdps_StrTq` | 송신 금지, 표시만 |
 | TPMS | `TPMS11` | `0x593` (1427) | tire status/pressure bytes | 단위·타이어 위치 검증 필요 |
+| 평균 연비 | `CLU13` | `0x50C` (1292) | `CF_Clu_AvgFCI`, `CF_Clu_AvgFCU` | unit enum 확인 |
+| 평균·순간 연비 | `CLU_HU_P_05` | `0x5D7` (1495) | `Clu_AFC`, `Clu_IFC` | M-CAN 탑재·수신 확인 |
 | 조명·밝기 | `CGW1`/`CLU11`/M-CAN 후보 | profile 확인 | `CF_Gway_HeadLampLow`, `CF_Gway_LightSwState`, `CF_Clu_RheostatLevel`, `C_TailLampActivity` | 자동 밝기 입력, actual lamp 우선 |
+| 도어 열림 | `CGW1`/`CGW2` | `0x541`/`0x553` | 앞·뒤·trunk switch | 수신 표시 후보 |
+| 도어 잠금 상태 | `GW_IPM_PE_2` | `0x16B` (363) | 도어별 `UnlockState`, TMU feedback | 열림 상태와 별도 검증 |
 | SCC | `SCC11`/`SCC12` | `0x420`/`0x421` | ACC/object/status | read-only만 |
 | LKAS | `LKAS11` | `0x340` (832) | warning/request 상태 | torque/request 신호 송신 금지 |
 
@@ -89,6 +94,8 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 
 A 등급만 기본 화면의 신뢰 가능한 값으로 사용한다. B/C는 `candidate` 또는 `raw` 배지를 표시하고, X는 자동으로 stale 처리한다.
 
+기능별 후보, 인포테인먼트·BCM·IPS·도어 잠금의 위험도와 실차 검증 순서는 [CAN 신호 후보 카탈로그](can-signal-catalog.md)에 정리한다.
+
 ## 제어 기능 경계
 
-1차 차량 검증은 수신 전용이다. `SCC`, `LKAS`, `MDPS`, `TCU`, `4WD` 메시지의 송신은 구현·문서 예제·테스트에서 기본적으로 금지한다. 제어가 필요해지면 차량별 명령의 목적, 주기, alive counter/checksum, 진단 영향, rollback, 물리적 비상 해제부터 별도 검토한다.
+1차 차량 검증은 수신 전용이다. `SCC`, `LKAS`, `MDPS`, `TCU`, `4WD`, `NM`, `IGN`, 도어 잠금 해제 메시지의 송신은 구현·문서 예제·테스트에서 기본적으로 금지한다. 제어가 필요해지면 차량별 명령의 목적, 주기, alive counter/checksum, 진단 영향, wake-up, 인증, rollback, 물리적 비상 해제부터 별도 검토한다.

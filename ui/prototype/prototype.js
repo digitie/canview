@@ -1,101 +1,62 @@
-const screens = [...document.querySelectorAll("[data-screen]")];
-const tabs = [...document.querySelectorAll("[data-target]")];
+const app = document.querySelector(".app");
+const stack = document.querySelector(".screen-stack");
+const panels = [...document.querySelectorAll(".screen-panel")];
+const navButtons = [...document.querySelectorAll(".nav-button")];
+const touchScreens = new Set(["audio", "automation", "settings"]);
+let idleTimer;
 
-function selectScreen(name, updateUrl = true) {
-  const next = screens.find((screen) => screen.dataset.screen === name) ?? screens[0];
-  screens.forEach((screen) => {
-    const active = screen === next;
-    screen.classList.toggle("is-active", active);
-    screen.hidden = !active;
+function showScreen(name) {
+  const selected = panels.find((panel) => panel.dataset.screen === name) ?? panels[0];
+  panels.forEach((panel) => {
+    const active = panel === selected;
+    panel.classList.toggle("is-active", active);
+    panel.hidden = !active;
   });
-  tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.target === next.dataset.screen)));
-  if (updateUrl) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("screen", next.dataset.screen);
-    window.history.replaceState({}, "", url);
-  }
+  navButtons.forEach((button) => {
+    button.setAttribute("aria-selected", String(button.dataset.target === selected.dataset.screen));
+  });
+  stack.dataset.currentScreen = selected.dataset.screen;
+  stack.classList.toggle("is-touch-screen", touchScreens.has(selected.dataset.screen));
 }
 
-tabs.forEach((tab) => tab.addEventListener("click", () => selectScreen(tab.dataset.target)));
-
-document.querySelectorAll("[data-profile]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const next = button.getAttribute("aria-pressed") !== "true";
-    document.querySelectorAll("[data-profile]").forEach((item) => item.setAttribute("aria-pressed", "false"));
-    button.setAttribute("aria-pressed", String(next));
-  });
-});
-
-function setToggle(button, enabled) {
-  button.setAttribute("aria-pressed", String(enabled));
-  button.textContent = enabled ? "사용" : "끔";
+function resetIdle() {
+  app.classList.remove("is-idle");
+  window.clearTimeout(idleTimer);
+  const selected = document.querySelector("#idle-timeout option:checked");
+  const delay = Number.parseInt(selected?.textContent ?? "30", 10) * 1000;
+  idleTimer = window.setTimeout(() => {
+    app.classList.add("is-idle");
+    showScreen("drive");
+  }, delay);
 }
 
-document.querySelectorAll(".adaptive-toggle, .sport-toggle").forEach((button) => {
-  button.addEventListener("click", () => {
-    const next = button.getAttribute("aria-pressed") !== "true";
-    setToggle(button, next);
-    const target = button.classList.contains("adaptive-toggle") ? "noise" : "sport";
-    const settingButton = document.querySelector(`[data-setting-toggle="${target}"]`);
-    if (settingButton) setToggle(settingButton, next);
-  });
-});
+navButtons.forEach((button) => button.addEventListener("click", () => showScreen(button.dataset.target)));
 
-document.querySelectorAll("[data-setting-toggle]").forEach((button) => {
+document.querySelectorAll("[aria-pressed]").forEach((button) => {
   button.addEventListener("click", () => {
-    const next = button.getAttribute("aria-pressed") !== "true";
-    setToggle(button, next);
-    if (button.dataset.settingToggle === "brightness") brightness.disabled = next;
-    if (button.dataset.settingToggle === "noise") {
-      const audioButton = document.querySelector(".adaptive-toggle");
-      if (audioButton) setToggle(audioButton, next);
+    const pressed = button.getAttribute("aria-pressed") === "true";
+    button.setAttribute("aria-pressed", String(!pressed));
+    if (button.matches("[data-setting-toggle]")) {
+      button.textContent = pressed ? "끔" : "사용";
     }
-    if (button.dataset.settingToggle === "sport") {
-      const sportButton = document.querySelector(".sport-toggle");
-      if (sportButton) setToggle(sportButton, next);
+    if (button.classList.contains("sport-toggle")) {
+      button.textContent = pressed ? "자동 전환 꺼짐" : "자동 전환 사용";
     }
-  });
-});
-
-document.querySelectorAll("[data-cycle]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const options = button.dataset.options.split("|");
-    const current = options.indexOf(button.textContent.trim());
-    button.textContent = options[(current + 1) % options.length];
-  });
-});
-
-let volume = 18;
-const volumeValue = document.querySelector("[data-volume-value]");
-document.querySelectorAll("[data-volume-step]").forEach((button) => {
-  button.addEventListener("click", () => {
-    volume = Math.max(0, Math.min(40, volume + Number(button.dataset.volumeStep)));
-    volumeValue.textContent = String(volume);
   });
 });
 
 const brightness = document.querySelector("#brightness");
-const brightnessValue = document.querySelector(".brightness-value");
-brightness.disabled = document.querySelector('[data-setting-toggle="brightness"]')?.getAttribute("aria-pressed") === "true";
 brightness.addEventListener("input", () => {
-  brightnessValue.value = `${brightness.value}%`;
+  document.querySelector(".brightness-value").value = `${brightness.value}%`;
 });
 
-document.querySelectorAll("[data-unit]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("[data-unit]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
-    const metric = button.dataset.unit === "metric";
-    document.querySelectorAll("[data-speed-value]").forEach((item) => { item.textContent = metric ? "82" : "51"; });
-    document.querySelectorAll("[data-speed-unit]").forEach((item) => { item.textContent = metric ? "km/h" : "mph"; });
-  });
-});
+document.addEventListener("pointerdown", resetIdle, {passive: true});
+document.querySelector("#idle-timeout").addEventListener("change", resetIdle);
 
-const requestedScreen = new URL(window.location.href).searchParams.get("screen");
-selectScreen(requestedScreen, false);
-
-const requestedSection = new URL(window.location.href).searchParams.get("section");
-if (requestedScreen === "settings" && requestedSection) {
-  const target = document.querySelector(`#${requestedSection}-settings`)?.closest(".settings-group");
-  const settingsPanel = document.querySelector(".settings-panel");
-  if (target && settingsPanel) settingsPanel.scrollTop = Math.max(0, target.offsetTop - 8);
+const query = new URLSearchParams(window.location.search);
+const requestedScreen = query.get("screen");
+showScreen(requestedScreen ?? "drive");
+if (query.get("scroll") === "bottom") {
+  document.querySelector("#screen-settings").scrollTop = 1000;
 }
+resetIdle();

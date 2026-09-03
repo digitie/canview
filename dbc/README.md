@@ -55,9 +55,9 @@ upstream의 일반 `HYUNDAI_TUCSON` 플랫폼은 `hyundai_can_generated`를 사�
 2. ignition off/on, idle, 주행, 변속, 제동, 4WD 상태를 별도 캡처한다.
 3. `hyundai_can.dbc`로 ID와 signal을 decode한다.
 4. 계기판·실측값과 비교해 신호를 A/B/C/X 등급으로 기록한다.
-5. 검증된 신호만 기본 화면에 표시하고, 미확인 값은 `candidate`/`raw`로 표시한다.
+5. 검증된 신호만 기본 화면에 표시하고, 미확인 값은 일반 UI에서 숨긴 채 service log에 `candidate`/`raw`로 기록한다.
 
-차량별 결과는 [`docs/target-vehicle-2017-tucson.md`](../docs/target-vehicle-2017-tucson.md)에 기록한다.
+차량별 결과는 [`docs/target-vehicle-2017-tucson.md`](../docs/target-vehicle-2017-tucson.md)에 기록한다. 내비·연비·오디오·BCM·IPS·도어를 포함한 상세 후보와 제어 등급은 [`docs/can-signal-catalog.md`](../docs/can-signal-catalog.md)에 있다.
 
 ## 5. 우선 확인할 신호
 

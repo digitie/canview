@@ -20,6 +20,8 @@
 #define CANVIEW_COLOR_WARNING_WASH lv_color_hex(0x241C0C)
 #define CANVIEW_COLOR_ERROR        lv_color_hex(0xFA6863)
 #define CANVIEW_COLOR_ERROR_WASH   lv_color_hex(0x2B1614)
+#define CANVIEW_COLOR_MODE_SPORT   lv_color_hex(0xF05D59)
+#define CANVIEW_COLOR_MODE_ECO     lv_color_hex(0x58C987)
 
 #define CANVIEW_RADIUS_SM 8
 #define CANVIEW_RADIUS_MD 12

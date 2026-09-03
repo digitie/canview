@@ -13,6 +13,8 @@ typedef enum {
     CANVIEW_BRIGHTNESS_CAN_DAY,
     CANVIEW_BRIGHTNESS_CAN_NIGHT,
     CANVIEW_BRIGHTNESS_CAN_STALE,
+    CANVIEW_BRIGHTNESS_IDLE_DIM,
+    CANVIEW_BRIGHTNESS_SPEED_WARNING,
 } canview_brightness_status_t;
 
 typedef struct {
@@ -23,16 +25,29 @@ typedef struct {
     uint16_t lamp_off_confirm_ms;
     uint16_t transition_ms;
     uint16_t stale_timeout_ms;
+    uint32_t idle_timeout_ms;
+    uint8_t idle_dim_percent;
+    uint8_t speed_warning_enter_percent;
+    uint8_t speed_warning_exit_percent;
+    uint16_t speed_warning_on_confirm_ms;
+    uint16_t speed_warning_off_confirm_ms;
+    uint16_t speed_warning_flash_interval_ms;
+    uint8_t speed_warning_brightness_percent;
 } canview_auto_brightness_config_t;
 
 typedef struct {
     bool enabled;
     bool lighting_valid;
-    bool exterior_lamps_on;
+    bool tail_lamps_on;
     bool dimmer_valid;
     uint8_t dimmer_percent;
     uint8_t manual_percent;
     uint16_t lighting_age_ms;
+    bool user_interaction;
+    bool speed_limit_valid;
+    bool speed_limit_active;
+    uint16_t speed_tenth_kph;
+    uint8_t speed_limit_kph;
 } canview_auto_brightness_input_t;
 
 typedef struct {
@@ -41,11 +56,22 @@ typedef struct {
     bool pending_night;
     uint32_t pending_ms;
     uint16_t current_tenth_percent;
+    uint32_t idle_elapsed_ms;
+    bool idle_dimmed;
+    bool speed_warning_active;
+    uint32_t speed_warning_on_ms;
+    uint32_t speed_warning_off_ms;
+    uint32_t speed_warning_flash_ms;
 } canview_auto_brightness_state_t;
 
 typedef struct {
     uint8_t brightness_percent;
     canview_brightness_status_t status;
+    bool night_mode_active;
+    bool idle_dimmed;
+    bool return_to_default_screen;
+    bool speed_warning_active;
+    bool speed_warning_visible;
 } canview_auto_brightness_output_t;
 
 typedef enum {

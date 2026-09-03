@@ -69,7 +69,6 @@ typedef enum {
 typedef enum {
     CANVIEW_UI_CMD_SET_QUIET = 1,
     CANVIEW_UI_CMD_SET_REAR_BOOST,
-    CANVIEW_UI_CMD_STEP_VOLUME,
     CANVIEW_UI_CMD_SET_ADAPTIVE_VOLUME,
     CANVIEW_UI_CMD_SET_SPORT_MONITOR,
     CANVIEW_UI_CMD_SET_BRIGHTNESS,
@@ -80,7 +79,8 @@ typedef enum {
     CANVIEW_UI_CMD_SET_ADAPTIVE_MAX_OFFSET,
     CANVIEW_UI_CMD_SET_SPORT_ENTRY_SPEED,
     CANVIEW_UI_CMD_SET_SPORT_ACCELERATION,
-    CANVIEW_UI_CMD_SET_METRIC_UNITS,
+    CANVIEW_UI_CMD_SET_IDLE_TIMEOUT,
+    CANVIEW_UI_CMD_USER_ACTIVITY,
 } canview_ui_command_id_t;
 
 typedef struct {
@@ -105,6 +105,9 @@ typedef struct {
 typedef struct {
     uint16_t speed_tenth_kph;
     uint16_t engine_rpm;
+    uint16_t average_fuel_economy_tenth_kmpl;
+    uint16_t instant_fuel_economy_tenth_kmpl;
+    canview_ui_quality_t fuel_economy_quality;
 
     uint8_t rear_coupling_percent;
     uint16_t clutch_torque_nm;
@@ -115,6 +118,9 @@ typedef struct {
     uint8_t tire_pressure_warning_mask;
 
     bool dpf_lamp_on;
+    canview_ui_quality_t dpf_lamp_quality;
+    uint8_t dpf_load_percent;
+    canview_ui_quality_t dpf_load_quality;
 
     canview_ui_drive_mode_t drive_mode;
     canview_ui_drive_mode_t sport_previous_mode;
@@ -138,7 +144,14 @@ typedef struct {
 
     uint8_t display_brightness_percent;
     bool auto_brightness_enabled;
-    bool metric_units;
+    uint16_t idle_timeout_seconds;
+    bool night_mode_active;
+    bool idle_dimmed;
+
+    bool speed_limit_active;
+    uint8_t speed_limit_kph;
+    bool speed_limit_warning_active;
+    bool speed_limit_warning_visible;
 
     uint8_t active_bus_count;
     int8_t esp_now_rssi_dbm;

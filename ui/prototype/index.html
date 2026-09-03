@@ -8,50 +8,47 @@
   <link rel="stylesheet" href="canview.css">
 </head>
 <body>
-  <main class="app" aria-label="CANView 화면 프로토타입">
+  <main class="app is-speed-warning" aria-label="CANView 화면 프로토타입">
     <header class="status-bar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>CANVIEW <span class="prototype-tag">PROTO</span></div>
-      <div class="link-summary" role="status" aria-label="연결 상태">
-        <span>BUS 3/3</span>
-        <span class="link-state">연결 · −54 dBm</span>
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>CV</div>
+      <div class="persistent-speed" aria-label="현재 차속 시속 82킬로미터"><strong data-speed-value>82</strong><span>km/h</span></div>
+      <div class="link-summary" role="status" aria-label="CAN 3개 및 무선 연결 정상">
+        <span class="bus-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>−54</span>
       </div>
     </header>
 
-    <div class="screen-stack">
+    <div class="screen-stack" data-current-screen="drive">
+      <aside class="speed-limit-overlay" aria-label="제한속도 시속 70킬로미터, 현재 제한속도 초과">
+        <span>LIMIT</span><strong>70</strong>
+      </aside>
+
       <section class="screen-panel drive-panel is-active" id="screen-drive" data-screen="drive" aria-label="주행 상태">
-        <div class="gauge-cluster">
-          <div class="gauge" role="img" aria-label="차속 시속 82킬로미터">
-            <svg class="gauge-ring" viewBox="0 0 140 140" aria-hidden="true">
-              <circle class="gauge-track" cx="70" cy="70" r="58" pathLength="100"/>
-              <circle class="gauge-progress" cx="70" cy="70" r="58" pathLength="100" style="--gauge-progress: 25.5"/>
-            </svg>
-            <div class="gauge-readout"><span class="micro-label">Speed</span><strong data-speed-value>82</strong><span class="gauge-unit" data-speed-unit>km/h</span></div>
-          </div>
-          <div class="gauge" role="img" aria-label="엔진 회전수 1840 rpm">
-            <svg class="gauge-ring" viewBox="0 0 140 140" aria-hidden="true">
-              <circle class="gauge-track" cx="70" cy="70" r="58" pathLength="100"/>
-              <circle class="gauge-progress" cx="70" cy="70" r="58" pathLength="100" style="--gauge-progress: 21"/>
-            </svg>
-            <div class="gauge-readout gauge-readout--rpm"><span class="micro-label">RPM</span><strong>1.8</strong><span class="gauge-unit">×1000</span></div>
-          </div>
-        </div>
-
-        <div class="drive-status-strip">
-          <div><span class="micro-label">DPF</span><strong>정상</strong></div>
-          <div><span class="micro-label">Drive mode</span><strong>NORMAL</strong></div>
-        </div>
-
-        <article class="drivetrain-card" aria-label="4WD 구동과 타이어 공기압">
-          <span class="micro-label drivetrain-title">4WD · PSI</span>
-          <div class="wheel-meter wheel-meter--fl" style="--wheel-drive: 76%"><span class="wheel-drive"></span><strong>34.2</strong></div>
-          <div class="wheel-meter wheel-meter--fr" style="--wheel-drive: 74%"><span class="wheel-drive"></span><strong>34.0</strong></div>
+        <article class="drivetrain-card" aria-label="4WD 토크 배분과 타이어 공기압">
+          <div class="card-kicker"><span>4WD · PSI</span><strong>F 62 <i></i> R 38</strong></div>
+          <div class="wheel-meter wheel-meter--fl" style="--wheel-drive: 76%"><span class="wheel-fill"></span><em>76%</em><strong>34.2</strong></div>
+          <div class="wheel-meter wheel-meter--fr" style="--wheel-drive: 74%"><span class="wheel-fill"></span><em>74%</em><strong>34.0</strong></div>
           <div class="vehicle-plan" aria-hidden="true">
-            <svg viewBox="0 0 54 88"><path d="M17 5h20l8 15 3 46-8 17H14L6 66l3-46Z"/><path d="M12 27h30M10 62h34M17 11h20l5 15H12Z"/></svg>
-            <strong>38%</strong>
+            <svg viewBox="0 0 58 94"><path d="M18 5h22l9 17 3 49-9 18H15L6 71l3-49Z"/><path d="M12 29h34M10 66h38M18 12h22l5 14H13Z"/><path d="M29 30v35"/></svg>
+            <strong>38%</strong><span>REAR</span>
           </div>
-          <div class="wheel-meter wheel-meter--rl" style="--wheel-drive: 38%"><span class="wheel-drive"></span><strong>33.8</strong></div>
-          <div class="wheel-meter wheel-meter--rr" style="--wheel-drive: 40%"><span class="wheel-drive"></span><strong>33.9</strong></div>
+          <div class="wheel-meter wheel-meter--rl" style="--wheel-drive: 38%"><span class="wheel-fill"></span><em>38%</em><strong>33.8</strong></div>
+          <div class="wheel-meter wheel-meter--rr" style="--wheel-drive: 40%"><span class="wheel-fill"></span><em>40%</em><strong>33.9</strong></div>
         </article>
+
+        <article class="economy-card" aria-label="평균 및 순간 연비">
+          <div><span class="micro-label">평균 연비</span><strong>12.8</strong><small>km/L</small></div>
+          <div><span class="micro-label">순간 연비</span><strong>17.4</strong><small>km/L</small></div>
+        </article>
+
+        <article class="dpf-card" aria-label="DPF 상태 정상">
+          <span class="micro-label">DPF</span><strong>정상</strong><div class="dpf-meter" aria-hidden="true"><i style="--dpf: 34%"></i></div><span>34%</span>
+        </article>
+
+        <div class="compact-round-gauges">
+          <div class="round-gauge" style="--gauge: 34%" role="img" aria-label="차속 시속 82킬로미터"><span>SPEED</span><strong>82</strong><small>km/h</small></div>
+          <div class="round-gauge" style="--gauge: 28%" role="img" aria-label="엔진 회전수 1840 rpm"><span>RPM</span><strong>1.8</strong><small>×1000</small></div>
+          <div class="drive-mode-readout"><span class="micro-label">DRIVE MODE</span><strong class="mode-normal">NORMAL</strong></div>
+        </div>
       </section>
 
       <section class="screen-panel audio-panel" id="screen-audio" data-screen="audio" aria-label="오디오 기능" hidden>
@@ -64,89 +61,67 @@
           </button>
         </div>
 
-        <div class="volume-card">
-          <div class="volume-readout"><span class="micro-label">Volume</span><strong data-volume-value>18</strong></div>
-          <div class="volume-stepper" role="group" aria-label="음량 조절">
-            <button class="step-button" type="button" data-volume-step="-1" aria-label="음량 낮추기">−</button>
-            <button class="step-button" type="button" data-volume-step="1" aria-label="음량 높이기">+</button>
-          </div>
-        </div>
+        <article class="volume-card" aria-label="현재 음량 18, 주행 소음 보정 2단계">
+          <span class="micro-label">CURRENT VOLUME</span><strong>18</strong><div><span>소음 보정</span><b>+2</b></div>
+        </article>
 
-        <div class="adaptive-card">
-          <div class="adaptive-copy"><strong>주행 소음 보정</strong><span>+2</span></div>
-          <button class="adaptive-toggle" type="button" aria-pressed="true">사용</button>
-        </div>
+        <article class="spectrum-card cabin-spectrum">
+          <div class="chart-metrics"><div><span>PEAK</span><strong>1.25 kHz</strong></div><div><span>LEVEL</span><strong>68.4 dB</strong></div></div>
+          <svg class="spectrum-chart" viewBox="0 0 276 132" role="img" aria-label="실내 소음 FFT, 피크 1.25킬로헤르츠, 레벨 68.4데시벨">
+            <path class="spectrum-grid" d="M0 28.5H276M0 64.5H276M0 100.5H276"/>
+            <g class="spectrum-bars">
+              <rect x="3" y="82" width="7" height="38"/><rect x="15" y="68" width="7" height="52"/><rect x="27" y="60" width="7" height="60"/><rect x="39" y="73" width="7" height="47"/><rect x="51" y="87" width="7" height="33"/><rect x="63" y="91" width="7" height="29"/><rect x="75" y="76" width="7" height="44"/><rect x="87" y="56" width="7" height="64"/><rect x="99" y="43" width="7" height="77"/><rect x="111" y="21" width="7" height="99" class="is-peak"/><rect x="123" y="38" width="7" height="82"/><rect x="135" y="62" width="7" height="58"/><rect x="147" y="78" width="7" height="42"/><rect x="159" y="70" width="7" height="50"/><rect x="171" y="88" width="7" height="32"/><rect x="183" y="94" width="7" height="26"/><rect x="195" y="85" width="7" height="35"/><rect x="207" y="97" width="7" height="23"/><rect x="219" y="90" width="7" height="30"/><rect x="231" y="101" width="7" height="19"/><rect x="243" y="106" width="7" height="14"/><rect x="255" y="110" width="7" height="10"/><rect x="267" y="113" width="7" height="7"/>
+            </g>
+          </svg>
+          <div class="spectrum-axis"><span>50 Hz</span><span>1 kHz</span><span>8 kHz</span></div>
+        </article>
       </section>
 
       <section class="screen-panel fft-panel" id="screen-fft" data-screen="fft" aria-label="소리 FFT 분석" hidden>
-        <div class="compact-gauges">
-          <div class="compact-gauge" role="img" aria-label="차속 시속 82킬로미터">
-            <svg viewBox="0 0 112 112" aria-hidden="true"><circle class="gauge-track" cx="56" cy="56" r="45" pathLength="100"/><circle class="gauge-progress" cx="56" cy="56" r="45" pathLength="100" style="--gauge-progress: 25.5"/></svg>
-            <div><span data-speed-unit>km/h</span><strong data-speed-value>82</strong></div>
-          </div>
-          <div class="compact-gauge" role="img" aria-label="엔진 회전수 1840 rpm">
-            <svg viewBox="0 0 112 112" aria-hidden="true"><circle class="gauge-track" cx="56" cy="56" r="45" pathLength="100"/><circle class="gauge-progress" cx="56" cy="56" r="45" pathLength="100" style="--gauge-progress: 21"/></svg>
-            <div><span>×1000 rpm</span><strong>1.8</strong></div>
-          </div>
-        </div>
-
-        <div class="spectrum-card">
-          <div class="spectrum-head"><span class="micro-label">Cabin FFT</span><span>LIVE</span></div>
-          <svg class="spectrum-chart" viewBox="0 0 276 96" role="img" aria-label="실내 소음 주파수 스펙트럼, 1.25킬로헤르츠에서 최대 68데시벨">
-            <path class="spectrum-grid" d="M0 18.5H276M0 48.5H276M0 78.5H276"/>
-            <g class="spectrum-bars">
-              <rect x="3" y="54" width="7" height="30"/><rect x="15" y="43" width="7" height="41"/><rect x="27" y="38" width="7" height="46"/><rect x="39" y="48" width="7" height="36"/><rect x="51" y="57" width="7" height="27"/><rect x="63" y="61" width="7" height="23"/><rect x="75" y="50" width="7" height="34"/><rect x="87" y="35" width="7" height="49"/><rect x="99" y="26" width="7" height="58"/><rect x="111" y="10" width="7" height="74" class="is-peak"/><rect x="123" y="22" width="7" height="62"/><rect x="135" y="39" width="7" height="45"/><rect x="147" y="51" width="7" height="33"/><rect x="159" y="45" width="7" height="39"/><rect x="171" y="58" width="7" height="26"/><rect x="183" y="63" width="7" height="21"/><rect x="195" y="56" width="7" height="28"/><rect x="207" y="65" width="7" height="19"/><rect x="219" y="60" width="7" height="24"/><rect x="231" y="68" width="7" height="16"/><rect x="243" y="72" width="7" height="12"/><rect x="255" y="75" width="7" height="9"/><rect x="267" y="78" width="7" height="6"/>
+        <article class="spectrum-card spectrum-card--full">
+          <div class="chart-metrics"><div><span>PEAK</span><strong>1.25 kHz</strong></div><div><span>LEVEL</span><strong>68.4 dB</strong></div></div>
+          <div class="fft-live"><span class="live-dot"></span>CABIN FFT</div>
+          <svg class="spectrum-chart" viewBox="0 0 276 260" role="img" aria-label="확대 실내 소음 FFT, 피크 1.25킬로헤르츠, 레벨 68.4데시벨">
+            <path class="spectrum-grid" d="M0 56.5H276M0 118.5H276M0 180.5H276M0 242.5H276"/>
+            <g class="spectrum-bars spectrum-bars--large">
+              <rect x="3" y="171" width="7" height="72"/><rect x="15" y="146" width="7" height="97"/><rect x="27" y="131" width="7" height="112"/><rect x="39" y="154" width="7" height="89"/><rect x="51" y="181" width="7" height="62"/><rect x="63" y="190" width="7" height="53"/><rect x="75" y="160" width="7" height="83"/><rect x="87" y="119" width="7" height="124"/><rect x="99" y="91" width="7" height="152"/><rect x="111" y="45" width="7" height="198" class="is-peak"/><rect x="123" y="80" width="7" height="163"/><rect x="135" y="129" width="7" height="114"/><rect x="147" y="163" width="7" height="80"/><rect x="159" y="147" width="7" height="96"/><rect x="171" y="182" width="7" height="61"/><rect x="183" y="196" width="7" height="47"/><rect x="195" y="177" width="7" height="66"/><rect x="207" y="202" width="7" height="41"/><rect x="219" y="188" width="7" height="55"/><rect x="231" y="208" width="7" height="35"/><rect x="243" y="216" width="7" height="27"/><rect x="255" y="224" width="7" height="19"/><rect x="267" y="229" width="7" height="14"/>
             </g>
-            <path class="peak-marker" d="M114.5 4V88"/>
+            <path class="peak-marker" d="M114.5 38V248"/>
           </svg>
           <div class="spectrum-axis"><span>50 Hz</span><span>1 kHz</span><span>8 kHz</span></div>
-        </div>
-
-        <div class="peak-strip">
-          <div><span>PEAK</span><strong>1.25 kHz</strong></div>
-          <div><span>LEVEL</span><strong>68 dB</strong></div>
-        </div>
+        </article>
       </section>
 
       <section class="screen-panel automation-panel" id="screen-automation" data-screen="automation" aria-label="SPORT 자동화" hidden>
-        <div class="sport-card">
-          <div class="sport-heading"><span class="micro-label">Sport automation</span><h1>SPORT 자동</h1></div>
-          <div class="mode-dial" role="img" aria-label="현재 주행 모드 스포츠, 종료 시 이전 에코 모드로 복귀"><div><span>현재 모드</span><strong>SPORT</strong><small>복귀 ECO</small></div></div>
-          <button class="sport-toggle" type="button" aria-pressed="true">사용</button>
-        </div>
+        <article class="sport-card" data-drive-mode="sport">
+          <div class="sport-head"><span class="micro-label">SPORT AUTOMATION</span><b>활성</b></div>
+          <div class="mode-field"><span>현재 주행 모드</span><strong>SPORT</strong><i></i></div>
+          <div class="sport-return"><span>해제 후</span><strong>ECO</strong></div>
+          <button class="sport-toggle" type="button" aria-pressed="true">자동 전환 사용</button>
+        </article>
       </section>
 
       <section class="screen-panel settings-panel" id="screen-settings" data-screen="settings" aria-label="설정" hidden>
-        <div class="brightness-card">
-          <div class="setting-heading"><span class="micro-label">Display</span><strong>화면 밝기</strong></div>
-          <output class="brightness-value" for="brightness">42%</output>
-          <input id="brightness" class="brightness-slider" type="range" min="10" max="100" value="42" aria-label="화면 밝기">
-        </div>
-        <div class="setting-row">
-          <div><span class="micro-label">CAN</span><strong>자동 밝기</strong></div>
-          <button class="setting-toggle" type="button" data-setting-toggle="brightness" aria-pressed="true">사용</button>
-        </div>
+        <section class="settings-group display-settings" aria-labelledby="display-settings">
+          <div class="group-heading"><h2 id="display-settings">DISPLAY</h2><output class="brightness-value" for="brightness">42%</output></div>
+          <label class="slider-row" for="brightness"><span>화면 밝기</span><input id="brightness" class="brightness-slider" type="range" min="10" max="100" value="42"></label>
+          <div class="setting-option"><strong>CAN 자동 밝기</strong><button type="button" data-setting-toggle="brightness" aria-pressed="true">사용</button></div>
+          <label class="setting-option" for="idle-timeout"><strong>대기 후 복귀</strong><select id="idle-timeout"><option>15초</option><option selected>30초</option><option>60초</option><option>120초</option></select></label>
+        </section>
         <section class="settings-group" aria-labelledby="road-noise-settings">
-          <h2 id="road-noise-settings" class="micro-label">Road noise</h2>
+          <div class="group-heading"><h2 id="road-noise-settings">ROAD NOISE</h2></div>
           <div class="setting-option"><strong>소음 보정</strong><button type="button" data-setting-toggle="noise" aria-pressed="true">사용</button></div>
-          <div class="setting-option"><strong>주파수 대역</strong><button type="button" data-cycle="noise-band" data-options="노면|표준|풍절">표준</button></div>
-          <div class="setting-option"><strong>민감도</strong><button type="button" data-cycle="noise-sensitivity" data-options="낮음|보통|높음">보통</button></div>
-          <div class="setting-option"><strong>반응</strong><button type="button" data-cycle="noise-response" data-options="느리게|자연스럽게|빠르게">자연스럽게</button></div>
-          <div class="setting-option"><strong>최대 보정</strong><button type="button" data-cycle="noise-limit" data-options="+2|+3|+4">+4</button></div>
+          <label class="setting-option"><strong>주파수 대역</strong><select><option>노면</option><option selected>표준</option><option>풍절</option></select></label>
+          <label class="setting-option"><strong>민감도</strong><select><option>낮음</option><option selected>보통</option><option>높음</option></select></label>
+          <label class="setting-option"><strong>반응</strong><select><option>느리게</option><option selected>자연스럽게</option><option>빠르게</option></select></label>
+          <label class="setting-option"><strong>최대 보정</strong><select><option>+2</option><option>+3</option><option selected>+4</option></select></label>
         </section>
         <section class="settings-group" aria-labelledby="sport-settings">
-          <h2 id="sport-settings" class="micro-label">Sport auto</h2>
+          <div class="group-heading"><h2 id="sport-settings">SPORT AUTO</h2></div>
           <div class="setting-option"><strong>자동 전환</strong><button type="button" data-setting-toggle="sport" aria-pressed="true">사용</button></div>
-          <div class="setting-option"><strong>진입 속도</strong><button type="button" data-cycle="sport-speed" data-options="60 km/h|70 km/h|80 km/h">70 km/h</button></div>
+          <label class="setting-option"><strong>진입 속도</strong><select><option>60 km/h</option><option selected>70 km/h</option><option>80 km/h</option></select></label>
           <div class="setting-option"><strong>급가속 감지</strong><button type="button" data-setting-toggle="acceleration" aria-pressed="true">사용</button></div>
         </section>
-        <div class="unit-card">
-          <div><span class="micro-label">Units</span><strong>속도 단위</strong></div>
-          <div class="unit-options" role="group" aria-label="속도 단위">
-            <button type="button" data-unit="metric" aria-pressed="true">km/h</button>
-            <button type="button" data-unit="imperial" aria-pressed="false">mph</button>
-          </div>
-        </div>
       </section>
     </div>
 
@@ -154,7 +129,7 @@
       <button class="nav-button" type="button" role="tab" aria-selected="true" aria-controls="screen-drive" data-target="drive"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 15h14M7 15l1-6h8l1 6M6 15v3m12-3v3M8 18h.01M16 18h.01"/></svg></span><span>주행</span></button>
       <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-audio" data-target="audio"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13h3l4 4V7L7 11H4Z"/><path d="M15 9c1.5 1.5 1.5 4.5 0 6M18 7c3 3 3 7 0 10"/></svg></span><span>소리</span></button>
       <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-fft" data-target="fft"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 6h5"/></svg></span><span>FFT</span></button>
-      <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-automation" data-target="automation"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8 2 2M18 6l-2 2M8 16l-2 2"/><circle cx="12" cy="12" r="4"/></svg></span><span>자동</span></button>
+      <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-automation" data-target="automation"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18 18 5M7 6h5v5M12 18h5v-5"/></svg></span><span>자동</span></button>
       <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-settings" data-target="settings"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 15 6l-.3-2.6h-4L10.4 6A8 8 0 0 0 8 7.1l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1A8 8 0 0 0 10.4 18l.3 2.6h4L15 18a8 8 0 0 0 1.6-1.1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z"/></svg></span><span>설정</span></button>
     </nav>
   </main>

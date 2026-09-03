@@ -1,8 +1,4 @@
-/* Hallmark · macrostructure: Stat-Led · pre-emit critique: P5 H5 E5 S5 R5 V5 · N9 knobs: cta=status, wordmark=sans, padding=tight · C4 knobs: reveal=always, anchored=viewport-bottom, shadow=hairline
- * theme: studied-DNA (source: Hyundai standard-generation 5W navigation) · vibe: "automotive clarity, appliance calm, technical precision" · paper: oklch(10% 0.020 248) · accent: oklch(72% 0.155 230)
- * display: Space Grotesk · body: IBM Plex Sans KR · axes: dark / grotesk-sans / cool
- * studied: no · context: explicit · v0.8.0
- */
+/* Hyundai 표준형 5W 내비게이션의 남청색 화면과 청색 상태 강조를 참고한 공용 token. */
 :root {
   --color-paper: oklch(10% 0.020 248);
   --color-paper-2: oklch(14% 0.026 246);
@@ -25,6 +21,10 @@
   --color-accent-line: oklch(47% 0.105 232);
   --color-warning-wash: oklch(23% 0.030 82);
   --color-error-wash: oklch(23% 0.035 25);
+  --color-mode-sport: oklch(68% 0.205 25);
+  --color-mode-sport-wash: oklch(22% 0.052 25);
+  --color-mode-eco: oklch(74% 0.150 150);
+  --color-mode-eco-wash: oklch(21% 0.045 150);
 
   --font-display: "Space Grotesk", "IBM Plex Sans KR", sans-serif;
   --font-body: "IBM Plex Sans KR", sans-serif;

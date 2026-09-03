@@ -44,6 +44,14 @@ canview_auto_brightness_config_t canview_auto_brightness_default_config(void)
         .lamp_off_confirm_ms = 1500U,
         .transition_ms = 1200U,
         .stale_timeout_ms = 500U,
+        .idle_timeout_ms = 30000U,
+        .idle_dim_percent = 35U,
+        .speed_warning_enter_percent = 110U,
+        .speed_warning_exit_percent = 105U,
+        .speed_warning_on_confirm_ms = 500U,
+        .speed_warning_off_confirm_ms = 1000U,
+        .speed_warning_flash_interval_ms = 400U,
+        .speed_warning_brightness_percent = 90U,
     };
     return config;
 }
@@ -154,6 +162,80 @@ static uint8_t night_target(const canview_auto_brightness_config_t *config,
     return (uint8_t)(minimum + (((uint16_t)(maximum - minimum) * dimmer + 50U) / 100U));
 }
 
+static bool speed_is_at_least_percent(uint16_t speed_tenth_kph,
+                                      uint8_t limit_kph,
+                                      uint8_t percent)
+{
+    if (limit_kph == 0U) {
+        return false;
+    }
+    const uint32_t threshold_tenth_kph =
+        ((uint32_t)limit_kph * 10U * percent + 99U) / 100U;
+    return speed_tenth_kph >= threshold_tenth_kph;
+}
+
+static void update_speed_warning(canview_auto_brightness_state_t *state,
+                                 const canview_auto_brightness_config_t *config,
+                                 const canview_auto_brightness_input_t *input,
+                                 uint32_t elapsed_ms)
+{
+    const bool limit_available = input->speed_limit_valid && input->speed_limit_active &&
+                                 input->speed_limit_kph > 0U;
+    const bool enter_condition = limit_available &&
+        speed_is_at_least_percent(input->speed_tenth_kph, input->speed_limit_kph,
+                                  config->speed_warning_enter_percent);
+    const bool keep_condition = limit_available &&
+        speed_is_at_least_percent(input->speed_tenth_kph, input->speed_limit_kph,
+                                  config->speed_warning_exit_percent);
+
+    if (!state->speed_warning_active) {
+        state->speed_warning_off_ms = 0U;
+        if (enter_condition) {
+            state->speed_warning_on_ms = add_saturated(
+                state->speed_warning_on_ms, elapsed_ms,
+                config->speed_warning_on_confirm_ms);
+            if (state->speed_warning_on_ms >= config->speed_warning_on_confirm_ms) {
+                state->speed_warning_active = true;
+                state->speed_warning_on_ms = 0U;
+                state->speed_warning_flash_ms = 0U;
+            }
+        } else {
+            state->speed_warning_on_ms = 0U;
+        }
+        return;
+    }
+
+    state->speed_warning_on_ms = 0U;
+    if (keep_condition) {
+        state->speed_warning_off_ms = 0U;
+    } else {
+        state->speed_warning_off_ms = add_saturated(
+            state->speed_warning_off_ms, elapsed_ms,
+            config->speed_warning_off_confirm_ms);
+        if (state->speed_warning_off_ms >= config->speed_warning_off_confirm_ms) {
+            state->speed_warning_active = false;
+            state->speed_warning_off_ms = 0U;
+            state->speed_warning_flash_ms = 0U;
+        }
+    }
+}
+
+static bool warning_flash_visible(canview_auto_brightness_state_t *state,
+                                  const canview_auto_brightness_config_t *config,
+                                  uint32_t elapsed_ms)
+{
+    if (!state->speed_warning_active) {
+        return false;
+    }
+    if (config->speed_warning_flash_interval_ms == 0U) {
+        return true;
+    }
+    const uint32_t cycle_ms = (uint32_t)config->speed_warning_flash_interval_ms * 2U;
+    state->speed_warning_flash_ms =
+        (state->speed_warning_flash_ms + (elapsed_ms % cycle_ms)) % cycle_ms;
+    return state->speed_warning_flash_ms < config->speed_warning_flash_interval_ms;
+}
+
 canview_auto_brightness_output_t canview_auto_brightness_update(
     canview_auto_brightness_state_t *state,
     const canview_auto_brightness_config_t *config,
@@ -169,19 +251,30 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
         canview_auto_brightness_reset(state, input->manual_percent);
     }
 
+    output.return_to_default_screen = false;
+    if (input->user_interaction) {
+        state->idle_elapsed_ms = 0U;
+        state->idle_dimmed = false;
+    } else if (config->idle_timeout_ms > 0U) {
+        state->idle_elapsed_ms = add_saturated(state->idle_elapsed_ms, elapsed_ms,
+                                               config->idle_timeout_ms);
+        if (!state->idle_dimmed && state->idle_elapsed_ms >= config->idle_timeout_ms) {
+            state->idle_dimmed = true;
+            output.return_to_default_screen = true;
+        }
+    } else {
+        state->idle_elapsed_ms = 0U;
+        state->idle_dimmed = false;
+    }
+
+    update_speed_warning(state, config, input, elapsed_ms);
+
     uint8_t target = clamp_percent(input->manual_percent);
     const bool signal_valid = input->lighting_valid &&
                               input->lighting_age_ms <= config->stale_timeout_ms;
 
-    if (!input->enabled) {
-        state->pending_ms = 0U;
-        output.status = CANVIEW_BRIGHTNESS_MANUAL;
-    } else if (!signal_valid) {
-        target = (uint8_t)((state->current_tenth_percent + 5U) / 10U);
-        state->pending_ms = 0U;
-        output.status = CANVIEW_BRIGHTNESS_CAN_STALE;
-    } else {
-        const bool requested_night = input->exterior_lamps_on;
+    if (signal_valid) {
+        const bool requested_night = input->tail_lamps_on;
         if (requested_night == state->night_active) {
             state->pending_ms = 0U;
             state->pending_night = requested_night;
@@ -198,13 +291,41 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
                 state->pending_ms = 0U;
             }
         }
+    } else {
+        state->pending_ms = 0U;
+    }
 
+    if (!input->enabled) {
+        output.status = CANVIEW_BRIGHTNESS_MANUAL;
+    } else if (!signal_valid) {
+        target = (uint8_t)((state->current_tenth_percent + 5U) / 10U);
+        output.status = CANVIEW_BRIGHTNESS_CAN_STALE;
+    } else {
         if (state->night_active) {
             target = night_target(config, input);
             output.status = CANVIEW_BRIGHTNESS_CAN_NIGHT;
         } else {
             output.status = CANVIEW_BRIGHTNESS_CAN_DAY;
         }
+    }
+
+    if (state->idle_dimmed) {
+        uint8_t dim_target = (uint8_t)(((uint16_t)target *
+                                        clamp_percent(config->idle_dim_percent) + 50U) /
+                                       100U);
+        if (dim_target < 8U) {
+            dim_target = 8U;
+        }
+        target = dim_target;
+        output.status = CANVIEW_BRIGHTNESS_IDLE_DIM;
+    }
+    if (state->speed_warning_active) {
+        const uint8_t warning_target = clamp_percent(
+            config->speed_warning_brightness_percent);
+        if (target < warning_target) {
+            target = warning_target;
+        }
+        output.status = CANVIEW_BRIGHTNESS_SPEED_WARNING;
     }
 
     const uint16_t target_tenth = (uint16_t)target * 10U;
@@ -232,6 +353,10 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
     }
 
     output.brightness_percent = (uint8_t)((state->current_tenth_percent + 5U) / 10U);
+    output.night_mode_active = state->night_active;
+    output.idle_dimmed = state->idle_dimmed;
+    output.speed_warning_active = state->speed_warning_active;
+    output.speed_warning_visible = warning_flash_visible(state, config, elapsed_ms);
     return output;
 }
 
