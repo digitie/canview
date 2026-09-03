@@ -45,7 +45,7 @@ CANView는 순정 계기판을 대체하지 않는 320×480 세로형 보조 화
 ```text
 상단 36 px: CANView 상태 / 현재 속도 / 무선 상태
 본문 368 px
-├─ 주행: 4WD·TPMS → 평균·순간 연비 → DPF → 작은 속도·RPM 원형 계기
+├─ 주행: 대형 4WD·TPMS·중앙 순간연비 → 평균연비 → DPF → 작은 속도·RPM 원형 계기
 ├─ 소리: 취침·뒷좌석+ → 현재 음량 → Cabin FFT
 ├─ FFT: Peak·Level을 그래프 내부에 둔 대형 spectrum
 ├─ 자동: SPORT 자동화와 현재 주행 mode
@@ -58,10 +58,10 @@ CANView는 순정 계기판을 대체하지 않는 320×480 세로형 보조 화
 
 ### 3.1 주행 화면
 
-화면 면적은 4WD가 가장 크고 연비, DPF, 속도·RPM 순으로 작아진다.
+화면 면적은 4WD가 가장 크고 연비, DPF, 속도·RPM 순으로 작아진다. 352 px의 실제 본문 높이 중 208 px를 4WD에 할당해 차량과 구동계가 화면의 주인공이 되게 한다.
 
-- 4WD: 중앙 차량 실루엣과 FL/FR/RL/RR 바퀴를 배치한다. 각 바퀴의 세로 막대는 검증된 `wheel_drive_percent`, 큰 숫자는 공기압 `psi`다. 공개 DBC만으로 실제 바퀴 토크가 확정되지 않았으므로 데이터 모델에서는 계속 `구동 지수`로 관리한다.
-- 연비: `평균 연비`와 `순간 연비`를 나란히 표시한다. 신호가 없으면 `—`로 유지하고 서로 대체 계산하지 않는다.
+- 4WD: 첨부한 순정 화면처럼 중앙 차량 outline 안에 앞·뒤 differential와 propeller shaft를 그리고, 네 바퀴 바깥쪽에 8단 수평 분절 torque bar를 대칭 배치한다. 각 bar 아래에는 해당 바퀴 공기압 `psi`를 둔다. 공개 DBC만으로 실제 바퀴 토크가 확정되지 않았으므로 데이터 모델에서는 계속 `구동 지수`로 관리한다.
+- 연비: `순간 연비`는 차량 중앙 coupling 위치의 작은 정보 창에 넣고, `평균 연비`는 4WD 바로 아래의 한 줄 영역에 표시한다. 어느 한쪽 신호가 없으면 `—`로 유지하고 서로 대체 계산하지 않는다.
 - DPF: 정상일 때는 작은 청색 상태와 부하값만 표시하고, 경고가 확인될 때만 amber/red 상태로 바꾼다. DBC에는 경고등 후보만 있으므로 현재 부하율은 별도 진단 신호가 검증되기 전 데모값이다.
 - 속도·RPM: 같은 원형 arc 문법을 쓰되 화면 하단의 보조 계기로 축소한다. 현재 속도는 상단에도 항상 남는다.
 
@@ -128,7 +128,7 @@ FFT 전용 화면은 본문 대부분을 50 Hz–8 kHz spectrum에 할당한다.
 | 지속 속도 | 상단 text | `lv_label` |
 | 제한속도 overlay | 비클릭 absolute layer | foreground `lv_obj` + `lv_label`, click flag 제거 |
 | 속도/RPM | SVG arc | `lv_arc` + `lv_label` |
-| 4WD·TPMS | CSS wheel bar | `lv_bar` + labels |
+| 4WD·TPMS | SVG driveline + 8단 CSS segment | `lv_line` + `lv_obj` differential/wheel/segment + labels |
 | 연비·DPF | semantic rows | `lv_obj`, `lv_label`, `lv_bar` |
 | audio profile | button | checkable `lv_btn` |
 | FFT | SVG bars | `lv_chart` bar series |
