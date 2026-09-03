@@ -27,6 +27,8 @@ typedef enum {
     ACTION_SPORT_ACCELERATION,
 } action_t;
 
+#define CANVIEW_UI_TORQUE_SEGMENTS 8U
+
 typedef struct {
     lv_obj_t *root;
     lv_obj_t *screens[CANVIEW_UI_SCREEN_COUNT];
@@ -51,10 +53,9 @@ typedef struct {
     lv_obj_t *dpf_load_bar;
     lv_obj_t *drive_mode_label;
     lv_obj_t *four_wd_label;
-    lv_obj_t *wheel_drive_bars[CANVIEW_UI_WHEEL_COUNT];
+    lv_obj_t *wheel_drive_segments[CANVIEW_UI_WHEEL_COUNT][CANVIEW_UI_TORQUE_SEGMENTS];
     lv_obj_t *wheel_drive_labels[CANVIEW_UI_WHEEL_COUNT];
     lv_obj_t *wheel_pressure_labels[CANVIEW_UI_WHEEL_COUNT];
-    lv_obj_t *wheel_objects[CANVIEW_UI_WHEEL_COUNT];
 
     lv_obj_t *quiet_button;
     lv_obj_t *rear_button;
@@ -438,11 +439,14 @@ static void make_gauge(lv_obj_t *parent, lv_coord_t width, lv_coord_t height,
     lv_obj_t *value = make_label(group, "—");
     lv_obj_align(value, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_text_color(value, CANVIEW_COLOR_INK, 0);
-    lv_obj_set_style_text_font(value,
-                               ui.config.metric_font != NULL ? ui.config.metric_font
-                                                             : (ui.config.font != NULL ? ui.config.font
-                                                                                       : LV_FONT_DEFAULT),
-                               0);
+    const lv_font_t *value_font = diameter < 50
+                                      ? (ui.config.font != NULL ? ui.config.font
+                                                                : LV_FONT_DEFAULT)
+                                      : (ui.config.metric_font != NULL
+                                             ? ui.config.metric_font
+                                             : (ui.config.font != NULL ? ui.config.font
+                                                                       : LV_FONT_DEFAULT));
+    lv_obj_set_style_text_font(value, value_font, 0);
     lv_obj_t *unit_label = make_label(group, unit);
     lv_obj_align(unit_label, LV_ALIGN_CENTER, 0, 24);
     lv_obj_add_style(unit_label, &style_label_micro, 0);
@@ -522,100 +526,149 @@ static void create_drive_screen(void)
     lv_obj_t *screen = make_screen();
     ui.screens[CANVIEW_UI_SCREEN_DRIVE] = screen;
 
-    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 150, false);
+    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 208, false);
     lv_obj_set_style_pad_all(four_wd, 8, 0);
-    lv_obj_t *four_wd_title = make_label(four_wd, "4WD · PSI");
+    lv_obj_t *four_wd_title = make_label(four_wd, "4WD TORQUE · PSI");
     lv_obj_add_style(four_wd_title, &style_label_micro, 0);
+    lv_obj_t *awd_label = make_label(four_wd, "AWD");
+    lv_obj_align(awd_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_add_style(awd_label, &style_label_micro, 0);
+    lv_obj_set_style_text_color(awd_label, CANVIEW_COLOR_ACCENT, 0);
 
-    static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {6, 208, 6, 208};
-    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {27, 27, 84, 84};
+    static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {10, 208, 10, 208};
+    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {28, 28, 116, 116};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *wheel = lv_obj_create(four_wd);
         lv_obj_remove_style_all(wheel);
         lv_obj_set_pos(wheel, wheel_x[i], wheel_y[i]);
-        lv_obj_set_size(wheel, 70, 42);
-        lv_obj_set_style_bg_color(wheel, CANVIEW_COLOR_PAPER_3, 0);
-        lv_obj_set_style_bg_opa(wheel, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_color(wheel, CANVIEW_COLOR_RULE, 0);
-        lv_obj_set_style_border_width(wheel, 1, 0);
-        lv_obj_set_style_radius(wheel, CANVIEW_RADIUS_SM, 0);
+        lv_obj_set_size(wheel, 62, 63);
         lv_obj_clear_flag(wheel, LV_OBJ_FLAG_SCROLLABLE);
-        ui.wheel_objects[i] = wheel;
-
-        lv_obj_t *bar = lv_bar_create(wheel);
-        lv_obj_remove_style_all(bar);
-        lv_obj_set_size(bar, 6, 32);
-        lv_obj_align(bar, LV_ALIGN_LEFT_MID, 4, 0);
-        lv_bar_set_range(bar, 0, 100);
-        lv_obj_set_style_bg_color(bar, CANVIEW_COLOR_RULE, LV_PART_MAIN);
-        lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(bar, CANVIEW_COLOR_ACCENT, LV_PART_INDICATOR);
-        lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_INDICATOR);
-        lv_obj_set_style_radius(bar, 3, LV_PART_MAIN);
-        lv_obj_set_style_radius(bar, 3, LV_PART_INDICATOR);
-        lv_obj_set_style_anim_time(bar, 180U, 0);
-        ui.wheel_drive_bars[i] = bar;
 
         ui.wheel_drive_labels[i] = make_label(wheel, "—%");
-        lv_obj_align(ui.wheel_drive_labels[i], LV_ALIGN_TOP_LEFT, 18, 3);
+        lv_obj_align(ui.wheel_drive_labels[i], LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_set_style_text_color(ui.wheel_drive_labels[i], CANVIEW_COLOR_ACCENT, 0);
 
+        for (uint8_t segment = 0; segment < CANVIEW_UI_TORQUE_SEGMENTS; ++segment) {
+            lv_obj_t *bar_segment = lv_obj_create(wheel);
+            lv_obj_remove_style_all(bar_segment);
+            lv_obj_set_pos(bar_segment, 7, (lv_coord_t)(14 + segment * 4));
+            lv_obj_set_size(bar_segment, 48, 2);
+            lv_obj_set_style_bg_color(bar_segment, CANVIEW_COLOR_RULE, 0);
+            lv_obj_set_style_bg_opa(bar_segment, LV_OPA_COVER, 0);
+            lv_obj_clear_flag(bar_segment, LV_OBJ_FLAG_SCROLLABLE);
+            ui.wheel_drive_segments[i][segment] = bar_segment;
+        }
+
         ui.wheel_pressure_labels[i] = make_label(wheel, "—");
-        lv_obj_align(ui.wheel_pressure_labels[i], LV_ALIGN_BOTTOM_LEFT, 18, -3);
-        lv_obj_set_style_text_font(ui.wheel_pressure_labels[i],
-                                   ui.config.metric_font != NULL ? ui.config.metric_font
-                                                                 : LV_FONT_DEFAULT,
-                                   0);
+        lv_obj_align(ui.wheel_pressure_labels[i], LV_ALIGN_BOTTOM_MID, 0, 0);
+        lv_obj_set_style_text_color(ui.wheel_pressure_labels[i], CANVIEW_COLOR_INK_2, 0);
+    }
+
+    static const lv_coord_t connector_x[CANVIEW_UI_WHEEL_COUNT] = {72, 180, 72, 180};
+    static const lv_coord_t connector_y[CANVIEW_UI_WHEEL_COUNT] = {50, 50, 138, 138};
+    for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
+        lv_obj_t *connector = lv_obj_create(four_wd);
+        lv_obj_remove_style_all(connector);
+        lv_obj_set_pos(connector, connector_x[i], connector_y[i]);
+        lv_obj_set_size(connector, 28, 1);
+        lv_obj_set_style_bg_color(connector, CANVIEW_COLOR_RULE, 0);
+        lv_obj_set_style_bg_opa(connector, LV_OPA_COVER, 0);
     }
 
     lv_obj_t *vehicle = lv_obj_create(four_wd);
     lv_obj_remove_style_all(vehicle);
-    lv_obj_set_pos(vehicle, 111, 29);
-    lv_obj_set_size(vehicle, 58, 94);
-    lv_obj_set_style_bg_color(vehicle, CANVIEW_COLOR_PAPER_3, 0);
-    lv_obj_set_style_bg_opa(vehicle, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_color(vehicle, CANVIEW_COLOR_RULE, 0);
-    lv_obj_set_style_border_width(vehicle, 1, 0);
-    lv_obj_set_style_radius(vehicle, 20, 0);
+    lv_obj_set_pos(vehicle, 94, 22);
+    lv_obj_set_size(vehicle, 92, 174);
     lv_obj_clear_flag(vehicle, LV_OBJ_FLAG_SCROLLABLE);
-    ui.four_wd_label = make_label(vehicle, "—");
-    lv_obj_center(ui.four_wd_label);
-    lv_obj_set_style_text_align(ui.four_wd_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_color(ui.four_wd_label, CANVIEW_COLOR_ACCENT, 0);
 
-    lv_obj_t *economy = make_card(screen, LV_PCT(100), 68, true);
-    lv_obj_set_style_pad_all(economy, 0, 0);
-    lv_obj_set_flex_flow(economy, LV_FLEX_FLOW_ROW);
-    for (uint8_t i = 0; i < 2U; ++i) {
-        lv_obj_t *cell = lv_obj_create(economy);
-        lv_obj_remove_style_all(cell);
-        lv_obj_set_size(cell, LV_PCT(50), 68);
-        lv_obj_clear_flag(cell, LV_OBJ_FLAG_SCROLLABLE);
-        if (i == 1U) {
-            lv_obj_set_style_border_color(cell, CANVIEW_COLOR_RULE_2, 0);
-            lv_obj_set_style_border_width(cell, 1, 0);
-            lv_obj_set_style_border_side(cell, LV_BORDER_SIDE_LEFT, 0);
-        }
-        lv_obj_t *title = make_label(cell, i == 0U ? "평균 연비" : "순간 연비");
-        lv_obj_set_pos(title, 10, 7);
-        lv_obj_add_style(title, &style_label_micro, 0);
-        lv_obj_t *value = make_label(cell, "—");
-        lv_obj_set_pos(value, 10, 28);
-        lv_obj_set_style_text_font(value,
-                                   ui.config.metric_font != NULL ? ui.config.metric_font
-                                                                 : LV_FONT_DEFAULT,
-                                   0);
-        lv_obj_t *unit = make_label(cell, "km/L");
-        lv_obj_align(unit, LV_ALIGN_BOTTOM_RIGHT, -9, -8);
-        lv_obj_add_style(unit, &style_label_micro, 0);
-        if (i == 0U) {
-            ui.average_economy_label = value;
-        } else {
-            ui.instant_economy_label = value;
-        }
+    static lv_point_t vehicle_outline[] = {
+        {29, 4}, {20, 8}, {14, 20}, {12, 34}, {9, 108}, {12, 124},
+        {25, 136}, {46, 139}, {67, 136}, {80, 124}, {83, 108}, {80, 34},
+        {78, 20}, {63, 4}, {29, 4}};
+    lv_obj_t *outline = lv_line_create(vehicle);
+    lv_line_set_points(outline, vehicle_outline,
+                       sizeof(vehicle_outline) / sizeof(vehicle_outline[0]));
+    lv_obj_set_style_line_color(outline, CANVIEW_COLOR_INK_2, 0);
+    lv_obj_set_style_line_width(outline, 2, 0);
+    lv_obj_set_style_line_rounded(outline, true, 0);
+
+    static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {5, 75, 5, 75};
+    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {31, 31, 91, 91};
+    for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
+        lv_obj_t *car_wheel = lv_obj_create(vehicle);
+        lv_obj_remove_style_all(car_wheel);
+        lv_obj_set_pos(car_wheel, car_wheel_x[i], car_wheel_y[i]);
+        lv_obj_set_size(car_wheel, 12, 31);
+        lv_obj_set_style_bg_color(car_wheel, CANVIEW_COLOR_PAPER_3, 0);
+        lv_obj_set_style_bg_opa(car_wheel, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_color(car_wheel, CANVIEW_COLOR_INK_2, 0);
+        lv_obj_set_style_border_width(car_wheel, 2, 0);
+        lv_obj_set_style_radius(car_wheel, 5, 0);
     }
 
-    lv_obj_t *dpf = make_card(screen, LV_PCT(100), 50, true);
+    static const lv_coord_t axle_y[] = {46, 106};
+    for (uint8_t i = 0; i < 2U; ++i) {
+        lv_obj_t *axle = lv_obj_create(vehicle);
+        lv_obj_remove_style_all(axle);
+        lv_obj_set_pos(axle, 17, axle_y[i]);
+        lv_obj_set_size(axle, 58, 3);
+        lv_obj_set_style_bg_color(axle, CANVIEW_COLOR_ACCENT_LINE, 0);
+        lv_obj_set_style_bg_opa(axle, LV_OPA_COVER, 0);
+
+        lv_obj_t *differential = lv_obj_create(vehicle);
+        lv_obj_remove_style_all(differential);
+        lv_obj_set_pos(differential, 35, (lv_coord_t)(axle_y[i] - 9));
+        lv_obj_set_size(differential, 22, 18);
+        lv_obj_set_style_bg_color(differential, CANVIEW_COLOR_PAPER_3, 0);
+        lv_obj_set_style_bg_opa(differential, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_color(differential, CANVIEW_COLOR_ACCENT_LINE, 0);
+        lv_obj_set_style_border_width(differential, 2, 0);
+        lv_obj_set_style_radius(differential, 4, 0);
+    }
+
+    lv_obj_t *shaft = lv_obj_create(vehicle);
+    lv_obj_remove_style_all(shaft);
+    lv_obj_set_pos(shaft, 45, 55);
+    lv_obj_set_size(shaft, 3, 43);
+    lv_obj_set_style_bg_color(shaft, CANVIEW_COLOR_ACCENT_LINE, 0);
+    lv_obj_set_style_bg_opa(shaft, LV_OPA_COVER, 0);
+
+    lv_obj_t *instant = lv_obj_create(vehicle);
+    lv_obj_remove_style_all(instant);
+    lv_obj_set_pos(instant, 23, 59);
+    lv_obj_set_size(instant, 46, 41);
+    lv_obj_set_style_bg_color(instant, CANVIEW_COLOR_PAPER, 0);
+    lv_obj_set_style_bg_opa(instant, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(instant, CANVIEW_COLOR_ACCENT_LINE, 0);
+    lv_obj_set_style_border_width(instant, 1, 0);
+    lv_obj_set_style_radius(instant, 4, 0);
+    lv_obj_t *instant_title = make_label(instant, "순간");
+    lv_obj_align(instant_title, LV_ALIGN_TOP_MID, 0, 2);
+    lv_obj_add_style(instant_title, &style_label_micro, 0);
+    ui.instant_economy_label = make_label(instant, "—");
+    lv_obj_align(ui.instant_economy_label, LV_ALIGN_BOTTOM_MID, 0, -2);
+    lv_obj_set_style_text_color(ui.instant_economy_label, CANVIEW_COLOR_INK, 0);
+
+    ui.four_wd_label = make_label(vehicle, "R —%");
+    lv_obj_align(ui.four_wd_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_text_color(ui.four_wd_label, CANVIEW_COLOR_ACCENT, 0);
+
+    lv_obj_t *economy = make_card(screen, LV_PCT(100), 48, true);
+    lv_obj_set_style_pad_all(economy, 0, 0);
+    lv_obj_t *economy_title = make_label(economy, "평균 연비");
+    lv_obj_align(economy_title, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_add_style(economy_title, &style_label_micro, 0);
+    ui.average_economy_label = make_label(economy, "—");
+    lv_obj_align(ui.average_economy_label, LV_ALIGN_RIGHT_MID, -31, 0);
+    lv_obj_set_style_text_font(ui.average_economy_label,
+                               ui.config.metric_font != NULL ? ui.config.metric_font
+                                                             : LV_FONT_DEFAULT,
+                               0);
+    lv_obj_t *economy_unit = make_label(economy, "km/L");
+    lv_obj_align(economy_unit, LV_ALIGN_RIGHT_MID, -5, 5);
+    lv_obj_add_style(economy_unit, &style_label_micro, 0);
+
+    lv_obj_t *dpf = make_card(screen, LV_PCT(100), 34, true);
     lv_obj_set_style_pad_all(dpf, 8, 0);
     lv_obj_t *dpf_title = make_label(dpf, "DPF");
     lv_obj_align(dpf_title, LV_ALIGN_LEFT_MID, 0, 0);
@@ -624,7 +677,7 @@ static void create_drive_screen(void)
     lv_obj_align(ui.dpf_label, LV_ALIGN_LEFT_MID, 35, 0);
     lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_ACCENT, 0);
     ui.dpf_load_bar = lv_bar_create(dpf);
-    lv_obj_set_size(ui.dpf_load_bar, 145, 5);
+    lv_obj_set_size(ui.dpf_load_bar, 145, 4);
     lv_obj_align(ui.dpf_load_bar, LV_ALIGN_LEFT_MID, 78, 0);
     lv_bar_set_range(ui.dpf_load_bar, 0, 100);
     lv_obj_set_style_bg_color(ui.dpf_load_bar, CANVIEW_COLOR_RULE, LV_PART_MAIN);
@@ -635,14 +688,14 @@ static void create_drive_screen(void)
 
     lv_obj_t *gauges = lv_obj_create(screen);
     lv_obj_remove_style_all(gauges);
-    lv_obj_set_size(gauges, LV_PCT(100), 60);
+    lv_obj_set_size(gauges, LV_PCT(100), 38);
     lv_obj_set_style_pad_column(gauges, 8, 0);
     lv_obj_set_flex_flow(gauges, LV_FLEX_FLOW_ROW);
-    make_gauge(gauges, 62, 60, 58, "SPEED", "km/h", 2400,
+    make_gauge(gauges, 38, 38, 36, "", "", 2400,
                &ui.speed_arc, &ui.speed_label, NULL);
-    make_gauge(gauges, 62, 60, 58, "RPM", "×1000", 6500,
+    make_gauge(gauges, 38, 38, 36, "", "", 6500,
                &ui.rpm_arc, &ui.rpm_label, NULL);
-    lv_obj_t *mode = make_card(gauges, 156, 60, true);
+    lv_obj_t *mode = make_card(gauges, 204, 38, true);
     lv_obj_set_style_pad_all(mode, 8, 0);
     lv_obj_set_style_border_color(mode, CANVIEW_COLOR_ACCENT_LINE, 0);
     lv_obj_set_style_border_width(mode, 2, 0);
@@ -650,7 +703,7 @@ static void create_drive_screen(void)
     lv_obj_t *mode_title = make_label(mode, "DRIVE MODE");
     lv_obj_add_style(mode_title, &style_label_micro, 0);
     ui.drive_mode_label = make_label(mode, "UNKNOWN");
-    lv_obj_align(ui.drive_mode_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_align(ui.drive_mode_label, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_style_text_color(ui.drive_mode_label, CANVIEW_COLOR_ACCENT, 0);
 }
 
@@ -1109,20 +1162,25 @@ void canview_ui_update(const canview_ui_model_t *model)
     lv_label_set_text(ui.drive_mode_label, drive_mode_text(model->drive_mode));
     lv_obj_set_style_text_color(ui.drive_mode_label, drive_mode_color(model->drive_mode), 0);
     if (model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
-        lv_label_set_text(ui.four_wd_label, "4WD\n—");
+        lv_label_set_text(ui.four_wd_label, "R —%");
     } else {
-        lv_label_set_text_fmt(ui.four_wd_label, "4WD\n%u%%",
+        lv_label_set_text_fmt(ui.four_wd_label, "R %u%%",
                               model->rear_coupling_percent);
     }
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         const uint8_t drive_value = model->wheel_drive_percent[i] > 100U
                                         ? 100U
                                         : model->wheel_drive_percent[i];
-        lv_bar_set_value(ui.wheel_drive_bars[i],
-                         model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE
-                             ? 0
-                             : drive_value,
-                         LV_ANIM_ON);
+        const uint8_t active_segments =
+            model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE
+                ? 0U
+                : (uint8_t)(((uint16_t)drive_value * CANVIEW_UI_TORQUE_SEGMENTS + 99U) /
+                            100U);
+        for (uint8_t segment = 0; segment < CANVIEW_UI_TORQUE_SEGMENTS; ++segment) {
+            const bool active = segment >= CANVIEW_UI_TORQUE_SEGMENTS - active_segments;
+            lv_obj_set_style_bg_color(ui.wheel_drive_segments[i][segment],
+                                      active ? CANVIEW_COLOR_ACCENT : CANVIEW_COLOR_RULE, 0);
+        }
         if (model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
             lv_label_set_text(ui.wheel_drive_labels[i], "—%");
         } else {
@@ -1132,7 +1190,7 @@ void canview_ui_update(const canview_ui_model_t *model)
             model->tire_pressure_quality != CANVIEW_UI_QUALITY_UNAVAILABLE &&
             model->tire_pressure_tenth_psi[i] > 0U;
         if (pressure_valid) {
-            lv_label_set_text_fmt(ui.wheel_pressure_labels[i], "%u.%u",
+            lv_label_set_text_fmt(ui.wheel_pressure_labels[i], "%u.%u psi",
                                   model->tire_pressure_tenth_psi[i] / 10U,
                                   model->tire_pressure_tenth_psi[i] % 10U);
         } else {
@@ -1140,10 +1198,6 @@ void canview_ui_update(const canview_ui_model_t *model)
         }
         const bool pressure_warning =
             (model->tire_pressure_warning_mask & (uint8_t)(1U << i)) != 0U;
-        lv_obj_set_style_border_color(ui.wheel_objects[i],
-                                      pressure_warning ? CANVIEW_COLOR_WARNING
-                                                       : CANVIEW_COLOR_RULE,
-                                      0);
         lv_obj_set_style_text_color(ui.wheel_pressure_labels[i],
                                     pressure_warning ? CANVIEW_COLOR_WARNING
                                                      : CANVIEW_COLOR_INK_2,

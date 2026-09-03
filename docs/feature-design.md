@@ -115,7 +115,7 @@ rear_coupling_index = calibrated_monotonic_map(inputs)  // 0..100
 
 물리 검증 없이 front ratio를 `100 - rear_coupling_index`로 만들지 않는다. dyno 또는 axle torque 계측이 가능해진 뒤에만 `torque distribution`이라는 label로 승격한다.
 
-주행 UI는 네 바퀴 자체를 작은 구동 gauge로 사용한다. 공개 DBC만으로 바퀴별 torque를 얻을 수 없으므로 gauge 입력은 별도 품질값이 있는 `wheel_drive_percent[]` 구동 지수다. axle torque model이 검증되기 전에는 앞뒤 합계를 100으로 만들거나 rear clutch duty를 네 바퀴에 임의 배분하지 않는다.
+주행 UI는 순정 화면과 유사하게 중앙 차량·앞뒤 differential·propeller shaft를 크게 그리고, 네 바퀴 바깥쪽의 8단 수평 분절 bar로 구동량을 표시한다. 공개 DBC만으로 바퀴별 torque를 얻을 수 없으므로 bar 입력은 별도 품질값이 있는 `wheel_drive_percent[]` 구동 지수다. axle torque model이 검증되기 전에는 앞뒤 합계를 100으로 만들거나 rear clutch duty를 네 바퀴에 임의 배분하지 않는다.
 
 같은 바퀴 안에는 `TPMS11`, ID `0x593`의 `PRESSURE_FL/FR/RL/RR` 후보를 표시한다. 단위, invalid raw, 바퀴 순서가 실차에서 확인되기 전에는 unavailable로 두며 압력 품질과 4WD 품질을 독립 관리한다.
 

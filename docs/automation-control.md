@@ -189,7 +189,7 @@ ARMED
 
 ## 5. 4WD 바퀴 게이지와 TPMS
 
-주행 화면은 네 바퀴를 각각 작은 세로 gauge로 사용한다. gauge의 청색 채움은 `wheel_drive_percent[FL/FR/RL/RR]`, 바퀴 안 숫자는 `tire_pressure_tenth_psi[]`다. pressure source와 4WD source의 품질은 서로 독립적으로 관리한다.
+주행 화면은 중앙 차량 주변의 네 바퀴마다 8단 수평 분절 gauge를 사용한다. 청색 segment 수는 `wheel_drive_percent[FL/FR/RL/RR]`, 각 gauge 아래 숫자는 `tire_pressure_tenth_psi[]`다. 순간연비는 차량 중앙 정보 창에 표시한다. pressure, 4WD, 연비 source의 품질은 서로 독립적으로 관리한다.
 
 저장 DBC의 `TPMS11`, ID `0x593`에는 `PRESSURE_FL/FR/RL/RR`, `STATUS_TPMS`, `TPMS_W_LAMP` 후보가 있다. pressure field의 단위, invalid raw, 좌우 순서는 대상 차량에서 공기압을 한 바퀴씩 변화시키며 검증해야 한다. 경고 bit가 확인된 바퀴는 gauge 테두리와 숫자를 amber로 바꾸고, 신호가 unavailable이면 마지막 압력을 고정하지 않고 `—`로 표시한다.
 
