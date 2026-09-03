@@ -37,7 +37,7 @@ UI와 구현 issue에는 모든 차량 신호에 다음 등급을 붙인다.
 대상 차량 CAN 1/2/3
         |
         v
-3채널 gateway
+Communicator
   - listen-only capture
   - target profile / DBC decode
   - signal quality + timestamp
@@ -45,13 +45,13 @@ UI와 구현 issue에는 모든 차량 신호에 다음 등급을 붙인다.
         |
         | encrypted ESP-NOW
         v
-320×480 display
+320×480 Controller
   - 운전 화면: 2초 이내 상태 파악
   - 정차 화면: 설정·진단·calibration
   - 명령은 semantic request만 생성
 ```
 
-차량 연결 gateway와 display를 분리하는 이유는 차량 배선·transceiver·서지 보호를 화면에서 격리하고, UI 장애가 CAN timing을 방해하지 않게 하기 위해서다. 통신 단절 시 gateway는 표시값 전송만 잃고 차량의 기존 통신에는 영향을 주지 않아야 한다.
+차량 연결 Communicator와 Controller를 분리하는 이유는 차량 배선·transceiver·서지 보호를 화면에서 격리하고, UI 장애가 CAN timing을 방해하지 않게 하기 위해서다. 통신 단절 시 Communicator는 표시값 전송만 잃고 차량의 기존 통신에는 영향을 주지 않아야 한다.
 
 ## 4. 4WD 상태와 토크 배분
 
@@ -171,7 +171,7 @@ UNAVAILABLE -> CANDIDATE -> CALIBRATING -> ESTIMATED -> VERIFIED
 ECU supported PID bitmap을 먼저 확인하고, ECU가 지원한다고 응답한 표준 항목만 낮은 주기로 요청한다. SAE J1979 계열의 diesel aftertreatment PID 후보인 Mode 01 `0x7A/0x7B` 등은 사용 중인 표준판의 정식 bit layout으로 구현해야 한다. PID 번호만 보고 차종별 payload를 추측하지 않는다.
 
 - query 주기 기본 0.5–1 Hz
-- gateway diagnostic scheduler가 기존 bus load를 감시
+- Communicator diagnostic scheduler가 기존 bus load를 감시
 - multi-frame ISO-TP timeout과 flow control 분리
 - negative response와 unsupported를 정상 상태로 취급
 - engine/ECU sleep을 깨우는 polling 금지
@@ -303,7 +303,7 @@ Waveshare 공식 FAQ는 이 보드에 ES8311 audio codec, speaker, SMD microphon
 
 다음 중 하나면 별도 microphone hardware를 검토한다.
 
-- display 설치 위치에서 HVAC 송풍음이 실제 road noise보다 6 dB 이상 지배
+- Controller 설치 위치에서 HVAC 송풍음이 실제 road noise보다 6 dB 이상 지배
 - speaker 재생음에 따라 추정 noise가 volume과 함께 계속 상승
 - 손가락·case·mount가 microphone port를 가림
 - stationary repeatability가 ±2 dB보다 나쁨
@@ -471,7 +471,7 @@ threshold는 calibration 시작값이며 실차 log로 조정한다. 값 변경�
 
 ### 8.5 command 방법
 
-목표 ECU mode 값을 직접 쓰지 않는다. 실제 DRIVE MODE switch frame이 검증되면 물리 버튼 한 번에 해당하는 bounded event만 gateway command로 제공한다.
+목표 ECU mode 값을 직접 쓰지 않는다. 실제 DRIVE MODE switch frame이 검증되면 물리 버튼 한 번에 해당하는 bounded event만 Communicator command로 제공한다.
 
 1. 현재 mode와 mode cycle 확인
 2. 한 번의 button pulse 송신
@@ -492,7 +492,7 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 - cluster/drive mode fault
 - wheel speed plausibility fault
 - ESP-NOW degraded 또는 control lease 없음
-- gateway reboot/state revision mismatch
+- Communicator reboot/state revision mismatch
 - CAN bus error passive/bus-off/overflow sustained
 - 현재 mode unknown
 - 사용자의 physical mode 조작 감지
@@ -566,7 +566,7 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 | Rear boost | fader+volume | max/min step | rear mute unsupported |
 | Auto volume | 0/40/80/110 km/h | hysteresis crossing | mic clip, music contamination |
 | SPORT | entry/exit | threshold hover | brake, reverse, ESC, link loss |
-| 공통 | ignition cycle | session/sequence wrap | gateway/display reboot |
+| 공통 | ignition cycle | session/sequence wrap | Communicator/Controller reboot |
 
 모든 제어 test는 “명령을 보냈다”가 아니라 feedback state와 물리 결과까지 확인해야 통과다.
 

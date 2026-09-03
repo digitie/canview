@@ -152,7 +152,7 @@ Google의 76 dp 지침을 여기서는 76 logical px로 먼저 옮겼다. 실제
 | error | red wash와 구체적인 실패 문구 |
 | success | accent 상태와 feedback으로 확인, toast 남발 금지 |
 
-명령 UI 상태는 `요청됨`, `gateway 수락`, `실행 중`, `feedback 확인`, `복원됨`, `실패`를 구분한다. 버튼을 누른 즉시 차량 상태가 바뀐 것처럼 표시하지 않는다. 낙관적 pressed feedback은 250 ms 안에 제공하되, selected 상태는 gateway 결과와 feedback revision으로 확정한다.
+명령 UI 상태는 `요청됨`, `Communicator 수락`, `실행 중`, `feedback 확인`, `복원됨`, `실패`를 구분한다. 버튼을 누른 즉시 차량 상태가 바뀐 것처럼 표시하지 않는다. 낙관적 pressed feedback은 250 ms 안에 제공하되, selected 상태는 Communicator 결과와 feedback revision으로 확정한다.
 
 ### 8.1 주행 중 제한
 

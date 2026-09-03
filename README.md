@@ -1,6 +1,6 @@
 # canview
 
-현대·기아·제네시스 차량의 CAN 데이터를 별도 CAN 게이트웨이에서 수집하고, `ESP-NOW`로 Waveshare `ESP32-S3-Touch-LCD-3.5` 화면에 전달해 시각화하는 프로젝트다. 화면 장치는 최대 3개의 CAN 버스에서 들어오는 데이터를 표시하고, 필요한 경우 안전하게 제한된 제어 명령을 게이트웨이에 전달한다.
+현대·기아·제네시스 차량의 CAN 데이터를 별도 **Communicator**에서 수집하고, `ESP-NOW`로 Waveshare `ESP32-S3-Touch-LCD-3.5` 기반 **Controller**에 전달해 시각화하는 프로젝트다. Controller는 최대 3개의 CAN 버스에서 들어오는 데이터를 표시하고, 필요한 경우 안전하게 제한된 의도 명령을 Communicator에 전달한다.
 
 현재 1차 대상은 다음 차량이다.
 
@@ -14,6 +14,10 @@
 ## 문서
 
 - [하드웨어 및 개발환경](docs/hardware-and-development.md)
+- [시스템 구조와 장치 명칭](docs/system-architecture.md)
+- [Communicator 회로·IC·핀맵](docs/communicator-hardware.md)
+- [장치별 개발환경](docs/development-environments.md)
+- [Communicator 내부 4 Mbps UART 프로토콜](docs/communicator-uart-protocol.md)
 - [DBC 파일과 차량 적용 지침](dbc/README.md)
 - [1차 대상 차량 검증 메모](docs/target-vehicle-2017-tucson.md)
 - [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
@@ -45,7 +49,7 @@
 
 ## 저장소 상태
 
-DBC 원본, hardware 기준, 기능 안전 경계, ESP-NOW wire 구조, 화면 prototype과 LVGL UI 계층을 포함한 설계 기준 저장소다. 실제 CAN gateway와 display firmware 통합은 실차 capture로 신호를 검증하면서 단계적으로 추가한다.
+DBC 원본, hardware 기준, 기능 안전 경계, ESP-NOW wire 구조, 화면 prototype과 LVGL UI 계층을 포함한 설계 기준 저장소다. 실제 Communicator와 Controller firmware 통합은 실차 capture로 신호를 검증하면서 단계적으로 추가한다.
 
 ## 주요 원문
 
