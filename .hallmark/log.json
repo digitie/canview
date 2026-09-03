@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-09-03",
+    "macrostructure": "Workbench",
+    "theme": "custom",
+    "theme_axes": "dark / grotesk-sans / cool",
+    "vibe": "automotive clarity, appliance calm, technical precision",
+    "enrichment": "Tier B hand-built SVG drivetrain and cabin map",
+    "brief": "CANView 320x480 driver display and control prototype",
+    "pre_emit_critique": "P5 H5 E4 S5 R5 V5",
+    "slop_test": "pass (58/58)"
+  }
+]

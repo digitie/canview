@@ -16,6 +16,21 @@
 - [하드웨어 및 개발환경](docs/hardware-and-development.md)
 - [DBC 파일과 차량 적용 지침](dbc/README.md)
 - [1차 대상 차량 검증 메모](docs/target-vehicle-2017-tucson.md)
+- [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
+- [ESP-NOW 양방향 프로토콜](docs/esp-now-protocol.md)
+- [운전자 UI·LVGL 설계](docs/ui-design.md)
+
+## UI prototype
+
+320×480 세로 화면에 맞춘 주행·오디오·자동화 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
+
+| 주행 상태 | 오디오 기능 | SPORT 자동화 |
+|---|---|---|
+| ![주행 화면](docs/images/ui-drive.png) | ![오디오 화면](docs/images/ui-audio.png) | ![자동화 화면](docs/images/ui-automation.png) |
+
+- 브라우저 prototype: [`ui/prototype/`](ui/prototype/)
+- LVGL 8.4 UI: [`ui/lvgl/`](ui/lvgl/)
+- wire protocol C 구조: [`protocol/canview_protocol.h`](protocol/canview_protocol.h)
 
 ## 저장된 DBC
 
@@ -30,7 +45,7 @@
 
 ## 저장소 상태
 
-초기 문서와 DBC 원본을 포함한 설계 기준 저장소다. 화면 펌웨어와 3채널 CAN 게이트웨이 펌웨어는 이 문서의 핀 점유 및 프로토콜 기준을 따라 추가한다.
+DBC 원본, hardware 기준, 기능 안전 경계, ESP-NOW wire 구조, 화면 prototype과 LVGL UI 계층을 포함한 설계 기준 저장소다. 실제 CAN gateway와 display firmware 통합은 실차 capture로 신호를 검증하면서 단계적으로 추가한다.
 
 ## 주요 원문
 
