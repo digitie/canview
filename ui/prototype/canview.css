@@ -194,12 +194,11 @@ button { cursor: pointer; }
 }
 
 .drive-panel.is-active {
-  grid-template-rows: 208px 48px 34px 38px;
+  grid-template-rows: 264px 34px 38px;
   gap: 8px;
 }
 
 .drivetrain-card,
-.economy-card,
 .dpf-card,
 .volume-card,
 .spectrum-card,
@@ -243,10 +242,10 @@ button { cursor: pointer; }
   padding: 0;
 }
 
-.wheel-meter--fl { left: 18px; top: 35px; }
-.wheel-meter--fr { right: 18px; top: 35px; }
-.wheel-meter--rl { left: 18px; top: 124px; }
-.wheel-meter--rr { right: 18px; top: 124px; }
+.wheel-meter--fl { left: 18px; top: 49px; }
+.wheel-meter--fr { right: 18px; top: 49px; }
+.wheel-meter--rl { left: 18px; top: 139px; }
+.wheel-meter--rr { right: 18px; top: 139px; }
 
 .torque-stack {
   width: 48px;
@@ -304,8 +303,8 @@ button { cursor: pointer; }
 .wheel-meter small { color: var(--color-muted); font-size: 6px; font-weight: 500; }
 
 .vehicle-plan {
-  width: 104px;
-  height: 174px;
+  width: 122px;
+  height: 229px;
   position: absolute;
   left: 50%;
   top: 27px;
@@ -315,8 +314,8 @@ button { cursor: pointer; }
 }
 
 .vehicle-plan svg {
-  width: 91px;
-  height: 142px;
+  width: 108px;
+  height: 184px;
   fill: none;
   stroke: var(--color-ink-2);
   stroke-width: 2.3;
@@ -331,7 +330,7 @@ button { cursor: pointer; }
 .vehicle-plan .coupling { fill: rgb(0 188 255 / 9%); stroke: var(--color-accent); }
 .vehicle-instant {
   position: absolute;
-  top: 61px;
+  top: 99px;
   left: 50%;
   width: 43px;
   height: 39px;
@@ -367,40 +366,6 @@ button { cursor: pointer; }
   font-size: 10px;
   font-weight: 500;
 }
-
-.economy-card {
-  display: grid;
-  grid-template-columns: 1fr;
-  overflow: hidden;
-}
-
-.economy-card > div {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto 1fr;
-  align-items: end;
-  padding: 5px 12px 4px;
-}
-
-.economy-card > div + div { border-left: 1px solid var(--color-rule-2); }
-
-.economy-card .micro-label { align-self: center; }
-
-.economy-card strong {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -.04em;
-  line-height: 1;
-}
-
-.economy-card > div {
-  grid-template-columns: 1fr auto auto;
-  grid-template-rows: 1fr;
-  gap: 6px;
-}
-
-.economy-card small { color: var(--color-muted); font-size: 8px; padding-bottom: 2px; }
 
 .dpf-card {
   display: grid;

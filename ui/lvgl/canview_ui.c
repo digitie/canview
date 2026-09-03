@@ -46,7 +46,6 @@ typedef struct {
     lv_obj_t *speed_label;
     lv_obj_t *rpm_arc;
     lv_obj_t *rpm_label;
-    lv_obj_t *average_economy_label;
     lv_obj_t *instant_economy_label;
     lv_obj_t *dpf_label;
     lv_obj_t *dpf_load_label;
@@ -526,7 +525,7 @@ static void create_drive_screen(void)
     lv_obj_t *screen = make_screen();
     ui.screens[CANVIEW_UI_SCREEN_DRIVE] = screen;
 
-    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 208, false);
+    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 264, false);
     lv_obj_set_style_pad_all(four_wd, 8, 0);
     lv_obj_t *four_wd_title = make_label(four_wd, "4WD TORQUE · PSI");
     lv_obj_add_style(four_wd_title, &style_label_micro, 0);
@@ -536,7 +535,7 @@ static void create_drive_screen(void)
     lv_obj_set_style_text_color(awd_label, CANVIEW_COLOR_ACCENT, 0);
 
     static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {10, 208, 10, 208};
-    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {28, 28, 116, 116};
+    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {38, 38, 132, 132};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *wheel = lv_obj_create(four_wd);
         lv_obj_remove_style_all(wheel);
@@ -564,27 +563,27 @@ static void create_drive_screen(void)
         lv_obj_set_style_text_color(ui.wheel_pressure_labels[i], CANVIEW_COLOR_INK_2, 0);
     }
 
-    static const lv_coord_t connector_x[CANVIEW_UI_WHEEL_COUNT] = {72, 180, 72, 180};
-    static const lv_coord_t connector_y[CANVIEW_UI_WHEEL_COUNT] = {50, 50, 138, 138};
+    static const lv_coord_t connector_x[CANVIEW_UI_WHEEL_COUNT] = {72, 188, 72, 188};
+    static const lv_coord_t connector_y[CANVIEW_UI_WHEEL_COUNT] = {60, 60, 154, 154};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *connector = lv_obj_create(four_wd);
         lv_obj_remove_style_all(connector);
         lv_obj_set_pos(connector, connector_x[i], connector_y[i]);
-        lv_obj_set_size(connector, 28, 1);
+        lv_obj_set_size(connector, 20, 1);
         lv_obj_set_style_bg_color(connector, CANVIEW_COLOR_RULE, 0);
         lv_obj_set_style_bg_opa(connector, LV_OPA_COVER, 0);
     }
 
     lv_obj_t *vehicle = lv_obj_create(four_wd);
     lv_obj_remove_style_all(vehicle);
-    lv_obj_set_pos(vehicle, 94, 22);
-    lv_obj_set_size(vehicle, 92, 174);
+    lv_obj_set_pos(vehicle, 84, 22);
+    lv_obj_set_size(vehicle, 112, 230);
     lv_obj_clear_flag(vehicle, LV_OBJ_FLAG_SCROLLABLE);
 
     static lv_point_t vehicle_outline[] = {
-        {29, 4}, {20, 8}, {14, 20}, {12, 34}, {9, 108}, {12, 124},
-        {25, 136}, {46, 139}, {67, 136}, {80, 124}, {83, 108}, {80, 34},
-        {78, 20}, {63, 4}, {29, 4}};
+        {37, 4}, {27, 7}, {22, 20}, {20, 37}, {16, 143}, {17, 164},
+        {30, 181}, {56, 186}, {82, 181}, {95, 164}, {96, 143}, {92, 37},
+        {90, 20}, {85, 7}, {75, 4}, {37, 4}};
     lv_obj_t *outline = lv_line_create(vehicle);
     lv_line_set_points(outline, vehicle_outline,
                        sizeof(vehicle_outline) / sizeof(vehicle_outline[0]));
@@ -592,51 +591,51 @@ static void create_drive_screen(void)
     lv_obj_set_style_line_width(outline, 2, 0);
     lv_obj_set_style_line_rounded(outline, true, 0);
 
-    static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {5, 75, 5, 75};
-    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {31, 31, 91, 91};
+    static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {5, 93, 5, 93};
+    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {36, 36, 116, 116};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *car_wheel = lv_obj_create(vehicle);
         lv_obj_remove_style_all(car_wheel);
         lv_obj_set_pos(car_wheel, car_wheel_x[i], car_wheel_y[i]);
-        lv_obj_set_size(car_wheel, 12, 31);
+        lv_obj_set_size(car_wheel, 14, 38);
         lv_obj_set_style_bg_color(car_wheel, CANVIEW_COLOR_PAPER_3, 0);
         lv_obj_set_style_bg_opa(car_wheel, LV_OPA_COVER, 0);
         lv_obj_set_style_border_color(car_wheel, CANVIEW_COLOR_INK_2, 0);
         lv_obj_set_style_border_width(car_wheel, 2, 0);
-        lv_obj_set_style_radius(car_wheel, 5, 0);
+        lv_obj_set_style_radius(car_wheel, 6, 0);
     }
 
-    static const lv_coord_t axle_y[] = {46, 106};
+    static const lv_coord_t axle_y[] = {55, 135};
     for (uint8_t i = 0; i < 2U; ++i) {
         lv_obj_t *axle = lv_obj_create(vehicle);
         lv_obj_remove_style_all(axle);
-        lv_obj_set_pos(axle, 17, axle_y[i]);
-        lv_obj_set_size(axle, 58, 3);
+        lv_obj_set_pos(axle, 19, axle_y[i]);
+        lv_obj_set_size(axle, 74, 3);
         lv_obj_set_style_bg_color(axle, CANVIEW_COLOR_ACCENT_LINE, 0);
         lv_obj_set_style_bg_opa(axle, LV_OPA_COVER, 0);
 
         lv_obj_t *differential = lv_obj_create(vehicle);
         lv_obj_remove_style_all(differential);
-        lv_obj_set_pos(differential, 35, (lv_coord_t)(axle_y[i] - 9));
-        lv_obj_set_size(differential, 22, 18);
+        lv_obj_set_pos(differential, 43, (lv_coord_t)(axle_y[i] - 10));
+        lv_obj_set_size(differential, 26, 20);
         lv_obj_set_style_bg_color(differential, CANVIEW_COLOR_PAPER_3, 0);
         lv_obj_set_style_bg_opa(differential, LV_OPA_COVER, 0);
         lv_obj_set_style_border_color(differential, CANVIEW_COLOR_ACCENT_LINE, 0);
         lv_obj_set_style_border_width(differential, 2, 0);
-        lv_obj_set_style_radius(differential, 4, 0);
+        lv_obj_set_style_radius(differential, 5, 0);
     }
 
     lv_obj_t *shaft = lv_obj_create(vehicle);
     lv_obj_remove_style_all(shaft);
-    lv_obj_set_pos(shaft, 45, 55);
-    lv_obj_set_size(shaft, 3, 43);
+    lv_obj_set_pos(shaft, 55, 67);
+    lv_obj_set_size(shaft, 3, 56);
     lv_obj_set_style_bg_color(shaft, CANVIEW_COLOR_ACCENT_LINE, 0);
     lv_obj_set_style_bg_opa(shaft, LV_OPA_COVER, 0);
 
     lv_obj_t *instant = lv_obj_create(vehicle);
     lv_obj_remove_style_all(instant);
-    lv_obj_set_pos(instant, 23, 59);
-    lv_obj_set_size(instant, 46, 41);
+    lv_obj_set_pos(instant, 31, 78);
+    lv_obj_set_size(instant, 50, 48);
     lv_obj_set_style_bg_color(instant, CANVIEW_COLOR_PAPER, 0);
     lv_obj_set_style_bg_opa(instant, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(instant, CANVIEW_COLOR_ACCENT_LINE, 0);
@@ -650,23 +649,8 @@ static void create_drive_screen(void)
     lv_obj_set_style_text_color(ui.instant_economy_label, CANVIEW_COLOR_INK, 0);
 
     ui.four_wd_label = make_label(vehicle, "R —%");
-    lv_obj_align(ui.four_wd_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_align(ui.four_wd_label, LV_ALIGN_BOTTOM_MID, 0, -3);
     lv_obj_set_style_text_color(ui.four_wd_label, CANVIEW_COLOR_ACCENT, 0);
-
-    lv_obj_t *economy = make_card(screen, LV_PCT(100), 48, true);
-    lv_obj_set_style_pad_all(economy, 0, 0);
-    lv_obj_t *economy_title = make_label(economy, "평균 연비");
-    lv_obj_align(economy_title, LV_ALIGN_LEFT_MID, 10, 0);
-    lv_obj_add_style(economy_title, &style_label_micro, 0);
-    ui.average_economy_label = make_label(economy, "—");
-    lv_obj_align(ui.average_economy_label, LV_ALIGN_RIGHT_MID, -31, 0);
-    lv_obj_set_style_text_font(ui.average_economy_label,
-                               ui.config.metric_font != NULL ? ui.config.metric_font
-                                                             : LV_FONT_DEFAULT,
-                               0);
-    lv_obj_t *economy_unit = make_label(economy, "km/L");
-    lv_obj_align(economy_unit, LV_ALIGN_RIGHT_MID, -5, 5);
-    lv_obj_add_style(economy_unit, &style_label_micro, 0);
 
     lv_obj_t *dpf = make_card(screen, LV_PCT(100), 34, true);
     lv_obj_set_style_pad_all(dpf, 8, 0);
@@ -1148,12 +1132,8 @@ void canview_ui_update(const canview_ui_model_t *model)
     animate_arc_to(ui.rpm_arc, model->engine_rpm);
 
     if (model->fuel_economy_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
-        lv_label_set_text(ui.average_economy_label, "—");
         lv_label_set_text(ui.instant_economy_label, "—");
     } else {
-        lv_label_set_text_fmt(ui.average_economy_label, "%u.%u",
-                              model->average_fuel_economy_tenth_kmpl / 10U,
-                              model->average_fuel_economy_tenth_kmpl % 10U);
         lv_label_set_text_fmt(ui.instant_economy_label, "%u.%u",
                               model->instant_fuel_economy_tenth_kmpl / 10U,
                               model->instant_fuel_economy_tenth_kmpl % 10U);
