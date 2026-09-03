@@ -632,17 +632,16 @@ static void create_drive_screen(void)
     lv_obj_clear_flag(vehicle, LV_OBJ_FLAG_SCROLLABLE);
 
     static lv_point_t vehicle_outline[] = {
-        {41, 3},  {32, 5},  {25, 13},  {20, 25},  {13, 44},
-        {8, 65},   {8, 211},  {9, 221},  {13, 231}, {18, 238},
-        {29, 244}, {83, 244}, {94, 238}, {99, 231}, {103, 221},
-        {104, 211}, {104, 65}, {99, 44},  {92, 25},  {87, 13},
-        {80, 5},   {71, 3},   {41, 3}};
+        {27, 3},   {85, 3},   {96, 10},  {101, 23}, {105, 48},
+        {105, 211}, {104, 221}, {99, 231}, {94, 238}, {83, 244},
+        {29, 244}, {18, 238}, {13, 231}, {8, 221},  {7, 211},
+        {7, 48},   {11, 23},  {16, 10},  {27, 3}};
     lv_obj_t *outline = lv_line_create(vehicle);
     lv_line_set_points(outline, vehicle_outline,
                        sizeof(vehicle_outline) / sizeof(vehicle_outline[0]));
     lv_obj_set_style_line_color(outline, CANVIEW_COLOR_INK_2, 0);
     lv_obj_set_style_line_width(outline, 2, 0);
-    lv_obj_set_style_line_rounded(outline, true, 0);
+    lv_obj_set_style_line_rounded(outline, false, 0);
 
     static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {6, 92, 6, 92};
     static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {36, 36, 180, 180};
@@ -709,6 +708,13 @@ static void create_drive_screen(void)
                        sizeof(rear_window_points) / sizeof(rear_window_points[0]));
     lv_obj_set_style_line_color(rear_window, CANVIEW_COLOR_RULE, 0);
     lv_obj_set_style_line_width(rear_window, 1, 0);
+
+    static lv_point_t front_bumper_points[] = {{27, 5}, {85, 5}};
+    lv_obj_t *front_bumper = lv_line_create(vehicle);
+    lv_line_set_points(front_bumper, front_bumper_points,
+                       sizeof(front_bumper_points) / sizeof(front_bumper_points[0]));
+    lv_obj_set_style_line_color(front_bumper, CANVIEW_COLOR_INK_2, 0);
+    lv_obj_set_style_line_width(front_bumper, 1, 0);
 
     lv_obj_t *instant = lv_obj_create(vehicle);
     lv_obj_remove_style_all(instant);

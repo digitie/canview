@@ -379,7 +379,11 @@ button { cursor: pointer; }
   stroke-linejoin: round;
 }
 
-.vehicle-plan .vehicle-shell { stroke: rgb(174 189 201 / 78%); }
+.vehicle-plan .vehicle-shell {
+  stroke: rgb(174 189 201 / 78%);
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
 .vehicle-plan .vehicle-wheel { fill: var(--color-paper-3); stroke: rgb(174 189 201 / 82%); }
 .vehicle-plan .vehicle-glass { fill: rgb(20 38 57 / 66%); stroke: var(--color-rule); stroke-width: 1.5; }
 .vehicle-plan .driveline { stroke: var(--color-accent-line); stroke-width: 3; }
