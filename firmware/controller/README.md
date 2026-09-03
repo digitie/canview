@@ -7,6 +7,9 @@ Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF project가 들어갈 위치다.
 - hardware/pinmap: [`../../docs/hardware-and-development.md`](../../docs/hardware-and-development.md)
 - 개발환경: [`../../docs/development-environments.md`](../../docs/development-environments.md)
 - ESP-NOW: [`../../docs/esp-now-protocol.md`](../../docs/esp-now-protocol.md)
+- CAN 수신·DBC 파이프라인: [`../../docs/controller-can-pipeline.md`](../../docs/controller-can-pipeline.md)
+
+Controller 펌웨어가 Controller 로컬 CAN 수신 필터와 DBC signal catalog/decoder를 소유한다. Communicator는 raw CAN record만 보내므로 새 signal이나 차량 profile은 필요할 때 Controller catalog와 allow-list만 바꿔 추가할 수 있으며 Communicator firmware는 바꾸지 않는다.
 
 온보드 ES8311 microphone의 16 kHz mono capture에서 1024-point FFT를 계산해 23개 표시 bin과 peak 주파수·레벨만 LVGL 모델에 전달한다. raw PCM은 UI task나 ESP-NOW로 전달하지 않는다.
 

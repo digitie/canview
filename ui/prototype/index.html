@@ -21,6 +21,9 @@
       <aside class="speed-limit-overlay" aria-label="제한속도 시속 70킬로미터, 현재 제한속도 초과">
         <span>LIMIT</span><strong>70</strong>
       </aside>
+      <aside class="headlamp-warning-overlay" aria-label="일몰 후 전조등이 꺼져 있음" hidden>
+        <strong>LIGHTS</strong>
+      </aside>
 
       <section class="screen-panel drive-panel is-active" id="screen-drive" data-screen="drive" aria-label="주행 상태">
         <article class="drivetrain-card" aria-label="4WD 토크 배분과 타이어 공기압">
@@ -28,13 +31,15 @@
           <div class="wheel-meter wheel-meter--fl" style="--wheel-drive: 76%"><em>76%</em><span class="torque-stack"></span><strong>34.2 <small>psi</small></strong></div>
           <div class="wheel-meter wheel-meter--fr" style="--wheel-drive: 74%"><em>74%</em><span class="torque-stack"></span><strong>34.0 <small>psi</small></strong></div>
           <div class="vehicle-plan">
-            <svg viewBox="0 0 112 190" aria-hidden="true">
-              <path class="vehicle-shell" d="M37 4C27 7 22 20 20 37L16 143c-1 21 14 37 40 42 26-5 41-21 40-42L92 37C90 20 85 7 75 4Z"/>
-              <rect class="vehicle-wheel" x="5" y="36" width="14" height="38" rx="6"/><rect class="vehicle-wheel" x="93" y="36" width="14" height="38" rx="6"/>
-              <rect class="vehicle-wheel" x="5" y="116" width="14" height="38" rx="6"/><rect class="vehicle-wheel" x="93" y="116" width="14" height="38" rx="6"/>
-              <path class="driveline" d="M19 55h24m26 0h24M56 67v56M19 135h24m26 0h24"/>
-              <rect class="differential" x="43" y="45" width="26" height="20" rx="5"/><rect class="differential" x="43" y="125" width="26" height="20" rx="5"/>
-              <rect class="coupling" x="42" y="78" width="28" height="43" rx="4"/>
+            <svg viewBox="0 0 112 246" aria-hidden="true">
+              <path class="vehicle-shell" d="M38 4C29 7 23 18 20 34L17 52 16 207c0 8 2 15 11 29l9 6h40l9-6c9-14 11-21 11-29L95 52l-3-18C89 18 83 7 74 4Z"/>
+              <rect class="vehicle-wheel" x="5" y="36" width="14" height="32" rx="6"/><rect class="vehicle-wheel" x="93" y="36" width="14" height="32" rx="6"/>
+              <rect class="vehicle-wheel" x="5" y="178" width="14" height="32" rx="6"/><rect class="vehicle-wheel" x="93" y="178" width="14" height="32" rx="6"/>
+              <path class="vehicle-glass" d="M30 22 56 14l26 8 5 27H25Z"/><path class="vehicle-glass" d="M25 169h62l-3 42H28Z"/>
+              <path class="driveline" d="M19 52h24m26 0h24M56 60v122M19 194h24m26 0h24"/>
+              <rect class="differential" x="43" y="42" width="26" height="20" rx="5"/><rect class="differential" x="43" y="184" width="26" height="20" rx="5"/>
+              <rect class="coupling" x="42" y="99" width="28" height="48" rx="4"/>
+              <path class="vehicle-bumper" d="M27 236h58"/>
             </svg>
             <div class="vehicle-instant" aria-label="순간 연비 17.4 킬로미터 매 리터"><span>순간</span><strong>17.4</strong><small>km/L</small></div>
             <b class="rear-coupling">R 38%</b>
@@ -50,7 +55,7 @@
         <div class="compact-round-gauges">
           <div class="round-gauge" style="--gauge: 34%" role="img" aria-label="차속 시속 82킬로미터"><span>SPEED</span><strong>82</strong><small>km/h</small></div>
           <div class="round-gauge" style="--gauge: 28%" role="img" aria-label="엔진 회전수 1840 rpm"><span>RPM</span><strong>1.8</strong><small>×1000</small></div>
-          <div class="drive-mode-readout"><span class="micro-label">DRIVE MODE</span><strong class="mode-normal">NORMAL</strong></div>
+          <div class="drive-mode-readout"><div class="mode-line"><span class="micro-label">DRIVE MODE</span><strong class="mode-normal">NORMAL</strong></div><div class="drive-aux-metrics"><span><i>BATT</i><b>12.6<small>V</small></b></span><span><i>LOCK</i><b>ON</b></span><span><i>TEMP</i><b>86<small>°C</small></b></span></div></div>
         </div>
       </section>
 
@@ -105,6 +110,11 @@
       </section>
 
       <section class="screen-panel settings-panel" id="screen-settings" data-screen="settings" aria-label="설정" hidden>
+        <section class="settings-group time-settings" aria-labelledby="time-settings">
+          <div class="group-heading"><h2 id="time-settings">TIME · RTC</h2><output class="rtc-value">현재 12:00</output></div>
+          <div class="time-picker"><span>시각 설정</span><label><select id="clock-hour" aria-label="시"><option selected>00</option><option>01</option><option>02</option><option>03</option><option>04</option><option>05</option><option>06</option><option>07</option><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option></select><small>시</small></label><b>:</b><label><select id="clock-minute" aria-label="분"><option selected>00</option><option>05</option><option>10</option><option>15</option><option>20</option><option>25</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>55</option></select><small>분</small></label></div>
+          <div class="rtc-status"><span>보드 RTC</span><strong>PCF85063 · I²C</strong></div>
+        </section>
         <section class="settings-group display-settings" aria-labelledby="display-settings">
           <div class="group-heading"><h2 id="display-settings">DISPLAY</h2><output class="brightness-value" for="brightness">42%</output></div>
           <label class="slider-row" for="brightness"><span>화면 밝기</span><input id="brightness" class="brightness-slider" type="range" min="10" max="100" value="42"></label>

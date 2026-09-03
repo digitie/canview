@@ -10,3 +10,5 @@
 - UART 계약: [`../../../docs/communicator-uart-protocol.md`](../../../docs/communicator-uart-protocol.md)
 
 `GPIO26`은 N4R2 내부 PSRAM에 연결되므로 외부 GPIO로 쓰지 않는다. `GPIO19/20`은 USB Serial/JTAG를 위해 예약한다.
+
+ESP32는 DBC display catalog를 소유하지 않는다. STM32에서 올라온 raw CAN batch와 bus 상태를 ESP-NOW로 전달하는 bridge이며, Controller의 catalog/필터 변경만으로 새로운 CAN 신호를 사용할 수 있어야 한다.

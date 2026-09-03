@@ -111,6 +111,14 @@ Arduino 예제의 화면 관련 기준값은 `320×480`, rotation `0`, `ST7796`�
 
 Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시한다. 주변 소음 측정 prototype은 onboard microphone부터 사용한다. `GPIO12`–`16`은 audio 경로에 점유된 핀이므로 외부 microphone을 병렬 연결하지 않는다. 설치 위치 때문에 송풍음·speaker 누설이 지배적이면 별도 microphone node를 검토하며, 판단 기준과 신호처리는 [`feature-design.md`](feature-design.md)에 정리했다.
 
+### 4.1 I²C RTC와 시간 원천
+
+보드의 `GPIO7=SCL`, `GPIO8=SDA` 공유 I²C에는 onboard `PCF85063` RTC가 있다. `TCA9554`(`0x20`), FT6336 touch, QMI8658 IMU와 같은 bus를 공유하므로 드라이버 초기화 시 address probe와 bus recovery를 수행한다. PCF85063의 7-bit I²C 주소는 `0x51`이다. Waveshare 보드 리비전과 부품 실장은 schematic 및 실제 probe로 최종 확인한다. [NXP PCF85063TP 데이터시트](https://www.nxp.com/docs/en/data-sheet/PCF85063TP.pdf)
+
+PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, backup 전원 상태를 읽어 `rtc_quality`를 만든다. Controller가 RTC 소유자이며 UI의 시·분 선택은 `CANVIEW_COMMAND_RTC_SET_LOCAL_TIME`으로 전달한다. 현재 날짜는 Controller가 보존한다. RTC wall clock은 화면·로그·일몰 계산용이고 CAN timestamp ordering은 Communicator STM32의 monotonic clock을 사용한다.
+
+저장된 Hyundai DBC에는 1차 대상의 확정 GPS 좌표·현재 시각 신호가 없으므로 일출·일몰은 설정값 또는 별도 위치 원천에서 공급한다. 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 기록한다.
+
 ## 5. Communicator 하드웨어 요구사항
 
 ### 5.1 채널 수와 물리계층
@@ -138,12 +146,12 @@ CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2�
 
 - 초기 펌웨어는 모든 채널을 listen-only로 시작한다.
 - 수신 프레임에는 `bus_id`, monotonic timestamp, arbitration ID, IDE, RTR, DLC, data, error 상태를 붙인다.
-- 화면 표시를 위해 Communicator에서 DBC decode한 신호를 별도 telemetry로 만들되, 원시 프레임도 진단 모드에서 전달한다.
+- 화면 표시용 DBC decode는 Controller의 catalog/decoder에서 수행한다. Communicator는 원시 CAN frame과 bus 상태를 전달하며, 진단 모드에서도 같은 raw record를 사용한다.
 - 전송(TX)은 기본 비활성화한다. 활성화하더라도 메시지·신호·주기·조건을 allow-list로 제한하고, 화면에서 만든 임의 raw frame은 전송하지 않는다.
 
 ## 6. ESP-NOW 링크 설계
 
-역할은 Communicator가 최대 3개 CAN 수집·DBC decode·TX 안전 gate를 담당하고, Controller가 telemetry·LVGL·사용자 의도 명령을 담당하는 것으로 분리한다. wire protocol v1의 고정 frame은 ESP-NOW v1과 v2가 함께 처리할 수 있도록 240 byte 이하로 제한한다.
+역할은 Communicator가 최대 3개 CAN raw 수집·TX 안전 gate를 담당하고, Controller가 수신 allow-list·DBC decode·telemetry·LVGL·사용자 의도 명령을 담당하는 것으로 분리한다. wire protocol v1의 고정 frame은 ESP-NOW v1과 v2가 함께 처리할 수 있도록 240 byte 이하로 제한한다.
 
 전체 명세는 [`esp-now-protocol.md`](esp-now-protocol.md), C wire 구조는 [`../protocol/canview_protocol.h`](../protocol/canview_protocol.h)에 있다. 명세에는 다음을 포함한다.
 

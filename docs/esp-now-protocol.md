@@ -4,7 +4,7 @@
 
 이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다.
 
-이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 wire protocol 버전은 `1.1`이다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다.
+이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 wire protocol 버전은 `1.2`다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다.
 
 설계 원칙은 다음과 같다.
 
@@ -35,8 +35,8 @@ peer channel은 로컬 Wi-Fi channel과 같아야 한다. `channel=0`은 현재 
 
 | 역할 | 책임 | 신뢰하지 않는 입력 |
 |---|---|---|
-| Communicator | CAN1–3 수집, timestamp, DBC decode, 송신 allow-list, control lease, 최종 안전 gate | Controller 명령, 무선 payload, 미검증 DBC |
-| Primary Controller | 상태 표시, 사용자 입력, profile 요청, stale/error 표시 | Communicator가 보내는 값의 차량별 의미 |
+| Communicator | CAN1–3 raw 수집, timestamp, raw bridge, upstream stream hint, control lease, 최종 안전 gate | Controller 명령, 무선 payload, 화면용 DBC 의미 |
+| Primary Controller | 상태 표시, 사용자 입력, Controller-local CAN filter, DBC catalog/decode, profile 요청, stale/error 표시 | Communicator가 보내는 값의 차량별 의미를 검증 없이 신뢰 |
 | Read-only Controller | 추가 화면·정비 화면. 상태 수신만 허용 | 모든 제어 요청 |
 | Provisioning host | USB를 통한 설치 secret·peer 초기화 | 무선 discovery |
 
@@ -45,7 +45,8 @@ Communicator는 최대 20개 peer라는 ESP-NOW 한도보다 훨씬 작은 운�
 ### 3.1 데이터 방향
 
 ```text
-CAN1/2/3 -> Communicator -> CAN_BATCH / SIGNAL_BATCH / BUS_STATUS -> Controller
+CAN1/2/3 -> Communicator -> CAN_BATCH / BUS_STATUS -> Controller
+Controller ingress -> allow-list -> Controller DBC catalog/decoder -> UI model
 Controller -> COMMAND_REQUEST / CONFIG_* / LEASE_REQUEST -> Communicator
 Communicator -> ACK + COMMAND_RESULT / ERROR / SNAPSHOT -> Controller
 ```
@@ -136,8 +137,13 @@ CRC는 header의 `crc32` 4 byte를 0으로 둔 값과 payload 전체에 계산�
 | `0x16` | ERROR | 필요 시 Q1 | 양방향 |
 | `0x17–18` | state snapshot request/response | Q1 | Controller→Communicator→Controller |
 | `0x20` | raw CAN batch | Q0 | Communicator→Controller |
-| `0x21` | decoded signal batch | Q0 | Communicator→Controller |
+| `0x21` | decoded signal batch, optional legacy | Q0 | Communicator→Controller |
 | `0x22` | bus status | Q0, 변화 시 Q1 | Communicator→Controller |
+| `0x23` | CAN filter get/list | Q1 | Controller↔Communicator |
+| `0x24` | CAN filter add/replace/delete/clear | Q1 | Controller↔Communicator |
+| `0x25` | CAN filter result | Q1 | Controller↔Communicator |
+| `0x26` | raw stream period/count/byte budget | Q1 | Controller↔Communicator |
+| `0x27` | raw stream counters/status | Q0/Q1 | Controller↔Communicator |
 | `0x30–31` | command request/result | Q1 | 양방향 |
 | `0x32–33` | control lease | Q1 | 양방향 |
 | `0x40–42` | configuration | Q1 | 양방향 |
@@ -158,7 +164,7 @@ CRC는 header의 `crc32` 4 byte를 0으로 둔 값과 payload 전체에 계산�
 
 - 초기 ACK timeout: 최근 RTT가 없으면 80 ms
 - 적응 timeout: `clamp(2 × smoothed_RTT + 20 ms, 40 ms, 300 ms)`
-- 최대 시도: 최초 1회 + 재시도 3회
+- 최대 시도: 최초 1회 + 재시도 2회
 - retry jitter: ±10%
 - TTL이 먼저 끝나면 재전송 중단
 - ACK와 ERROR frame에는 ACK를 요구하지 않음
@@ -340,15 +346,15 @@ heartbeat에는 `boot_id`, uptime, state revision, RSSI, bus mask, bus error mas
 
 - role: Communicator, Primary Controller, Read-only Controller
 - 최대 frame 크기와 ESP-NOW transport version
-- CAN bus 수: 현재 `0–3`
-- raw CAN, decoded signal, bulk 지원 여부
+- CAN bus 수: 최대 3개, wire `bus_id`는 `0–2`
+- raw CAN, Controller-local filter, decoded signal, bulk 지원 여부
 - control lease 지원 여부
 - audio/drive-mode command bitset
 - TPMS, lighting/rheostat, longitudinal-acceleration signal capability
 - firmware semantic version와 build hash
 - vehicle profile ID
-- DBC upstream commit digest
-- signal catalog revision·SHA-256 digest
+- Controller DBC upstream commit digest
+- Controller signal catalog revision·SHA-256 digest
 - config schema version
 
 UI는 capability가 없거나 차량 profile에서 검증되지 않은 기능을 숨기거나 `검증 필요`로 disabled 표시한다. 단순히 DBC에 signal 이름이 존재한다는 이유로 control capability를 켜지 않는다.
@@ -366,7 +372,7 @@ TLV header는 `type:u16`, `length:u16`이고 value가 뒤따른다. 다음 규�
 
 ## 10. 시간 동기화와 freshness
 
-Communicator STM32 monotonic clock을 CAN sample 기준으로 사용한다. Controller wall clock이나 RTC는 로그 표시용일 뿐 ordering 기준이 아니다.
+Communicator STM32 monotonic clock을 CAN sample 기준으로 사용한다. Controller의 PCF85063 RTC와 wall clock은 화면·로그·일몰 계산용일 뿐 ordering 기준이 아니다. 저장된 1차 Hyundai DBC에는 GPS 좌표나 현재 날짜·시각 CAN signal이 없으므로 시간 동기화가 GPS/RTC 값을 대신 만들어내지 않는다. 후보 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 있다.
 
 time sync는 NTP와 같은 4 timestamp를 사용한다.
 
@@ -414,24 +420,31 @@ payload prefix:
 | 필드 | 크기 | 설명 |
 |---|---:|---|
 | `delta_us` | 2 | base time으로부터 0–65,535 us |
-| `bus_id` | 1 | `1`, `2`, `3`; 그 외 v1 invalid |
+| `bus_id` | 1 | wire 값 `0`, `1`, `2`가 논리 CAN1, CAN2, CAN3; `0xFF`는 filter에서만 wildcard |
 | `flags_dlc` | 1 | 상위 4 bit flags, 하위 4 bit DLC |
 | `can_id` | 4 | 11/29-bit ID, 나머지 bit 0 |
 | `data` | 8 | DLC 뒤 byte도 0으로 정규화 |
 
 12 byte batch header + 12×16 byte = 204 byte다. header까지 236 byte이므로 상한 안에 든다. `delta_us`가 범위를 넘거나 12개가 차면 새 batch를 시작한다.
 
-raw stream은 상시 전체 bus mirror가 아니다. 3×500 kbit/s CAN line traffic은 ESP-NOW 1 Mbit/s와 protocol overhead를 고려하면 그대로 보낼 수 없다. raw mode는 다음으로 제한한다.
+raw stream은 상시 전체 bus mirror가 아니다. 3×500 kbit/s CAN line traffic은 ESP-NOW 1 Mbit/s와 protocol overhead를 고려하면 그대로 보낼 수 없다. Communicator는 raw batch를 bridge하되 Controller가 수신 직후 동일 allow-list를 적용한다. raw mode는 다음으로 제한한다.
 
-- 한 번에 1개 bus
-- CAN ID allow-list 또는 변화 frame만
-- 기본 200 frame/s 상한
-- 30초 자동 종료, 사용자 재승인 필요
-- control command보다 낮은 P4
+- Controller filter 최대 32개, 한 설정 batch 최대 8개
+- filter period 20 ms–60 s, filter별 1–32 record/period
+- 전체 admission 기본 32 record/100 ms, period burst 기본 512 byte, raw record byte budget 최대 20,000 byte/s
+- frame당 record는 최대 12개이며 payload+header는 240 byte 이하
+- raw telemetry는 P4로 두고 command/ACK queue를 침범하지 않음
+- filter에 일치하지 않거나 quota를 넘긴 record는 Controller model queue에 넣지 않음
+
+### 11.1.1 Controller 수신 필터 관리
+
+`CAN_FILTER_SET`의 payload는 `canview_can_filter_batch_header_t`와 `canview_can_filter_t` 배열이다. `ADD`, `REPLACE`, `DELETE`는 1–8개, `CLEAR`는 count 0만 허용한다. Controller는 설정을 적용하기 전에 secure session, config lease, `config_revision`, reserved 값, 범위를 확인한다. revision이 맞지 않으면 전체 batch를 적용하지 않는다.
+
+`CAN_FILTER_GET`은 현재 filter snapshot을 조회한다. 32개 전체는 8개 단위 fragment로 반환하며, `CAN_FILTER_RESULT`는 각 action의 결과와 새 revision을 담는다. `CAN_STREAM_CONFIG`는 stream period, max record count, byte/s budget, burst 상한을 바꾸고 `CAN_STREAM_STATUS`는 accepted/rejected/budget drop을 보고한다. 이 메시지는 raw CAN을 차량에 재송신하는 기능이 아니다.
 
 ### 11.2 decoded signal batch
 
-signal catalog가 `(signal_id, type, unit, scale, display name, source message)`를 정의한다. wire record는 12 byte다.
+기본 경로는 Controller가 raw record를 자체 DBC catalog로 decode하는 것이다. `SIGNAL_BATCH`는 이전 Communicator decode 구현과의 선택적 호환 경로로만 남긴다. signal catalog가 `(signal_id, type, unit, scale, display name, source message)`를 정의한다. wire record는 12 byte다.
 
 | 필드 | 크기 | 설명 |
 |---|---:|---|
@@ -484,7 +497,7 @@ heartbeat 3회 누락, session 변경, Communicator reboot, physical TX disable�
 | `argument_tlv_length:u16` | 뒤 TLV 길이 |
 | `reserved:u16` | 0 |
 
-Communicator는 `request_token` 결과를 최소 60초 또는 256건 LRU로 보관한다. 같은 token과 다른 payload가 오면 auth/protocol 오류로 취급하고 실행하지 않는다.
+수신 endpoint는 `request_token + command_id + payload digest` 결과를 최소 60초 또는 256건 LRU로 보관한다. 같은 token과 같은 digest는 기존 result를 재전송하고, 같은 token과 다른 payload가 오면 auth/protocol 오류로 취급하고 실행하지 않는다.
 
 ### 12.3 명령 수명주기
 
@@ -517,7 +530,7 @@ v1의 공개 명령은 raw frame이 아니라 다음과 같은 의미 단위다.
 
 `CONFIG_GET/SET/RESULT` payload는 `canview_config_batch_header_t` 뒤에 고정 8 byte `canview_config_record_t`를 `count`개 배치한다. `value_type`은 signal record와 같은 `CANVIEW_VALUE_*`를 사용하고 `reserved`는 0이어야 한다.
 
-protocol 1.1에서 Communicator가 소유하는 SPORT key는 다음과 같다.
+protocol 1.2에서 Communicator가 소유하는 SPORT key는 다음과 같다.
 
 | Key | 형식 | 범위 |
 |---|---|---|
@@ -529,7 +542,7 @@ protocol 1.1에서 Communicator가 소유하는 SPORT key는 다음과 같다.
 
 설정 변경은 secure session, Primary Controller, 차량 정지, control lease, compatible config schema를 모두 요구한다. `CONFIG_RESULT`의 성공과 새 `state_revision`을 받은 뒤에만 Controller mirror를 commit한다. 범위를 벗어난 값은 clamp하지 않고 application error로 거부해 UI와 Communicator의 실제 설정이 조용히 달라지지 않게 한다.
 
-화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset은 Controller-local NVS 값이므로 ESP-NOW `CONFIG_SET`으로 보내지 않는다. 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다.
+화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset, RTC 표시 설정은 Controller-local NVS 값이다. RTC 시간 변경은 날짜를 보존하는 `CANVIEW_COMMAND_RTC_SET_LOCAL_TIME` 의도 명령으로 전송하고, 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다. CAN filter와 raw stream budget은 Controller ingress에서 적용하고, 필요한 경우 같은 설정을 Communicator의 raw stream hint로 전파한다.
 
 ## 13. 상태 snapshot과 revision
 
@@ -630,11 +643,11 @@ bulk는 log snippet, signal catalog, 작은 config blob을 위한 선택 기능�
 - P4, telemetry 혼잡 시 일시 정지
 - 30초 inactivity timeout
 
-DBC 원본은 Controller로 매번 보내지 않는다. Communicator와 Controller가 catalog digest를 비교하고 불일치하면 UI에 `신호 정의 불일치`를 표시한다. compatible catalog를 갖춘 경우에만 decoded signal ID를 사용한다.
+DBC 원본은 무선으로 매번 보내지 않는다. Controller가 선택한 catalog의 source commit·SHA-256·revision을 보관하고, digest가 맞지 않으면 해당 decoded signal을 사용하지 않는다. Communicator는 signal 의미를 해석하지 않고 raw record를 전달한다. compatible catalog를 갖춘 경우에만 Controller가 decoded signal ID를 만든다.
 
 향후 확장은 다음 공간을 보존한다.
 
-- CAN `bus_id`는 v1에서 1–3만 사용하지만 wire는 8 bit다.
+- CAN `bus_id`는 v1에서 wire 값 `0`, `1`, `2`를 논리 CAN1, CAN2, CAN3으로 사용하며 wire는 8 bit다. `0xFF`는 filter wildcard로만 예약한다.
 - signal ID는 16 bit namespace다.
 - capability bitset과 TLV로 optional 기능을 협상한다.
 - 새 transport가 필요하면 같은 application frame을 BLE/USB에서 재사용할 수 있다.
@@ -654,10 +667,11 @@ DBC 원본은 Controller로 매번 보내지 않는다. Communicator와 Controll
 8. CRC
 9. session ID와 anti-replay window
 10. message별 최소/최대 payload 길이
-11. TLV bounds·duplicate·critical type
-12. semantic range
-13. ACK enqueue
-14. 실제 처리 queue enqueue
+11. filter batch count·revision·reserved·quota range
+12. TLV bounds·duplicate·critical type
+13. semantic range
+14. ACK enqueue
+15. 실제 처리 queue enqueue
 
 오류 frame을 처리하다 다시 오류 frame을 생성하지 않는다.
 
@@ -750,3 +764,5 @@ counter overflow는 saturating 또는 64-bit로 처리한다. UI는 운전 화�
 - [UI/UX 설계와 LVGL 매핑](ui-design.md)
 - [하드웨어 및 개발환경](hardware-and-development.md)
 - [DBC 출처·검증 절차](../dbc/README.md)
+- [Controller CAN 수신·DBC 파이프라인](controller-can-pipeline.md)
+- [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)

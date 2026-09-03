@@ -179,6 +179,57 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
     const canview_adaptive_volume_input_t *input,
     uint32_t elapsed_ms);
 
+typedef enum {
+    CANVIEW_HEADLAMP_WARNING_INVALID = 0,
+    CANVIEW_HEADLAMP_WARNING_DAY,
+    CANVIEW_HEADLAMP_WARNING_NIGHT_OK,
+    CANVIEW_HEADLAMP_WARNING_PENDING,
+    CANVIEW_HEADLAMP_WARNING_ACTIVE,
+} canview_headlamp_warning_status_t;
+
+typedef struct {
+    uint32_t after_sunset_grace_ms;
+    uint16_t warning_on_confirm_ms;
+    uint16_t warning_off_confirm_ms;
+    uint16_t stale_timeout_ms;
+} canview_headlamp_warning_config_t;
+
+typedef struct {
+    bool enabled;
+    bool vehicle_awake;
+    bool rtc_valid;
+    uint16_t local_minutes;
+    uint16_t rtc_age_ms;
+    bool solar_valid;
+    uint16_t sunrise_minutes;
+    uint16_t sunset_minutes;
+    uint16_t solar_age_ms;
+    bool headlamp_valid;
+    bool headlamps_on;
+    uint16_t headlamp_age_ms;
+} canview_headlamp_warning_input_t;
+
+typedef struct {
+    bool initialized;
+    bool warning_active;
+    uint32_t warning_on_evidence_ms;
+    uint32_t warning_off_evidence_ms;
+} canview_headlamp_warning_state_t;
+
+typedef struct {
+    canview_headlamp_warning_status_t status;
+    bool night_active;
+    bool warning_active;
+} canview_headlamp_warning_output_t;
+
+canview_headlamp_warning_config_t canview_headlamp_warning_default_config(void);
+void canview_headlamp_warning_reset(canview_headlamp_warning_state_t *state);
+canview_headlamp_warning_output_t canview_headlamp_warning_update(
+    canview_headlamp_warning_state_t *state,
+    const canview_headlamp_warning_config_t *config,
+    const canview_headlamp_warning_input_t *input,
+    uint32_t elapsed_ms);
+
 #ifdef __cplusplus
 }
 #endif

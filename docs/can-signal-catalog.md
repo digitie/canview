@@ -11,6 +11,8 @@
 
 현재 저장소 기준 확정 등급은 모두 `C`다. 실차 프로파일에서만 `A/B/X`로 승격한다. DBC 세 파일은 message 주기를 정의하지 않으므로 표의 주기는 `실측 필요`로 둔다. C-CAN/M-CAN/FT-CAN 명칭과 실제 Communicator 물리 채널 1/2/3의 대응도 먼저 listen-only로 찾아야 한다.
 
+GPS 좌표·현재 날짜·시각 CAN 신호의 별도 조사 결과는 [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)에 있다. 주 DBC에는 해당 정보가 없으므로 Controller RTC와 별도 위치 원천을 사용한다.
+
 ## 2. 우선 구현 신호
 
 ### 2.1 주행·클러스터·내비게이션
@@ -51,7 +53,8 @@
 | 평균 연비 보조 | `CLU_HU_PE_02` `0x1DA`, 8 | average fuel 관련 값 | DBC range 불완전 | C, 교차검증 |
 | 엔진 기본 | `EMS11` `0x316`, 8 | `N`, `TQI`, `VS`, ignition 상태 | torque 계열 0.390625% | C, 표시·SPORT 입력 |
 | accelerator·engine temp | `EMS12` `0x329`, 8 | `TPS`, `ACC_ACT`, `TEMP_ENG`, `ENG_VOL`, `BRAKE_ACT` | message multiplex 여부 확인 | C, 표시·interlock |
-| 전압·연료온도 | `EMS14` `0x545`, 8 | `VB`, `EMS_VS`, `TEMP_FUEL`, `L_MIL` | `VB` 0.1015625 V | C, 진단 |
+| 배터리 전압 | `BAT11` `0x549`, 8 | `BAT_SNSR_V` | start `24`, length `14`, factor `0.001`, offset `6`, `6–18 V` | C, 독립 계측 대조 후 표시 |
+| 전압·연료온도 보조 | `EMS14` `0x545`, 8 | `VB`, `EMS_VS`, `TEMP_FUEL`, `L_MIL` | `VB` 0.1015625 V | C, `BAT11`과 교차검증 |
 | engine state | `EMS16` `0x260`, 8 | `ENG_STAT`, `GLOW_STAT` | enum 미확정 | C, 표시 |
 | DPF 경고·오일온도 | `EMS19` `0x492`, 8 | `DPF_LAMP_STAT`, `CR_Ems_EngOilTemp` | lamp raw 0–3, oil 0.75 - 40 °C | C, 표시 |
 

@@ -4,8 +4,9 @@
 
 이 프로토콜은 한 Communicator PCB 안의 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`를 연결한다. Controller와 Communicator 사이의 ESP-NOW wire protocol과는 별도다.
 
-- ESP32는 무선 link, pairing, Controller session, configuration, 표시용 DBC decode를 담당한다.
+- ESP32는 무선 link, pairing, Controller session, configuration, raw telemetry bridge를 담당한다.
 - STM32는 세 FDCAN, timestamp, bus 상태, 안전 신호, 차량 TX 최종 허용을 담당한다.
+- Controller의 표시용 DBC catalog와 signal decoder는 이 UART 경계 밖의 Controller에 둔다. ESP32와 STM32는 signal name이나 scale을 해석하지 않는다.
 - ESP-NOW frame을 UART로 그대로 tunnel하지 않는다. 경계마다 길이·권한·상태를 다시 검증한 semantic message만 전달한다.
 
 ## 2. 물리·UART 설정
@@ -90,7 +91,7 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 | `0x03` | `HEARTBEAT` | 양방향 | 100 ms, queue/counter/watchdog 상태 |
 | `0x04` | `ACK` | 양방향 | 문법·queue 수락 확인 |
 | `0x05` | `ERROR` | 양방향 | rate-limited link/protocol 오류 |
-| `0x10` | `CAN_RX_BATCH` | STM→ESP | 최신값 우선, 재전송 없음 |
+| `0x10` | `CAN_RX_BATCH` | STM→ESP | raw record 최신값 우선, 재전송 없음 |
 | `0x11` | `CAN_BUS_STATUS` | STM→ESP | bus-off/error counter/bitrate/listen-only |
 | `0x12` | `SAFETY_SNAPSHOT` | STM→ESP | 명령 판단에 사용한 신호와 revision |
 | `0x13` | `CAN_TX_AUDIT` | STM→ESP | 실행한 제한 명령의 결과와 feedback |
@@ -107,32 +108,28 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 
 ## 5. CAN batch 형식
 
-`CAN_RX_BATCH` payload는 batch header와 가변 record 배열로 구성한다.
+`CAN_RX_BATCH` payload는 공통 protocol의 `canview_can_batch_header_t`와 `canview_can_record_t` 배열을 사용한다. 내부 UART는 이 raw payload를 semantic message로 전달하며 ESP32가 DBC decode를 수행하지 않는다.
 
 ### 5.1 batch header
 
 | field | 크기 | 설명 |
 |---|---:|---|
-| `batch_id` | 4 | 방향별 증가 |
-| `record_count` | 2 | packet 안 record 수 |
-| `dropped_since_last` | 2 | STM queue overflow로 제거된 raw record 수 |
-| `first_timestamp_us` | 8 | 첫 record의 STM monotonic time |
+| `base_time_us_le` | 8 | 첫 record의 STM monotonic time |
+| `count` | 1 | record 수, ESP-NOW profile은 최대 12 |
+| `dropped_since_last` | 1 | STM queue overflow로 제거된 raw record 수 |
+| `reserved_le` | 2 | 0이어야 함 |
 
 ### 5.2 CAN record
 
 | field | 크기 | 설명 |
 |---|---:|---|
-| `bus_id` | 1 | 0–2 |
-| `flags` | 1 | extended, RTR, FD, BRS, error, TX echo |
-| `dlc` | 1 | 원본 DLC |
-| `data_len` | 1 | 실제 data byte 수, v1은 0–64 |
-| `arbitration_id` | 4 | 11/29 bit, 상위 reserved bit는 0 |
-| `delta_time_us` | 4 | batch 첫 timestamp 기준 |
-| `error_flags` | 2 | controller/transceiver 상태 |
-| `reserved` | 2 | 0 |
-| `data` | 가변 | `data_len`, 다음 4 byte 경계까지 zero padding |
+| `delta_us_le` | 2 | base time으로부터 0–65,535 us |
+| `bus_id` | 1 | `0`, `1`, `2`가 논리 CAN1, CAN2, CAN3 |
+| `flags_dlc` | 1 | 상위 nibble flags, 하위 nibble DLC |
+| `can_id_le` | 4 | 11/29-bit ID |
+| `data` | 8 | DLC 뒤 byte는 0으로 정규화 |
 
-target 차량의 classic CAN record는 보통 24 byte다. CAN FD record도 표현할 수 있지만 MAX3055 채널에서 FD/BRS flag는 항상 거부한다.
+classic CAN record는 고정 16 byte다. v1은 0–8 byte data만 보존하며, CAN FD 12/16-byte DLC와 FD/BRS 의미는 별도 record type과 capability를 추가하기 전까지 거부한다. MAX3055 채널에서 FD/BRS flag는 항상 거부한다. ESP-NOW로 넘길 때도 [`canview_protocol.h`](../protocol/canview_protocol.h)의 16 byte layout을 그대로 사용한다.
 
 ## 6. queue와 backpressure
 
@@ -162,7 +159,7 @@ ESP32                                     STM32
   |<------ LINK_HELLO_ACK -------------------|
   |-------- LINK_HELLO_ACK ----------------->|
   |<------ SAFETY_SNAPSHOT ------------------|
-  |-------- state/catalog digest ----------->|
+  |-------- state digest -------------------->
   |<=========== ONLINE / heartbeat =========>|
 ```
 
@@ -186,6 +183,8 @@ UART가 point-to-point라고 해서 command를 exactly-once transport로 가정�
 - 같은 token·다른 payload는 protocol/auth fault로 거부한다.
 - ACK는 packet을 queue에 수락했다는 뜻이고 차량 feedback 완료는 `COMMAND_RESULT(COMPLETED)`만 뜻한다.
 - ESP32 reboot, STM32 reboot, safety revision 변경 시 이전 pending command를 자동 재실행하지 않는다.
+- ACK가 `ACCEPTED` 또는 `DUPLICATE`여도 완료로 확정하지 않는다. `COMMAND_RESULT(COMPLETED)`만 feedback 확인 후 최종 성공이다.
+- result가 ACK보다 먼저 도착해도 terminal result를 유지하며, 늦은 ACK가 `WAITING_RESULT`로 되돌리지 않는다.
 
 ## 9. heartbeat와 오류 복구
 
@@ -215,7 +214,7 @@ Heartbeat 주기는 100 ms다.
 - 같은 major에서 minor 차이는 capability bit와 payload length로 협상한다.
 - payload의 확장 field는 TLV로 추가하고 unknown optional TLV는 건너뛴다.
 - 필수 capability가 없으면 관련 기능만 비활성화하며 raw command로 우회하지 않는다.
-- max packet은 양쪽 값의 최솟값을 사용하고 v1 hard limit 1,024 byte를 넘지 않는다.
+- max packet은 양쪽 값의 최솟값을 사용하고 내부 UART v1 hard limit 1,024 byte를 넘지 않는다.
 - firmware update message는 예약만 하고 v1에서 구현하지 않는다. STM32 update는 SWD/service mode부터 검증한다.
 
 ## 11. 시험 항목

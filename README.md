@@ -24,6 +24,8 @@
 - [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
 - [자동 밝기·소음 음량·SPORT 제어 로직](docs/automation-control.md)
 - [ESP-NOW 양방향 프로토콜](docs/esp-now-protocol.md)
+- [Controller CAN 수신·DBC 파이프라인](docs/controller-can-pipeline.md)
+- [CAN 신호의 GPS·시간 조사](docs/can-gps-time-investigation.md)
 - [운전자 UI·LVGL 설계](docs/ui-design.md)
 - [LVGL 공식 데모 전체 검토](docs/lvgl-demo-review.md)
 

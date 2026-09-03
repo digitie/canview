@@ -9,7 +9,7 @@
 | Controller | ESP-IDF `v5.5.2`, LVGL `8.4.x`, Waveshare BSP/example | Controller Flash image |
 | Communicator ESP32 | ESP-IDF `v5.5.2` | ESP-NOW·UART image |
 | Communicator STM32 | CMake + Ninja + GNU Arm Embedded, STM32CubeG4 | CAN·safety image |
-| DBC 생성·검증 | Python virtual environment, `cantools` | 생성된 signal catalog와 검증 report |
+| DBC 생성·검증 | Python virtual environment, `cantools` | Controller용 signal catalog와 검증 report |
 
 Controller와 Communicator ESP32는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
 
@@ -84,7 +84,7 @@ idf.py -p /dev/ttyACM1 flash monitor
 - ESP-NOW: encrypted unicast, 고정 운행 channel, callback에서는 queue copy만 수행
 - watchdog: Wi-Fi task와 UART worker를 분리 감시
 
-ESP32 firmware는 DBC에서 생성된 표시용 signal catalog를 가질 수 있지만, 차량 송신 판단용 안전 signal과 command frame 생성은 STM32에 독립적으로 남긴다.
+ESP32 Communicator firmware는 DBC 표시 catalog를 필요로 하지 않는다. raw CAN batch를 전달하는 bridge만 유지하고, DBC에서 생성된 signal catalog와 decoder는 Controller에 둔다. 차량 송신 판단용 안전 signal과 command frame 생성은 STM32에 독립적으로 남긴다.
 
 ## 4. Communicator STM32 CMake 환경
 
@@ -173,12 +173,12 @@ python -m pip install cantools
 python -m cantools list dbc/opendbc/hyundai_can.dbc
 ```
 
-DBC 원본은 수정하지 않고, generator가 다음 두 산출물을 만든다.
+DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 검증 산출물을 만든다.
 
-1. STM32용 최소 안전 signal/message table: command precondition과 feedback에 필요한 신호만 포함
-2. ESP32용 표시 catalog: UI telemetry와 단위·quality·name 포함
+1. Controller용 signal descriptor table: `signal_id`, bus/ID, bit field, endian, signedness, factor/offset, range, unit, quality 포함
+2. 차량 profile 검증 report: source DBC commit, 실차 등급, freshness, 후보/미지원 사유
 
-두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 이름이 존재해도 `UNVERIFIED` quality를 유지한다.
+두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 이름이 존재해도 `UNVERIFIED` quality를 유지한다. 새로운 signal이 기존 CAN ID를 사용하면 Communicator firmware를 바꾸지 않고 Controller catalog만 갱신한다. 새로운 ID를 사용하면 Controller allow-list entry를 함께 추가한다.
 
 ## 6. CI 권고 gate
 

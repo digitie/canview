@@ -7,7 +7,7 @@ CANView는 다음 두 장치로 구성한다. 문서, 펌웨어, 로그, UI에�
 | 정식 명칭 | 하드웨어 | 핵심 책임 |
 |---|---|---|
 | **Controller** | Waveshare `ESP32-S3-Touch-LCD-3.5` | 운전자 UI, 터치 입력, 상태 표시, ESP-NOW 명령 요청 |
-| **Communicator** | `ESP32-S3-MINI-1-N4R2` + `STM32G474CEU6` + `TCAN1046AV-Q1` + `MAX3055` | 차량 CAN 3채널 수집·송신, DBC decode, 안전 정책, ESP-NOW 연결 |
+| **Communicator** | `ESP32-S3-MINI-1-N4R2` + `STM32G474CEU6` + `TCAN1046AV-Q1` + `MAX3055` | 차량 CAN 3채널 raw 수집·송신, 안전 정책, ESP-NOW 연결 |
 
 `display`, `screen`, `gateway`는 일반 설명이나 외부 문서의 고유 용어가 아닌 이상 장치명으로 사용하지 않는다. 프로토콜 role 값은 `CONTROLLER`, `READ_ONLY_CONTROLLER`, `COMMUNICATOR`로 정의한다.
 
@@ -27,14 +27,14 @@ CANView는 다음 두 장치로 구성한다. 문서, 펌웨어, 로그, UI에�
                                   Communicator
 ┌─────────────────────────────────────────────────────────────────────┐
 │ ESP32-S3-MINI-1-N4R2                                                │
-│ ESP-NOW · pairing · session · telemetry queue · configuration       │
+│ ESP-NOW · pairing · session · raw telemetry queue · configuration   │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ UART 4,000,000 baud, 8-N-1
                                │ RTS/CTS, framed + CRC, full duplex
                                ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ STM32G474CEU6                                                       │
-│ monotonic timestamp · FDCAN1/2/3 · filter · bus error · TX safety  │
+│ monotonic timestamp · FDCAN1/2/3 · bus error · TX safety           │
 └───────────────┬───────────────────┬───────────────────┬─────────────┘
                 │ FDCAN1            │ FDCAN2            │ FDCAN3
                 ▼                   ▼                   ▼
@@ -51,9 +51,9 @@ CANView는 다음 두 장치로 구성한다. 문서, 펌웨어, 로그, UI에�
 
 | 계층 | 맡는 일 | 맡지 않는 일 |
 |---|---|---|
-| Controller | 사람이 읽을 상태 표현, 입력 debounce, 명령 의도 생성, stale/error 표시 | raw CAN frame 생성, 차량 안전 조건 최종 판정 |
-| Communicator ESP32-S3 | ESP-NOW 인증·세션·재전송, Controller별 권한, 무선/내부 UART queue | CAN peripheral 직접 제어, 최종 TX 허용 |
-| Communicator STM32 | 3개 CAN의 hardware timestamp·filter·error 처리, DBC 입력용 raw stream, command allow-list, 차량 상태 재검증 | UI 상태를 차량 사실로 신뢰, 무선 payload 직접 신뢰 |
+| Controller | 사람이 읽을 상태 표현, 입력 debounce, Controller-local CAN allow-list, DBC catalog/decode, stale/error 표시, 명령 의도 생성 | raw CAN frame 생성, 차량 안전 조건 최종 판정 |
+| Communicator ESP32-S3 | ESP-NOW 인증·세션·재전송, Controller별 권한, raw telemetry bridge, 무선/내부 UART queue | DBC 의미 해석, CAN peripheral 직접 제어, 최종 TX 허용 |
+| Communicator STM32 | 3개 CAN의 hardware timestamp·bus/error 처리, raw stream, command allow-list, 차량 상태 재검증 | UI 상태를 차량 사실로 신뢰, 무선 payload 직접 신뢰, 화면용 DBC decode |
 | CAN transceiver | 논리 신호와 차량 bus 물리계층 변환, standby, 물리 보호 일부 | bitrate 결정, 메시지 의미 판정 |
 
 차량 CAN 송신의 최종 권한은 STM32에 둔다. ESP32나 Controller가 raw arbitration ID와 data를 전달해 즉시 송신하게 만들지 않는다. STM32는 컴파일된 command ID, 차량 profile, 최신 차량 상태, control lease, 물리 TX enable을 모두 확인한 뒤 제한된 frame만 만든다.
@@ -75,4 +75,6 @@ CANView는 다음 두 장치로 구성한다. 문서, 펌웨어, 로그, UI에�
 - [개발환경과 빌드](development-environments.md)
 - [Communicator MCU 간 UART 프로토콜](communicator-uart-protocol.md)
 - [Controller–Communicator ESP-NOW 프로토콜](esp-now-protocol.md)
+- [Controller CAN 수신·DBC 파이프라인](controller-can-pipeline.md)
+- [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)
 - [기능 안전 설계](feature-design.md)

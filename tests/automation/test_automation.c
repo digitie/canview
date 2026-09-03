@@ -1,3 +1,5 @@
+#include "canview_command_tracker.h"
+#include "canview_controller_can.h"
 #include "canview_auto_sport.h"
 #include "canview_controller_automation.h"
 #include "canview_protocol.h"
@@ -278,9 +280,225 @@ static void test_acceleration_filter_rejects_single_spike(void)
     assert(canview_longitudinal_accel_filter_update(&filter, 0, false) == 0);
 }
 
+static canview_controller_can_filter_config_t test_filter(uint32_t filter_id,
+                                                          uint32_t can_id)
+{
+    return (canview_controller_can_filter_config_t){
+        .filter_id = filter_id,
+        .can_id = can_id,
+        .can_id_mask = 0x7FFU,
+        .period_ms = 100U,
+        .bus_id = 0U,
+        .min_dlc = 0U,
+        .max_dlc = 8U,
+        .max_records_per_period = 2U,
+        .enabled = true,
+    };
+}
+
+static canview_can_record_t test_record(uint32_t can_id)
+{
+    canview_can_record_t record = {
+        .bus_id = 0U,
+        .flags_dlc = 8U,
+    };
+    record.can_id_le = can_id;
+    return record;
+}
+
+static void test_controller_filter_default_deny_and_updates(void)
+{
+    canview_controller_can_filter_store_t store;
+    canview_controller_can_filter_store_init(&store);
+    canview_controller_can_filter_config_t config = test_filter(1U, 0x386U);
+    assert(!canview_controller_can_accept_record(&store, &(canview_can_record_t){0}, 0U));
+    canview_can_record_t invalid_record = test_record(0x800U);
+    assert(!canview_controller_can_accept_record(&store, &invalid_record, 0U));
+    invalid_record = test_record(0x386U);
+    invalid_record.bus_id = 3U;
+    assert(!canview_controller_can_accept_record(&store, &invalid_record, 0U));
+    assert(canview_controller_can_filter_apply(&store, CANVIEW_CAN_FILTER_ADD, &config) ==
+           CANVIEW_CONTROLLER_CAN_FILTER_OK);
+
+    canview_can_record_t allowed = test_record(0x386U);
+    canview_can_record_t denied = test_record(0x329U);
+    assert(canview_controller_can_accept_record(&store, &allowed, 0U));
+    assert(!canview_controller_can_accept_record(&store, &denied, 0U));
+    assert(canview_controller_can_accept_record(&store, &allowed, 0U));
+    assert(!canview_controller_can_accept_record(&store, &allowed, 0U));
+    assert(canview_controller_can_accept_record(&store, &allowed, 100U));
+
+    config.can_id = 0x329U;
+    assert(canview_controller_can_filter_apply(&store, CANVIEW_CAN_FILTER_REPLACE, &config) ==
+           CANVIEW_CONTROLLER_CAN_FILTER_OK);
+    assert(!canview_controller_can_accept_record(&store, &allowed, 200U));
+    assert(canview_controller_can_accept_record(&store, &denied, 200U));
+    assert(canview_controller_can_filter_apply(&store, CANVIEW_CAN_FILTER_DELETE, &config) ==
+           CANVIEW_CONTROLLER_CAN_FILTER_OK);
+    assert(!canview_controller_can_accept_record(&store, &denied, 300U));
+    assert(canview_controller_can_filter_apply(&store, CANVIEW_CAN_FILTER_CLEAR, NULL) ==
+           CANVIEW_CONTROLLER_CAN_FILTER_OK);
+
+    canview_controller_can_filter_store_t budget_store;
+    canview_controller_can_filter_store_init(&budget_store);
+    config = test_filter(2U, 0x386U);
+    assert(canview_controller_can_filter_apply(&budget_store, CANVIEW_CAN_FILTER_ADD, &config) ==
+           CANVIEW_CONTROLLER_CAN_FILTER_OK);
+    const canview_controller_can_stream_config_t budget = {
+        .period_ms = 100U,
+        .max_records_per_period = 32U,
+        .max_bytes_per_second = 16U,
+        .burst_bytes = 16U,
+        .enabled = true,
+    };
+    assert(canview_controller_can_filter_set_stream(&budget_store, &budget));
+    assert(canview_controller_can_accept_record(&budget_store, &allowed, 0U));
+    assert(!canview_controller_can_accept_record(&budget_store, &allowed, 0U));
+}
+
+static void test_controller_signal_decode_is_catalog_driven(void)
+{
+    canview_can_record_t record = test_record(0x316U);
+    record.data[2] = 0xD2U;
+    record.data[3] = 0x04U;
+    const canview_controller_signal_descriptor_t descriptor = {
+        .signal_id = 10U,
+        .bus_id = 0U,
+        .can_id = 0x316U,
+        .can_id_mask = 0x7FFU,
+        .start_bit = 16U,
+        .bit_length = 16U,
+        .byte_order = CANVIEW_CONTROLLER_SIGNAL_LITTLE_ENDIAN,
+        .value_type = CANVIEW_VALUE_F32,
+        .quality = CANVIEW_QUALITY_UNVERIFIED,
+        .factor = 0.25F,
+        .offset = 0.0F,
+    };
+    canview_controller_decoded_signal_t decoded;
+    assert(canview_controller_decode_signal(&record, &descriptor, &decoded));
+    assert(decoded.quality == CANVIEW_QUALITY_UNVERIFIED);
+    assert(decoded.physical_value > 308.4F && decoded.physical_value < 308.6F);
+
+    canview_can_record_t signed_record = test_record(0x220U);
+    signed_record.data[0] = 0xF0U;
+    const canview_controller_signal_descriptor_t signed_descriptor = {
+        .signal_id = 11U,
+        .bus_id = 0U,
+        .can_id = 0x220U,
+        .can_id_mask = 0x7FFU,
+        .start_bit = 7U,
+        .bit_length = 4U,
+        .byte_order = CANVIEW_CONTROLLER_SIGNAL_BIG_ENDIAN,
+        .value_type = CANVIEW_VALUE_I32,
+        .quality = CANVIEW_QUALITY_VALID,
+        .is_signed = true,
+        .factor = 1.0F,
+        .offset = 0.0F,
+    };
+    assert(canview_controller_decode_signal(&signed_record, &signed_descriptor, &decoded));
+    assert(decoded.physical_value == -1.0F);
+}
+
+static void test_command_completion_requires_result(void)
+{
+    canview_command_tracker_t tracker;
+    canview_command_tracker_init(&tracker);
+    assert(canview_command_tracker_begin(&tracker, 1U, 0x0201U, 1000U, 0U));
+    assert(canview_command_tracker_status(&tracker, 1U) ==
+           CANVIEW_COMMAND_TRACK_WAITING_ACK);
+    assert(!canview_command_tracker_should_retry(&tracker, 1U, 79U));
+    assert(canview_command_tracker_should_retry(&tracker, 1U, 80U));
+    assert(canview_command_tracker_mark_retry(&tracker, 1U, 80U));
+    assert(!canview_command_tracker_should_retry(&tracker, 1U, 239U));
+    assert(canview_command_tracker_should_retry(&tracker, 1U, 240U));
+    assert(canview_command_tracker_mark_retry(&tracker, 1U, 240U));
+    assert(canview_command_tracker_on_ack(&tracker, 1U, CANVIEW_ACK_DUPLICATE));
+    assert(canview_command_tracker_status(&tracker, 1U) ==
+           CANVIEW_COMMAND_TRACK_WAITING_RESULT);
+
+    canview_command_result_t result = {
+        .command_id_le = 0x0201U,
+        .stage = CANVIEW_COMMAND_COMPLETED,
+    };
+    result.request_token_le = 1U;
+    assert(canview_command_tracker_on_result(&tracker, &result));
+    assert(canview_command_tracker_status(&tracker, 1U) ==
+           CANVIEW_COMMAND_TRACK_COMPLETED);
+
+    canview_command_tracker_t reordered;
+    canview_command_tracker_init(&reordered);
+    assert(canview_command_tracker_begin(&reordered, 2U, 0x0201U, 1000U, 0U));
+    canview_command_result_t early_result = {
+        .command_id_le = 0x0201U,
+        .stage = CANVIEW_COMMAND_COMPLETED,
+    };
+    early_result.request_token_le = 2U;
+    assert(canview_command_tracker_on_result(&reordered, &early_result));
+    assert(canview_command_tracker_status(&reordered, 2U) ==
+           CANVIEW_COMMAND_TRACK_COMPLETED);
+    assert(canview_command_tracker_on_ack(&reordered, 2U, CANVIEW_ACK_ACCEPTED));
+    assert(canview_command_tracker_status(&reordered, 2U) ==
+           CANVIEW_COMMAND_TRACK_COMPLETED);
+
+    canview_command_tracker_t expired;
+    canview_command_tracker_init(&expired);
+    assert(canview_command_tracker_begin(&expired, 3U, 0x0201U, 100U, 0U));
+    canview_command_tracker_expire(&expired, 100U);
+    canview_command_result_t late_result = early_result;
+    late_result.request_token_le = 3U;
+    assert(!canview_command_tracker_on_result(&expired, &late_result));
+    assert(canview_command_tracker_status(&expired, 3U) ==
+           CANVIEW_COMMAND_TRACK_EXPIRED);
+
+    canview_command_tracker_t reusable;
+    canview_command_tracker_init(&reusable);
+    for (uint64_t token = 1U; token <= CANVIEW_COMMAND_TRACKER_MAX_PENDING; ++token) {
+        assert(canview_command_tracker_begin(&reusable, token, 0x0201U, 1000U, 0U));
+        canview_command_result_t completed = {
+            .request_token_le = token,
+            .command_id_le = 0x0201U,
+            .stage = CANVIEW_COMMAND_COMPLETED,
+        };
+        assert(canview_command_tracker_on_result(&reusable, &completed));
+    }
+    assert(canview_command_tracker_begin(&reusable, 9U, 0x0201U, 1000U, 0U));
+}
+
+static void test_headlamp_warning_uses_rtc_sunset_and_hysteresis(void)
+{
+    const canview_headlamp_warning_config_t config =
+        canview_headlamp_warning_default_config();
+    canview_headlamp_warning_state_t state = {0};
+    canview_headlamp_warning_input_t input = {
+        .enabled = true,
+        .vehicle_awake = true,
+        .rtc_valid = true,
+        .local_minutes = 1081U,
+        .solar_valid = true,
+        .sunrise_minutes = 360U,
+        .sunset_minutes = 1080U,
+        .headlamp_valid = true,
+        .headlamps_on = false,
+    };
+    canview_headlamp_warning_output_t output =
+        canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    assert(output.night_active);
+    assert(!output.warning_active);
+    output = canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    assert(output.warning_active);
+    input.headlamps_on = true;
+    output = canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    assert(!output.warning_active);
+    input.local_minutes = 720U;
+    input.headlamps_on = false;
+    output = canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    assert(!output.night_active);
+    assert(!output.warning_active);
+}
+
 int main(void)
 {
-    assert(CANVIEW_PROTOCOL_MINOR == 1U);
+    assert(CANVIEW_PROTOCOL_MINOR == 2U);
     assert(sizeof(canview_config_record_t) == 8U);
     test_can_brightness_debounce_and_stale_hold();
     test_idle_return_touch_restore_and_warning_priority();
@@ -289,6 +507,10 @@ int main(void)
     test_auto_sport_speed_hysteresis_and_restore();
     test_auto_sport_mid_speed_acceleration_and_manual_priority();
     test_acceleration_filter_rejects_single_spike();
+    test_controller_filter_default_deny_and_updates();
+    test_controller_signal_decode_is_catalog_driven();
+    test_command_completion_requires_result();
+    test_headlamp_warning_uses_rtc_sunset_and_hysteresis();
     puts("automation tests passed");
     return 0;
 }
