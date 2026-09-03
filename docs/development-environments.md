@@ -137,15 +137,31 @@ STM32_Programmer_CLI -c port=SWD \
 
 ### 4.4 clock과 peripheral 기준
 
-STM32 system clock 170 MHz, FDCAN kernel clock, USART2 4 Mbps를 정확히 만들 수 있는 clock tree를 CubeMX와 reference manual에서 검산한다. 최종 crystal 값이 정해질 때까지 CMake scaffold는 clock initialization을 구현 완료로 간주하지 않는다.
+PF0/OSC_IN과 PF1/OSC_OUT에 STM32 지원 범위인 4–48 MHz HSE crystal을 연결한다. STM32 system clock 170 MHz, FDCAN kernel clock, USART2 4 Mbps를 정확히 만들 수 있는 clock tree를 CubeMX와 reference manual에서 검산한다. CAN FD 5/8 Mbps의 oscillator tolerance와 sample point를 계산한 뒤 crystal 값과 load capacitor를 확정한다. HSE startup 또는 clock 검증 실패 시 HSI로 차량 CAN 송신을 계속하지 않고 모든 PHY를 비활성 상태로 둔 채 watchdog reset한다.
 
 USART2는 PA0 CTS, PA1 RTS, PA2 TX, PA3 RX의 AF7을 사용한다. FDCAN은 다음과 같다.
 
 | controller | RX | TX | transceiver |
 |---|---|---|---|
 | FDCAN1 | PA11 AF9 | PA12 AF9 | TCAN1046AV channel 1 |
-| FDCAN2 | PB5 AF9 | PB6 AF9 | TCAN1046AV channel 2 |
-| FDCAN3 | PB3 AF11 | PB4 AF11 | MAX3055, 125 kbps only |
+| FDCAN2 | PB12 AF9 | PB13 AF9 | TCAN1046AV channel 2 |
+| FDCAN3 | PA8 AF11 | PA15 AF11 | MAX3055, 125 kbps only |
+
+PB3/PB4와 PB5/PB6의 이전 배치는 사용하지 않는다. reset debug pull과 UCPD dead-battery pull-down 경로가 CAN TX의 하드웨어 기본 상태를 복잡하게 만들기 때문이다. PA12, PB13, PA15의 TXD에는 각각 외부 10 kΩ pull-up을 둔다.
+
+### 4.5 reset-safe 초기화와 watchdog
+
+3.3 V rail은 MAX20040 PGOOD으로 enable되는 TPS629210이 만들고, `TLV803EA30DPWR`가 STM32 NRST와 ESP32 CHIP_PU를 함께 감시한다. firmware가 개입하기 전 회로 기본값은 TCAN STB1/2 high, MAX3055 EN low, UART RTS/CTS high다.
+
+STM32 firmware 초기화 순서는 다음과 같이 고정한다.
+
+1. PA4·PA5 latch high와 PA6 latch low를 output mode보다 먼저 기록한다.
+2. HSE·PLL·FDCAN kernel clock을 검증한다.
+3. UART와 FDCAN message RAM, filter, interrupt, bitrate를 모두 구성한다.
+4. controller를 start하고 listen-only profile을 검증한다.
+5. 마지막에만 PA4·PA5를 low, 필요한 경우 PA6를 high로 바꿔 PHY를 normal mode로 전환한다.
+
+IWDG 목표 timeout은 250–500 ms다. main loop만으로 refresh하지 않고 CAN 처리, UART worker, safety state가 모두 정상일 때만 refresh한다. reset이 발생하면 외부 pull resistor가 즉시 CAN 1·2 standby와 CAN 3 disabled 상태를 복원한다.
 
 ## 5. DBC toolchain
 

@@ -33,7 +33,9 @@ ESP GPIO16 UART1_CTS <───────── STM PA1 USART2_RTS
 GND                  ────────── GND
 ```
 
-각 수신기는 자신의 buffer 여유를 RTS로 알리고, 반대쪽 송신기는 CTS가 허용할 때만 전송한다. RTS/CTS polarity는 두 MCU의 hardware peripheral 기본 active-low 동작을 사용하며 firmware에서 임의 invert하지 않는다.
+RTS와 CTS 네트마다 각각 3.3 V 방향 10 kΩ pull-up을 둔다. 어느 MCU가 reset 또는 무전원이어도 상대방이 보는 CTS가 high가 되어 송신 금지 상태로 시작한다. TX/RX에는 22–47 kΩ weak pull-up footprint를 마련하되 기본 장착값은 4 Mbps eye 측정으로 정한다. 각 송신기 가까이 series resistor footprint도 둔다.
+
+각 수신기는 자신의 buffer 여유를 RTS로 알리고, 반대쪽 송신기는 CTS가 허용할 때만 전송한다. RTS/CTS polarity는 두 MCU의 hardware peripheral 기본 active-low 동작을 사용하며 firmware에서 임의 invert하지 않는다. idle level만 보고 link가 연결됐다고 판단하지 않고 양쪽 `LINK_HELLO`와 새 `boot_id`를 확인해야 한다.
 
 4 Mbps, 8-N-1의 line payload 상한은 start/stop bit를 포함해 방향당 약 400 kB/s다. protocol은 정상 운용률을 65% 이하인 260 kB/s로 잡아 flow-control 지연, control message, burst를 위한 여유를 둔다.
 
@@ -151,7 +153,8 @@ CTS가 100 ms 이상 전송을 막으면 `FLOW_STALLED`로 표시하고 새 cont
 ```text
 ESP32                                     STM32
   |                                         |
-  |  UART init, RTS not-ready               | transceivers standby
+  |  reset: RTS/CTS pull-up = flow stop      | transceivers hardware-safe
+  |  UART init, RTS not-ready               | HSE/FDCAN init, PHY standby
   |                                         | FDCAN init/listen-only
   |<--------- delimiter resync ------------>|
   |--------- LINK_HELLO -------------------->|

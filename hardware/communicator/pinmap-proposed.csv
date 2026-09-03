@@ -1,27 +1,29 @@
 status,device,package_pin,gpio_or_pin,peripheral,net,direction,peer,notes
-proposed,ESP32-S3-MINI-1-N4R2,19,GPIO15,UART1_RTS,COMM_UART_ESP_RTS,output,STM32 PA0 USART2_CTS,GPIO matrix; preserve native USB
-proposed,ESP32-S3-MINI-1-N4R2,20,GPIO16,UART1_CTS,COMM_UART_ESP_CTS,input,STM32 PA1 USART2_RTS,GPIO matrix; preserve native USB
-proposed,ESP32-S3-MINI-1-N4R2,21,GPIO17,UART1_TX,COMM_UART_ESP_TX,output,STM32 PA3 USART2_RX,4 Mbps 8-N-1
-proposed,ESP32-S3-MINI-1-N4R2,22,GPIO18,UART1_RX,COMM_UART_ESP_RX,input,STM32 PA2 USART2_TX,4 Mbps 8-N-1
+proposed,ESP32-S3-MINI-1-N4R2,19,GPIO15,UART1_RTS,COMM_UART_ESP_RTS,output,STM32 PA0 USART2_CTS,GPIO matrix; external 10 kOhm pull-up gives flow stop
+proposed,ESP32-S3-MINI-1-N4R2,20,GPIO16,UART1_CTS,COMM_UART_ESP_CTS,input,STM32 PA1 USART2_RTS,GPIO matrix; external 10 kOhm pull-up gives flow stop
+proposed,ESP32-S3-MINI-1-N4R2,21,GPIO17,UART1_TX,COMM_UART_ESP_TX,output,STM32 PA3 USART2_RX,4 Mbps 8-N-1; 22-47 kOhm pull-up footprint
+proposed,ESP32-S3-MINI-1-N4R2,22,GPIO18,UART1_RX,COMM_UART_ESP_RX,input,STM32 PA2 USART2_TX,4 Mbps 8-N-1; 22-47 kOhm pull-up footprint
 reserved,ESP32-S3-MINI-1-N4R2,23,GPIO19,USB_D-,ESP_USB_D-,bidirectional,USB connector,Do not use for UART flow control
 reserved,ESP32-S3-MINI-1-N4R2,24,GPIO20,USB_D+,ESP_USB_D+,bidirectional,USB connector,Do not use for UART flow control
 unavailable,ESP32-S3-MINI-1-N4R2,26,GPIO26,PSRAM,INTERNAL_PSRAM,bidirectional,internal PSRAM,N4R2 only; must not route
-proposed,STM32G474CEU6,8,PA0,AF7 USART2_CTS,COMM_UART_STM_CTS,input,ESP GPIO15 UART1_RTS,4 Mbps hardware flow control
-proposed,STM32G474CEU6,9,PA1,AF7 USART2_RTS_DE,COMM_UART_STM_RTS,output,ESP GPIO16 UART1_CTS,4 Mbps hardware flow control
-proposed,STM32G474CEU6,10,PA2,AF7 USART2_TX,COMM_UART_STM_TX,output,ESP GPIO18 UART1_RX,4 Mbps 8-N-1
-proposed,STM32G474CEU6,11,PA3,AF7 USART2_RX,COMM_UART_STM_RX,input,ESP GPIO17 UART1_TX,4 Mbps 8-N-1
-proposed,STM32G474CEU6,12,PA4,GPIO output,CAN1_STB,output,TCAN1046AV pin 14,External pull-up gives standby during reset
-proposed,STM32G474CEU6,13,PA5,GPIO output,CAN2_STB,output,TCAN1046AV pin 9,External pull-up gives standby during reset
-proposed,STM32G474CEU6,14,PA6,GPIO output,CAN3_STB,output,MAX3055 pin 5,External pull-down gives safe reset state
-proposed,STM32G474CEU6,15,PA7,GPIO output,CAN3_EN,output,MAX3055 pin 6,External pull-down gives safe reset state
-proposed,STM32G474CEU6,30,PA8,GPIO input,CAN3_ERR,input,MAX3055 pin 4,5 V-tolerant pin plus level guard
+proposed,ESP32-S3-MINI-1-N4R2,45,CHIP_PU,reset,SYS_RESET_N,input,TLV803EA30DPWR RESET,Shared with STM32 NRST; external 10 kOhm pull-up
+reserved,STM32G474CEU6,5,PF0,OSC_IN,STM_HSE_IN,input,HSE crystal,4-48 MHz crystal network
+reserved,STM32G474CEU6,6,PF1,OSC_OUT,STM_HSE_OUT,output,HSE crystal,4-48 MHz crystal network
+reserved,STM32G474CEU6,7,PG10-NRST,reset,SYS_RESET_N,input,TLV803EA30DPWR RESET and SWD header,Shared with ESP CHIP_PU; do not leave floating
+proposed,STM32G474CEU6,8,PA0,AF7 USART2_CTS,COMM_UART_STM_CTS,input,ESP GPIO15 UART1_RTS,4 Mbps flow control; external 10 kOhm pull-up
+proposed,STM32G474CEU6,9,PA1,AF7 USART2_RTS_DE,COMM_UART_STM_RTS,output,ESP GPIO16 UART1_CTS,4 Mbps flow control; external 10 kOhm pull-up
+proposed,STM32G474CEU6,10,PA2,AF7 USART2_TX,COMM_UART_STM_TX,output,ESP GPIO18 UART1_RX,4 Mbps 8-N-1; 22-47 kOhm pull-up footprint
+proposed,STM32G474CEU6,11,PA3,AF7 USART2_RX,COMM_UART_STM_RX,input,ESP GPIO17 UART1_TX,4 Mbps 8-N-1; 22-47 kOhm pull-up footprint
+proposed,STM32G474CEU6,12,PA4,GPIO output,CAN1_STB,output,TCAN1046AV pin 14,External 10 kOhm pull-up gives standby during reset
+proposed,STM32G474CEU6,13,PA5,GPIO output,CAN2_STB,output,TCAN1046AV pin 9,External 10 kOhm pull-up gives standby during reset
+proposed,STM32G474CEU6,14,PA6,GPIO output,CAN3_EN,output,MAX3055 pin 6,External 10 kOhm pull-down gives Power-On Standby during reset
+proposed,STM32G474CEU6,25,PB12,AF9 FDCAN2_RX,CAN2_RX,input,TCAN1046AV pin 8,High-speed CAN channel 2
+proposed,STM32G474CEU6,26,PB13,AF9 FDCAN2_TX,CAN2_TX,output,TCAN1046AV pin 6,External 10 kOhm pull-up gives recessive during reset
+optional,STM32G474CEU6,27,PB14,GPIO input,CAN3_ERR,input,MAX3055 pin 4,5.1 kOhm series and 10 kOhm to GND divider; DNP if unused
+proposed,STM32G474CEU6,30,PA8,AF11 FDCAN3_RX,CAN3_RX,input,MAX3055 pin 3,5.1 kOhm series and 10 kOhm to GND divider
 proposed,STM32G474CEU6,33,PA11,AF9 FDCAN1_RX,CAN1_RX,input,TCAN1046AV pin 4,STM32 USB unavailable with this allocation
-proposed,STM32G474CEU6,34,PA12,AF9 FDCAN1_TX,CAN1_TX,output,TCAN1046AV pin 1,STM32 USB unavailable with this allocation
-proposed,STM32G474CEU6,41,PB3,AF11 FDCAN3_RX,CAN3_RX,input,MAX3055 pin 3,5 V-tolerant pin plus level guard
-proposed,STM32G474CEU6,42,PB4,AF11 FDCAN3_TX,CAN3_TX,output,MAX3055 pin 2,125 kbps channel only
-proposed,STM32G474CEU6,43,PB5,AF9 FDCAN2_RX,CAN2_RX,input,TCAN1046AV pin 8,High-speed CAN channel
-proposed,STM32G474CEU6,44,PB6,AF9 FDCAN2_TX,CAN2_TX,output,TCAN1046AV pin 6,High-speed CAN channel
+proposed,STM32G474CEU6,34,PA12,AF9 FDCAN1_TX,CAN1_TX,output,TCAN1046AV pin 1,External 10 kOhm pull-up gives recessive during reset
 reserved,STM32G474CEU6,36,PA13,AF0 SWDIO,STM_SWDIO,bidirectional,SWD header,Do not repurpose
 reserved,STM32G474CEU6,37,PA14,AF0 SWCLK,STM_SWCLK,input,SWD header,Do not repurpose
-reserved,STM32G474CEU6,7,PG10-NRST,reset,STM_NRST,input,supervisor and SWD header,Do not leave floating
-reserved,STM32G474CEU6,46,PB8-BOOT0,boot strap,STM_BOOT0,input,service pad,External pull-down
+proposed,STM32G474CEU6,38,PA15,AF11 FDCAN3_TX,CAN3_TX,output,MAX3055 pin 2,External 10 kOhm pull-up; reset pull-up is recessive-safe
+reserved,STM32G474CEU6,46,PB8-BOOT0,boot strap,STM_BOOT0,input,service pad,External 10 kOhm pull-down

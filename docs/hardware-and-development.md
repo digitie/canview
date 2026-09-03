@@ -130,6 +130,8 @@ Communicator는 최소 다음을 만족해야 한다.
 
 CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2는 `TCAN1046AV-Q1`의 두 high-speed 채널에, CAN3는 `MAX3055`의 125 kbps fault-tolerant 채널에 연결한다. MAX3055를 고속 CAN 버스에 연결하거나 일반 120 Ω 종단을 그대로 적용하지 않는다. ESP32-S3-MINI-1-N4R2는 CAN frame 처리보다 ESP-NOW, provisioning, update를 맡고 STM32와 4 Mbps UART/RTS/CTS로 통신한다.
 
+전원 기준안은 `LM74800-Q1 + back-to-back N-FET → MAX20040B 5 V → PGOOD-gated TPS629210 3.3 V → TLV803EA30DPWR 공통 reset`이다. MCU reset과 무전원 상태에서는 외부 pull resistor만으로 CAN1·2가 standby, CAN3가 Power-On Standby, UART가 flow-stop 상태가 되어야 한다. 구체 회로와 핀은 [`communicator-hardware.md`](communicator-hardware.md)를 정본으로 사용한다.
+
 1차 차량이 classic CAN인지 실제 차량 캡처로 확인하기 전까지 bitrate, connector pin, bus 이름을 고정하지 않는다. 특히 `CAN1/2/3`은 프로젝트 내부 논리 이름이며 차량의 실제 CAN 버스 명칭과 같다고 가정하지 않는다.
 
 ### 5.2 수신 우선 설계
