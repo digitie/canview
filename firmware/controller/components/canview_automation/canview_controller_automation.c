@@ -491,3 +491,127 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
                                                      config->release_ms);
     return output;
 }
+
+canview_headlamp_warning_config_t canview_headlamp_warning_default_config(void)
+{
+    const canview_headlamp_warning_config_t config = {
+        .after_sunset_grace_ms = 60000U,
+        .warning_on_confirm_ms = 2000U,
+        .warning_off_confirm_ms = 1000U,
+        .stale_timeout_ms = 2000U,
+    };
+    return config;
+}
+
+void canview_headlamp_warning_reset(canview_headlamp_warning_state_t *state)
+{
+    if (state != NULL) {
+        *state = (canview_headlamp_warning_state_t){.initialized = true};
+    }
+}
+
+static bool minutes_are_valid(uint16_t minutes)
+{
+    return minutes < 1440U;
+}
+
+static bool after_sunset_with_grace(const canview_headlamp_warning_config_t *config,
+                                    const canview_headlamp_warning_input_t *input)
+{
+    if (input->sunrise_minutes >= input->sunset_minutes ||
+        !minutes_are_valid(input->local_minutes) ||
+        !minutes_are_valid(input->sunrise_minutes) ||
+        !minutes_are_valid(input->sunset_minutes)) {
+        return false;
+    }
+
+    bool night = false;
+    uint32_t minutes_since_sunset = 0U;
+    if (input->local_minutes >= input->sunset_minutes) {
+        night = true;
+        minutes_since_sunset = input->local_minutes - input->sunset_minutes;
+    } else if (input->local_minutes < input->sunrise_minutes) {
+        night = true;
+        minutes_since_sunset = (1440U - input->sunset_minutes) +
+                               input->local_minutes;
+    }
+    if (!night) {
+        return false;
+    }
+    return minutes_since_sunset * 60000U >= config->after_sunset_grace_ms;
+}
+
+canview_headlamp_warning_output_t canview_headlamp_warning_update(
+    canview_headlamp_warning_state_t *state,
+    const canview_headlamp_warning_config_t *config,
+    const canview_headlamp_warning_input_t *input,
+    uint32_t elapsed_ms)
+{
+    canview_headlamp_warning_output_t output = {
+        .status = CANVIEW_HEADLAMP_WARNING_INVALID,
+    };
+    if (state == NULL || config == NULL || input == NULL) {
+        return output;
+    }
+    if (!state->initialized) {
+        canview_headlamp_warning_reset(state);
+    }
+
+    const bool source_fresh = input->rtc_valid && input->solar_valid &&
+                              input->headlamp_valid &&
+                              input->rtc_age_ms <= config->stale_timeout_ms &&
+                              input->solar_age_ms <= config->stale_timeout_ms &&
+                              input->headlamp_age_ms <= config->stale_timeout_ms;
+    const bool night = source_fresh && input->enabled && input->vehicle_awake &&
+                       after_sunset_with_grace(config, input);
+    output.night_active = night;
+    if (!source_fresh || !input->enabled || !input->vehicle_awake) {
+        state->warning_active = false;
+        state->warning_on_evidence_ms = 0U;
+        state->warning_off_evidence_ms = 0U;
+        output.status = CANVIEW_HEADLAMP_WARNING_INVALID;
+        return output;
+    }
+    if (!night) {
+        state->warning_active = false;
+        state->warning_on_evidence_ms = 0U;
+        state->warning_off_evidence_ms = 0U;
+        output.status = CANVIEW_HEADLAMP_WARNING_DAY;
+        return output;
+    }
+
+    if (state->warning_active) {
+        state->warning_on_evidence_ms = 0U;
+        if (input->headlamps_on) {
+            state->warning_off_evidence_ms = add_saturated(
+                state->warning_off_evidence_ms, elapsed_ms,
+                config->warning_off_confirm_ms);
+            if (state->warning_off_evidence_ms >= config->warning_off_confirm_ms) {
+                state->warning_active = false;
+                state->warning_off_evidence_ms = 0U;
+            }
+        } else {
+            state->warning_off_evidence_ms = 0U;
+        }
+    } else if (input->headlamps_on) {
+        state->warning_on_evidence_ms = 0U;
+        state->warning_off_evidence_ms = 0U;
+    } else {
+        state->warning_off_evidence_ms = 0U;
+        state->warning_on_evidence_ms = add_saturated(
+            state->warning_on_evidence_ms, elapsed_ms,
+            config->warning_on_confirm_ms);
+        if (state->warning_on_evidence_ms >= config->warning_on_confirm_ms) {
+            state->warning_active = true;
+            state->warning_on_evidence_ms = 0U;
+        }
+    }
+
+    output.warning_active = state->warning_active;
+    output.status = state->warning_active ? CANVIEW_HEADLAMP_WARNING_ACTIVE
+                                          : CANVIEW_HEADLAMP_WARNING_PENDING;
+    if (!state->warning_active && input->headlamps_on) {
+        output.status = CANVIEW_HEADLAMP_WARNING_NIGHT_OK;
+    }
+    return output;
+}

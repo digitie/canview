@@ -67,6 +67,21 @@ rheostat 미수신 야간 목표 = 30%
 
 경고는 touch를 가로채지 않고 idle latch도 지우지 않는다. 따라서 이미 감광된 상태에서 과속하면 경고 기간에만 밝아지고, 해제 뒤에는 다시 35% 유휴 밝기로 부드럽게 돌아간다. 밝기 우선순위는 `주간/야간 base → idle dim → speed warning boost`다. warning blink는 인지성을 위해 단계 전환하고 backlight는 급격한 점프를 막기 위해 ramp한다.
 
+### 2.4 일몰 후 전조등 미점등 경고
+
+저장 DBC에는 1차 차량의 GPS 좌표·현재 시각 CAN signal이 없으므로 `PCF85063 RTC + 설정된 일출·일몰`을 사용한다. GPS·시간 후보의 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 있다.
+
+경고 입력은 `rtc_valid`, `solar_window_valid`, `vehicle_awake`, `CF_Gway_HeadLampLow`/`C_TailLampActivity` 중 실차에서 확인된 조명 상태와 각 입력의 age다. 다음 조건이 모두 충족될 때만 밤으로 판정한다.
+
+```text
+RTC·일출·일몰·조명 signal이 stale 아님
+AND vehicle_awake
+AND local_time >= sunset + 60 s
+   OR local_time < sunrise
+```
+
+밤에 전조등/미등 OFF가 2초 유지되면 `headlamp_warning_active`를 켠다. 조명 ON이 1초 유지되면 끄며, 순간적인 CAN bit 흔들림은 무시한다. 입력이 stale이거나 차량이 sleep이면 false positive를 피하기 위해 경고를 즉시 끈다. 제한속도 경고가 동시에 있으면 제한속도 경고를 우선하고, 정상 상태에서는 경고 overlay를 숨긴다. 터치 입력을 가로채지 않으며, 경고 해제 후 backlight는 원래 야간/유휴 목표까지 ramp한다.
+
 ## 3. FFT 기반 주행 소음 음량 보정
 
 ### 3.1 FFT 특징값

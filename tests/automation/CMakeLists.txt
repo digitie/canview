@@ -11,11 +11,15 @@ enable_testing()
 add_executable(canview-automation-tests
     test_automation.c
     ../../firmware/controller/components/canview_automation/canview_controller_automation.c
+    ../../firmware/controller/components/canview_can/canview_controller_can.c
+    ../../firmware/controller/components/canview_can/canview_controller_signal.c
+    ../../firmware/controller/components/canview_can/canview_command_tracker.c
     ../../firmware/communicator/stm32/src/canview_auto_sport.c
 )
 
 target_include_directories(canview-automation-tests PRIVATE
     ../../firmware/controller/components/canview_automation/include
+    ../../firmware/controller/components/canview_can/include
     ../../firmware/communicator/stm32/include
     ../../protocol
 )

@@ -80,6 +80,7 @@ typedef enum {
     CANVIEW_UI_CMD_SET_SPORT_ENTRY_SPEED,
     CANVIEW_UI_CMD_SET_SPORT_ACCELERATION,
     CANVIEW_UI_CMD_SET_IDLE_TIMEOUT,
+    CANVIEW_UI_CMD_SET_RTC_TIME,
     CANVIEW_UI_CMD_USER_ACTIVITY,
 } canview_ui_command_id_t;
 
@@ -105,6 +106,12 @@ typedef struct {
 typedef struct {
     uint16_t speed_tenth_kph;
     uint16_t engine_rpm;
+    uint16_t battery_voltage_tenth_v;
+    canview_ui_quality_t battery_voltage_quality;
+    bool transmission_clutch_locked;
+    canview_ui_quality_t transmission_clutch_lock_quality;
+    int16_t engine_temperature_c;
+    canview_ui_quality_t engine_temperature_quality;
     uint16_t average_fuel_economy_tenth_kmpl;
     uint16_t instant_fuel_economy_tenth_kmpl;
     canview_ui_quality_t fuel_economy_quality;
@@ -147,6 +154,10 @@ typedef struct {
     uint16_t idle_timeout_seconds;
     bool night_mode_active;
     bool idle_dimmed;
+    uint8_t rtc_hour;
+    uint8_t rtc_minute;
+    canview_ui_quality_t rtc_quality;
+    bool headlamp_warning_active;
 
     bool speed_limit_active;
     uint8_t speed_limit_kph;

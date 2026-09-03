@@ -17,11 +17,28 @@ extern "C" {
 #endif
 
 #define CANVIEW_PROTOCOL_MAJOR UINT8_C(1)
-#define CANVIEW_PROTOCOL_MINOR UINT8_C(1)
+#define CANVIEW_PROTOCOL_MINOR UINT8_C(2)
 #define CANVIEW_HEADER_SIZE UINT8_C(32)
 #define CANVIEW_MAX_FRAME_SIZE UINT16_C(240)
 #define CANVIEW_MAX_PAYLOAD_SIZE UINT16_C(208)
 #define CANVIEW_MAGIC_LE UINT16_C(0x5643) /* Wire bytes 0x43, 0x56: "CV". */
+
+/* Controller-side raw CAN admission limits. The allow-list is deliberately
+ * enforced after reception so a new DBC catalog never requires a
+ * Communicator firmware change. */
+#define CANVIEW_CAN_BUS_ANY UINT8_C(0xFF)
+#define CANVIEW_CAN_STANDARD_ID_MAX UINT32_C(0x7FF)
+#define CANVIEW_CAN_EXTENDED_ID_MAX UINT32_C(0x1FFFFFFF)
+#define CANVIEW_CAN_FILTER_MAX_COUNT UINT8_C(32)
+#define CANVIEW_CAN_FILTER_MAX_BATCH_COUNT UINT8_C(8)
+#define CANVIEW_CAN_FILTER_MIN_PERIOD_MS UINT16_C(20)
+#define CANVIEW_CAN_FILTER_MAX_PERIOD_MS UINT16_C(60000)
+#define CANVIEW_CAN_FILTER_MAX_RECORDS_PER_PERIOD UINT8_C(32)
+#define CANVIEW_CAN_RX_DEFAULT_BYTES_PER_SECOND UINT32_C(20000)
+#define CANVIEW_CAN_RX_MAX_BYTES_PER_SECOND UINT32_C(20000)
+#define CANVIEW_CAN_RECORD_WIRE_BYTES UINT16_C(16)
+#define CANVIEW_COMMAND_TRACKER_MAX_PENDING UINT8_C(8)
+#define CANVIEW_COMMAND_TRACKER_MAX_RETRIES UINT8_C(2)
 
 #if defined(__GNUC__) || defined(__clang__)
 #define CANVIEW_PACKED __attribute__((packed))
@@ -49,6 +66,11 @@ typedef enum {
     CANVIEW_MSG_CAN_BATCH = 0x20,
     CANVIEW_MSG_SIGNAL_BATCH = 0x21,
     CANVIEW_MSG_BUS_STATUS = 0x22,
+    CANVIEW_MSG_CAN_FILTER_GET = 0x23,
+    CANVIEW_MSG_CAN_FILTER_SET = 0x24,
+    CANVIEW_MSG_CAN_FILTER_RESULT = 0x25,
+    CANVIEW_MSG_CAN_STREAM_CONFIG = 0x26,
+    CANVIEW_MSG_CAN_STREAM_STATUS = 0x27,
 
     CANVIEW_MSG_COMMAND_REQUEST = 0x30,
     CANVIEW_MSG_COMMAND_RESULT = 0x31,
@@ -147,6 +169,7 @@ typedef enum {
     CANVIEW_COMMAND_DRIVE_MODE_BUTTON_PULSE = 0x0201,
     CANVIEW_COMMAND_AUTOMATION_ARM = 0x0202,
     CANVIEW_COMMAND_AUTOMATION_DISARM = 0x0203,
+    CANVIEW_COMMAND_RTC_SET_LOCAL_TIME = 0x0301,
 } canview_command_id_t;
 
 typedef enum {
@@ -158,7 +181,29 @@ typedef enum {
     CANVIEW_CONFIG_SPORT_AUTOMATION_ENABLED = 0x0201,
     CANVIEW_CONFIG_SPORT_ENTRY_SPEED_TENTH_KPH = 0x0202,
     CANVIEW_CONFIG_SPORT_ACCELERATION_ENABLED = 0x0203,
+    CANVIEW_CONFIG_RTC_LOCAL_TIME = 0x0301,
+    CANVIEW_CONFIG_SUNRISE_MINUTES = 0x0302,
+    CANVIEW_CONFIG_SUNSET_MINUTES = 0x0303,
+    CANVIEW_CONFIG_HEADLAMP_WARNING_ENABLED = 0x0304,
+    CANVIEW_CONFIG_CAN_RX_STREAM_PERIOD_MS = 0x0401,
+    CANVIEW_CONFIG_CAN_RX_STREAM_MAX_RECORDS = 0x0402,
+    CANVIEW_CONFIG_CAN_RX_BYTES_PER_SECOND = 0x0403,
 } canview_config_key_t;
+
+typedef enum {
+    CANVIEW_CAN_FILTER_ADD = 1,
+    CANVIEW_CAN_FILTER_REPLACE = 2,
+    CANVIEW_CAN_FILTER_DELETE = 3,
+    CANVIEW_CAN_FILTER_CLEAR = 4,
+} canview_can_filter_action_t;
+
+typedef enum {
+    CANVIEW_CAN_FILTER_APPLIED = 0,
+    CANVIEW_CAN_FILTER_INVALID = 1,
+    CANVIEW_CAN_FILTER_FULL = 2,
+    CANVIEW_CAN_FILTER_NOT_FOUND = 3,
+    CANVIEW_CAN_FILTER_CONFLICT = 4,
+} canview_can_filter_result_t;
 
 typedef enum {
     CANVIEW_ERROR_TRANSPORT_BASE = 0x0100,
@@ -228,6 +273,65 @@ typedef struct CANVIEW_PACKED {
     uint8_t data[8];
 } canview_can_record_t;
 
+/* A Controller allow-list entry. Matching is
+ * (arbitration_id & can_id_mask) == (can_id & can_id_mask). A non-zero mask,
+ * valid DLC range, and bounded period/count are mandatory. */
+typedef struct CANVIEW_PACKED {
+    uint32_t filter_id_le;
+    uint32_t can_id_le;
+    uint32_t can_id_mask_le;
+    uint16_t period_ms_le;
+    uint8_t bus_id;
+    uint8_t flags_value;
+    uint8_t flags_mask;
+    uint8_t min_dlc;
+    uint8_t max_dlc;
+    uint8_t max_records_per_period;
+    uint8_t enabled;
+    uint8_t reserved0;
+} canview_can_filter_t;
+
+typedef struct CANVIEW_PACKED {
+    uint8_t action;
+    uint8_t count;
+    uint16_t reserved_le;
+    uint32_t config_revision_le;
+} canview_can_filter_batch_header_t;
+
+typedef struct CANVIEW_PACKED {
+    uint32_t config_revision_le;
+    uint32_t filter_id_le; /* 0 requests the complete snapshot. */
+} canview_can_filter_get_payload_t;
+
+typedef struct CANVIEW_PACKED {
+    uint32_t config_revision_le;
+    uint32_t filter_id_le;
+    uint8_t action;
+    uint8_t result;
+    uint16_t detail_le;
+} canview_can_filter_result_payload_t;
+
+/* Global stream budget complements per-filter period/count. It is applied at
+ * the Controller receive boundary and is not a request to transmit arbitrary
+ * CAN frames from the Communicator. */
+typedef struct CANVIEW_PACKED {
+    uint32_t config_revision_le;
+    uint16_t period_ms_le;
+    uint8_t max_records_per_period;
+    uint8_t enabled;
+    uint32_t max_bytes_per_second_le;
+    uint16_t burst_bytes_le; /* Maximum raw bytes in one period window. */
+    uint16_t reserved_le;
+} canview_can_stream_config_t;
+
+typedef struct CANVIEW_PACKED {
+    uint32_t config_revision_le;
+    uint16_t accepted_records_le;
+    uint16_t rejected_records_le;
+    uint32_t dropped_by_budget_le;
+    uint32_t reserved_le;
+} canview_can_stream_status_t;
+
 typedef struct CANVIEW_PACKED {
     uint64_t sample_time_us_le;
     uint8_t count;
@@ -262,6 +366,19 @@ typedef struct CANVIEW_PACKED {
     uint32_t state_revision_le;
     uint32_t completed_time_ms_le;
 } canview_command_result_t;
+
+/* The UI sets hour/minute while the Controller preserves the currently known
+ * calendar date. A service/host may populate the complete date fields later. */
+typedef struct CANVIEW_PACKED {
+    uint16_t year_le;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint8_t weekday;
+    uint8_t reserved[4];
+} canview_rtc_time_payload_t;
 
 typedef struct CANVIEW_PACKED {
     uint16_t schema_version_le;
@@ -305,11 +422,37 @@ typedef struct CANVIEW_PACKED {
 #if defined(__cplusplus)
 static_assert(sizeof(canview_frame_header_t) == 32, "wire header must be 32 bytes");
 static_assert(sizeof(canview_can_record_t) == 16, "CAN record must be 16 bytes");
+static_assert(sizeof(canview_can_filter_t) == 22, "CAN filter must be 22 bytes");
+static_assert(sizeof(canview_can_filter_batch_header_t) == 8,
+              "CAN filter batch header must be 8 bytes");
+static_assert(sizeof(canview_can_filter_get_payload_t) == 8,
+              "CAN filter get payload must be 8 bytes");
+static_assert(sizeof(canview_can_filter_result_payload_t) == 12,
+              "CAN filter result must be 12 bytes");
+static_assert(sizeof(canview_can_stream_config_t) == 16,
+              "CAN stream config must be 16 bytes");
+static_assert(sizeof(canview_can_stream_status_t) == 16,
+              "CAN stream status must be 16 bytes");
+static_assert(sizeof(canview_rtc_time_payload_t) == 12,
+              "RTC payload must be 12 bytes");
 static_assert(sizeof(canview_signal_record_t) == 12, "signal record must be 12 bytes");
 static_assert(sizeof(canview_config_record_t) == 8, "config record must be 8 bytes");
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 _Static_assert(sizeof(canview_frame_header_t) == 32, "wire header must be 32 bytes");
 _Static_assert(sizeof(canview_can_record_t) == 16, "CAN record must be 16 bytes");
+_Static_assert(sizeof(canview_can_filter_t) == 22, "CAN filter must be 22 bytes");
+_Static_assert(sizeof(canview_can_filter_batch_header_t) == 8,
+               "CAN filter batch header must be 8 bytes");
+_Static_assert(sizeof(canview_can_filter_get_payload_t) == 8,
+               "CAN filter get payload must be 8 bytes");
+_Static_assert(sizeof(canview_can_filter_result_payload_t) == 12,
+               "CAN filter result must be 12 bytes");
+_Static_assert(sizeof(canview_can_stream_config_t) == 16,
+               "CAN stream config must be 16 bytes");
+_Static_assert(sizeof(canview_can_stream_status_t) == 16,
+               "CAN stream status must be 16 bytes");
+_Static_assert(sizeof(canview_rtc_time_payload_t) == 12,
+               "RTC payload must be 12 bytes");
 _Static_assert(sizeof(canview_signal_record_t) == 12, "signal record must be 12 bytes");
 _Static_assert(sizeof(canview_config_record_t) == 8, "config record must be 8 bytes");
 #endif

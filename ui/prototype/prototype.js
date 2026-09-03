@@ -50,12 +50,27 @@ brightness.addEventListener("input", () => {
   document.querySelector(".brightness-value").value = `${brightness.value}%`;
 });
 
+const clockHour = document.querySelector("#clock-hour");
+const clockMinute = document.querySelector("#clock-minute");
+const rtcValue = document.querySelector(".rtc-value");
+function updateClockPreview() {
+  if (clockHour && clockMinute && rtcValue) {
+    rtcValue.value = `현재 ${clockHour.value}:${clockMinute.value}`;
+  }
+}
+clockHour?.addEventListener("change", updateClockPreview);
+clockMinute?.addEventListener("change", updateClockPreview);
+
 document.addEventListener("pointerdown", resetIdle, {passive: true});
 document.querySelector("#idle-timeout").addEventListener("change", resetIdle);
 
 const query = new URLSearchParams(window.location.search);
+if (query.get("warning") === "0") {
+  app.classList.remove("is-speed-warning");
+}
 const requestedScreen = query.get("screen");
 showScreen(requestedScreen ?? "drive");
+updateClockPreview();
 if (query.get("scroll") === "bottom") {
   document.querySelector("#screen-settings").scrollTop = 1000;
 }

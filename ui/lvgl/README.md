@@ -37,8 +37,8 @@ CAN/ESP-NOW task에서 `canview_ui_update()`를 직접 호출하지 않는다. �
 - 소리: 취침/뒷좌석+ profile, 현재 음량, Cabin FFT. 임의 sound position과 volume ± control 없음
 - FFT: `PEAK`와 `LEVEL`을 chart 내부 상단에 둔 대형 spectrum
 - 자동화: 원 장식 없는 mode 상태. SPORT red, NORMAL blue, ECO green
-- 설정: 밝기 slider, toggle, 제한된 `lv_dropdown`. 자유 숫자 text input과 속도 단위 설정 없음
-- 전역: 현재 속도와 speed-limit overlay. overlay는 click flag가 없어 아래 control을 가로채지 않음
+- 설정: RTC 시·분, 밝기 slider, toggle, 제한된 `lv_dropdown`. 자유 숫자 text input과 속도 단위 설정 없음
+- 전역: 현재 속도와 speed-limit overlay, 일몰 후 미등/전조등 경고. overlay는 click flag가 없어 아래 control을 가로채지 않음
 
 실행 중 telemetry 값은 180–300 ms animation으로 이어지고 screen은 160 ms fade한다. idle 진입은 주행 화면으로 복귀하며, warning overlay는 model의 blink 상태를 그대로 따른다.
 

@@ -41,7 +41,10 @@ typedef struct {
     lv_obj_t *link_label;
     lv_obj_t *header_speed_label;
     lv_obj_t *speed_limit_overlay;
+    lv_obj_t *speed_limit_caption;
     lv_obj_t *speed_limit_label;
+    lv_obj_t *headlamp_warning_overlay;
+    lv_obj_t *headlamp_warning_label;
     lv_obj_t *speed_arc;
     lv_obj_t *speed_label;
     lv_obj_t *rpm_arc;
@@ -51,6 +54,7 @@ typedef struct {
     lv_obj_t *dpf_load_label;
     lv_obj_t *dpf_load_bar;
     lv_obj_t *drive_mode_label;
+    lv_obj_t *drive_aux_label;
     lv_obj_t *four_wd_label;
     lv_obj_t *wheel_drive_segments[CANVIEW_UI_WHEEL_COUNT][CANVIEW_UI_TORQUE_SEGMENTS];
     lv_obj_t *wheel_drive_labels[CANVIEW_UI_WHEEL_COUNT];
@@ -92,6 +96,9 @@ typedef struct {
     lv_obj_t *sport_acceleration_button;
     lv_obj_t *sport_acceleration_button_label;
     lv_obj_t *idle_timeout_dropdown;
+    lv_obj_t *rtc_hour_dropdown;
+    lv_obj_t *rtc_minute_dropdown;
+    lv_obj_t *rtc_time_label;
 } ui_state_t;
 
 static ui_state_t ui;
@@ -325,6 +332,16 @@ static void brightness_event(lv_event_t *event)
     emit_percent(CANVIEW_UI_CMD_SET_BRIGHTNESS, (uint8_t)lv_slider_get_value(slider));
 }
 
+static void style_dropdown(lv_obj_t *dropdown, lv_coord_t width)
+{
+    lv_obj_set_size(dropdown, width, 44);
+    lv_obj_set_style_bg_color(dropdown, CANVIEW_COLOR_PAPER_3, 0);
+    lv_obj_set_style_text_color(dropdown, CANVIEW_COLOR_INK_2, 0);
+    lv_obj_set_style_border_color(dropdown, CANVIEW_COLOR_RULE, 0);
+    lv_obj_set_style_border_width(dropdown, 1, 0);
+    lv_obj_set_style_radius(dropdown, CANVIEW_RADIUS_SM, 0);
+}
+
 static void idle_timeout_event(lv_event_t *event)
 {
     static const uint16_t timeouts[] = {15U, 30U, 60U, 120U};
@@ -333,6 +350,20 @@ static void idle_timeout_event(lv_event_t *event)
     emit_activity();
     if (selected < sizeof(timeouts) / sizeof(timeouts[0])) {
         emit_option(CANVIEW_UI_CMD_SET_IDLE_TIMEOUT, timeouts[selected]);
+    }
+}
+
+static void rtc_time_event(lv_event_t *event)
+{
+    static const uint8_t minute_options[] = {0U, 5U, 10U, 15U, 20U, 25U,
+                                              30U, 35U, 40U, 45U, 50U, 55U};
+    (void)event;
+    const uint16_t hour = lv_dropdown_get_selected(ui.rtc_hour_dropdown);
+    const uint16_t minute_index = lv_dropdown_get_selected(ui.rtc_minute_dropdown);
+    emit_activity();
+    if (hour < 24U && minute_index < sizeof(minute_options) / sizeof(minute_options[0])) {
+        emit_option(CANVIEW_UI_CMD_SET_RTC_TIME,
+                    (uint16_t)(hour * 60U + minute_options[minute_index]));
     }
 }
 
@@ -510,14 +541,34 @@ static void create_header(void)
     lv_obj_set_style_border_width(ui.speed_limit_overlay, 4, 0);
     lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_SCROLLABLE);
+    ui.speed_limit_caption = make_label(ui.speed_limit_overlay, "LIMIT");
+    lv_obj_align(ui.speed_limit_caption, LV_ALIGN_CENTER, 0, -17);
+    lv_obj_add_style(ui.speed_limit_caption, &style_label_micro, 0);
+    lv_obj_set_style_text_color(ui.speed_limit_caption, CANVIEW_COLOR_ERROR, 0);
     ui.speed_limit_label = make_label(ui.speed_limit_overlay, "—");
-    lv_obj_center(ui.speed_limit_label);
+    lv_obj_align(ui.speed_limit_label, LV_ALIGN_CENTER, 0, 4);
     lv_obj_set_style_text_color(ui.speed_limit_label, CANVIEW_COLOR_PAPER, 0);
-    lv_obj_set_style_text_font(ui.speed_limit_label,
+    lv_obj_add_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
+
+    ui.headlamp_warning_overlay = lv_obj_create(ui.root);
+    lv_obj_remove_style_all(ui.headlamp_warning_overlay);
+    lv_obj_set_pos(ui.headlamp_warning_overlay, 96, 156);
+    lv_obj_set_size(ui.headlamp_warning_overlay, 128, 128);
+    lv_obj_set_style_radius(ui.headlamp_warning_overlay, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(ui.headlamp_warning_overlay, CANVIEW_COLOR_INK, 0);
+    lv_obj_set_style_bg_opa(ui.headlamp_warning_overlay, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(ui.headlamp_warning_overlay, CANVIEW_COLOR_WARNING, 0);
+    lv_obj_set_style_border_width(ui.headlamp_warning_overlay, 6, 0);
+    lv_obj_clear_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_SCROLLABLE);
+    ui.headlamp_warning_label = make_label(ui.headlamp_warning_overlay, "LIGHTS");
+    lv_obj_center(ui.headlamp_warning_label);
+    lv_obj_set_style_text_color(ui.headlamp_warning_label, CANVIEW_COLOR_WARNING, 0);
+    lv_obj_set_style_text_font(ui.headlamp_warning_label,
                                ui.config.metric_font != NULL ? ui.config.metric_font
                                                              : LV_FONT_DEFAULT,
                                0);
-    lv_obj_add_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void create_drive_screen(void)
@@ -535,7 +586,7 @@ static void create_drive_screen(void)
     lv_obj_set_style_text_color(awd_label, CANVIEW_COLOR_ACCENT, 0);
 
     static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {10, 208, 10, 208};
-    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {38, 38, 132, 132};
+    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {30, 30, 168, 168};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *wheel = lv_obj_create(four_wd);
         lv_obj_remove_style_all(wheel);
@@ -564,7 +615,7 @@ static void create_drive_screen(void)
     }
 
     static const lv_coord_t connector_x[CANVIEW_UI_WHEEL_COUNT] = {72, 188, 72, 188};
-    static const lv_coord_t connector_y[CANVIEW_UI_WHEEL_COUNT] = {60, 60, 154, 154};
+    static const lv_coord_t connector_y[CANVIEW_UI_WHEEL_COUNT] = {57, 57, 199, 199};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *connector = lv_obj_create(four_wd);
         lv_obj_remove_style_all(connector);
@@ -576,14 +627,15 @@ static void create_drive_screen(void)
 
     lv_obj_t *vehicle = lv_obj_create(four_wd);
     lv_obj_remove_style_all(vehicle);
-    lv_obj_set_pos(vehicle, 84, 22);
-    lv_obj_set_size(vehicle, 112, 230);
+    lv_obj_set_pos(vehicle, 84, 5);
+    lv_obj_set_size(vehicle, 112, 254);
     lv_obj_clear_flag(vehicle, LV_OBJ_FLAG_SCROLLABLE);
 
     static lv_point_t vehicle_outline[] = {
-        {37, 4}, {27, 7}, {22, 20}, {20, 37}, {16, 143}, {17, 164},
-        {30, 181}, {56, 186}, {82, 181}, {95, 164}, {96, 143}, {92, 37},
-        {90, 20}, {85, 7}, {75, 4}, {37, 4}};
+        {38, 4},  {29, 7},  {23, 18},  {20, 34},  {17, 52},
+        {16, 207}, {18, 224}, {27, 236}, {36, 242}, {76, 242},
+        {85, 236}, {94, 224}, {96, 207}, {95, 52},  {92, 34},
+        {89, 18}, {83, 7},  {74, 4},  {38, 4}};
     lv_obj_t *outline = lv_line_create(vehicle);
     lv_line_set_points(outline, vehicle_outline,
                        sizeof(vehicle_outline) / sizeof(vehicle_outline[0]));
@@ -592,12 +644,12 @@ static void create_drive_screen(void)
     lv_obj_set_style_line_rounded(outline, true, 0);
 
     static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {5, 93, 5, 93};
-    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {36, 36, 116, 116};
+    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {36, 36, 178, 178};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *car_wheel = lv_obj_create(vehicle);
         lv_obj_remove_style_all(car_wheel);
         lv_obj_set_pos(car_wheel, car_wheel_x[i], car_wheel_y[i]);
-        lv_obj_set_size(car_wheel, 14, 38);
+        lv_obj_set_size(car_wheel, 14, 32);
         lv_obj_set_style_bg_color(car_wheel, CANVIEW_COLOR_PAPER_3, 0);
         lv_obj_set_style_bg_opa(car_wheel, LV_OPA_COVER, 0);
         lv_obj_set_style_border_color(car_wheel, CANVIEW_COLOR_INK_2, 0);
@@ -605,7 +657,7 @@ static void create_drive_screen(void)
         lv_obj_set_style_radius(car_wheel, 6, 0);
     }
 
-    static const lv_coord_t axle_y[] = {55, 135};
+    static const lv_coord_t axle_y[] = {52, 194};
     for (uint8_t i = 0; i < 2U; ++i) {
         lv_obj_t *axle = lv_obj_create(vehicle);
         lv_obj_remove_style_all(axle);
@@ -627,15 +679,40 @@ static void create_drive_screen(void)
 
     lv_obj_t *shaft = lv_obj_create(vehicle);
     lv_obj_remove_style_all(shaft);
-    lv_obj_set_pos(shaft, 55, 67);
-    lv_obj_set_size(shaft, 3, 56);
+    lv_obj_set_pos(shaft, 55, 60);
+    lv_obj_set_size(shaft, 3, 122);
     lv_obj_set_style_bg_color(shaft, CANVIEW_COLOR_ACCENT_LINE, 0);
     lv_obj_set_style_bg_opa(shaft, LV_OPA_COVER, 0);
 
+    lv_obj_t *coupling = lv_obj_create(vehicle);
+    lv_obj_remove_style_all(coupling);
+    lv_obj_set_pos(coupling, 42, 99);
+    lv_obj_set_size(coupling, 28, 48);
+    lv_obj_set_style_bg_color(coupling, CANVIEW_COLOR_ACCENT_WASH, 0);
+    lv_obj_set_style_bg_opa(coupling, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(coupling, CANVIEW_COLOR_ACCENT, 0);
+    lv_obj_set_style_border_width(coupling, 2, 0);
+    lv_obj_set_style_radius(coupling, 4, 0);
+
+    static lv_point_t front_window_points[] = {
+        {30, 22}, {56, 14}, {82, 22}, {87, 49}, {25, 49}, {30, 22}};
+    lv_obj_t *front_window = lv_line_create(vehicle);
+    lv_line_set_points(front_window, front_window_points,
+                       sizeof(front_window_points) / sizeof(front_window_points[0]));
+    lv_obj_set_style_line_color(front_window, CANVIEW_COLOR_RULE, 0);
+    lv_obj_set_style_line_width(front_window, 1, 0);
+    static lv_point_t rear_window_points[] = {
+        {25, 169}, {87, 169}, {84, 211}, {28, 211}, {25, 169}};
+    lv_obj_t *rear_window = lv_line_create(vehicle);
+    lv_line_set_points(rear_window, rear_window_points,
+                       sizeof(rear_window_points) / sizeof(rear_window_points[0]));
+    lv_obj_set_style_line_color(rear_window, CANVIEW_COLOR_RULE, 0);
+    lv_obj_set_style_line_width(rear_window, 1, 0);
+
     lv_obj_t *instant = lv_obj_create(vehicle);
     lv_obj_remove_style_all(instant);
-    lv_obj_set_pos(instant, 31, 78);
-    lv_obj_set_size(instant, 50, 48);
+    lv_obj_set_pos(instant, 31, 104);
+    lv_obj_set_size(instant, 50, 42);
     lv_obj_set_style_bg_color(instant, CANVIEW_COLOR_PAPER, 0);
     lv_obj_set_style_bg_opa(instant, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(instant, CANVIEW_COLOR_ACCENT_LINE, 0);
@@ -687,8 +764,12 @@ static void create_drive_screen(void)
     lv_obj_t *mode_title = make_label(mode, "DRIVE MODE");
     lv_obj_add_style(mode_title, &style_label_micro, 0);
     ui.drive_mode_label = make_label(mode, "UNKNOWN");
-    lv_obj_align(ui.drive_mode_label, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_align(ui.drive_mode_label, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_obj_set_style_text_color(ui.drive_mode_label, CANVIEW_COLOR_ACCENT, 0);
+    ui.drive_aux_label = make_label(mode, "BATT —  LOCK —  TEMP —");
+    lv_obj_align(ui.drive_aux_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_add_style(ui.drive_aux_label, &style_label_micro, 0);
+    lv_obj_set_style_text_color(ui.drive_aux_label, CANVIEW_COLOR_INK_2, 0);
 }
 
 static lv_obj_t *make_profile_button(lv_obj_t *parent, const char *title, action_t action)
@@ -872,6 +953,34 @@ static void create_settings_screen(void)
     lv_obj_set_scroll_dir(screen, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_AUTO);
 
+    lv_obj_t *time = make_card(screen, LV_PCT(100), 118, true);
+    lv_obj_t *time_title = make_label(time, "TIME · RTC");
+    lv_obj_add_style(time_title, &style_label_micro, 0);
+    ui.rtc_time_label = make_label(time, "현재 --:--");
+    lv_obj_align(ui.rtc_time_label, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_set_style_text_color(ui.rtc_time_label, CANVIEW_COLOR_ACCENT, 0);
+    lv_obj_t *time_set_title = make_label(time, "시각 설정");
+    lv_obj_set_pos(time_set_title, 0, 42);
+    lv_obj_add_style(time_set_title, &style_label_micro, 0);
+    ui.rtc_hour_dropdown = lv_dropdown_create(time);
+    lv_dropdown_set_options(ui.rtc_hour_dropdown,
+                             "00\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n"
+                             "12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23");
+    style_dropdown(ui.rtc_hour_dropdown, 54);
+    lv_obj_set_pos(ui.rtc_hour_dropdown, 76, 34);
+    lv_obj_add_event_cb(ui.rtc_hour_dropdown, rtc_time_event,
+                        LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_t *time_separator = make_label(time, ":");
+    lv_obj_set_pos(time_separator, 137, 47);
+    lv_obj_add_style(time_separator, &style_label_micro, 0);
+    ui.rtc_minute_dropdown = lv_dropdown_create(time);
+    lv_dropdown_set_options(ui.rtc_minute_dropdown,
+                             "00\n05\n10\n15\n20\n25\n30\n35\n40\n45\n50\n55");
+    style_dropdown(ui.rtc_minute_dropdown, 54);
+    lv_obj_set_pos(ui.rtc_minute_dropdown, 150, 34);
+    lv_obj_add_event_cb(ui.rtc_minute_dropdown, rtc_time_event,
+                        LV_EVENT_VALUE_CHANGED, NULL);
+
     lv_obj_t *brightness = make_card(screen, LV_PCT(100), 132, false);
     lv_obj_t *display = make_label(brightness, "DISPLAY");
     lv_obj_add_style(display, &style_label_micro, 0);
@@ -908,13 +1017,8 @@ static void create_settings_screen(void)
     lv_obj_align(idle_title, LV_ALIGN_LEFT_MID, 0, 0);
     ui.idle_timeout_dropdown = lv_dropdown_create(idle);
     lv_dropdown_set_options(ui.idle_timeout_dropdown, "15초\n30초\n60초\n120초");
-    lv_obj_set_size(ui.idle_timeout_dropdown, 104, 44);
+    style_dropdown(ui.idle_timeout_dropdown, 104);
     lv_obj_align(ui.idle_timeout_dropdown, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_set_style_bg_color(ui.idle_timeout_dropdown, CANVIEW_COLOR_PAPER_3, 0);
-    lv_obj_set_style_text_color(ui.idle_timeout_dropdown, CANVIEW_COLOR_INK_2, 0);
-    lv_obj_set_style_border_color(ui.idle_timeout_dropdown, CANVIEW_COLOR_RULE, 0);
-    lv_obj_set_style_border_width(ui.idle_timeout_dropdown, 1, 0);
-    lv_obj_set_style_radius(ui.idle_timeout_dropdown, CANVIEW_RADIUS_SM, 0);
     lv_obj_add_event_cb(ui.idle_timeout_dropdown, idle_timeout_event,
                         LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -1031,6 +1135,30 @@ static const char *response_text(canview_ui_response_t response)
     return response < CANVIEW_UI_RESPONSE_COUNT ? labels[response] : labels[0];
 }
 
+static void set_speed_limit_layout(bool prominent)
+{
+    if (prominent) {
+        lv_obj_set_pos(ui.speed_limit_overlay, 96, 156);
+        lv_obj_set_size(ui.speed_limit_overlay, 128, 128);
+        lv_obj_set_style_border_width(ui.speed_limit_overlay, 6, 0);
+        lv_obj_align(ui.speed_limit_caption, LV_ALIGN_CENTER, 0, -40);
+        lv_obj_align(ui.speed_limit_label, LV_ALIGN_CENTER, 0, 8);
+        lv_obj_set_style_text_font(ui.speed_limit_label,
+                                   ui.config.metric_font != NULL ? ui.config.metric_font
+                                                                 : LV_FONT_DEFAULT,
+                                   0);
+    } else {
+        lv_obj_set_pos(ui.speed_limit_overlay, 257, 50);
+        lv_obj_set_size(ui.speed_limit_overlay, 51, 51);
+        lv_obj_set_style_border_width(ui.speed_limit_overlay, 4, 0);
+        lv_obj_align(ui.speed_limit_caption, LV_ALIGN_CENTER, 0, -17);
+        lv_obj_align(ui.speed_limit_label, LV_ALIGN_CENTER, 0, 4);
+        lv_obj_set_style_text_font(ui.speed_limit_label,
+                                   ui.config.font != NULL ? ui.config.font : LV_FONT_DEFAULT,
+                                   0);
+    }
+}
+
 lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
 {
     memset(&ui, 0, sizeof(ui));
@@ -1046,6 +1174,9 @@ lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
     ui.model.sport_entry_speed_kph = 70U;
     ui.model.sport_acceleration_enabled = true;
     ui.model.idle_timeout_seconds = 30U;
+    ui.model.rtc_hour = 12U;
+    ui.model.rtc_minute = 0U;
+    ui.model.rtc_quality = CANVIEW_UI_QUALITY_UNAVAILABLE;
     if (!styles_ready) {
         init_styles(ui.config.font);
     }
@@ -1064,7 +1195,9 @@ lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
     create_automation_screen();
     create_settings_screen();
     create_nav();
+    set_speed_limit_layout(false);
     lv_obj_move_foreground(ui.speed_limit_overlay);
+    lv_obj_move_foreground(ui.headlamp_warning_overlay);
     canview_ui_show_screen(CANVIEW_UI_SCREEN_DRIVE);
     canview_ui_update(&ui.model);
     return ui.root;
@@ -1092,9 +1225,13 @@ void canview_ui_show_screen(canview_ui_screen_t screen)
     const bool touch_screen = screen == CANVIEW_UI_SCREEN_AUDIO ||
                               screen == CANVIEW_UI_SCREEN_AUTOMATION ||
                               screen == CANVIEW_UI_SCREEN_SETTINGS;
+    set_speed_limit_layout(ui.model.speed_limit_warning_active);
     lv_obj_set_style_opa(ui.speed_limit_overlay,
                          touch_screen ? LV_OPA_60 : LV_OPA_COVER, 0);
+    lv_obj_set_style_opa(ui.headlamp_warning_overlay,
+                         touch_screen ? LV_OPA_60 : LV_OPA_COVER, 0);
     lv_obj_move_foreground(ui.speed_limit_overlay);
+    lv_obj_move_foreground(ui.headlamp_warning_overlay);
 }
 
 canview_ui_screen_t canview_ui_current_screen(void)
@@ -1130,6 +1267,33 @@ void canview_ui_update(const canview_ui_model_t *model)
     lv_label_set_text_fmt(ui.rpm_label, "%u.%u", model->engine_rpm / 1000U,
                           (model->engine_rpm % 1000U) / 100U);
     animate_arc_to(ui.rpm_arc, model->engine_rpm);
+
+    char battery_text[20];
+    char lock_text[16];
+    char temperature_text[20];
+    if (model->battery_voltage_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        snprintf(battery_text, sizeof(battery_text), "BATT —");
+    } else {
+        snprintf(battery_text, sizeof(battery_text), "BATT %u.%uV",
+                 model->battery_voltage_tenth_v / 10U,
+                 model->battery_voltage_tenth_v % 10U);
+    }
+    if (model->transmission_clutch_lock_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        snprintf(lock_text, sizeof(lock_text), "LOCK —");
+    } else {
+        snprintf(lock_text, sizeof(lock_text), "LOCK %s",
+                 model->transmission_clutch_locked ? "ON" : "OFF");
+    }
+    if (model->engine_temperature_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        snprintf(temperature_text, sizeof(temperature_text), "TEMP —");
+    } else {
+        snprintf(temperature_text, sizeof(temperature_text), "TEMP %d°C",
+                 model->engine_temperature_c);
+    }
+    char drive_aux_text[64];
+    snprintf(drive_aux_text, sizeof(drive_aux_text), "%s  %s  %s", battery_text,
+             lock_text, temperature_text);
+    lv_label_set_text(ui.drive_aux_label, drive_aux_text);
 
     if (model->fuel_economy_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
         lv_label_set_text(ui.instant_economy_label, "—");
@@ -1300,14 +1464,30 @@ void canview_ui_update(const canview_ui_model_t *model)
     }
     lv_dropdown_set_selected(ui.idle_timeout_dropdown, idle_selected);
 
-    if (model->speed_limit_active && model->speed_limit_kph > 0U) {
+    if (model->rtc_quality == CANVIEW_UI_QUALITY_UNAVAILABLE || model->rtc_hour >= 24U ||
+        model->rtc_minute >= 60U) {
+        lv_label_set_text(ui.rtc_time_label, "현재 --:--");
+    } else {
+        lv_label_set_text_fmt(ui.rtc_time_label, "현재 %02u:%02u", model->rtc_hour,
+                              model->rtc_minute);
+        lv_dropdown_set_selected(ui.rtc_hour_dropdown, model->rtc_hour);
+        lv_dropdown_set_selected(ui.rtc_minute_dropdown,
+                                 (uint16_t)(model->rtc_minute / 5U));
+    }
+
+    const bool speed_limit_present = model->speed_limit_active && model->speed_limit_kph > 0U;
+    const bool speed_warning_present = speed_limit_present && model->speed_limit_warning_active;
+    const bool headlamp_warning_present = model->headlamp_warning_active &&
+                                          !speed_warning_present;
+    set_speed_limit_layout(speed_warning_present);
+    if (speed_limit_present) {
         lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
         lv_label_set_text_fmt(ui.speed_limit_label, "%u", model->speed_limit_kph);
         const bool touch_screen = ui.screen == CANVIEW_UI_SCREEN_AUDIO ||
                                   ui.screen == CANVIEW_UI_SCREEN_AUTOMATION ||
                                   ui.screen == CANVIEW_UI_SCREEN_SETTINGS;
         lv_opa_t overlay_opacity = touch_screen ? LV_OPA_60 : LV_OPA_COVER;
-        if (model->speed_limit_warning_active) {
+        if (speed_warning_present) {
             overlay_opacity = model->speed_limit_warning_visible
                                   ? (touch_screen ? LV_OPA_80 : LV_OPA_COVER)
                                   : LV_OPA_30;
@@ -1316,10 +1496,16 @@ void canview_ui_update(const canview_ui_model_t *model)
     } else {
         lv_obj_add_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
     }
+    if (headlamp_warning_present) {
+        lv_obj_clear_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_HIDDEN);
+    }
     lv_obj_set_style_text_color(ui.header_speed_label,
-                                model->speed_limit_warning_active
+                                model->speed_limit_warning_active || model->headlamp_warning_active
                                     ? CANVIEW_COLOR_WARNING
                                     : CANVIEW_COLOR_INK,
                                 0);
     lv_obj_move_foreground(ui.speed_limit_overlay);
+    lv_obj_move_foreground(ui.headlamp_warning_overlay);
 }
