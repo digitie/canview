@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>CANView 320×480 UI prototype</title>
+  <link rel="stylesheet" href="canview.css">
+</head>
+<body>
+  <main class="app" aria-label="CANView 화면 프로토타입">
+    <header class="status-bar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>CANVIEW <span class="prototype-tag">PROTO</span></div>
+      <div class="link-summary" role="status" aria-label="연결 상태">
+        <span>BUS 3/3</span>
+        <span class="link-state">연결 · −54 dBm</span>
+      </div>
+    </header>
+
+    <div class="screen-stack">
+      <section class="screen-panel drive-panel is-active" id="screen-drive" data-screen="drive" aria-label="주행 상태">
+        <div class="drive-overview">
+          <div class="speed-block">
+            <span class="micro-label">Vehicle speed</span>
+            <div class="speed-value"><strong>82</strong><span>km/h</span></div>
+            <div class="rpm">
+              <div class="rpm-line" aria-hidden="true"></div>
+              <span class="rpm-value">1,840 rpm</span>
+            </div>
+          </div>
+          <div class="drivetrain">
+            <svg viewBox="0 0 136 164" role="img" aria-label="후륜 결합 추정 38퍼센트">
+              <path class="vehicle-shell" d="M38 8h60l13 29v90l-13 29H38l-13-29V37Z"/>
+              <rect class="wheel" x="17" y="34" width="9" height="28" rx="4"/>
+              <rect class="wheel" x="110" y="34" width="9" height="28" rx="4"/>
+              <rect class="wheel" x="17" y="105" width="9" height="28" rx="4"/>
+              <rect class="wheel" x="110" y="105" width="9" height="28" rx="4"/>
+              <path class="axle" d="M26 48h84M26 119h84"/>
+              <path class="shaft rear-power" d="M68 48v71"/>
+              <circle class="coupling-core" cx="68" cy="86" r="20"/>
+              <circle class="coupling-ring" cx="68" cy="86" r="24"/>
+              <text class="coupling-number" x="68" y="86">38</text>
+              <text class="coupling-unit" x="68" y="97">%</text>
+            </svg>
+            <div class="drivetrain-caption"><span class="quality-tag">추정</span><span>AUTO</span></div>
+          </div>
+        </div>
+
+        <div class="status-row">
+          <div class="status-symbol" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15h14M7 15l1-6h8l1 6M8 18h.01M16 18h.01"/><path d="M10 6h4M12 4v4"/></svg>
+          </div>
+          <div class="status-copy"><strong>DPF 정상</strong><span>경고등 꺼짐 · 세부 센서 미검증</span></div>
+          <span class="status-value">0x0</span>
+        </div>
+
+        <div class="mini-grid">
+          <article class="mini-readout">
+            <span class="micro-label">Drive mode</span>
+            <strong>NORMAL</strong>
+            <p>자동 SPORT · 감시 전용</p>
+          </article>
+          <article class="mini-readout">
+            <span class="micro-label">4WD clutch</span>
+            <strong>126 <span class="micro-label">Nm</span></strong>
+            <p>DBC 후보값</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="screen-panel mode-panel" id="screen-audio" data-screen="audio" aria-label="오디오 기능" hidden>
+        <div class="quick-modes">
+          <button class="mode-button" type="button" data-profile="quiet" aria-pressed="false">
+            <span class="mode-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h3l4 4V7L7 11H4Z"/><path d="m16 9 5 5m0-5-5 5"/></svg></span>
+            <span class="mode-copy"><strong>취침</strong><span>뒤 스피커 끄기</span></span>
+          </button>
+          <button class="mode-button" type="button" data-profile="rear" aria-pressed="true">
+            <span class="mode-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h3l4 4V7L7 11H4Z"/><path d="M15 9c1.5 1.5 1.5 4.5 0 6M18 7c3 3 3 7 0 10"/></svg></span>
+            <span class="mode-copy"><strong>뒷좌석 +</strong><span>페이더 뒤 2단</span></span>
+          </button>
+        </div>
+
+        <div class="sound-position">
+          <svg class="cabin-map" viewBox="0 0 124 138" role="img" aria-label="음장 위치가 뒤쪽 중앙으로 이동됨">
+            <path class="cabin-outline" d="M34 5h56l18 22v84l-18 22H34l-18-22V27Z"/>
+            <rect class="seat" x="31" y="28" width="25" height="35" rx="7"/>
+            <rect class="seat" x="68" y="28" width="25" height="35" rx="7"/>
+            <rect class="seat seat--active" x="31" y="80" width="25" height="35" rx="7"/>
+            <rect class="seat seat--active" x="68" y="80" width="25" height="35" rx="7"/>
+            <circle class="sound-focus" cx="62" cy="99" r="8"/>
+            <text class="cabin-label" x="62" y="17" text-anchor="middle">FRONT</text>
+            <text class="cabin-label" x="62" y="128" text-anchor="middle">REAR</text>
+          </svg>
+          <div class="position-controls">
+            <span class="micro-label">Sound position</span>
+            <div class="position-pad" role="group" aria-label="음장 위치 미세 조정">
+              <button class="pad-button" type="button" data-direction="up" aria-label="앞으로"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 12 5-5 5 5"/></svg></button>
+              <button class="pad-button" type="button" data-direction="down" aria-label="뒤로"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5"/></svg></button>
+              <button class="pad-button" type="button" data-direction="left" aria-label="왼쪽으로"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 5-5 5 5 5"/></svg></button>
+              <button class="pad-button" type="button" data-direction="right" aria-label="오른쪽으로"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg></button>
+            </div>
+            <p>정차 시 조절</p>
+          </div>
+        </div>
+
+        <div class="adaptive-card">
+          <div class="adaptive-copy">
+            <strong>주행 소음 보정</strong>
+            <div class="adaptive-metrics"><span>상대 <b>61 dB</b></span><span>음량 <b>+2</b></span></div>
+          </div>
+          <button class="adaptive-toggle" type="button" aria-pressed="true">사용 중</button>
+        </div>
+      </section>
+
+      <section class="screen-panel automation-panel" id="screen-automation" data-screen="automation" aria-label="자동화 기능" hidden>
+        <div class="sport-card">
+          <div class="sport-copy">
+            <span class="micro-label">Sport automation</span>
+            <h1>필요할 때만 SPORT</h1>
+            <p>가속 요구를 감지해 제안합니다. 현재는 차량 송신 없이 감시합니다.</p>
+            <button class="sport-toggle" type="button" aria-pressed="true">감시 중</button>
+          </div>
+          <div class="mode-dial" role="img" aria-label="현재 주행 모드 노멀">
+            <div><strong>NORMAL</strong><span>현재 모드</span></div>
+          </div>
+        </div>
+
+        <div class="thresholds">
+          <article class="threshold-metric">
+            <span class="micro-label">Long accel</span>
+            <strong>0.42 <span>m/s²</span></strong>
+            <p>진입 1.50 이상</p>
+          </article>
+          <article class="rule-summary">
+            <span class="micro-label">Decision path</span>
+            <div class="rule-track" aria-hidden="true"><span class="rule-node is-current"></span><span class="rule-edge"></span><span class="rule-node"></span><span class="rule-edge"></span><span class="rule-node"></span></div>
+            <p>감시 → 조건 유지 → 제안</p>
+          </article>
+        </div>
+
+        <div class="diagnostics">
+          <div class="diag-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h3l2-5 4 10 2-5h5"/><path d="M4 5h16v14H4Z"/></svg></div>
+          <div class="diag-copy"><strong>제어 잠금 정상</strong><span>Encrypted · lease 없음 · TX off</span></div>
+          <div class="diag-value">RTT 18 ms<br>SEQ 04A2</div>
+        </div>
+      </section>
+    </div>
+
+    <nav class="bottom-nav" aria-label="주요 화면" role="tablist">
+      <button class="nav-button" type="button" role="tab" aria-selected="true" aria-controls="screen-drive" data-target="drive">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15h14M7 15l1-6h8l1 6M6 15v3m12-3v3M8 18h.01M16 18h.01"/></svg></span>
+        <span>주행</span>
+      </button>
+      <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-audio" data-target="audio">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h3l4 4V7L7 11H4Z"/><path d="M15 9c1.5 1.5 1.5 4.5 0 6M18 7c3 3 3 7 0 10"/></svg></span>
+        <span>오디오</span>
+      </button>
+      <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-automation" data-target="automation">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8 2 2M18 6l-2 2M8 16l-2 2"/><circle cx="12" cy="12" r="4"/></svg></span>
+        <span>자동</span>
+      </button>
+    </nav>
+  </main>
+  <script src="prototype.js"></script>
+</body>
+</html>

@@ -72,7 +72,7 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 - 실제 연결 커넥터/핀
 - bus 이름과 bitrate
 - standard/extended frame 비율
-- gateway firmware와 DBC commit
+- Communicator firmware와 DBC commit
 - 배터리 전압 및 종료 방법
 
 ## 판정 기준

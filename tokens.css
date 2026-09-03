@@ -1,0 +1,67 @@
+/* Hallmark · macrostructure: Workbench · pre-emit critique: P5 H5 E4 S5 R5 V5 · N9 knobs: cta=status, wordmark=sans, padding=tight · C4 knobs: reveal=always, anchored=viewport-bottom, shadow=hairline
+ * theme: custom · vibe: "automotive clarity, appliance calm, technical precision" · paper: oklch(13% 0.012 245) · accent: oklch(78% 0.13 220)
+ * display: Space Grotesk · body: IBM Plex Sans KR · axes: dark / grotesk-sans / cool
+ * studied: no · context: explicit · v0.8.0
+ */
+:root {
+  --color-paper: oklch(13% 0.012 245);
+  --color-paper-2: oklch(17% 0.014 245);
+  --color-paper-3: oklch(22% 0.016 245);
+  --color-paper-4: oklch(27% 0.018 245);
+  --color-ink: oklch(95% 0.008 230);
+  --color-ink-2: oklch(82% 0.010 235);
+  --color-muted: oklch(67% 0.012 240);
+  --color-rule: oklch(31% 0.016 245);
+  --color-rule-2: oklch(25% 0.016 245);
+  --color-accent: oklch(78% 0.13 220);
+  --color-accent-ink: oklch(15% 0.018 245);
+  --color-focus: oklch(84% 0.16 220);
+  --color-warning: oklch(80% 0.15 82);
+  --color-warning-ink: oklch(17% 0.025 70);
+  --color-error: oklch(70% 0.18 25);
+  --color-error-ink: oklch(15% 0.020 25);
+  --color-overlay: oklch(8% 0.010 245);
+  --color-accent-wash: oklch(23% 0.035 220);
+  --color-accent-line: oklch(46% 0.070 220);
+  --color-warning-wash: oklch(23% 0.030 82);
+  --color-error-wash: oklch(23% 0.035 25);
+
+  --font-display: "Space Grotesk", "IBM Plex Sans KR", sans-serif;
+  --font-body: "IBM Plex Sans KR", sans-serif;
+
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  --text-micro: 10px;
+  --text-label: 12px;
+  --text-body: 14px;
+  --text-title: 20px;
+  --text-metric: 64px;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  --rule-thin: 1px;
+  --rule-strong: 2px;
+  --touch-primary: 76px;
+  --touch-secondary: 48px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 100ms;
+  --dur-short: 180ms;
+  --dur-long: 300ms;
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-sticky: 200;
+  --z-modal: 400;
+}
