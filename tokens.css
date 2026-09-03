@@ -1,28 +1,28 @@
-/* Hallmark · macrostructure: Workbench · pre-emit critique: P5 H5 E4 S5 R5 V5 · N9 knobs: cta=status, wordmark=sans, padding=tight · C4 knobs: reveal=always, anchored=viewport-bottom, shadow=hairline
- * theme: custom · vibe: "automotive clarity, appliance calm, technical precision" · paper: oklch(13% 0.012 245) · accent: oklch(78% 0.13 220)
+/* Hallmark · macrostructure: Stat-Led · pre-emit critique: P5 H5 E5 S5 R5 V5 · N9 knobs: cta=status, wordmark=sans, padding=tight · C4 knobs: reveal=always, anchored=viewport-bottom, shadow=hairline
+ * theme: studied-DNA (source: Hyundai standard-generation 5W navigation) · vibe: "automotive clarity, appliance calm, technical precision" · paper: oklch(10% 0.020 248) · accent: oklch(72% 0.155 230)
  * display: Space Grotesk · body: IBM Plex Sans KR · axes: dark / grotesk-sans / cool
  * studied: no · context: explicit · v0.8.0
  */
 :root {
-  --color-paper: oklch(13% 0.012 245);
-  --color-paper-2: oklch(17% 0.014 245);
-  --color-paper-3: oklch(22% 0.016 245);
-  --color-paper-4: oklch(27% 0.018 245);
-  --color-ink: oklch(95% 0.008 230);
-  --color-ink-2: oklch(82% 0.010 235);
-  --color-muted: oklch(67% 0.012 240);
-  --color-rule: oklch(31% 0.016 245);
-  --color-rule-2: oklch(25% 0.016 245);
-  --color-accent: oklch(78% 0.13 220);
-  --color-accent-ink: oklch(15% 0.018 245);
-  --color-focus: oklch(84% 0.16 220);
+  --color-paper: oklch(10% 0.020 248);
+  --color-paper-2: oklch(14% 0.026 246);
+  --color-paper-3: oklch(19% 0.030 242);
+  --color-paper-4: oklch(24% 0.032 240);
+  --color-ink: oklch(96% 0.008 230);
+  --color-ink-2: oklch(82% 0.012 235);
+  --color-muted: oklch(63% 0.016 240);
+  --color-rule: oklch(29% 0.028 242);
+  --color-rule-2: oklch(22% 0.026 244);
+  --color-accent: oklch(72% 0.155 230);
+  --color-accent-ink: oklch(12% 0.026 246);
+  --color-focus: oklch(82% 0.145 226);
   --color-warning: oklch(80% 0.15 82);
   --color-warning-ink: oklch(17% 0.025 70);
   --color-error: oklch(70% 0.18 25);
   --color-error-ink: oklch(15% 0.020 25);
-  --color-overlay: oklch(8% 0.010 245);
-  --color-accent-wash: oklch(23% 0.035 220);
-  --color-accent-line: oklch(46% 0.070 220);
+  --color-overlay: oklch(7% 0.018 248);
+  --color-accent-wash: oklch(19% 0.060 236);
+  --color-accent-line: oklch(47% 0.105 232);
   --color-warning-wash: oklch(23% 0.030 82);
   --color-error-wash: oklch(23% 0.035 25);
 

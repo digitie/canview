@@ -5,7 +5,7 @@
 ## 포함 파일
 
 - `canview_ui.h`: 화면에 주입할 표시 모델과 의미 기반 명령 콜백
-- `canview_ui.c`: 주행·오디오·자동화 화면 및 76 px 하단 내비게이션
+- `canview_ui.c`: 주행·소리·FFT·자동화·설정 화면 및 76 px 하단 내비게이션
 - `canview_theme.h`: `tokens.css`를 RGB565로 변환하기 전의 sRGB 기준 색상
 
 ## 통합 예
@@ -43,7 +43,8 @@ CAN/ESP-NOW 작업 스레드에서 `canview_ui_update()`를 직접 호출하면 
 - UI 콜백은 `CANVIEW_UI_CMD_*` 의미 명령만 생성한다.
 - 상위 제어 계층이 정차 여부, 차량 상태, 사용자 수동 조작, lease와 복원 스냅샷을 확인한다.
 - `four_wd_quality`가 `VERIFIED`가 아니면 후륜 결합률은 실제 축 토크 배분으로 표현하지 않는다.
-- DPF 상세 신호가 검증되지 않았으면 경고등 상태와 상세 상태를 구분한다.
-- 주행 중에는 음장 위치 버튼을 상위 계층에서 `LV_STATE_DISABLED`로 전환하는 것이 통합 요구사항이다.
+- DPF raw code와 상세 신호 검증 상태는 일반 UI가 아니라 서비스 진단에 보존한다.
+- FFT의 dB 값은 microphone chain을 보정하기 전에는 상대 레벨로 취급한다.
+- 주행 중에는 밝기·단위 설정을 상위 계층에서 `LV_STATE_DISABLED`로 전환한다.
 
 상세 상호작용과 상태 표는 [`../../docs/ui-design.md`](../../docs/ui-design.md), 제어·신호 근거는 [`../../docs/feature-design.md`](../../docs/feature-design.md), 무선 명령 수명주기는 [`../../docs/esp-now-protocol.md`](../../docs/esp-now-protocol.md)를 참고한다.

@@ -26,11 +26,15 @@
 
 ## UI prototype
 
-320×480 세로 화면에 맞춘 주행·오디오·자동화 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
+320×480 세로 화면에 맞춘 주행·소리·FFT·자동화·설정 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
 
-| 주행 상태 | 오디오 기능 | SPORT 자동화 |
+| 주행 상태 | 소리 제어 | FFT 분석 |
 |---|---|---|
-| ![주행 화면](docs/images/ui-drive.png) | ![오디오 화면](docs/images/ui-audio.png) | ![자동화 화면](docs/images/ui-automation.png) |
+| ![주행 화면](docs/images/ui-drive.png) | ![소리 화면](docs/images/ui-audio.png) | ![FFT 화면](docs/images/ui-fft.png) |
+
+| SPORT 자동화 | 설정 |
+|---|---|
+| ![자동화 화면](docs/images/ui-automation.png) | ![설정 화면](docs/images/ui-settings.png) |
 
 - 브라우저 prototype: [`ui/prototype/`](ui/prototype/)
 - LVGL 8.4 UI: [`ui/lvgl/`](ui/lvgl/)

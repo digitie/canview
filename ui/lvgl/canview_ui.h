@@ -13,9 +13,13 @@ extern "C" {
 typedef enum {
     CANVIEW_UI_SCREEN_DRIVE = 0,
     CANVIEW_UI_SCREEN_AUDIO,
+    CANVIEW_UI_SCREEN_FFT,
     CANVIEW_UI_SCREEN_AUTOMATION,
+    CANVIEW_UI_SCREEN_SETTINGS,
     CANVIEW_UI_SCREEN_COUNT,
 } canview_ui_screen_t;
+
+#define CANVIEW_UI_FFT_BIN_COUNT 23
 
 typedef enum {
     CANVIEW_UI_QUALITY_UNAVAILABLE = 0,
@@ -33,19 +37,20 @@ typedef enum {
 typedef enum {
     CANVIEW_UI_CMD_SET_QUIET = 1,
     CANVIEW_UI_CMD_SET_REAR_BOOST,
+    CANVIEW_UI_CMD_STEP_VOLUME,
     CANVIEW_UI_CMD_SET_ADAPTIVE_VOLUME,
     CANVIEW_UI_CMD_SET_SPORT_MONITOR,
-    CANVIEW_UI_CMD_MOVE_SOUND_POSITION,
+    CANVIEW_UI_CMD_SET_BRIGHTNESS,
+    CANVIEW_UI_CMD_SET_AUTO_BRIGHTNESS,
+    CANVIEW_UI_CMD_SET_METRIC_UNITS,
 } canview_ui_command_id_t;
 
 typedef struct {
     canview_ui_command_id_t id;
     union {
         bool enabled;
-        struct {
-            int8_t balance_delta;
-            int8_t fader_delta;
-        } sound_position;
+        int8_t step_delta;
+        uint8_t percent;
     } value;
 } canview_ui_command_t;
 
@@ -61,14 +66,12 @@ typedef struct {
 typedef struct {
     uint16_t speed_tenth_kph;
     uint16_t engine_rpm;
-    int16_t longitudinal_accel_centi_mps2;
 
     uint8_t rear_coupling_percent;
     uint16_t clutch_torque_nm;
     canview_ui_quality_t four_wd_quality;
 
     bool dpf_lamp_on;
-    bool dpf_detail_verified;
 
     canview_ui_drive_mode_t drive_mode;
     bool sport_monitor_enabled;
@@ -76,16 +79,19 @@ typedef struct {
     bool quiet_mode_enabled;
     bool rear_boost_enabled;
     bool adaptive_volume_enabled;
-    int8_t sound_balance_step;
-    int8_t sound_fader_step;
-    uint8_t relative_noise_db;
+    uint8_t audio_volume_level;
     int8_t volume_offset_step;
+
+    uint8_t fft_bins[CANVIEW_UI_FFT_BIN_COUNT];
+    uint16_t fft_peak_hz;
+    uint16_t fft_peak_tenth_db;
+
+    uint8_t display_brightness_percent;
+    bool auto_brightness_enabled;
+    bool metric_units;
 
     uint8_t active_bus_count;
     int8_t esp_now_rssi_dbm;
-    uint16_t esp_now_rtt_ms;
-    bool esp_now_encrypted;
-    bool control_tx_enabled;
 } canview_ui_model_t;
 
 /* 단일 320x480 화면 인스턴스를 생성한다. parent가 NULL이면 lv_scr_act()를 사용한다. */
