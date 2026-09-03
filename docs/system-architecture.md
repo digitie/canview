@@ -62,9 +62,11 @@ CANView는 다음 두 장치로 구성한다. 문서, 펌웨어, 로그, UI에�
 
 - Controller가 재부팅되거나 ESP-NOW가 끊겨도 Communicator는 차량 bus를 방해하지 않는다.
 - Communicator ESP32가 멈추면 STM32는 UART heartbeat 만료 후 새 제어 명령을 거부한다.
-- STM32가 재부팅되면 모든 transceiver를 standby로 시작하고, 세 CAN 채널을 listen-only로 검증한 뒤에만 정책에 따라 상태를 전환한다.
+- STM32가 재부팅되면 외부 pull resistor가 TCAN 두 채널을 standby, MAX3055를 Power-On Standby로 만든다. HSE와 세 FDCAN이 준비되고 listen-only profile을 검증한 뒤에만 채널별로 normal mode를 허용한다.
 - UART framing 오류, sequence 불일치, queue overflow는 raw 명령 재시도로 해결하지 않는다. session 재동기화와 snapshot을 먼저 수행한다.
 - MAX3055 채널의 bitrate 또는 bus 유형이 확인되지 않으면 해당 채널은 전기적으로 standby 상태를 유지한다.
+- 차량 전원은 LM74800과 back-to-back N-FET, MAX20040 5 V, PGOOD-gated TPS629210 3.3 V 순서로 기동한다. TLV803E가 3.3 V brownout 동안 STM32 NRST와 ESP32 CHIP_PU를 동시에 low로 유지한다.
+- UART RTS/CTS 외부 pull-up은 두 MCU 중 하나가 reset된 동안 양방향 송신을 막는다. heartbeat와 control lease는 reset 후 자동 승계하지 않는다.
 
 ## 5. 관련 문서
 

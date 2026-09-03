@@ -1,220 +1,305 @@
 # Communicator 하드웨어 설계 기준
 
-## 1. 문서 상태
+## 1. 문서 상태와 안전 목표
 
-이 문서는 `Communicator`의 회로 설계 입력과 1차 핀 할당을 정의한다.
+이 문서는 `Communicator`의 전원, 회로, 핀 할당과 부팅 안전 상태를 정의한다. AEC/PPAP 적합성 판단은 범위 밖이며, 다음 전기적 목표를 우선한다.
 
-- IC 종류와 전기적 한계는 제조사 데이터시트에서 확인한 값이다.
-- MCU GPIO 할당, 커넥터, 전원 topology는 **회로도 작성 전 제안값**이다.
-- 아래 핀맵은 ERC, signal-integrity 검토, 실제 차량 bus 확인, prototype bring-up을 통과하기 전까지 PCB 확정값이 아니다.
+- MCU가 무전원·reset·brownout·watchdog reset·firmware 정지 상태여도 CAN bus를 dominant로 붙잡지 않는다.
+- 5 V가 유효해지기 전에 3.3 V MCU rail을 켜지 않고, 3.3 V가 안정된 뒤 두 MCU의 reset을 해제한다.
+- CAN PHY는 clock, bitrate, filter와 interrupt가 모두 준비된 뒤에만 normal mode로 전환한다.
+- 입력 과전압·역극성·전원 강하 시 PHY는 standby 또는 high-impedance 상태로 수렴한다.
 
-## 2. 부품 구성과 선정 결과
+IC 사양과 핀 multiplexing은 제조사 데이터시트에서 확인했지만, 보호소자 정격·MOSFET SOA·thermal·signal integrity는 회로도/ERC와 prototype 시험 전까지 확정값이 아니다.
 
-| 부품 | 적용 부품 | 확인된 주요 사양 | 역할 |
+## 2. 확정 부품과 역할
+
+| 블록 | 적용 부품 | 확인된 주요 사양 | 역할 |
 |---|---|---|---|
-| 무선 MCU | `ESP32-S3-MINI-1-N4R2` | dual-core LX7 최대 240 MHz, 4 MB Quad SPI Flash, 2 MB Quad SPI PSRAM, 3.0–3.6 V, −40–85 °C, PCB antenna | ESP-NOW, pairing, 설정, 무선/UART queue |
-| CAN MCU | `STM32G474CEU6` | Cortex-M4F 170 MHz, Flash 512 KB, SRAM 128 KB, FDCAN 3개, UFQFPN48, 1.71–3.6 V, suffix 6은 −40–85 °C | 세 CAN 채널, timestamp, filter, 안전 gate |
-| 고속 CAN | `TCAN1046AV-Q1` | 독립 2채널, ISO 11898-2:2016, classic CAN/CAN FD 최대 8 Mbps, VCC 4.5–5.5 V, VIO 1.7–5.5 V, standby/WUP | CAN 1·2 물리계층 |
-| 저속 CAN | `MAX3055ASD+` | fault-tolerant/single-wire fallback, 125 kbps, ±80 V bus fault protection, VCC 5 V ±5%, BATT 5–42 V, −40–125 °C | CAN 3 저속 fault-tolerant 물리계층 |
+| 무선 MCU | `ESP32-S3-MINI-1-N4R2` | dual-core LX7 최대 240 MHz, 4 MB Flash, 2 MB PSRAM, 3.0–3.6 V | ESP-NOW, pairing, 설정, 무선/UART queue |
+| CAN MCU | `STM32G474CEU6` | Cortex-M4F 170 MHz, Flash 512 KB, SRAM 128 KB, FDCAN 3개, UFQFPN48 | CAN timestamp/filter, UART, 최종 TX safety gate |
+| 고속 CAN PHY | `TCAN1046AV-Q1` | dual channel, ISO 11898-2:2016, CAN FD 최대 8 Mbps, VCC 5 V, VIO 3.3 V | CAN 1·2 물리계층 |
+| fault-tolerant CAN PHY | `MAX3055ASD+` | 125 kbps, ±80 V bus fault protection, VCC 5 V, 별도 BATT | CAN 3 물리계층 |
+| 입력 보호 controller | `LM74800-Q1` | 3–65 V, common-source back-to-back N-FET 구동, reverse blocking, OV disconnect | 역극성·역전류·과전압 차단 |
+| 5 V buck-boost | `MAX20040B` 계열 | 기동 후 2–36 V, 최대 1.2 A, open-drain PGOOD | PHY 5 V와 3.3 V 전단 |
+| 3.3 V buck | `TPS629210` | 3–17 V 입력, 최대 1 A | STM32·ESP32·TCAN VIO 전원 |
+| 3.3 V supervisor | `TLV803EA30DPWR` | 3.08 V nominal threshold, 200 ms nominal delay, open-drain active-low, X2SON | STM32 NRST·ESP CHIP_PU 공통 감시 |
+| CAN clock | HSE crystal | STM32 지원 범위 4–48 MHz | FDCAN kernel clock 정확도 확보 |
 
-### 2.1 ESP32-S3-MINI-1-N4R2 변경 영향
+`ESP32-S3-PICO-1`은 사용하지 않는다. `ESP32-S3-MINI-1-N4R2`의 `GPIO26`은 내부 PSRAM용이므로 외부에 배선하지 않는다. `GPIO19/20`은 native USB, `GPIO0/3/45/46`은 strapping 영향 때문에 UART와 제어선에서 제외한다.
 
-이 설계는 `ESP32-S3-PICO-1`을 사용하지 않는다. `N4R2`에서 `GPIO26`은 내부 PSRAM에 연결되어 외부 용도로 사용할 수 없다. 모듈은 65 pads이고 PCB antenna를 포함하므로, module antenna 끝을 base PCB 가장자리에 배치하고 antenna keep-out 안에 copper pour, trace, 부품, metal enclosure를 두지 않는다.
+`MAX3055`는 고속 CAN transceiver가 아니다. CAN 3의 실제 차량 bus가 125 kbps fault-tolerant 방식인지 확인되지 않으면 PHY를 enable하지 않는다.
 
-USB Serial/JTAG를 유지하기 위해 `GPIO19/20`은 UART flow control에 쓰지 않는다. MCU 간 UART는 GPIO matrix를 이용해 `GPIO17/18/15/16`에 배치한다. `GPIO0/3/45/46`은 strapping 영향을 받으므로 외부 회로가 reset 시 레벨을 강제하지 않게 한다.
+## 3. 전원과 reset
 
-### 2.2 MAX3055 적용 제한
-
-`MAX3055`는 고속 CAN transceiver가 아니다. 데이터시트가 규정하는 대상 속도는 125 kbps이며, fault-tolerant bus의 RTH/RTL termination 구조를 사용한다. 따라서 다음을 금지한다.
-
-- CAN 1·2의 500 kbps 고속 bus에 MAX3055 연결
-- MAX3055 채널에 고속 CAN용 120 Ω 종단을 관성적으로 장착
-- 실차 bus 종류가 확인되기 전에 CAN 3을 normal mode로 켜기
-- CAN 3을 CAN 1·2와 같은 transceiver profile로 다루기
-
-## 3. 전원과 보호 회로
+### 3.1 전원 tree
 
 ```text
-차량 BATT
-   │
-   ├─ fuse/PTC ─ reverse-polarity protection ─ load-dump TVS ─ EMI filter
-   │                                                        │
-   │                                                        ├─ automotive 5 V buck
-   │                                                        │    ├─ TCAN1046AV VCC
-   │                                                        │    └─ MAX3055 VCC
-   │                                                        │
-   │                                                        └─ automotive 3.3 V rail
-   │                                                             ├─ STM32 VDD/VDDA
-   │                                                             ├─ ESP32 module 3V3
-   │                                                             └─ TCAN1046AV VIO
-   │
-   └──────────────── protected BATT sense/feed ─────────────────> MAX3055 BATT
+Vehicle BATT 12 V
+        │
+      Fuse
+        │
+  SMBJ36CA + 입력 EMI/ESD network
+        │
+  LM74800-Q1 + common-source back-to-back N-FET ×2
+  OV rising cutoff nominal 약 31.9 V
+        │
+   PROTECTED_VBAT ───────────────────────────> MAX3055 BATT
+        │
+     MAX20040B
+        │  5V_PHY
+        ├────────────────────────────────────> TCAN1046AV VCC
+        ├────────────────────────────────────> MAX3055 VCC
+        │
+        └─ PGOOD(open drain, 10 kΩ pull-up to BIAS)
+                         │
+                         └────────────────────> TPS629210 EN
+                                                   │
+                                              TPS629210
+                                                   │  3V3
+                     ┌─────────────────────────────┼───────────────┐
+                     │                             │               │
+               STM32 VDD/VDDA               ESP32 3V3       TCAN VIO
+                     │                             │
+                     └────────── SYS_RESET_N ──────┘
+                                      ▲
+                         TLV803EA30DPWR RESET
+                         10 kΩ pull-up to 3V3
 ```
 
-전원 IC의 구체 부품은 아직 확정하지 않는다. 다음 조건으로 별도 선정한다.
+MAX20040 PGOOD은 출력이 regulation 값의 약 96%를 넘을 때 해제되고 약 93% 아래에서 다시 low가 된다. 데이터시트 기준으로 PGOOD을 BIAS에 10 kΩ로 pull-up하고 `TPS629210 EN`에 연결한다. TPS629210의 EN 내부 pull-down은 PGOOD이 유효하지 않은 구간에 3.3 V rail을 off로 수렴시킨다.
 
-1. 차량 cold crank와 load dump를 포함한 입력 범위 및 ISO 7637-2 pulse 요구조건
-2. 역극성, jump start, ESD, 과전류, thermal shutdown
-3. ESP32 Wi-Fi burst를 포함한 3.3 V peak current와 충분한 local bulk capacitance
-4. 5 V transceiver rail과 3.3 V MCU rail의 power sequencing 및 역급전 방지
-5. ignition-off 대기전류와 MAX3055 wake/INH 사용 여부
+MAX20040B의 제안 주문형식은 `MAX20040BATPA/VY+`이고 FB를 VCC에 연결해 5 V fixed output으로 쓴다. TPS629210은 VSET을 open 또는 249 kΩ 이상으로 두는 3.3 V 설정을 사용한다. compensation, switching frequency, inductor와 capacitor는 두 regulator의 공식 design procedure로 계산한다.
 
-`TCAN1046AV`에는 VCC 5 V와 VIO 3.3 V를 공급한다. 각 supply pin 바로 옆에 데이터시트 권장 decoupling을 두고 두 CAN channel의 return path를 짧게 만든다. `MAX3055`에는 VCC 5 V와 protected BATT를 각각 공급하며 두 핀 모두 IC 가까이에 100 nF를 둔다.
+MAX20040은 최초 기동에 `IN > 3.5 V`가 필요하며 기동 완료 뒤에만 약 2 V까지 동작 범위가 확장된다. 따라서 배터리가 이미 2–3 V인 상태에서 새 부팅은 보장하지 않는다. 이 구간에서는 reset 유지와 PHY 비활성 상태가 정상 동작이다.
 
-STM32 VDD/VDDA와 ESP32 3V3에는 제조사 권장 decoupling과 bulk capacitor를 둔다. STM32 exposed pad/VSS는 연속 ground plane에 thermal via로 연결한다. analog 기능을 사용하지 않더라도 VDDA/VSSA/VREF+는 floating시키지 않는다.
+TPS629210의 1 A 한계는 ESP32 RF burst, STM32, TCAN VIO를 모두 포함한다. 회로 확정 전에 3.3 V peak current, startup inrush, 출력 capacitor, junction temperature를 계산하고 Wi-Fi burst 중 rail droop을 계측한다. MAX20040의 1.2 A 한계에도 3.3 V 변환 입력전류와 세 PHY의 worst-case 전류를 포함한다.
+
+### 3.2 입력 보호와 OV divider
+
+LM74800 OV divider의 제안값은 다음과 같다.
+
+```text
+LM74800_VIN ───── 100 kΩ ──┬── LM74800 OV
+                            │
+                          4.02 kΩ
+                            │
+                           GND
+```
+
+`VOVR = 1.233 V` nominal을 적용하면 rising cutoff는 `1.233 × (100 kΩ + 4.02 kΩ) / 4.02 kΩ ≈ 31.9 V`다. falling 기준 약 1.13 V를 적용한 nominal 재연결점은 약 29.2 V다. 합계 104.02 kΩ는 OV leakage 오차를 줄이기 위한 제조사 권고 `120 kΩ 미만`을 만족한다. 실제 cutoff 범위는 reference·저항 공차와 온도를 포함해 worst-case로 다시 계산한다.
+
+`SMBJ36CA`는 TI reference 회로에서 ISO 7637 Pulse 1의 음전압을 LM74800의 −65 V absolute maximum 안으로 제한하는 역할이다. 양의 load dump 에너지를 이 TVS 하나가 모두 흡수한다고 가정하지 않는다. 양의 과전압은 OV 차단으로 downstream을 분리하며, 두 N-FET의 `VDS`, avalanche/SOA, gate 보호, TVS pulse rating과 PCB 열을 대상 pulse profile로 검증한다.
+
+입력 connector에서 fuse, TVS, FET power loop를 짧게 배치한다. `PROTECTED_VBAT` 이후에 MAX20040과 MAX3055 BATT를 분기하며, 역급전 경로와 ignition-off 대기전류를 별도 점검한다.
+
+### 3.3 3.3 V supervisor와 공통 reset
+
+`TLV803EA30DPWR`의 부품명은 다음 의미다.
+
+- `TLV803E`: active-low open-drain reset
+- `A`: 200 ms nominal delay
+- `30`: 3.08 V nominal falling threshold
+- `DPW`: 0.8 mm × 0.8 mm X2SON-5
+
+RESET에는 3.3 V로 10 kΩ pull-up을 두고 `STM32 NRST`와 `ESP32 CHIP_PU`를 묶은 `SYS_RESET_N`을 구동한다. VDD에는 IC 가까이 100 nF를 둔다. X2SON의 `MR`은 내부 pull-up을 사용하되 service reset test point를 제공한다. 공통선이므로 SWD reset도 ESP32를 함께 reset한다. 독립 reset이 필요하다는 시험 결과가 나오면 open-drain buffer로 두 branch를 분리한다.
+
+ESP32는 3.3 V가 안정된 뒤 CHIP_PU가 high가 되기까지 최소 50 µs가 필요하다. 200 ms supervisor가 이 조건을 충족하므로 supervisor 출력에 큰 RC capacitor를 중복 장착하지 않는다. 정확한 reset delay 보증 범위와 threshold 공차는 BOM 확정 시 최신 데이터시트로 재확인한다.
 
 ## 4. CAN 물리계층 회로
 
 ### 4.1 CAN 1·2: TCAN1046AV-Q1
 
+두 채널의 reset 기본 상태는 동일하다.
+
 ```text
-STM32 FDCANx_TX ─────> TXDx        CANHx ── CMC/DNP ── ESD/TVS ── connector
-STM32 FDCANx_RX <───── RXDx        CANLx ── CMC/DNP ── ESD/TVS ── connector
-STM32 CANx_STB ──────> STBx
-3V3 ─────────────────> VIO
-5V  ─────────────────> VCC
-GND ─────────────────> GND1/GND2
+3V3 ── 10 kΩ ──┬── TXD1 <──────── STM PA12 / FDCAN1_TX
+                │
+                └── STB1 <──────── STM PA4
+
+3V3 ── 10 kΩ ──┬── TXD2 <──────── STM PB13 / FDCAN2_TX
+                │
+                └── STB2 <──────── STM PA5
+
+TCAN RXD1 ────────────────────────> STM PA11 / FDCAN1_RX
+TCAN RXD2 ────────────────────────> STM PB12 / FDCAN2_RX
 ```
 
-TCAN1046AV pin 기능은 다음과 같다.
+실제 회로에서는 TXD1, STB1, TXD2, STB2 각각에 독립 10 kΩ pull-up을 둔다. MCU가 Hi-Z일 때 `TXD=HIGH`는 recessive, `STB=HIGH`는 standby이므로 부팅·reset 중 두 bus를 dominant로 만들지 않는다. TCAN 내부 bias와 undervoltage 보호가 있어도 외부 저항을 reset 상태의 정본으로 사용한다.
 
-| 핀 | 신호 | 핀 | 신호 |
-|---:|---|---:|---|
-| 1 | `TXD1` | 8 | `RXD2` |
-| 2 | `GND1` | 9 | `STB2` |
-| 3 | `VCC` | 10 | `CANL2` |
-| 4 | `RXD1` | 11 | `CANH2` |
-| 5 | `VIO` | 12 | `CANL1` |
-| 6 | `TXD2` | 13 | `CANH1` |
-| 7 | `GND2` | 14 | `STB1` |
+TCAN1046AV에는 VCC 5 V, VIO 3.3 V를 공급하고 각 supply pin 가까이에 데이터시트 권장 decoupling을 둔다. VCC/VIO undervoltage 또는 무전원 상태에서 bus와 logic pin이 high-impedance가 되는 조건도 power-sequence 시험에 포함한다.
 
-- `STB1/2`에는 pull-up을 두어 STM32 reset 중 두 채널이 standby가 되게 한다.
-- 차량 bus에 stub으로 붙을 때 120 Ω은 기본 `DNP`다. 별도 jumper나 switchable termination은 벤치 및 endpoint 구성에서만 사용한다.
-- common-mode choke와 external ESD/TVS는 footprint를 두되 EMC 시험으로 장착값을 결정한다. transceiver 내부 ±58 V bus fault 보호만으로 차량 connector의 모든 transient 요구를 충족한다고 가정하지 않는다.
-- CANH/CANL은 tightly coupled differential pair로 routing하고, connector–protection–transceiver 순서를 짧고 대칭으로 유지한다.
+| TCAN pin | 신호 | 연결 |
+|---:|---|---|
+| 1 | TXD1 | STM PA12, 10 kΩ pull-up |
+| 2 | GND1 | ground plane |
+| 3 | VCC | 5V_PHY |
+| 4 | RXD1 | STM PA11 |
+| 5 | VIO | 3V3 |
+| 6 | TXD2 | STM PB13, 10 kΩ pull-up |
+| 7 | GND2 | ground plane |
+| 8 | RXD2 | STM PB12 |
+| 9 | STB2 | STM PA5, 10 kΩ pull-up |
+| 10 | CANL2 | CAN 2 protection·connector |
+| 11 | CANH2 | CAN 2 protection·connector |
+| 12 | CANL1 | CAN 1 protection·connector |
+| 13 | CANH1 | CAN 1 protection·connector |
+| 14 | STB1 | STM PA4, 10 kΩ pull-up |
+
+차량 connector 쪽 회로 기준은 다음과 같다.
+
+- connector 바로 뒤에 CAN FD data rate에 맞는 저용량 TVS를 배치한다.
+- common-mode choke는 footprint만 두고 기본 `DNP`로 시작한다.
+- 차량 bus의 중간 stub이면 종단 부품은 모두 `DNP`다.
+- 이 보드가 검증된 endpoint일 때만 `60.4 Ω + 60.4 Ω` split termination과 center tap–GND `4.7 nF` footprint를 장착한다.
+- termination 장착 여부는 CAN 1과 CAN 2에서 각각 독립 관리한다.
 
 ### 4.2 CAN 3: MAX3055
 
+MAX3055는 STB를 high로 고정하고 EN 하나만 STM32가 제어한다.
+
 ```text
-STM32 FDCAN3_TX ───────────────> TXD
-STM32 FDCAN3_RX <─ level guard ─ RXD
-STM32 MAX_ERR    <─ level guard ─ ERR
-STM32 MAX_STB ─────────────────> STB
-STM32 MAX_EN  ─────────────────> EN
-5V ────────────────────────────> VCC
-protected BATT ────────────────> BATT
-RTH/RTL network ───────────────> CANH/CANL ─ protection ─ connector
+5V_PHY ── 10 kΩ ───────────────────────────> MAX3055 STB
+
+STM PA6 / CAN3_EN ─────────────────────────> MAX3055 EN
+                │
+              10 kΩ
+                │
+               GND
+
+3V3 ── 10 kΩ ──┬── MAX3055 TXD <────────── STM PA15 / FDCAN3_TX
+
+MAX3055 RXD ── 5.1 kΩ ──┬────────────────> STM PA8 / FDCAN3_RX
+                         │
+                       10 kΩ
+                         │
+                        GND
+
+MAX3055 ERR ── 5.1 kΩ ──┬────────────────> STM PB14 / CAN3_ERR (선택)
+                         │
+                       10 kΩ
+                         │
+                        GND
 ```
 
-| 핀 | 신호 | 전기·설계 주의 |
+MAX3055 mode table에서 `STB=1, EN=0`은 Power-On Standby, `STB=1, EN=1`은 Normal Operating이다. reset 중 PA6은 Hi-Z이고 외부 10 kΩ pull-down이 EN을 low로 유지한다. firmware가 준비된 뒤 PA6만 high로 전환한다. TXD pull-up은 MCU reset 시 recessive를 보장하며, PA15 자체의 reset pull-up 방향과도 일치한다.
+
+MAX3055 RXD/ERR high는 `VCC − 0.5 V`에서 VCC까지 올라갈 수 있다. PA8/PB14가 5 V tolerant이더라도 5.1 kΩ/10 kΩ divider를 기본 장착해 약 3.3 V로 낮추고 STM32 무전원 시 injection을 제한한다. 이 값은 125 kbps에서 검증하되, 입력 capacitance·threshold·상승시간과 STM32 전원 off injection current를 worst-case로 계산한다. ERR을 사용하지 않으면 divider와 PB14는 `DNP` 처리할 수 있다.
+
+| MAX pin | 신호 | 연결·처리 |
 |---:|---|---|
-| 1 | `INH` | 외부 regulator 제어용 open/high-Z 동작. 사용하지 않으면 데이터시트 조건으로 처리 |
-| 2 | `TXD` | 3.3 V STM32 high가 VIH 2.4 V 이상이므로 논리 입력 조건 충족 |
-| 3 | `RXD` | high 출력이 5 V rail 기준. STM32의 5 V-tolerant 입력과 역급전 방지 회로 필요 |
-| 4 | `ERR` | 5 V 출력. 5 V-tolerant 입력 또는 level translator 사용 |
-| 5 | `STB` | `EN`과 함께 mode 선택 |
-| 6 | `EN` | `STB=1`, `EN=1`일 때 normal operating |
-| 7 | `WAKE` | local wake 입력. 미사용 처리와 transient 보호 필요 |
-| 8 | `RTH` | CANH fault-tolerant termination network |
-| 9 | `RTL` | CANL fault-tolerant termination network |
-| 10 | `VCC` | 5 V ±5%, 100 nF local bypass |
-| 11 | `CANH` | fault-tolerant bus high |
-| 12 | `CANL` | fault-tolerant bus low |
-| 13 | `GND` | ground |
-| 14 | `BATT` | protected vehicle battery, 100 nF local bypass |
+| 1 | INH | 미사용 기본, test point; floating 동작은 데이터시트 준수 |
+| 2 | TXD | STM PA15, 10 kΩ pull-up to 3V3 |
+| 3 | RXD | 5.1 kΩ/10 kΩ divider를 거쳐 STM PA8 |
+| 4 | ERR | 선택 divider를 거쳐 STM PB14 |
+| 5 | STB | 10 kΩ pull-up to 5V_PHY, MCU에 연결하지 않음 |
+| 6 | EN | STM PA6, 10 kΩ pull-down |
+| 7 | WAKE | 미사용 bias·protection 확정 필요 |
+| 8 | RTH | CANH distributed termination footprint |
+| 9 | RTL | CANL distributed termination footprint |
+| 10 | VCC | 5V_PHY, local bypass |
+| 11 | CANH | CAN 3 protection·connector |
+| 12 | CANL | CAN 3 protection·connector |
+| 13 | GND | ground plane |
+| 14 | BATT | PROTECTED_VBAT, local bypass |
 
-`RXD`와 `ERR`는 STM32의 `FT` 표기 pin을 쓰되, STM32가 꺼진 상태에서 MAX3055가 살아 있을 때의 injection current를 회로 검토해야 한다. 기본안은 automotive-qualified unidirectional level translator 또는 저항/클램프 조합을 사용하고, 부품 미장착 직결은 prototype에서 전원 sequencing과 absolute maximum을 계측으로 확인한 경우에만 허용한다.
+FT-CAN 종단은 고속 CAN과 다르다. CANH–CANL 사이에 120 Ω을 넣지 않는다. RTH와 RTL 각각의 distributed termination footprint를 두고 기본 `DNP`로 시작한다. MAX3055 데이터시트 기준 각 node 저항은 500 Ω 미만으로 내리지 않으며, network의 CANH와 CANL 각각 total target은 100 Ω이다. 소규모·짧은 차량 network에서는 합성값이 더 커도 동작할 수 있으므로 실차 기존 종단을 측정한 뒤 값을 정한다.
 
-MAX3055 termination은 데이터시트의 RTH/RTL 방식으로 설계한다. 각 node의 RTH/RTL 저항은 최소 500 Ω 조건을 지키고 전체 network 값은 실제 bus topology에 맞춘다. 120 Ω differential 종단을 그대로 복사하지 않는다.
+## 5. STM32G474CEU6 UFQFPN48 최종 제안 핀맵
 
-## 5. 제안 핀맵
+기계 판독용 정본은 [`../hardware/communicator/pinmap-proposed.csv`](../hardware/communicator/pinmap-proposed.csv)다.
 
-정본 CSV는 [`../hardware/communicator/pinmap-proposed.csv`](../hardware/communicator/pinmap-proposed.csv)다.
-
-### 5.1 ESP32-S3-MINI-1-N4R2
-
-| 모듈 pad | GPIO | 제안 기능 | 연결 | 비고 |
-|---:|---:|---|---|---|
-| 3 | — | `3V3` | 3.3 V rail | 3.0–3.6 V |
-| 4 | 0 | `ESP_BOOT` | button/test pad | strapping, 평상시 pull-up |
-| 19 | 15 | `UART1_RTS` | STM32 `PA0/USART2_CTS` | GPIO matrix 사용 |
-| 20 | 16 | `UART1_CTS` | STM32 `PA1/USART2_RTS` | GPIO matrix 사용 |
-| 21 | 17 | `UART1_TX` | STM32 `PA3/USART2_RX` | module native U1TXD |
-| 22 | 18 | `UART1_RX` | STM32 `PA2/USART2_TX` | module native U1RXD |
-| 23 | 19 | `USB_D-` | USB connector | 다른 기능에 배정 금지 |
-| 24 | 20 | `USB_D+` | USB connector | 다른 기능에 배정 금지 |
-| 26 | 26 | internal PSRAM | 연결 금지 | N4R2에서 외부 사용 불가 |
-| 39 | 43 | `UART0_TX/debug` | test pad | 생산 connector 노출 정책 검토 |
-| 40 | 44 | `UART0_RX/debug` | test pad | 생산 connector 노출 정책 검토 |
-| 45 | — | `EN` | reset circuit/test pad | floating 금지 |
-| 1, 2, 42, 43, 46–65 | — | `GND` | ground plane | antenna 영역 제외 제조사 land pattern 준수 |
-
-`GPIO3/45/46`은 strapping pin, `GPIO26`은 N4R2 내부 PSRAM pin이다. `GPIO19/20`은 native USB를 위해 예약한다. UART1의 RTS/CTS를 GPIO15/16으로 routing하는 것은 ESP32-S3 GPIO matrix가 지원하지만, firmware에서 `uart_set_pin()`과 hardware flow control을 명시적으로 설정해야 한다.
-
-### 5.2 STM32G474CEU6 UFQFPN48
-
-| package pin | MCU pin | AF/모드 | 제안 기능 | 연결 |
+| package pin | MCU pin | AF/모드 | 기능 | 연결·reset 처리 |
 |---:|---|---|---|---|
-| 8 | `PA0` | AF7 `USART2_CTS` | `UART_CTS` | ESP GPIO15 RTS |
-| 9 | `PA1` | AF7 `USART2_RTS_DE` | `UART_RTS` | ESP GPIO16 CTS |
-| 10 | `PA2` | AF7 `USART2_TX` | `UART_TX` | ESP GPIO18 RX |
-| 11 | `PA3` | AF7 `USART2_RX` | `UART_RX` | ESP GPIO17 TX |
-| 12 | `PA4` | output | `CAN1_STB` | TCAN pin 14, external pull-up |
-| 13 | `PA5` | output | `CAN2_STB` | TCAN pin 9, external pull-up |
-| 14 | `PA6` | output | `CAN3_STB` | MAX pin 5, external pull-down |
-| 15 | `PA7` | output | `CAN3_EN` | MAX pin 6, external pull-down |
-| 30 | `PA8` | input, 5 V-tolerant | `CAN3_ERR` | MAX pin 4 via level guard |
-| 33 | `PA11` | AF9 `FDCAN1_RX` | `CAN1_RX` | TCAN pin 4 |
-| 34 | `PA12` | AF9 `FDCAN1_TX` | `CAN1_TX` | TCAN pin 1 |
-| 41 | `PB3` | AF11 `FDCAN3_RX` | `CAN3_RX` | MAX pin 3 via level guard |
-| 42 | `PB4` | AF11 `FDCAN3_TX` | `CAN3_TX` | MAX pin 2 |
-| 43 | `PB5` | AF9 `FDCAN2_RX` | `CAN2_RX` | TCAN pin 8 |
-| 44 | `PB6` | AF9 `FDCAN2_TX` | `CAN2_TX` | TCAN pin 6 |
+| 5 | `PF0` | `OSC_IN` | HSE input | 4–48 MHz crystal network |
+| 6 | `PF1` | `OSC_OUT` | HSE output | crystal network |
+| 7 | `PG10-NRST` | reset | `SYS_RESET_N` | TLV803E·SWD, floating 금지 |
+| 8 | `PA0` | AF7 `USART2_CTS` | UART CTS | ESP GPIO15 RTS, 10 kΩ pull-up |
+| 9 | `PA1` | AF7 `USART2_RTS_DE` | UART RTS | ESP GPIO16 CTS, 10 kΩ pull-up |
+| 10 | `PA2` | AF7 `USART2_TX` | UART TX | ESP GPIO18 RX, weak pull-up footprint |
+| 11 | `PA3` | AF7 `USART2_RX` | UART RX | ESP GPIO17 TX, weak pull-up footprint |
+| 12 | `PA4` | output | TCAN STB1 | external 10 kΩ pull-up → standby |
+| 13 | `PA5` | output | TCAN STB2 | external 10 kΩ pull-up → standby |
+| 14 | `PA6` | output | MAX3055 EN | external 10 kΩ pull-down → disabled |
+| 25 | `PB12` | AF9 `FDCAN2_RX` | CAN 2 RX | TCAN pin 8 |
+| 26 | `PB13` | AF9 `FDCAN2_TX` | CAN 2 TX | TCAN pin 6, external 10 kΩ pull-up |
+| 27 | `PB14` | input | MAX3055 ERR | optional divider, 미사용 시 DNP |
+| 30 | `PA8` | AF11 `FDCAN3_RX` | CAN 3 RX | MAX pin 3 via divider |
+| 33 | `PA11` | AF9 `FDCAN1_RX` | CAN 1 RX | TCAN pin 4 |
+| 34 | `PA12` | AF9 `FDCAN1_TX` | CAN 1 TX | TCAN pin 1, external 10 kΩ pull-up |
 | 36 | `PA13` | AF0 `SWDIO` | debug | SWD header |
 | 37 | `PA14` | AF0 `SWCLK` | debug | SWD header |
-| 7 | `PG10-NRST` | reset | `NRST` | supervisor/SWD header |
-| 46 | `PB8-BOOT0` | boot strap | `BOOT0` | pull-down + service pad |
+| 38 | `PA15` | AF11 `FDCAN3_TX` | CAN 3 TX | MAX pin 2, external 10 kΩ pull-up |
+| 46 | `PB8-BOOT0` | boot strap | BOOT0 | 10 kΩ pull-down + service pad |
 
-`PA11/PA12`는 USB D−/D+와도 multiplex되므로 이 설계에서 STM32 USB는 사용하지 않는다. Communicator의 service interface는 ESP32 native USB와 STM32 SWD를 사용한다.
+`PA11/PA12`는 STM32 USB와 multiplex되므로 STM32 USB는 사용하지 않는다. service interface는 ESP32 native USB와 STM32 SWD를 사용한다.
 
-### 5.3 reset 시 safe state
+이 핀맵은 이전의 `PB3/PB4 = FDCAN3`, `PB5/PB6 = FDCAN2` 배치를 폐기한다. STM32는 reset 시 PA15·PA13·PB4에 debug용 pull-up, PA14에 pull-down을 적용한다. 또한 PB4/PB6에는 UCPD dead-battery 5.1 kΩ pull-down 경로가 개입할 수 있다. UCPD pull-down은 firmware에서 해제할 수 있지만 reset 전부터 보장되는 하드웨어 안전 상태에는 의존할 수 없다. PA15 reset pull-up은 CAN TXD recessive 방향이므로 FDCAN3 TX에는 오히려 적합하다.
 
-| 신호 | 외부 기본값 | reset 중 결과 |
+## 6. ESP32 UART와 reset 핀
+
+| ESP pad | GPIO | 기능 | STM32 peer | 외부 기본값 |
+|---:|---:|---|---|---|
+| 19 | 15 | UART1 RTS | PA0 CTS | 10 kΩ pull-up |
+| 20 | 16 | UART1 CTS | PA1 RTS | 10 kΩ pull-up |
+| 21 | 17 | UART1 TX | PA3 RX | 22–47 kΩ weak pull-up footprint |
+| 22 | 18 | UART1 RX | PA2 TX | 22–47 kΩ weak pull-up footprint |
+| 23 | 19 | USB D− | USB connector | 다른 기능 배정 금지 |
+| 24 | 20 | USB D+ | USB connector | 다른 기능 배정 금지 |
+| 26 | 26 | internal PSRAM | 연결 금지 | N4R2 내부 전용 |
+| 45 | — | CHIP_PU | SYS_RESET_N | TLV803E + 10 kΩ pull-up |
+
+RTS/CTS 두 선은 각각 high가 되어 상대 송신기가 전송을 멈추는 상태로 시작한다. TX/RX weak pull-up은 line idle을 정의하는 선택 footprint이며 4 Mbps eye 측정 결과로 장착값을 정한다. 두 MCU firmware에서 hardware flow-control polarity를 invert하지 않는다.
+
+## 7. reset 상태와 firmware 부팅 순서
+
+### 7.1 무전원·reset 기본 상태
+
+| 대상 | 하드웨어 기본값 | 결과 |
 |---|---|---|
-| TCAN `STB1`, `STB2` | pull-up to VIO | CAN 1·2 standby |
-| MAX `STB`, `EN` | pull-down | sleep/standby 계열, 송신 비활성 |
-| STM32 `BOOT0` | pull-down | user Flash boot |
-| ESP32 `GPIO0` | pull-up | SPI Flash boot |
-| CAN termination switch | off/DNP | 차량 기존 종단을 변경하지 않음 |
+| TCAN TXD1/TXD2 | 각 10 kΩ pull-up | recessive |
+| TCAN STB1/STB2 | 각 10 kΩ pull-up | CAN 1·2 standby |
+| MAX3055 TXD | 10 kΩ pull-up | recessive |
+| MAX3055 STB | 10 kΩ to 5 V | high 고정 |
+| MAX3055 EN | 10 kΩ pull-down | Power-On Standby, transmitter 비활성 |
+| UART RTS/CTS | 각 10 kΩ pull-up | 양방향 flow stop |
+| STM32 BOOT0 | 10 kΩ pull-down | user Flash boot |
+| SYS_RESET_N | supervisor open-drain | 3.3 V 부족 시 두 MCU reset |
+| CAN termination | switch off 또는 DNP | 차량 기존 종단 불변 |
 
-## 6. PCB와 connector 체크리스트
+외부 resistor가 reset 안전의 정본이다. firmware의 첫 GPIO write는 이 상태를 유지하는 보조 계층이다.
 
-- ESP32 module antenna를 차량 금속 bracket, display cable, CAN common-mode choke와 멀리 둔다.
-- 4 Mbps UART 네 선과 ground reference를 두 MCU 사이 최단으로 routing하고, CAN differential pair와 평행하게 길게 지나지 않는다.
-- UART TX/RX/RTS/CTS마다 source 근처 series resistor footprint를 둬 edge rate와 ringing을 조정할 수 있게 한다.
-- CAN connector에는 채널별 CANH/CANL/GND를 명확히 분리하고 잘못된 cross-plug를 기계적으로 방지한다.
-- 각 transceiver TXD/RXD/STB, CANH/CANL, 5 V, 3.3 V, reset, UART 네 선에 test point를 둔다.
-- 세 CAN channel의 termination은 서로 독립적이며 기본 미장착이다.
-- vehicle ground와 logic ground의 연결 방식, shield/chassis 접속은 EMC 시험 전에 의도적으로 정의한다.
-- prototype에서 TXD dominant timeout, bus-off, 단선, short-to-battery/ground, MCU unpowered 조건을 시험한다.
+### 7.2 STM32 부팅 순서
 
-## 7. 확정 전 필요한 검증
+1. PA4·PA5 output latch를 high, PA6를 low로 먼저 기록한 뒤 output mode로 전환한다.
+2. HSE를 시작하고 PLL/FDCAN kernel clock을 검증한다.
+3. USART2 4 Mbps와 RTS/CTS를 초기화하되 CTS가 허용되기 전 송신하지 않는다.
+4. FDCAN 3채널의 bitrate, message RAM, filter, interrupt와 error 처리를 구성한다.
+5. 세 controller를 먼저 start하고 target bus profile을 listen-only로 검증한다.
+6. 검증된 채널에 한해 PA4·PA5를 low로 내려 TCAN을 normal로 만들고, PA6를 high로 올려 MAX3055를 normal로 만든다.
+7. vehicle TX는 별도 control lease와 safety 조건이 충족되기 전까지 계속 금지한다.
 
-1. 2017 Tucson TL 실제 connector와 세 bus의 physical layer·bitrate 확인
-2. CAN 3가 ISO 11898-3 계열 fault-tolerant 125 kbps인지 확인
-3. MAX3055 `RXD/ERR` level guard 부품과 unpowered injection current 계산
-4. 4 Mbps UART의 양 방향 eye, baud error, CTS stop latency, overflow 시험
-5. ESP32 antenna 효율과 ESP-NOW packet loss를 enclosure 안에서 측정
-6. load dump/cold crank/ESD/EMC 요구조건과 보호 부품 확정
-7. 차량 bus에 병렬 연결했을 때 termination 및 common-mode 영향 확인
+HSE startup 또는 clock 검증에 실패하면 PHY enable 단계로 진행하지 않고 error를 기록한 뒤 watchdog reset한다. IWDG 목표 timeout은 250–500 ms이며, main loop·CAN ISR·UART worker가 모두 정상일 때만 refresh한다. firmware lock 시 GPIO가 Hi-Z로 돌아가 외부 resistor가 두 TCAN을 standby, MAX3055를 disabled로 복귀시킨다. TCAN TXD dominant timeout과 MAX3055 permanent-dominant timer는 이 하드웨어 기본값 위의 추가 방어선이다.
 
-## 8. 공식 출처
+## 8. PCB·prototype 검증 체크리스트
 
-- [Espressif ESP32-S3-MINI-1/MINI-1U 데이터시트 v1.7](https://www.espressif.com/sites/default/files/documentation/esp32-s3-mini-1_mini-1u_datasheet_en.pdf)
-- [Espressif ESP32-S3 GPIO matrix 문서](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/gpio.html)
-- [Espressif ESP32-S3 UART 문서](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/uart.html)
-- [ST STM32G474CE 제품 페이지](https://www.st.com/en/microcontrollers-microprocessors/stm32g474ce.html)
+- HSE crystal과 load capacitor를 STM32에 가깝고 CAN switching loop에서 멀리 배치한다.
+- ESP32 antenna keep-out에 copper, trace, 부품, metal enclosure를 두지 않는다.
+- 4 Mbps UART 네 선과 ground reference를 두 MCU 사이 최단으로 routing하고 각 source에 series resistor footprint를 둔다.
+- CAN connector에는 채널별 CANH/CANL/GND와 protection을 독립 배치한다.
+- TXD/RXD/STB/EN, CANH/CANL, 5 V, 3.3 V, PGOOD, SYS_RESET_N, UART 네 선에 test point를 둔다.
+- power ramp up/down, cold crank, OV cutoff/reconnect, brownout, watchdog, MCU별 reset에서 세 bus가 비간섭 상태인지 계측한다.
+- TXD stuck-low, CAN short-to-ground/battery, bus-off, MAX ERR, 한 MCU 무전원 조건을 fault-injection한다.
+- CAN FD 채널은 5/8 Mbps까지 eye와 sample point를 확인하고, CAN 3은 125 kbps와 RTH/RTL network를 별도 검증한다.
+- 실제 2017 Tucson TL connector, bus 종류, bitrate, 기존 종단을 확인하기 전 차량 TX와 onboard termination을 enable하지 않는다.
+
+## 9. 공식 출처
+
+- [Espressif ESP32-S3-MINI-1/MINI-1U 데이터시트](https://www.espressif.com/sites/default/files/documentation/esp32-s3-mini-1_mini-1u_datasheet_en.pdf)
+- [Espressif ESP32-S3 전원·CHIP_PU 설계 가이드](https://docs.espressif.com/projects/esp-hardware-design-guidelines/en/latest/esp32s3/schematic-checklist.html)
 - [ST STM32G474xB/xC/xE 데이터시트](https://www.st.com/resource/en/datasheet/stm32g474ce.pdf)
-- [TI TCAN1046AV-Q1 제품 페이지](https://www.ti.com/product/TCAN1046AV-Q1)
 - [TI TCAN1046AV-Q1 데이터시트](https://www.ti.com/lit/ds/symlink/tcan1046av-q1.pdf)
-- [Analog Devices MAX3054/MAX3055/MAX3056 데이터시트](https://www.analog.com/media/en/technical-documentation/data-sheets/MAX3054-MAX3056.pdf)
+- [Analog Devices MAX3054/MAX3055/MAX3056 데이터시트](https://www.analog.com/media/en/technical-documentation/data-sheets/max3054-max3056.pdf)
+- [TI LM7480-Q1 데이터시트](https://www.ti.com/lit/ds/symlink/lm7480-q1.pdf)
+- [Analog Devices MAX20039/MAX20040 데이터시트](https://www.analog.com/media/en/technical-documentation/data-sheets/max20039-max20040.pdf)
+- [TI TPS629210 제품 페이지](https://www.ti.com/product/TPS629210)
+- [TI TLV803E 데이터시트](https://www.ti.com/lit/gpn/TLV803E)

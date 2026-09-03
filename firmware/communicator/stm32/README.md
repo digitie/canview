@@ -34,9 +34,11 @@ cmake --build --preset release
 ## 현재 안전 경계
 
 - PA4/PA5를 high로 설정해 TCAN1046AV 두 채널을 standby로 둔다.
-- PA6/PA7을 low로 설정해 MAX3055가 normal operating mode로 들어가지 않게 한다.
-- 외부 pull resistor가 MCU reset부터 같은 safe state를 보장해야 한다.
-- UART 4 Mbps와 FDCAN은 회로/ERC, clock tree, fault-injection 검토 후 추가한다.
+- PA6을 low로 설정해 STB가 high로 고정된 MAX3055를 Power-On Standby로 둔다.
+- 외부 pull resistor가 MCU 코드 실행 전부터 TCAN STB high, TCAN/MAX TXD high, MAX EN low를 보장해야 한다.
+- 생산 firmware는 PF0/PF1 HSE, FDCAN1 PA11/PA12, FDCAN2 PB12/PB13, FDCAN3 PA8/PA15 배치를 사용한다.
+- UART 4 Mbps와 FDCAN은 회로/ERC, clock tree, fault-injection 검토 후 추가한다. HSE/FDCAN 초기화가 완료되기 전에는 PHY enable GPIO를 바꾸지 않는다.
+- IWDG 목표 timeout은 250–500 ms이며 CAN·UART·safety task가 모두 정상일 때만 refresh한다.
 
 상세 설계는 다음 문서를 따른다.
 
