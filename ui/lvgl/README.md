@@ -33,7 +33,7 @@ CAN/ESP-NOW task에서 `canview_ui_update()`를 직접 호출하지 않는다. �
 
 ## 화면 계약
 
-- 주행: 본문 약 60%를 차지하는 중앙 차량·앞뒤 differential·shaft와 네 wheel의 8단 구동 지수·TPMS, 차량 중앙 순간연비, 하단 평균연비·DPF·작은 원형 속도/RPM
+- 주행: 본문 약 75%를 차지하는 세로형 중앙 차량·앞뒤 differential·shaft와 네 wheel의 8단 구동 지수·TPMS, 차량 중앙 순간연비, 하단 DPF·작은 원형 속도/RPM
 - 소리: 취침/뒷좌석+ profile, 현재 음량, Cabin FFT. 임의 sound position과 volume ± control 없음
 - FFT: `PEAK`와 `LEVEL`을 chart 내부 상단에 둔 대형 spectrum
 - 자동화: 원 장식 없는 mode 상태. SPORT red, NORMAL blue, ECO green
