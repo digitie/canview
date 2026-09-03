@@ -151,7 +151,7 @@ button {
 }
 
 .drive-panel.is-active {
-  grid-template-rows: 176px 64px 96px;
+  grid-template-rows: 150px 48px 138px;
   gap: var(--space-xs);
 }
 
@@ -177,8 +177,8 @@ button {
 }
 
 .gauge-ring {
-  width: 140px;
-  height: 140px;
+  width: 116px;
+  height: 116px;
   overflow: visible;
 }
 
@@ -213,14 +213,14 @@ button {
 .gauge-readout strong {
   margin-top: var(--space-2xs);
   font-family: var(--font-display);
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 500;
   letter-spacing: -0.06em;
   line-height: 0.95;
 }
 
 .gauge-readout--rpm strong {
-  font-size: 36px;
+  font-size: 32px;
 }
 
 .gauge-unit {
@@ -293,6 +293,134 @@ button {
   font-family: var(--font-display);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.drive-status-strip {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-2);
+  overflow: clip;
+}
+
+.drive-status-strip > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  padding-inline: var(--space-sm);
+}
+
+.drive-status-strip > div + div {
+  border-inline-start: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.drive-status-strip strong {
+  overflow: hidden;
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-label);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drivetrain-card {
+  min-width: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 70px;
+  grid-template-rows: 40px 40px;
+  align-content: end;
+  justify-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  padding: var(--space-xs);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  background: var(--color-paper-2);
+}
+
+.drivetrain-title {
+  position: absolute;
+  inset-block-start: var(--space-xs);
+  inset-inline-start: var(--space-sm);
+}
+
+.wheel-meter {
+  width: 70px;
+  height: 40px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper-3);
+  color: var(--color-ink-2);
+  overflow: clip;
+}
+
+.wheel-meter strong {
+  z-index: var(--z-base);
+  font-family: var(--font-display);
+  font-size: var(--text-label);
+  font-weight: 500;
+}
+
+.wheel-drive {
+  position: absolute;
+  inset-block-end: 5px;
+  width: 5px;
+  height: var(--wheel-drive);
+  max-height: calc(100% - 10px);
+  border-radius: var(--radius-xs);
+  background: var(--color-accent);
+}
+
+.wheel-meter--fl .wheel-drive,
+.wheel-meter--rl .wheel-drive {
+  inset-inline-start: 5px;
+}
+
+.wheel-meter--fr .wheel-drive,
+.wheel-meter--rr .wheel-drive {
+  inset-inline-end: 5px;
+}
+
+.wheel-meter--fl { grid-column: 1; grid-row: 1; }
+.wheel-meter--fr { grid-column: 3; grid-row: 1; }
+.wheel-meter--rl { grid-column: 1; grid-row: 2; }
+.wheel-meter--rr { grid-column: 3; grid-row: 2; }
+
+.vehicle-plan {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  width: 58px;
+  height: 92px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: var(--color-rule);
+}
+
+.vehicle-plan svg {
+  width: 54px;
+  height: 88px;
+  fill: var(--color-paper-3);
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.2;
+}
+
+.vehicle-plan strong {
+  position: absolute;
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-label);
+  font-weight: 600;
 }
 
 .mini-readout > strong {
@@ -689,13 +817,26 @@ button {
   font-weight: 600;
 }
 
+.mode-dial small {
+  color: var(--color-muted);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .sport-toggle {
   min-width: 120px;
 }
 
 .settings-panel.is-active {
-  grid-template-rows: 132px 96px 108px;
+  grid-template-rows: none;
+  grid-auto-rows: max-content;
   gap: var(--space-xs);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--color-accent-line) transparent;
+  scrollbar-width: thin;
 }
 
 .brightness-card {
@@ -750,6 +891,65 @@ button {
   font-size: var(--text-label);
 }
 
+.settings-group {
+  min-width: 0;
+  padding: var(--space-xs);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-md);
+  background: var(--color-paper-2);
+}
+
+.settings-group h2 {
+  margin: 0;
+  padding: var(--space-2xs) var(--space-2xs) var(--space-xs);
+  font-style: normal;
+}
+
+.setting-option {
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-inline: var(--space-2xs);
+  border-top: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.setting-option strong {
+  overflow: hidden;
+  font-size: var(--text-body);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setting-option button {
+  width: 104px;
+  min-height: 44px;
+  padding-inline: var(--space-xs);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-sm);
+  outline: var(--rule-strong) solid transparent;
+  outline-offset: 2px;
+  background: var(--color-paper-2);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  font-size: var(--text-label);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform var(--dur-micro) var(--ease-out),
+              background-color var(--dur-short) var(--ease-out),
+              color var(--dur-short) var(--ease-out),
+              opacity var(--dur-short) var(--ease-out);
+}
+
+.setting-option button[aria-pressed="true"] {
+  border-color: var(--color-accent-line);
+  background: var(--color-accent-wash);
+  color: var(--color-ink);
+}
+
 .bottom-nav {
   z-index: var(--z-sticky);
   display: grid;
@@ -792,11 +992,11 @@ button {
   height: 19px;
 }
 
-:is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .unit-options button, .nav-button, .brightness-slider):focus-visible {
+:is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .setting-option button, .unit-options button, .nav-button, .brightness-slider):focus-visible {
   outline-color: var(--color-focus);
 }
 
-:is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .unit-options button, .nav-button):active {
+:is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .setting-option button, .unit-options button, .nav-button):active {
   transform: translateY(1px) scale(0.99);
 }
 
@@ -804,7 +1004,7 @@ button {
   opacity: 0.8;
 }
 
-:is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .unit-options button, .nav-button):disabled,
+:is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .setting-option button, .unit-options button, .nav-button):disabled,
 [aria-disabled="true"] {
   cursor: not-allowed;
   opacity: 0.5;
@@ -832,7 +1032,7 @@ button {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  :is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .unit-options button):hover {
+  :is(.mode-button, .step-button, .adaptive-toggle, .sport-toggle, .setting-toggle, .setting-option button, .unit-options button):hover {
     background: var(--color-paper-3);
   }
 

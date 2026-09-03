@@ -45,6 +45,7 @@ set(TARGET_NAME canview-communicator-stm32)
 
 add_executable(${TARGET_NAME}
     src/main.c
+    src/canview_auto_sport.c
     "${STARTUP_SOURCE}"
     "${SYSTEM_SOURCE}"
 )
@@ -54,6 +55,7 @@ target_compile_definitions(${TARGET_NAME} PRIVATE
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMSIS_CORE_ROOT}/Core/Include"
     "${CMSIS_DEVICE_ROOT}/Include"
 )

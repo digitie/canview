@@ -21,20 +21,21 @@
 - [DBC 파일과 차량 적용 지침](dbc/README.md)
 - [1차 대상 차량 검증 메모](docs/target-vehicle-2017-tucson.md)
 - [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
+- [자동 밝기·소음 음량·SPORT 제어 로직](docs/automation-control.md)
 - [ESP-NOW 양방향 프로토콜](docs/esp-now-protocol.md)
 - [운전자 UI·LVGL 설계](docs/ui-design.md)
 
 ## UI prototype
 
-320×480 세로 화면에 맞춘 주행·소리·FFT·자동화·설정 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
+320×480 세로 화면에 맞춘 주행·소리·FFT·자동화·설정 UI를 HTML prototype과 LVGL 8.4 코드로 제공한다. 주행 화면의 네 바퀴 게이지에는 구동 지수와 TPMS 공기압을 함께 표현한다. 아래 값은 레이아웃 검토용 데모이며 실차 측정값이 아니다.
 
 | 주행 상태 | 소리 제어 | FFT 분석 |
 |---|---|---|
 | ![주행 화면](docs/images/ui-drive.png) | ![소리 화면](docs/images/ui-audio.png) | ![FFT 화면](docs/images/ui-fft.png) |
 
-| SPORT 자동화 | 설정 |
-|---|---|
-| ![자동화 화면](docs/images/ui-automation.png) | ![설정 화면](docs/images/ui-settings.png) |
+| SPORT 자동화 | 설정 | 자동화 상세 설정 |
+|---|---|---|
+| ![자동화 화면](docs/images/ui-automation.png) | ![설정 화면](docs/images/ui-settings.png) | ![소음·SPORT 설정 화면](docs/images/ui-settings-automation.png) |
 
 - 브라우저 prototype: [`ui/prototype/`](ui/prototype/)
 - LVGL 8.4 UI: [`ui/lvgl/`](ui/lvgl/)

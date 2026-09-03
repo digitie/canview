@@ -17,7 +17,7 @@ extern "C" {
 #endif
 
 #define CANVIEW_PROTOCOL_MAJOR UINT8_C(1)
-#define CANVIEW_PROTOCOL_MINOR UINT8_C(0)
+#define CANVIEW_PROTOCOL_MINOR UINT8_C(1)
 #define CANVIEW_HEADER_SIZE UINT8_C(32)
 #define CANVIEW_MAX_FRAME_SIZE UINT16_C(240)
 #define CANVIEW_MAX_PAYLOAD_SIZE UINT16_C(208)
@@ -150,6 +150,17 @@ typedef enum {
 } canview_command_id_t;
 
 typedef enum {
+    CANVIEW_AUTOMATION_ADAPTIVE_VOLUME = 1,
+    CANVIEW_AUTOMATION_AUTO_SPORT = 2,
+} canview_automation_id_t;
+
+typedef enum {
+    CANVIEW_CONFIG_SPORT_AUTOMATION_ENABLED = 0x0201,
+    CANVIEW_CONFIG_SPORT_ENTRY_SPEED_TENTH_KPH = 0x0202,
+    CANVIEW_CONFIG_SPORT_ACCELERATION_ENABLED = 0x0203,
+} canview_config_key_t;
+
+typedef enum {
     CANVIEW_ERROR_TRANSPORT_BASE = 0x0100,
     CANVIEW_ERROR_PROTOCOL_BASE = 0x0200,
     CANVIEW_ERROR_AUTH_BASE = 0x0300,
@@ -253,6 +264,19 @@ typedef struct CANVIEW_PACKED {
 } canview_command_result_t;
 
 typedef struct CANVIEW_PACKED {
+    uint16_t schema_version_le;
+    uint8_t count;
+    uint8_t reserved;
+} canview_config_batch_header_t;
+
+typedef struct CANVIEW_PACKED {
+    uint16_t key_le;
+    uint8_t value_type;
+    uint8_t reserved;
+    uint32_t value_bits_le;
+} canview_config_record_t;
+
+typedef struct CANVIEW_PACKED {
     uint16_t code_le;
     uint8_t severity;
     uint8_t origin;
@@ -282,10 +306,12 @@ typedef struct CANVIEW_PACKED {
 static_assert(sizeof(canview_frame_header_t) == 32, "wire header must be 32 bytes");
 static_assert(sizeof(canview_can_record_t) == 16, "CAN record must be 16 bytes");
 static_assert(sizeof(canview_signal_record_t) == 12, "signal record must be 12 bytes");
+static_assert(sizeof(canview_config_record_t) == 8, "config record must be 8 bytes");
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 _Static_assert(sizeof(canview_frame_header_t) == 32, "wire header must be 32 bytes");
 _Static_assert(sizeof(canview_can_record_t) == 16, "CAN record must be 16 bytes");
 _Static_assert(sizeof(canview_signal_record_t) == 12, "signal record must be 12 bytes");
+_Static_assert(sizeof(canview_config_record_t) == 8, "config record must be 8 bytes");
 #endif
 
 #ifdef __cplusplus

@@ -26,14 +26,42 @@ document.querySelectorAll("[data-profile]").forEach((button) => {
   });
 });
 
-document.querySelectorAll(".adaptive-toggle, .sport-toggle, .setting-toggle").forEach((button) => {
+function setToggle(button, enabled) {
+  button.setAttribute("aria-pressed", String(enabled));
+  button.textContent = enabled ? "사용" : "끔";
+}
+
+document.querySelectorAll(".adaptive-toggle, .sport-toggle").forEach((button) => {
   button.addEventListener("click", () => {
     const next = button.getAttribute("aria-pressed") !== "true";
-    button.setAttribute("aria-pressed", String(next));
-    button.textContent = next ? "사용" : "끔";
-    if (button.classList.contains("setting-toggle")) {
-      brightness.disabled = next;
+    setToggle(button, next);
+    const target = button.classList.contains("adaptive-toggle") ? "noise" : "sport";
+    const settingButton = document.querySelector(`[data-setting-toggle="${target}"]`);
+    if (settingButton) setToggle(settingButton, next);
+  });
+});
+
+document.querySelectorAll("[data-setting-toggle]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const next = button.getAttribute("aria-pressed") !== "true";
+    setToggle(button, next);
+    if (button.dataset.settingToggle === "brightness") brightness.disabled = next;
+    if (button.dataset.settingToggle === "noise") {
+      const audioButton = document.querySelector(".adaptive-toggle");
+      if (audioButton) setToggle(audioButton, next);
     }
+    if (button.dataset.settingToggle === "sport") {
+      const sportButton = document.querySelector(".sport-toggle");
+      if (sportButton) setToggle(sportButton, next);
+    }
+  });
+});
+
+document.querySelectorAll("[data-cycle]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const options = button.dataset.options.split("|");
+    const current = options.indexOf(button.textContent.trim());
+    button.textContent = options[(current + 1) % options.length];
   });
 });
 
@@ -48,6 +76,7 @@ document.querySelectorAll("[data-volume-step]").forEach((button) => {
 
 const brightness = document.querySelector("#brightness");
 const brightnessValue = document.querySelector(".brightness-value");
+brightness.disabled = document.querySelector('[data-setting-toggle="brightness"]')?.getAttribute("aria-pressed") === "true";
 brightness.addEventListener("input", () => {
   brightnessValue.value = `${brightness.value}%`;
 });
@@ -63,3 +92,10 @@ document.querySelectorAll("[data-unit]").forEach((button) => {
 
 const requestedScreen = new URL(window.location.href).searchParams.get("screen");
 selectScreen(requestedScreen, false);
+
+const requestedSection = new URL(window.location.href).searchParams.get("section");
+if (requestedScreen === "settings" && requestedSection) {
+  const target = document.querySelector(`#${requestedSection}-settings`)?.closest(".settings-group");
+  const settingsPanel = document.querySelector(".settings-panel");
+  if (target && settingsPanel) settingsPanel.scrollTop = Math.max(0, target.offsetTop - 8);
+}

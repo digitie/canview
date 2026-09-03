@@ -48,6 +48,7 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 | 조향각 | `SAS11` | `0x2B0` (688) | `SAS_Angle` | signed 0.1 deg 후보 |
 | 조향 토크/각 | `MDPS11`/`MDPS12` | `0x381`/`0x251` | `CR_Mdps_StrAng`, `CR_Mdps_StrTq` | 송신 금지, 표시만 |
 | TPMS | `TPMS11` | `0x593` (1427) | tire status/pressure bytes | 단위·타이어 위치 검증 필요 |
+| 조명·밝기 | `CGW1`/`CLU11`/M-CAN 후보 | profile 확인 | `CF_Gway_HeadLampLow`, `CF_Gway_LightSwState`, `CF_Clu_RheostatLevel`, `C_TailLampActivity` | 자동 밝기 입력, actual lamp 우선 |
 | SCC | `SCC11`/`SCC12` | `0x420`/`0x421` | ACC/object/status | read-only만 |
 | LKAS | `LKAS11` | `0x340` (832) | warning/request 상태 | torque/request 신호 송신 금지 |
 
@@ -64,6 +65,8 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 7. 2WD/4WD 관련 switch 또는 주행 모드 변화(차량 기능을 방해하지 않는 범위)
 8. BlueLink/인포테인먼트 상태 변화
 9. 냉간·열간 운전에서 엔진·DPF·전압 신호 변화
+10. 미등·전조등·AUTO 조명과 cluster rheostat 각 단계
+11. 냉간 공기압 실측값과 TPMS 표시, 한 바퀴씩 소폭 압력 변화
 
 각 캡처의 메타데이터에 다음을 기록한다.
 

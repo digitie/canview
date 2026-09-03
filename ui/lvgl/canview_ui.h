@@ -20,6 +20,7 @@ typedef enum {
 } canview_ui_screen_t;
 
 #define CANVIEW_UI_FFT_BIN_COUNT 23
+#define CANVIEW_UI_WHEEL_COUNT 4
 
 typedef enum {
     CANVIEW_UI_QUALITY_UNAVAILABLE = 0,
@@ -31,8 +32,39 @@ typedef enum {
 typedef enum {
     CANVIEW_UI_DRIVE_UNKNOWN = 0,
     CANVIEW_UI_DRIVE_NORMAL,
+    CANVIEW_UI_DRIVE_ECO,
+    CANVIEW_UI_DRIVE_COMFORT,
+    CANVIEW_UI_DRIVE_SMART,
     CANVIEW_UI_DRIVE_SPORT,
 } canview_ui_drive_mode_t;
+
+typedef enum {
+    CANVIEW_UI_NOISE_BAND_ROAD = 0,
+    CANVIEW_UI_NOISE_BAND_BALANCED,
+    CANVIEW_UI_NOISE_BAND_WIND,
+    CANVIEW_UI_NOISE_BAND_COUNT,
+} canview_ui_noise_band_t;
+
+typedef enum {
+    CANVIEW_UI_SENSITIVITY_LOW = 0,
+    CANVIEW_UI_SENSITIVITY_NORMAL,
+    CANVIEW_UI_SENSITIVITY_HIGH,
+    CANVIEW_UI_SENSITIVITY_COUNT,
+} canview_ui_sensitivity_t;
+
+typedef enum {
+    CANVIEW_UI_RESPONSE_GENTLE = 0,
+    CANVIEW_UI_RESPONSE_NORMAL,
+    CANVIEW_UI_RESPONSE_FAST,
+    CANVIEW_UI_RESPONSE_COUNT,
+} canview_ui_response_t;
+
+typedef enum {
+    CANVIEW_UI_WHEEL_FRONT_LEFT = 0,
+    CANVIEW_UI_WHEEL_FRONT_RIGHT,
+    CANVIEW_UI_WHEEL_REAR_LEFT,
+    CANVIEW_UI_WHEEL_REAR_RIGHT,
+} canview_ui_wheel_t;
 
 typedef enum {
     CANVIEW_UI_CMD_SET_QUIET = 1,
@@ -42,6 +74,12 @@ typedef enum {
     CANVIEW_UI_CMD_SET_SPORT_MONITOR,
     CANVIEW_UI_CMD_SET_BRIGHTNESS,
     CANVIEW_UI_CMD_SET_AUTO_BRIGHTNESS,
+    CANVIEW_UI_CMD_SET_ADAPTIVE_NOISE_BAND,
+    CANVIEW_UI_CMD_SET_ADAPTIVE_SENSITIVITY,
+    CANVIEW_UI_CMD_SET_ADAPTIVE_RESPONSE,
+    CANVIEW_UI_CMD_SET_ADAPTIVE_MAX_OFFSET,
+    CANVIEW_UI_CMD_SET_SPORT_ENTRY_SPEED,
+    CANVIEW_UI_CMD_SET_SPORT_ACCELERATION,
     CANVIEW_UI_CMD_SET_METRIC_UNITS,
 } canview_ui_command_id_t;
 
@@ -51,6 +89,7 @@ typedef struct {
         bool enabled;
         int8_t step_delta;
         uint8_t percent;
+        uint16_t option;
     } value;
 } canview_ui_command_t;
 
@@ -70,17 +109,28 @@ typedef struct {
     uint8_t rear_coupling_percent;
     uint16_t clutch_torque_nm;
     canview_ui_quality_t four_wd_quality;
+    uint8_t wheel_drive_percent[CANVIEW_UI_WHEEL_COUNT];
+    uint16_t tire_pressure_tenth_psi[CANVIEW_UI_WHEEL_COUNT];
+    canview_ui_quality_t tire_pressure_quality;
+    uint8_t tire_pressure_warning_mask;
 
     bool dpf_lamp_on;
 
     canview_ui_drive_mode_t drive_mode;
+    canview_ui_drive_mode_t sport_previous_mode;
     bool sport_monitor_enabled;
+    uint8_t sport_entry_speed_kph;
+    bool sport_acceleration_enabled;
 
     bool quiet_mode_enabled;
     bool rear_boost_enabled;
     bool adaptive_volume_enabled;
     uint8_t audio_volume_level;
     int8_t volume_offset_step;
+    canview_ui_noise_band_t adaptive_noise_band;
+    canview_ui_sensitivity_t adaptive_sensitivity;
+    canview_ui_response_t adaptive_response;
+    uint8_t adaptive_max_offset_steps;
 
     uint8_t fft_bins[CANVIEW_UI_FFT_BIN_COUNT];
     uint16_t fft_peak_hz;

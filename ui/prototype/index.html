@@ -36,17 +36,22 @@
           </div>
         </div>
 
-        <div class="status-row">
-          <div class="status-symbol" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M5 15h14M7 15l1-6h8l1 6M8 18h.01M16 18h.01"/><path d="M10 6h4M12 4v4"/></svg>
-          </div>
-          <strong>DPF 정상</strong>
+        <div class="drive-status-strip">
+          <div><span class="micro-label">DPF</span><strong>정상</strong></div>
+          <div><span class="micro-label">Drive mode</span><strong>NORMAL</strong></div>
         </div>
 
-        <div class="mini-grid">
-          <article class="mini-readout"><span class="micro-label">Drive mode</span><strong>NORMAL</strong></article>
-          <article class="mini-readout"><span class="micro-label">4WD</span><div class="inline-values"><strong>38%</strong><span>126 Nm</span></div></article>
-        </div>
+        <article class="drivetrain-card" aria-label="4WD 구동과 타이어 공기압">
+          <span class="micro-label drivetrain-title">4WD · PSI</span>
+          <div class="wheel-meter wheel-meter--fl" style="--wheel-drive: 76%"><span class="wheel-drive"></span><strong>34.2</strong></div>
+          <div class="wheel-meter wheel-meter--fr" style="--wheel-drive: 74%"><span class="wheel-drive"></span><strong>34.0</strong></div>
+          <div class="vehicle-plan" aria-hidden="true">
+            <svg viewBox="0 0 54 88"><path d="M17 5h20l8 15 3 46-8 17H14L6 66l3-46Z"/><path d="M12 27h30M10 62h34M17 11h20l5 15H12Z"/></svg>
+            <strong>38%</strong>
+          </div>
+          <div class="wheel-meter wheel-meter--rl" style="--wheel-drive: 38%"><span class="wheel-drive"></span><strong>33.8</strong></div>
+          <div class="wheel-meter wheel-meter--rr" style="--wheel-drive: 40%"><span class="wheel-drive"></span><strong>33.9</strong></div>
+        </article>
       </section>
 
       <section class="screen-panel audio-panel" id="screen-audio" data-screen="audio" aria-label="오디오 기능" hidden>
@@ -106,7 +111,7 @@
       <section class="screen-panel automation-panel" id="screen-automation" data-screen="automation" aria-label="SPORT 자동화" hidden>
         <div class="sport-card">
           <div class="sport-heading"><span class="micro-label">Sport automation</span><h1>SPORT 자동</h1></div>
-          <div class="mode-dial" role="img" aria-label="현재 주행 모드 노멀"><div><span>현재 모드</span><strong>NORMAL</strong></div></div>
+          <div class="mode-dial" role="img" aria-label="현재 주행 모드 스포츠, 종료 시 이전 에코 모드로 복귀"><div><span>현재 모드</span><strong>SPORT</strong><small>복귀 ECO</small></div></div>
           <button class="sport-toggle" type="button" aria-pressed="true">사용</button>
         </div>
       </section>
@@ -118,9 +123,23 @@
           <input id="brightness" class="brightness-slider" type="range" min="10" max="100" value="42" aria-label="화면 밝기">
         </div>
         <div class="setting-row">
-          <div><span class="micro-label">Sensor</span><strong>자동 밝기</strong></div>
-          <button class="setting-toggle" type="button" aria-pressed="false">끔</button>
+          <div><span class="micro-label">CAN</span><strong>자동 밝기</strong></div>
+          <button class="setting-toggle" type="button" data-setting-toggle="brightness" aria-pressed="true">사용</button>
         </div>
+        <section class="settings-group" aria-labelledby="road-noise-settings">
+          <h2 id="road-noise-settings" class="micro-label">Road noise</h2>
+          <div class="setting-option"><strong>소음 보정</strong><button type="button" data-setting-toggle="noise" aria-pressed="true">사용</button></div>
+          <div class="setting-option"><strong>주파수 대역</strong><button type="button" data-cycle="noise-band" data-options="노면|표준|풍절">표준</button></div>
+          <div class="setting-option"><strong>민감도</strong><button type="button" data-cycle="noise-sensitivity" data-options="낮음|보통|높음">보통</button></div>
+          <div class="setting-option"><strong>반응</strong><button type="button" data-cycle="noise-response" data-options="느리게|자연스럽게|빠르게">자연스럽게</button></div>
+          <div class="setting-option"><strong>최대 보정</strong><button type="button" data-cycle="noise-limit" data-options="+2|+3|+4">+4</button></div>
+        </section>
+        <section class="settings-group" aria-labelledby="sport-settings">
+          <h2 id="sport-settings" class="micro-label">Sport auto</h2>
+          <div class="setting-option"><strong>자동 전환</strong><button type="button" data-setting-toggle="sport" aria-pressed="true">사용</button></div>
+          <div class="setting-option"><strong>진입 속도</strong><button type="button" data-cycle="sport-speed" data-options="60 km/h|70 km/h|80 km/h">70 km/h</button></div>
+          <div class="setting-option"><strong>급가속 감지</strong><button type="button" data-setting-toggle="acceleration" aria-pressed="true">사용</button></div>
+        </section>
         <div class="unit-card">
           <div><span class="micro-label">Units</span><strong>속도 단위</strong></div>
           <div class="unit-options" role="group" aria-label="속도 단위">
