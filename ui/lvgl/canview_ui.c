@@ -632,10 +632,11 @@ static void create_drive_screen(void)
     lv_obj_clear_flag(vehicle, LV_OBJ_FLAG_SCROLLABLE);
 
     static lv_point_t vehicle_outline[] = {
-        {38, 4},  {29, 7},  {23, 18},  {20, 34},  {17, 52},
-        {16, 207}, {18, 224}, {27, 236}, {36, 242}, {76, 242},
-        {85, 236}, {94, 224}, {96, 207}, {95, 52},  {92, 34},
-        {89, 18}, {83, 7},  {74, 4},  {38, 4}};
+        {41, 3},  {32, 5},  {25, 13},  {20, 25},  {13, 44},
+        {8, 65},   {8, 211},  {9, 221},  {13, 231}, {18, 238},
+        {29, 244}, {83, 244}, {94, 238}, {99, 231}, {103, 221},
+        {104, 211}, {104, 65}, {99, 44},  {92, 25},  {87, 13},
+        {80, 5},   {71, 3},   {41, 3}};
     lv_obj_t *outline = lv_line_create(vehicle);
     lv_line_set_points(outline, vehicle_outline,
                        sizeof(vehicle_outline) / sizeof(vehicle_outline[0]));
@@ -643,8 +644,8 @@ static void create_drive_screen(void)
     lv_obj_set_style_line_width(outline, 2, 0);
     lv_obj_set_style_line_rounded(outline, true, 0);
 
-    static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {5, 93, 5, 93};
-    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {36, 36, 178, 178};
+    static const lv_coord_t car_wheel_x[CANVIEW_UI_WHEEL_COUNT] = {6, 92, 6, 92};
+    static const lv_coord_t car_wheel_y[CANVIEW_UI_WHEEL_COUNT] = {36, 36, 180, 180};
     for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
         lv_obj_t *car_wheel = lv_obj_create(vehicle);
         lv_obj_remove_style_all(car_wheel);
@@ -657,12 +658,12 @@ static void create_drive_screen(void)
         lv_obj_set_style_radius(car_wheel, 6, 0);
     }
 
-    static const lv_coord_t axle_y[] = {52, 194};
+    static const lv_coord_t axle_y[] = {52, 196};
     for (uint8_t i = 0; i < 2U; ++i) {
         lv_obj_t *axle = lv_obj_create(vehicle);
         lv_obj_remove_style_all(axle);
-        lv_obj_set_pos(axle, 19, axle_y[i]);
-        lv_obj_set_size(axle, 74, 3);
+        lv_obj_set_pos(axle, 13, axle_y[i]);
+        lv_obj_set_size(axle, 86, 3);
         lv_obj_set_style_bg_color(axle, CANVIEW_COLOR_ACCENT_LINE, 0);
         lv_obj_set_style_bg_opa(axle, LV_OPA_COVER, 0);
 
@@ -680,7 +681,7 @@ static void create_drive_screen(void)
     lv_obj_t *shaft = lv_obj_create(vehicle);
     lv_obj_remove_style_all(shaft);
     lv_obj_set_pos(shaft, 55, 60);
-    lv_obj_set_size(shaft, 3, 122);
+    lv_obj_set_size(shaft, 3, 126);
     lv_obj_set_style_bg_color(shaft, CANVIEW_COLOR_ACCENT_LINE, 0);
     lv_obj_set_style_bg_opa(shaft, LV_OPA_COVER, 0);
 
@@ -695,14 +696,14 @@ static void create_drive_screen(void)
     lv_obj_set_style_radius(coupling, 4, 0);
 
     static lv_point_t front_window_points[] = {
-        {30, 22}, {56, 14}, {82, 22}, {87, 49}, {25, 49}, {30, 22}};
+        {28, 23}, {42, 13}, {70, 13}, {84, 23}, {90, 56}, {22, 56}, {28, 23}};
     lv_obj_t *front_window = lv_line_create(vehicle);
     lv_line_set_points(front_window, front_window_points,
                        sizeof(front_window_points) / sizeof(front_window_points[0]));
     lv_obj_set_style_line_color(front_window, CANVIEW_COLOR_RULE, 0);
     lv_obj_set_style_line_width(front_window, 1, 0);
     static lv_point_t rear_window_points[] = {
-        {25, 169}, {87, 169}, {84, 211}, {28, 211}, {25, 169}};
+        {22, 172}, {90, 172}, {84, 214}, {28, 214}, {22, 172}};
     lv_obj_t *rear_window = lv_line_create(vehicle);
     lv_line_set_points(rear_window, rear_window_points,
                        sizeof(rear_window_points) / sizeof(rear_window_points[0]));

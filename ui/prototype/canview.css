@@ -370,8 +370,8 @@ button { cursor: pointer; }
 }
 
 .vehicle-plan svg {
-  width: 108px;
-  height: 238px;
+  width: 110px;
+  height: 242px;
   fill: none;
   stroke: var(--color-ink-2);
   stroke-width: 2.3;
