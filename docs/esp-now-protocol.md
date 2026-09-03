@@ -4,7 +4,7 @@
 
 이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다.
 
-이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 wire protocol 버전은 `1.0`이다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다.
+이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 wire protocol 버전은 `1.1`이다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다.
 
 설계 원칙은 다음과 같다.
 
@@ -344,6 +344,7 @@ heartbeat에는 `boot_id`, uptime, state revision, RSSI, bus mask, bus error mas
 - raw CAN, decoded signal, bulk 지원 여부
 - control lease 지원 여부
 - audio/drive-mode command bitset
+- TPMS, lighting/rheostat, longitudinal-acceleration signal capability
 - firmware semantic version와 build hash
 - vehicle profile ID
 - DBC upstream commit digest
@@ -386,6 +387,9 @@ rtt    = (t4 - t1) - (t3 - t2)
 |---|---:|---:|---:|
 | 속도·RPM·가속도 | 20–50 Hz | 150 ms | 1 s |
 | 4WD clutch·wheel speed | 10–50 Hz | 250 ms | 1 s |
+| 종가속도 | 20–50 Hz | 150 ms | 1 s |
+| 등화·rheostat | 5–20 Hz | 500 ms | 2 s |
+| TPMS pressure | event–1 Hz | 2 s | 10 s |
 | drive/audio state | 5–20 Hz | 500 ms | 2 s |
 | 온도·DPF lamp | 1–5 Hz | 2 s | 10 s |
 | 진단 DID | 0.2–2 Hz | 5 s | 30 s |
@@ -506,6 +510,26 @@ v1의 공개 명령은 raw frame이 아니라 다음과 같은 의미 단위다.
 - `AUTOMATION_ARM`, `AUTOMATION_DISARM`
 
 `DRIVE_MODE_BUTTON_PULSE`도 Communicator가 속도·기어·브레이크·ESC·신호 freshness를 검사한다. 특정 drive mode state를 ECU에 직접 쓰는 명령은 정의하지 않는다.
+
+`AUTOMATION_ARM/DISARM`의 argument에는 `canview_automation_id_t`를 넣는다. 자동 SPORT가 arm되면 속도·종가속도 상태기계는 Communicator STM32에서 실행된다. Controller가 매 sample마다 SPORT 전환 명령을 보내지 않는다. STM32는 진입 직전 mode를 snapshot하고 vehicle profile의 제한된 button event와 feedback을 이용해 `SPORT -> previous mode`를 수행한다.
+
+### 12.5 자동화 설정
+
+`CONFIG_GET/SET/RESULT` payload는 `canview_config_batch_header_t` 뒤에 고정 8 byte `canview_config_record_t`를 `count`개 배치한다. `value_type`은 signal record와 같은 `CANVIEW_VALUE_*`를 사용하고 `reserved`는 0이어야 한다.
+
+protocol 1.1에서 Communicator가 소유하는 SPORT key는 다음과 같다.
+
+| Key | 형식 | 범위 |
+|---|---|---|
+| `SPORT_AUTOMATION_ENABLED` | bool | 0/1 |
+| `SPORT_ENTRY_SPEED_TENTH_KPH` | u32 | 600/700/800 |
+| `SPORT_ACCELERATION_ENABLED` | bool | 0/1 |
+
+진입 속도를 바꾸면 복귀 속도는 Communicator가 `진입 속도 - 15 km/h`로 계산한다. Controller가 서로 맞지 않는 진입·복귀 쌍을 따로 쓰지 못하게 하기 위해 복귀 threshold key는 공개하지 않는다.
+
+설정 변경은 secure session, Primary Controller, 차량 정지, control lease, compatible config schema를 모두 요구한다. `CONFIG_RESULT`의 성공과 새 `state_revision`을 받은 뒤에만 Controller mirror를 commit한다. 범위를 벗어난 값은 clamp하지 않고 application error로 거부해 UI와 Communicator의 실제 설정이 조용히 달라지지 않게 한다.
+
+화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset은 Controller-local NVS 값이므로 ESP-NOW `CONFIG_SET`으로 보내지 않는다. 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다.
 
 ## 13. 상태 snapshot과 revision
 

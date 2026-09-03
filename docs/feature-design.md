@@ -9,6 +9,7 @@
 3. 취침 모드와 뒷좌석 증폭 모드
 4. 속도·주변 소음 기반 자동 음량
 5. 속도·가속도 기반 SPORT mode 전환·복귀
+6. 차량 조명 CAN 기반 자동 밝기
 
 가장 중요한 결론은 다음과 같다.
 
@@ -17,6 +18,7 @@
 - M-CAN DBC에 volume/fader/balance/rear speaker mute/SDVC 후보가 있으나 주기·alive·checksum·값 범위가 비어 있다. 물리 head unit 조작 capture 전에는 송신하지 않는다.
 - 보드에는 ES8311과 SMD microphone이 있어 주변 소음 prototype은 추가 hardware 없이 시작할 수 있다. 설치 위치와 차량 오디오의 self-noise가 문제가 되면 별도 microphone node로 분리한다.
 - SPORT mode 자동화는 powertrain 체감에 관여한다. 첫 release는 감지·추천만 제공하고, 실제 버튼 pulse는 bench와 폐쇄 시험 검증 뒤 opt-in으로 연다.
+- 자동 밝기는 외부 조도 센서 없이 실제 등화 점등과 cluster rheostat CAN 값만 사용한다. 조명 switch의 `AUTO` 위치만으로 야간을 판정하지 않는다.
 
 ## 2. 근거 등급
 
@@ -112,6 +114,10 @@ rear_coupling_index = calibrated_monotonic_map(inputs)  // 0..100
 - clutch cold/warm/thermal protection
 
 물리 검증 없이 front ratio를 `100 - rear_coupling_index`로 만들지 않는다. dyno 또는 axle torque 계측이 가능해진 뒤에만 `torque distribution`이라는 label로 승격한다.
+
+주행 UI는 네 바퀴 자체를 작은 구동 gauge로 사용한다. 공개 DBC만으로 바퀴별 torque를 얻을 수 없으므로 gauge 입력은 별도 품질값이 있는 `wheel_drive_percent[]` 구동 지수다. axle torque model이 검증되기 전에는 앞뒤 합계를 100으로 만들거나 rear clutch duty를 네 바퀴에 임의 배분하지 않는다.
+
+같은 바퀴 안에는 `TPMS11`, ID `0x593`의 `PRESSURE_FL/FR/RL/RR` 후보를 표시한다. 단위, invalid raw, 바퀴 순서가 실차에서 확인되기 전에는 unavailable로 두며 압력 품질과 4WD 품질을 독립 관리한다.
 
 ### 4.4 상태기계와 오류
 
@@ -355,35 +361,30 @@ FFT 화면용 분석은 같은 16 kHz capture에서 별도 저우선순위 task�
 
 ### 7.3 control law
 
-기본은 speed feed-forward이고 microphone은 느린 correction이다.
-
-| 속도 | 기본 offset 예시 |
-|---:|---:|
-| 0–29 km/h | 0 step |
-| 30–59 km/h | +1 step |
-| 60–89 km/h | +2 step |
-| 90–119 km/h | +3 step |
-| 120 km/h 이상 | +4 step |
-
-이 표는 사용자 calibration 시작값이며 head unit 1 step의 실제 dB를 측정한 값이 아니다. 목표는 다음 식으로 계산한다.
+차속은 자동 보정을 허용하는 최소 조건이고, 실제 step 판단은 FFT focus band가 차속별 학습 baseline보다 지속적으로 큰지로 결정한다. 기본 `표준` 대역은 160–1,250 Hz다.
 
 ```text
-speed_offset = piecewise_curve(speed)
-noise_error  = measured_relative_noise - learned_baseline(speed)
-mic_offset   = clamp(round(noise_error / 4 dB), -1, +2)
-target       = clamp(speed_offset + mic_offset, 0, user_max_offset)
+raise = speed >= 30 km/h
+        AND smoothed_peak inside selected_band
+        AND band_excess >= raise_threshold
+        for attack_seconds
+
+lower = speed < 30 km/h
+        OR smoothed_peak outside selected_band
+        OR band_excess <= lower_threshold
+        for release_seconds
 ```
 
-- hysteresis: 1.5 dB 또는 5 km/h
-- attack: 조건 5초 지속
-- release: 조건 10초 지속
+- 기본 민감도: 올림 +5.0 dB, 내림 +2.5 dB의 히스테리시스
+- 기본 반응: 올림 5초, 내림 12초
 - 변경 속도: 3초에 최대 1 volume step
+- 자동 step 뒤 2초간 microphone feedback freeze
 - 기본 `user_max_offset`: +4 step
-- 수동 volume 조작: automation 즉시 60초 pause
+- 수동 volume 조작: offset 0 복원 후 60초 pause
 - navigation/parking/safety warning: OEM priority를 방해하지 않음
 - reverse: 새 volume 상승 금지
 
-head unit의 기존 SDVC가 활성화돼 있으면 이중 보상이 생긴다. capability/feedback으로 SDVC 상태를 확인하고 사용자가 `OEM SDVC` 또는 `CANView adaptive` 중 하나만 선택하게 한다.
+짧은 peak 이탈은 누적 evidence를 즉시 0으로 만들지 않고 반대 방향으로 서서히 감쇠한다. head unit의 기존 SDVC가 활성화돼 있으면 이중 보상이 생기므로 `OEM SDVC`와 `CANView adaptive`를 동시에 켜지 않는다. preset과 정수 상태기계는 [자동 제어 로직](automation-control.md)을 따른다.
 
 ### 7.4 calibration
 
@@ -440,10 +441,10 @@ DISABLED -> MONITOR_ONLY -> ARMED
                       | feedback SPORT
                       v
                     SPORT_ACTIVE
-                      | low demand / stop
+                      | speed below exit threshold
                       v
                     EXIT_PENDING
-                      | feedback previous mode
+                      | feedback captured previous mode
                       v
                        ARMED
 
@@ -451,7 +452,7 @@ Any active state -- physical user change --> MANUAL_HOLD
 Any active state -- stale/fault/link loss --> INHIBITED -> MONITOR_ONLY
 ```
 
-`MANUAL_HOLD`는 ignition cycle 또는 사용자의 명시적 `자동 재개`까지 유지한다. CANView가 사용자의 물리 버튼 선택과 싸우지 않게 하기 위해서다.
+`previous mode`는 SPORT 진입 직전 확인된 `NORMAL/ECO/COMFORT/SMART` 중 하나다. `MANUAL_HOLD`는 ignition cycle 또는 사용자의 명시적 `자동 재개`까지 유지한다. CANView가 사용자의 물리 버튼 선택과 싸우지 않게 하기 위해서다.
 
 ### 8.4 초기 threshold
 
@@ -460,12 +461,14 @@ entry는 한 sample spike가 아니라 지속 조건이다.
 ```text
 armed
 AND forward gear confirmed
-AND speed > 10 km/h
 AND no brake / ABS / TCS / ESC intervention
 AND all safety signals fresh
 AND (
-      longitudinal_accel > 1.5 m/s² for 1.0 s
-      OR accelerator_position > 65% for 0.8 s
+      speed >= configured 60/70/80 km/h for 2.5 s
+      OR (
+          speed >= 35 km/h
+          AND filtered_longitudinal_accel >= 1.4 m/s² for 0.8 s
+      )
     )
 => ENTER_PENDING
 ```
@@ -473,17 +476,14 @@ AND (
 exit 조건은 hysteresis를 둔다.
 
 ```text
-SPORT_ACTIVE
-AND longitudinal_accel < 0.3 m/s²
-AND accelerator_position < 25%
-for 25 s
-=> restore previously observed mode
-
-OR speed < 8 km/h for 5 s
-=> restore previously observed mode
+SPORT_ACTIVE for at least 15 s
+AND speed <= configured_entry_speed - 15 km/h
+AND filtered_longitudinal_accel <= 0.35 m/s²
+for 8 s
+=> restore captured previous mode
 ```
 
-threshold는 calibration 시작값이며 실차 log로 조정한다. 값 변경은 정차 설정에서만 가능하고 최소/최대 safety range를 gateway가 강제한다.
+threshold는 calibration 시작값이며 실차 log로 조정한다. 진입과 복귀 사이의 15 km/h 히스테리시스와 최소 SPORT 유지시간이 threshold 부근의 반복 전환을 막는다. 값 변경은 정차 설정에서만 가능하고 gateway가 60–80 km/h 범위를 강제한다.
 
 ### 8.5 command 방법
 
@@ -516,7 +516,11 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 
 UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `주행 모드 신호 끊김`, `검증 전`처럼 한 가지 최우선 inhibit 이유를 설명한다.
 
-## 9. 공통 UI 요구사항
+## 9. CAN 기반 자동 밝기
+
+`C_TailLampActivity`, `CF_Gway_HeadLampLow`, `CF_Gway_LightSwState`, `CF_Clu_RheostatLevel`을 후보로 사용한다. 실제 tail/low-beam 활성 신호를 1순위로 하고 rheostat를 야간 밝기 범위에 매핑한다. 점등은 500 ms, 소등은 1.5초 확인하며 1.2초 ramp로 PWM을 바꾼다. 신호 stale에서는 갑자기 밝아지지 않고 마지막 유효 밝기를 유지한다. 상세값과 구현은 [자동 제어 로직](automation-control.md)에 있다.
+
+## 10. 공통 UI 요구사항
 
 - 주행 중 한 화면에서 핵심 상태를 2초 이내 읽을 수 있어야 한다.
 - 320×480에서 주요 touch target은 76×76 px 이상을 목표로 한다.
@@ -530,13 +534,14 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 
 상세 화면 구성과 LVGL mapping은 [UI/UX 설계](ui-design.md)를 따른다.
 
-## 10. 우선순위와 구현 backlog
+## 11. 우선순위와 구현 backlog
 
 ### P0 — read-only 기반
 
 - ESP-NOW secure link와 stale 상태
 - 3개 bus 상태
 - speed/RPM/wheel speed
+- TPMS pressure raw와 조명/rheostat raw capture
 - DPF lamp raw capture
 - 4WD `0x428–0x42A` raw capture·graph
 - drive mode 물리 버튼 capture
@@ -549,6 +554,7 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 - SPORT current mode 표시
 - onboard microphone relative noise meter
 - signal quality/catalog revision
+- CAN 자동 밝기 monitor와 PWM ramp
 
 ### P2 — 안전한 audio 기능
 
@@ -572,21 +578,23 @@ UI는 단순히 toggle을 회색으로 만들지 않고 `브레이크 입력`, `
 - opt-in 자동 진입/복귀
 - proprietary DPF DID는 scan-tool 검증된 항목만
 
-## 11. test matrix
+## 12. test matrix
 
 | 기능 | 정상 | 경계 | 장애 |
 |---|---|---|---|
 | 4WD | AUTO/LOCK/가감속 | duty 0/max, 저속 | stale, conflicting bits, fault |
+| TPMS | 네 바퀴 pressure | low warning, invalid raw | stale, wheel order mismatch |
 | DPF | lamp off/on | raw 0–3 | missing message, diagnostic NACK |
 | Quiet | apply/restore | volume cap, source change | external knob, amp offline |
 | Rear boost | fader+volume | max/min step | rear mute unsupported |
 | Auto volume | 0/40/80/110 km/h | hysteresis crossing | mic clip, music contamination |
 | SPORT | entry/exit | threshold hover | brake, reverse, ESC, link loss |
+| 자동 밝기 | lamp on/off, rheostat | 500 ms/1.5 s debounce | 조명 신호 stale |
 | 공통 | ignition cycle | session/sequence wrap | Communicator/Controller reboot |
 
 모든 제어 test는 “명령을 보냈다”가 아니라 feedback state와 물리 결과까지 확인해야 통과다.
 
-## 12. 출처
+## 13. 출처
 
 - [commaai/opendbc 고정 commit](https://github.com/commaai/opendbc/tree/3e92d112129507debe45364891954db70238997a)
 - [Hyundai 2017 Tucson owner manual mirror — drive mode와 4WD](https://www.manualslib.com/manual/1233073/Hyundai-Tucson-2017.html)

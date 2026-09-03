@@ -20,6 +20,13 @@ typedef enum {
     ACTION_ADAPTIVE_VOLUME,
     ACTION_SPORT_MONITOR,
     ACTION_AUTO_BRIGHTNESS,
+    ACTION_SETTINGS_ADAPTIVE,
+    ACTION_NOISE_BAND,
+    ACTION_NOISE_SENSITIVITY,
+    ACTION_NOISE_RESPONSE,
+    ACTION_NOISE_MAX_OFFSET,
+    ACTION_SPORT_ENTRY_SPEED,
+    ACTION_SPORT_ACCELERATION,
     ACTION_UNITS_METRIC,
     ACTION_UNITS_IMPERIAL,
 } action_t;
@@ -42,6 +49,9 @@ typedef struct {
     lv_obj_t *dpf_label;
     lv_obj_t *drive_mode_label;
     lv_obj_t *four_wd_label;
+    lv_obj_t *wheel_drive_bars[CANVIEW_UI_WHEEL_COUNT];
+    lv_obj_t *wheel_pressure_labels[CANVIEW_UI_WHEEL_COUNT];
+    lv_obj_t *wheel_objects[CANVIEW_UI_WHEEL_COUNT];
 
     lv_obj_t *quiet_button;
     lv_obj_t *rear_button;
@@ -64,11 +74,23 @@ typedef struct {
     lv_obj_t *sport_button_label;
     lv_obj_t *sport_dial;
     lv_obj_t *sport_mode_label;
+    lv_obj_t *sport_return_label;
 
     lv_obj_t *brightness_slider;
     lv_obj_t *brightness_label;
     lv_obj_t *auto_brightness_button;
     lv_obj_t *auto_brightness_button_label;
+    lv_obj_t *settings_adaptive_button;
+    lv_obj_t *settings_adaptive_button_label;
+    lv_obj_t *noise_band_button_label;
+    lv_obj_t *noise_sensitivity_button_label;
+    lv_obj_t *noise_response_button_label;
+    lv_obj_t *noise_max_offset_button_label;
+    lv_obj_t *settings_sport_button;
+    lv_obj_t *settings_sport_button_label;
+    lv_obj_t *sport_entry_speed_button_label;
+    lv_obj_t *sport_acceleration_button;
+    lv_obj_t *sport_acceleration_button_label;
     lv_obj_t *metric_button;
     lv_obj_t *imperial_button;
 } ui_state_t;
@@ -208,6 +230,16 @@ static void emit_percent(canview_ui_command_id_t id, uint8_t percent)
     ui.config.command_cb(&command, ui.config.command_user_data);
 }
 
+static void emit_option(canview_ui_command_id_t id, uint16_t option)
+{
+    if (ui.config.command_cb == NULL) {
+        return;
+    }
+    canview_ui_command_t command = {.id = id};
+    command.value.option = option;
+    ui.config.command_cb(&command, ui.config.command_user_data);
+}
+
 static void action_event(lv_event_t *event)
 {
     lv_obj_t *target = lv_event_get_target(event);
@@ -249,6 +281,44 @@ static void action_event(lv_event_t *event)
         break;
     case ACTION_AUTO_BRIGHTNESS:
         emit_enabled(CANVIEW_UI_CMD_SET_AUTO_BRIGHTNESS, !ui.model.auto_brightness_enabled);
+        break;
+    case ACTION_SETTINGS_ADAPTIVE:
+        emit_enabled(CANVIEW_UI_CMD_SET_ADAPTIVE_VOLUME, !ui.model.adaptive_volume_enabled);
+        break;
+    case ACTION_NOISE_BAND:
+        emit_option(CANVIEW_UI_CMD_SET_ADAPTIVE_NOISE_BAND,
+                    (uint16_t)((ui.model.adaptive_noise_band + 1U) %
+                               CANVIEW_UI_NOISE_BAND_COUNT));
+        break;
+    case ACTION_NOISE_SENSITIVITY:
+        emit_option(CANVIEW_UI_CMD_SET_ADAPTIVE_SENSITIVITY,
+                    (uint16_t)((ui.model.adaptive_sensitivity + 1U) %
+                               CANVIEW_UI_SENSITIVITY_COUNT));
+        break;
+    case ACTION_NOISE_RESPONSE:
+        emit_option(CANVIEW_UI_CMD_SET_ADAPTIVE_RESPONSE,
+                    (uint16_t)((ui.model.adaptive_response + 1U) %
+                               CANVIEW_UI_RESPONSE_COUNT));
+        break;
+    case ACTION_NOISE_MAX_OFFSET:
+        emit_option(CANVIEW_UI_CMD_SET_ADAPTIVE_MAX_OFFSET,
+                    ui.model.adaptive_max_offset_steps < 2U
+                        ? 2U
+                        : ui.model.adaptive_max_offset_steps >= 4U
+                        ? 2U
+                        : (uint16_t)(ui.model.adaptive_max_offset_steps + 1U));
+        break;
+    case ACTION_SPORT_ENTRY_SPEED:
+        emit_option(CANVIEW_UI_CMD_SET_SPORT_ENTRY_SPEED,
+                    ui.model.sport_entry_speed_kph < 60U
+                        ? 60U
+                        : ui.model.sport_entry_speed_kph >= 80U
+                        ? 60U
+                        : (uint16_t)(ui.model.sport_entry_speed_kph + 10U));
+        break;
+    case ACTION_SPORT_ACCELERATION:
+        emit_enabled(CANVIEW_UI_CMD_SET_SPORT_ACCELERATION,
+                     !ui.model.sport_acceleration_enabled);
         break;
     case ACTION_UNITS_METRIC:
         emit_enabled(CANVIEW_UI_CMD_SET_METRIC_UNITS, true);
@@ -377,39 +447,98 @@ static void create_drive_screen(void)
     lv_obj_t *screen = make_screen();
     ui.screens[CANVIEW_UI_SCREEN_DRIVE] = screen;
 
-    lv_obj_t *gauges = make_card(screen, LV_PCT(100), 176, false);
+    lv_obj_t *gauges = make_card(screen, LV_PCT(100), 150, false);
     lv_obj_set_style_pad_all(gauges, 0, 0);
     lv_obj_set_flex_flow(gauges, LV_FLEX_FLOW_ROW);
-    make_gauge(gauges, 147, 176, 132, "SPEED", "km/h", 2400,
+    make_gauge(gauges, 147, 150, 116, "SPEED", "km/h", 2400,
                &ui.speed_arc, &ui.speed_label, &ui.speed_unit_label);
-    make_gauge(gauges, 147, 176, 132, "RPM", "×1000", 6500,
+    make_gauge(gauges, 147, 150, 116, "RPM", "×1000", 6500,
                &ui.rpm_arc, &ui.rpm_label, NULL);
 
-    lv_obj_t *dpf = make_card(screen, LV_PCT(100), 64, true);
+    lv_obj_t *status = lv_obj_create(screen);
+    lv_obj_remove_style_all(status);
+    lv_obj_set_size(status, LV_PCT(100), 48);
+    lv_obj_set_style_pad_column(status, 8, 0);
+    lv_obj_set_flex_flow(status, LV_FLEX_FLOW_ROW);
+
+    lv_obj_t *dpf = make_card(status, 142, 48, true);
+    lv_obj_set_style_pad_all(dpf, 8, 0);
     lv_obj_t *dpf_title = make_label(dpf, "DPF");
     lv_obj_align(dpf_title, LV_ALIGN_LEFT_MID, 0, 0);
     ui.dpf_label = make_label(dpf, "정보 없음");
     lv_obj_align(ui.dpf_label, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_ACCENT, 0);
 
-    lv_obj_t *mini = lv_obj_create(screen);
-    lv_obj_remove_style_all(mini);
-    lv_obj_set_size(mini, LV_PCT(100), 96);
-    lv_obj_set_style_pad_column(mini, 8, 0);
-    lv_obj_set_flex_flow(mini, LV_FLEX_FLOW_ROW);
-
-    lv_obj_t *mode = make_card(mini, 158, 96, true);
+    lv_obj_t *mode = make_card(status, 142, 48, true);
+    lv_obj_set_style_pad_all(mode, 8, 0);
     lv_obj_t *mode_title = make_label(mode, "DRIVE MODE");
     lv_obj_add_style(mode_title, &style_label_micro, 0);
     ui.drive_mode_label = make_label(mode, "UNKNOWN");
-    lv_obj_align(ui.drive_mode_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_align(ui.drive_mode_label, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_style_text_color(ui.drive_mode_label, CANVIEW_COLOR_INK, 0);
 
-    lv_obj_t *four_wd = make_card(mini, 128, 96, true);
-    lv_obj_t *four_wd_title = make_label(four_wd, "4WD");
+    lv_obj_t *four_wd = make_card(screen, LV_PCT(100), 138, false);
+    lv_obj_set_style_pad_all(four_wd, 8, 0);
+    lv_obj_t *four_wd_title = make_label(four_wd, "4WD · PSI");
     lv_obj_add_style(four_wd_title, &style_label_micro, 0);
-    ui.four_wd_label = make_label(four_wd, "—");
-    lv_obj_align(ui.four_wd_label, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+
+    static const lv_coord_t wheel_x[CANVIEW_UI_WHEEL_COUNT] = {0, 202, 0, 202};
+    static const lv_coord_t wheel_y[CANVIEW_UI_WHEEL_COUNT] = {26, 26, 76, 76};
+    for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
+        lv_obj_t *wheel = lv_obj_create(four_wd);
+        lv_obj_remove_style_all(wheel);
+        lv_obj_set_pos(wheel, wheel_x[i], wheel_y[i]);
+        lv_obj_set_size(wheel, 70, 40);
+        lv_obj_set_style_bg_color(wheel, CANVIEW_COLOR_PAPER_3, 0);
+        lv_obj_set_style_bg_opa(wheel, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_color(wheel, CANVIEW_COLOR_RULE, 0);
+        lv_obj_set_style_border_width(wheel, 1, 0);
+        lv_obj_set_style_radius(wheel, CANVIEW_RADIUS_SM, 0);
+        lv_obj_clear_flag(wheel, LV_OBJ_FLAG_SCROLLABLE);
+        ui.wheel_objects[i] = wheel;
+
+        lv_obj_t *bar = lv_bar_create(wheel);
+        lv_obj_remove_style_all(bar);
+        lv_obj_set_size(bar, 5, 28);
+        lv_obj_align(bar, i == CANVIEW_UI_WHEEL_FRONT_RIGHT ||
+                              i == CANVIEW_UI_WHEEL_REAR_RIGHT
+                          ? LV_ALIGN_RIGHT_MID
+                          : LV_ALIGN_LEFT_MID,
+                     i == CANVIEW_UI_WHEEL_FRONT_RIGHT ||
+                              i == CANVIEW_UI_WHEEL_REAR_RIGHT
+                          ? -4
+                          : 4,
+                     0);
+        lv_bar_set_range(bar, 0, 100);
+        lv_obj_set_style_bg_color(bar, CANVIEW_COLOR_RULE, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(bar, CANVIEW_COLOR_ACCENT, LV_PART_INDICATOR);
+        lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_INDICATOR);
+        lv_obj_set_style_radius(bar, 3, LV_PART_MAIN);
+        lv_obj_set_style_radius(bar, 3, LV_PART_INDICATOR);
+        ui.wheel_drive_bars[i] = bar;
+
+        ui.wheel_pressure_labels[i] = make_label(wheel, "—");
+        lv_obj_center(ui.wheel_pressure_labels[i]);
+        lv_obj_set_style_text_font(ui.wheel_pressure_labels[i],
+                                   ui.config.metric_font != NULL ? ui.config.metric_font
+                                                                 : LV_FONT_DEFAULT,
+                                   0);
+    }
+
+    lv_obj_t *vehicle = lv_obj_create(four_wd);
+    lv_obj_remove_style_all(vehicle);
+    lv_obj_set_pos(vehicle, 107, 25);
+    lv_obj_set_size(vehicle, 58, 92);
+    lv_obj_set_style_bg_color(vehicle, CANVIEW_COLOR_PAPER_3, 0);
+    lv_obj_set_style_bg_opa(vehicle, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_color(vehicle, CANVIEW_COLOR_RULE, 0);
+    lv_obj_set_style_border_width(vehicle, 1, 0);
+    lv_obj_set_style_radius(vehicle, 20, 0);
+    lv_obj_clear_flag(vehicle, LV_OBJ_FLAG_SCROLLABLE);
+    ui.four_wd_label = make_label(vehicle, "—");
+    lv_obj_center(ui.four_wd_label);
+    lv_obj_set_style_text_align(ui.four_wd_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_color(ui.four_wd_label, CANVIEW_COLOR_ACCENT, 0);
 }
 
@@ -539,6 +668,9 @@ static void create_automation_screen(void)
                                                              : (ui.config.font != NULL ? ui.config.font
                                                                                        : LV_FONT_DEFAULT),
                                0);
+    ui.sport_return_label = make_label(sport, "복귀 —");
+    lv_obj_align(ui.sport_return_label, LV_ALIGN_CENTER, 0, 50);
+    lv_obj_add_style(ui.sport_return_label, &style_label_micro, 0);
 
     ui.sport_button = make_button(sport, 120, 48, "끔", ACTION_SPORT_MONITOR);
     lv_obj_align(ui.sport_button, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -546,10 +678,53 @@ static void create_automation_screen(void)
     bind_button(ui.sport_button);
 }
 
+static lv_obj_t *make_settings_group(lv_obj_t *parent, lv_coord_t height,
+                                     const char *title)
+{
+    lv_obj_t *group = make_card(parent, LV_PCT(100), height, true);
+    lv_obj_set_style_pad_all(group, 8, 0);
+    lv_obj_set_style_pad_row(group, 2, 0);
+    lv_obj_set_flex_flow(group, LV_FLEX_FLOW_COLUMN);
+    lv_obj_t *heading = make_label(group, title);
+    lv_obj_add_style(heading, &style_label_micro, 0);
+    return group;
+}
+
+static lv_obj_t *make_setting_button_row(lv_obj_t *parent, const char *title,
+                                         const char *button_text, action_t action,
+                                         lv_obj_t **button_out, lv_obj_t **label_out)
+{
+    lv_obj_t *row = lv_obj_create(parent);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, LV_PCT(100), 52);
+    lv_obj_set_style_border_color(row, CANVIEW_COLOR_RULE_2, 0);
+    lv_obj_set_style_border_width(row, 1, 0);
+    lv_obj_set_style_border_side(row, LV_BORDER_SIDE_TOP, 0);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *title_label = make_label(row, title);
+    lv_obj_align(title_label, LV_ALIGN_LEFT_MID, 2, 0);
+
+    lv_obj_t *button = make_button(row, 104, 44, button_text, action);
+    lv_obj_clear_flag(button, LV_OBJ_FLAG_CHECKABLE);
+    lv_obj_align(button, LV_ALIGN_RIGHT_MID, 0, 0);
+    bind_button(button);
+    if (button_out != NULL) {
+        *button_out = button;
+    }
+    if (label_out != NULL) {
+        *label_out = lv_obj_get_child(button, 0);
+    }
+    return row;
+}
+
 static void create_settings_screen(void)
 {
     lv_obj_t *screen = make_screen();
     ui.screens[CANVIEW_UI_SCREEN_SETTINGS] = screen;
+    lv_obj_add_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(screen, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_AUTO);
 
     lv_obj_t *brightness = make_card(screen, LV_PCT(100), 132, false);
     lv_obj_t *display = make_label(brightness, "DISPLAY");
@@ -571,7 +746,7 @@ static void create_settings_screen(void)
     lv_obj_add_event_cb(ui.brightness_slider, brightness_event, LV_EVENT_RELEASED, NULL);
 
     lv_obj_t *automatic = make_card(screen, LV_PCT(100), 96, true);
-    lv_obj_t *sensor = make_label(automatic, "SENSOR");
+    lv_obj_t *sensor = make_label(automatic, "CAN");
     lv_obj_add_style(sensor, &style_label_micro, 0);
     lv_obj_t *automatic_title = make_label(automatic, "자동 밝기");
     lv_obj_align(automatic_title, LV_ALIGN_BOTTOM_LEFT, 0, 0);
@@ -581,15 +756,38 @@ static void create_settings_screen(void)
     ui.auto_brightness_button_label = lv_obj_get_child(ui.auto_brightness_button, 0);
     bind_button(ui.auto_brightness_button);
 
-    lv_obj_t *units = make_card(screen, LV_PCT(100), 108, true);
+    lv_obj_t *noise = make_settings_group(screen, 302, "ROAD NOISE");
+    make_setting_button_row(noise, "소음 보정", "끔", ACTION_SETTINGS_ADAPTIVE,
+                            &ui.settings_adaptive_button,
+                            &ui.settings_adaptive_button_label);
+    make_setting_button_row(noise, "주파수 대역", "표준", ACTION_NOISE_BAND,
+                            NULL, &ui.noise_band_button_label);
+    make_setting_button_row(noise, "민감도", "보통", ACTION_NOISE_SENSITIVITY,
+                            NULL, &ui.noise_sensitivity_button_label);
+    make_setting_button_row(noise, "반응", "부드럽게", ACTION_NOISE_RESPONSE,
+                            NULL, &ui.noise_response_button_label);
+    make_setting_button_row(noise, "최대 보정", "+4", ACTION_NOISE_MAX_OFFSET,
+                            NULL, &ui.noise_max_offset_button_label);
+
+    lv_obj_t *sport = make_settings_group(screen, 194, "SPORT AUTO");
+    make_setting_button_row(sport, "자동 전환", "끔", ACTION_SPORT_MONITOR,
+                            &ui.settings_sport_button,
+                            &ui.settings_sport_button_label);
+    make_setting_button_row(sport, "진입 속도", "70 km/h", ACTION_SPORT_ENTRY_SPEED,
+                            NULL, &ui.sport_entry_speed_button_label);
+    make_setting_button_row(sport, "급가속 감지", "사용", ACTION_SPORT_ACCELERATION,
+                            &ui.sport_acceleration_button,
+                            &ui.sport_acceleration_button_label);
+
+    lv_obj_t *units = make_card(screen, LV_PCT(100), 76, true);
     lv_obj_t *units_title = make_label(units, "UNITS");
     lv_obj_add_style(units_title, &style_label_micro, 0);
     lv_obj_t *speed_units = make_label(units, "속도 단위");
-    lv_obj_align(speed_units, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-    ui.metric_button = make_button(units, 66, 48, "km/h", ACTION_UNITS_METRIC);
+    lv_obj_align(speed_units, LV_ALIGN_LEFT_MID, 0, 10);
+    ui.metric_button = make_button(units, 66, 44, "km/h", ACTION_UNITS_METRIC);
     lv_obj_align(ui.metric_button, LV_ALIGN_RIGHT_MID, -70, 0);
     bind_button(ui.metric_button);
-    ui.imperial_button = make_button(units, 66, 48, "mph", ACTION_UNITS_IMPERIAL);
+    ui.imperial_button = make_button(units, 66, 44, "mph", ACTION_UNITS_IMPERIAL);
     lv_obj_align(ui.imperial_button, LV_ALIGN_RIGHT_MID, 0, 0);
     bind_button(ui.imperial_button);
 }
@@ -633,12 +831,39 @@ static const char *drive_mode_text(canview_ui_drive_mode_t mode)
     switch (mode) {
     case CANVIEW_UI_DRIVE_NORMAL:
         return "NORMAL";
+    case CANVIEW_UI_DRIVE_ECO:
+        return "ECO";
+    case CANVIEW_UI_DRIVE_COMFORT:
+        return "COMFORT";
+    case CANVIEW_UI_DRIVE_SMART:
+        return "SMART";
     case CANVIEW_UI_DRIVE_SPORT:
         return "SPORT";
     case CANVIEW_UI_DRIVE_UNKNOWN:
     default:
         return "UNKNOWN";
     }
+}
+
+static const char *noise_band_text(canview_ui_noise_band_t band)
+{
+    static const char *labels[CANVIEW_UI_NOISE_BAND_COUNT] = {
+        "노면", "표준", "풍절"};
+    return band < CANVIEW_UI_NOISE_BAND_COUNT ? labels[band] : labels[0];
+}
+
+static const char *sensitivity_text(canview_ui_sensitivity_t sensitivity)
+{
+    static const char *labels[CANVIEW_UI_SENSITIVITY_COUNT] = {
+        "낮음", "보통", "높음"};
+    return sensitivity < CANVIEW_UI_SENSITIVITY_COUNT ? labels[sensitivity] : labels[0];
+}
+
+static const char *response_text(canview_ui_response_t response)
+{
+    static const char *labels[CANVIEW_UI_RESPONSE_COUNT] = {
+        "느리게", "자연스럽게", "빠르게"};
+    return response < CANVIEW_UI_RESPONSE_COUNT ? labels[response] : labels[0];
 }
 
 lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
@@ -650,6 +875,12 @@ lv_obj_t *canview_ui_create(lv_obj_t *parent, const canview_ui_config_t *config)
     ui.model.metric_units = true;
     ui.model.audio_volume_level = 18;
     ui.model.display_brightness_percent = 42;
+    ui.model.adaptive_noise_band = CANVIEW_UI_NOISE_BAND_BALANCED;
+    ui.model.adaptive_sensitivity = CANVIEW_UI_SENSITIVITY_NORMAL;
+    ui.model.adaptive_response = CANVIEW_UI_RESPONSE_NORMAL;
+    ui.model.adaptive_max_offset_steps = 4U;
+    ui.model.sport_entry_speed_kph = 70U;
+    ui.model.sport_acceleration_enabled = true;
     if (!styles_ready) {
         init_styles(ui.config.font);
     }
@@ -728,8 +959,42 @@ void canview_ui_update(const canview_ui_model_t *model)
     lv_arc_set_value(ui.fft_rpm_arc, model->engine_rpm);
 
     lv_label_set_text(ui.drive_mode_label, drive_mode_text(model->drive_mode));
-    lv_label_set_text_fmt(ui.four_wd_label, "%u%% · %u Nm",
-                          model->rear_coupling_percent, model->clutch_torque_nm);
+    if (model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE) {
+        lv_label_set_text(ui.four_wd_label, "4WD\n—");
+    } else {
+        lv_label_set_text_fmt(ui.four_wd_label, "4WD\n%u%%",
+                              model->rear_coupling_percent);
+    }
+    for (uint8_t i = 0; i < CANVIEW_UI_WHEEL_COUNT; ++i) {
+        const uint8_t drive_value = model->wheel_drive_percent[i] > 100U
+                                        ? 100U
+                                        : model->wheel_drive_percent[i];
+        lv_bar_set_value(ui.wheel_drive_bars[i],
+                         model->four_wd_quality == CANVIEW_UI_QUALITY_UNAVAILABLE
+                             ? 0
+                             : drive_value,
+                         LV_ANIM_OFF);
+        const bool pressure_valid =
+            model->tire_pressure_quality != CANVIEW_UI_QUALITY_UNAVAILABLE &&
+            model->tire_pressure_tenth_psi[i] > 0U;
+        if (pressure_valid) {
+            lv_label_set_text_fmt(ui.wheel_pressure_labels[i], "%u.%u",
+                                  model->tire_pressure_tenth_psi[i] / 10U,
+                                  model->tire_pressure_tenth_psi[i] % 10U);
+        } else {
+            lv_label_set_text(ui.wheel_pressure_labels[i], "—");
+        }
+        const bool pressure_warning =
+            (model->tire_pressure_warning_mask & (uint8_t)(1U << i)) != 0U;
+        lv_obj_set_style_border_color(ui.wheel_objects[i],
+                                      pressure_warning ? CANVIEW_COLOR_WARNING
+                                                       : CANVIEW_COLOR_RULE,
+                                      0);
+        lv_obj_set_style_text_color(ui.wheel_pressure_labels[i],
+                                    pressure_warning ? CANVIEW_COLOR_WARNING
+                                                     : CANVIEW_COLOR_INK_2,
+                                    0);
+    }
     if (model->dpf_lamp_on) {
         lv_label_set_text(ui.dpf_label, "확인");
         lv_obj_set_style_text_color(ui.dpf_label, CANVIEW_COLOR_WARNING, 0);
@@ -744,6 +1009,17 @@ void canview_ui_update(const canview_ui_model_t *model)
     set_checked(ui.adaptive_button, model->adaptive_volume_enabled);
     lv_label_set_text(ui.adaptive_button_label, model->adaptive_volume_enabled ? "사용" : "끔");
     lv_label_set_text_fmt(ui.volume_offset_label, "%+d", model->volume_offset_step);
+    set_checked(ui.settings_adaptive_button, model->adaptive_volume_enabled);
+    lv_label_set_text(ui.settings_adaptive_button_label,
+                      model->adaptive_volume_enabled ? "사용" : "끔");
+    lv_label_set_text(ui.noise_band_button_label,
+                      noise_band_text(model->adaptive_noise_band));
+    lv_label_set_text(ui.noise_sensitivity_button_label,
+                      sensitivity_text(model->adaptive_sensitivity));
+    lv_label_set_text(ui.noise_response_button_label,
+                      response_text(model->adaptive_response));
+    lv_label_set_text_fmt(ui.noise_max_offset_button_label, "+%u",
+                          model->adaptive_max_offset_steps);
 
     for (uint16_t i = 0; i < CANVIEW_UI_FFT_BIN_COUNT; ++i) {
         lv_chart_set_value_by_id(ui.fft_chart, ui.fft_series, i, model->fft_bins[i]);
@@ -762,8 +1038,22 @@ void canview_ui_update(const canview_ui_model_t *model)
 
     set_checked(ui.sport_button, model->sport_monitor_enabled);
     lv_label_set_text(ui.sport_button_label, model->sport_monitor_enabled ? "사용" : "끔");
+    set_checked(ui.settings_sport_button, model->sport_monitor_enabled);
+    lv_label_set_text(ui.settings_sport_button_label,
+                      model->sport_monitor_enabled ? "사용" : "끔");
+    lv_label_set_text_fmt(ui.sport_entry_speed_button_label, "%u km/h",
+                          model->sport_entry_speed_kph);
+    set_checked(ui.sport_acceleration_button, model->sport_acceleration_enabled);
+    lv_label_set_text(ui.sport_acceleration_button_label,
+                      model->sport_acceleration_enabled ? "사용" : "끔");
     lv_arc_set_value(ui.sport_dial, model->drive_mode == CANVIEW_UI_DRIVE_SPORT ? 2 : 1);
     lv_label_set_text(ui.sport_mode_label, drive_mode_text(model->drive_mode));
+    if (model->sport_previous_mode == CANVIEW_UI_DRIVE_UNKNOWN) {
+        lv_label_set_text(ui.sport_return_label, "복귀 —");
+    } else {
+        lv_label_set_text_fmt(ui.sport_return_label, "복귀 %s",
+                              drive_mode_text(model->sport_previous_mode));
+    }
 
     uint8_t brightness = model->display_brightness_percent;
     if (brightness < 10U) {
@@ -776,6 +1066,11 @@ void canview_ui_update(const canview_ui_model_t *model)
     set_checked(ui.auto_brightness_button, model->auto_brightness_enabled);
     lv_label_set_text(ui.auto_brightness_button_label,
                       model->auto_brightness_enabled ? "사용" : "끔");
+    if (model->auto_brightness_enabled) {
+        lv_obj_add_state(ui.brightness_slider, LV_STATE_DISABLED);
+    } else {
+        lv_obj_clear_state(ui.brightness_slider, LV_STATE_DISABLED);
+    }
     set_checked(ui.metric_button, model->metric_units);
     set_checked(ui.imperial_button, !model->metric_units);
 }

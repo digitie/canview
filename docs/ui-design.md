@@ -47,11 +47,11 @@ Hallmark 기준으로 선택한 구성은 수치를 화면의 주인공으로 �
 ```text
 상단 36 px: CANView / 활성 CAN bus / ESP-NOW 상태
 본문 368 px
-├─ 주행: 원형 속도·RPM / DPF / 주행 mode / 4WD
+├─ 주행: 원형 속도·RPM / DPF·주행 mode / 4WD 바퀴 gauge·공기압
 ├─ 소리: 취침·뒷좌석+ / 음량 / 소음 보정
 ├─ FFT: 원형 속도·RPM / spectrum / peak 주파수·레벨
 ├─ 자동: SPORT 자동화 / 현재 mode / 사용 여부
-└─ 설정: 화면 밝기 / 자동 밝기 / 속도 단위
+└─ 설정: 화면 / 주행 소음 보정 / SPORT 자동 / 단위
 하단 76 px: 주행 / 소리 / FFT / 자동 / 설정
 ```
 
@@ -63,7 +63,9 @@ Hallmark 기준으로 선택한 구성은 수치를 화면의 주인공으로 �
 
 - 속도와 RPM은 동일한 원형 계기 문법을 쓰되 속도 숫자를 조금 더 크게 둔다.
 - 원형 arc는 각각 표시 범위 대비 현재값을 나타내며 정밀 판독은 중앙 숫자로 한다.
-- 4WD에는 `_4WD11.CLU_DUTY` 기반 결합률과 `_4WD_TQC_CUR` 기반 토크값을 나란히 표시한다.
+- 4WD는 네 바퀴 자체를 세로 gauge로 사용하고, 각 바퀴 안에는 TPMS 공기압을 표시한다.
+- gauge 입력은 품질값이 있는 바퀴별 구동 지수다. 공개 DBC만으로 실제 바퀴별 torque를 만들 수 없으므로 검증 전에는 rear clutch duty를 네 바퀴에 임의 분배하지 않는다.
+- TPMS와 4WD 데이터는 freshness를 따로 관리하며, 둘 중 하나가 unavailable이어도 다른 값은 계속 표시할 수 있다.
 - DBC 검증 수준과 raw DPF code는 서비스 진단에 기록하되 일반 운전자 화면에는 노출하지 않는다.
 - 경고가 없을 때는 `DPF 정상`, 경고가 있을 때만 `DPF 확인`으로 바뀐다.
 
@@ -79,7 +81,7 @@ Hallmark 기준으로 선택한 구성은 수치를 화면의 주인공으로 �
 
 ### 4.3 자동화 화면
 
-SPORT 자동화는 일반 사용자용 상태 화면으로 표현한다. 화면에는 `SPORT 자동`, 현재 mode(`NORMAL`, `SPORT`, `UNKNOWN`), `사용`/`끔`만 남긴다. 가속도 threshold, decision path, encryption, TX lock, RTT는 서비스 진단으로 이동한다. 실제 제어를 열 때도 즉시 취소, cooldown, 사용자 수동 변경 우선 규칙은 상위 제어 계층에서 유지한다.
+SPORT 자동화는 일반 사용자용 상태 화면으로 표현한다. 화면에는 `SPORT 자동`, 현재 mode, 복귀할 이전 mode, `사용`/`끔`만 남긴다. 상세 decision path, encryption, TX lock, RTT는 서비스 진단으로 이동한다. 진입 시 직전 mode를 snapshot하고 종료 시 그 mode를 복원하며, 사용자의 물리 버튼 조작이 항상 우선한다.
 
 ### 4.4 FFT 화면
 
@@ -92,7 +94,14 @@ SPORT 자동화는 일반 사용자용 상태 화면으로 표현한다. 화면�
 
 ### 4.5 설정 화면
 
-설정은 화면 밝기, 자동 밝기, 속도 단위만 제공한다. pairing, CAN 송신 허용, DBC 선택 같은 엔지니어링 항목은 운전자 설정 화면에 두지 않는다.
+설정은 정차 상태에서 세로 scroll되는 네 그룹으로 구성한다.
+
+- `DISPLAY`: 화면 밝기, CAN 자동 밝기
+- `ROAD NOISE`: 소음 보정, 주파수 대역, 민감도, 반응, 최대 보정
+- `SPORT AUTO`: 자동 전환, 진입 속도, 급가속 감지
+- `UNITS`: 속도 단위
+
+자동 밝기는 외부 조도 센서가 아니라 차량 등화와 rheostat CAN 값만 사용한다. pairing, CAN 송신 허용, DBC 선택, raw Hz/dB threshold 같은 엔지니어링 항목은 운전자 설정 화면에 두지 않는다. 각 preset의 실제 수치와 히스테리시스는 [자동 제어 로직](automation-control.md)에 고정한다.
 
 ## 5. 시각 시스템
 
@@ -134,13 +143,13 @@ Google의 76 dp 지침을 주요 profile과 toggle에는 76 logical px로 먼저
 |---|---|---|---|
 | 상단 연결 상태 | flex status row | `lv_obj` + `lv_label` | bus count, RSSI, stale |
 | 속도/RPM | SVG circular gauge | `lv_arc` + `lv_label` | vehicle speed, RPM |
-| 4WD | 결합률·토크 readout | card + labels | duty, torque, quality |
+| 4WD·TPMS | 네 바퀴 gauge + pressure | four `lv_bar` + pressure labels | wheel drive index, pressure, 독립 quality |
 | DPF 상태 | semantic status row | card + labels | lamp raw/decoded quality |
 | audio profile | 76 px buttons | checkable `lv_btn` | desired + feedback revision |
 | 음량 | large number + step buttons | `lv_label` + two `lv_btn` | OEM volume level |
 | FFT | SVG bar spectrum | `lv_chart` bar series | 23 bins, peak Hz/dB |
-| SPORT 자동 | mode card/dial | `lv_arc`, button, labels | mode, enabled |
-| 화면 설정 | range + toggle + unit buttons | `lv_slider`, `lv_btn` | brightness, sensor, units |
+| SPORT 자동 | mode card/dial | `lv_arc`, button, labels | current/previous mode, enabled |
+| 설정 | scroll group + range/toggle/value button | `lv_slider`, `lv_btn` | brightness, CAN auto, noise presets, SPORT threshold, units |
 | bottom nav | fixed tabs | five `lv_btn` | current screen |
 
 [`canview_ui.c`](../ui/lvgl/canview_ui.c)는 단일 320×480 인스턴스를 제공한다. 화면은 `canview_ui_model_t`만 받고 사용자 입력은 `CANVIEW_UI_CMD_*` 콜백으로만 내보낸다. callback에서 raw CAN frame을 만들지 않고 제어 정책 queue에 복사해야 한다.
@@ -173,7 +182,7 @@ Google의 76 dp 지침을 주요 profile과 toggle에는 76 logical px로 먼저
 | 소음 보정 on/off | 허용 | 상태 조회만 권장 | calibration 변경은 정차 |
 | FFT 조회 | 허용 | 허용 | 조작 없는 상태 조회 |
 | SPORT 감시 on/off | 허용 | off는 허용, on은 정차 | 운전자 의도 우선 |
-| 밝기·단위 설정 | 허용 | 금지 | 반복 조작·시선 분산 |
+| 밝기·자동화 세부 설정·단위 | 허용 | 금지 | 반복 조작·시선 분산 |
 
 ## 9. 화면 prototype
 
@@ -199,6 +208,8 @@ Google의 76 dp 지침을 주요 profile과 toggle에는 76 logical px로 먼저
 
 ![CANView 설정 화면 prototype](images/ui-settings.png)
 
+![CANView 소음·SPORT 설정 prototype](images/ui-settings-automation.png)
+
 브라우저에서 [`ui/prototype/index.html`](../ui/prototype/index.html)을 열고 query parameter를 바꾸면 각 화면을 확인할 수 있다.
 
 ```text
@@ -207,6 +218,7 @@ index.html?screen=audio
 index.html?screen=fft
 index.html?screen=automation
 index.html?screen=settings
+index.html?screen=settings&section=sport
 ```
 
 ## 10. 검증 체크리스트
@@ -219,6 +231,8 @@ index.html?screen=settings
 - 한글·숫자 baseline과 단위 위치를 실제 LVGL font에서 재검증한다.
 - 100%, 50%, 0% coupling과 0/6500 rpm에서도 넘침이 없어야 한다.
 - 23개 FFT bin이 320 px 화면에서 서로 붙지 않고 peak 값과 함께 보여야 한다.
+- 네 바퀴 pressure 3자리와 `—`가 gauge 안에서 잘리지 않아야 한다.
+- 설정 scroll 중 하단 navigation이 움직이지 않아야 한다.
 - 색각 이상 simulation에서도 label만으로 상태를 구분할 수 있어야 한다.
 - 야간 최소 밝기에서 accent가 번지지 않고 muted text가 읽혀야 한다.
 
@@ -231,6 +245,7 @@ index.html?screen=settings
 - `four_wd_quality != VERIFIED`이면 `토크 배분`이라는 확정 표현을 쓰지 않는다.
 - DPF lamp raw code의 value table이 확정되기 전에는 raw와 사용자 label을 함께 기록한다.
 - SPORT 실제 송신 기능은 monitor-only 검증과 별도 release gate를 통과해야 한다.
+- SPORT 해제는 `NORMAL` 고정값이 아니라 진입 직전 mode feedback으로 끝나야 한다.
 
 ## 11. 구현 산출물
 
