@@ -493,7 +493,7 @@ threshold는 calibration 시작값이며 실차 log로 조정한다. 진입과 �
 
 1. 현재 mode와 mode cycle 확인
 2. 한 번의 button pulse 송신
-3. 최대 1초 feedback 대기
+3. 첫 successful physical TX-complete부터 최대 1.5초 feedback 대기
 4. 원하는 mode가 아니면 실패
 5. 자동으로 여러 번 빠르게 cycle하지 않음
 6. 최소 2초 command 간격

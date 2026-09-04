@@ -89,6 +89,9 @@ Primary Controller에는 CANView 기능에 필요한 control lease와 의미 명
 
 ## 5. 관련 문서
 
+- [구현 준비 기준·정본·gate](implementation-readiness.md)
+- [원자 구현 task backlog](tasks/README.md)
+- [독립 적대적 설계 리뷰](adversarial-design-review.md)
 - [Controller 하드웨어와 Waveshare 핀맵](hardware-and-development.md)
 - [Communicator 회로·IC·핀맵](communicator-hardware.md)
 - [개발환경과 빌드](development-environments.md)

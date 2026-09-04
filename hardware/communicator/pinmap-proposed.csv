@@ -19,7 +19,7 @@ proposed,STM32G474CEU6,13,PA5,GPIO output,CAN2_STB,output,TCAN1046AV pin 9,Exter
 proposed,STM32G474CEU6,14,PA6,GPIO output,CAN3_EN,output,MAX3055 pin 6,External 10 kOhm pull-down gives Power-On Standby during reset
 proposed,STM32G474CEU6,25,PB12,AF9 FDCAN2_RX,CAN2_RX,input,TCAN1046AV pin 8,High-speed CAN channel 2
 proposed,STM32G474CEU6,26,PB13,AF9 FDCAN2_TX,CAN2_TX,output,TCAN1046AV pin 6,External 10 kOhm pull-up gives recessive during reset
-optional,STM32G474CEU6,27,PB14,GPIO input,CAN3_ERR,input,MAX3055 pin 4,5.1 kOhm series and 10 kOhm to GND divider; DNP if unused
+proposed,STM32G474CEU6,27,PB14,GPIO input,CAN3_ERR,input,MAX3055 pin 4,5.1 kOhm series and 10 kOhm to GND divider; mandatory when CAN3 is populated
 proposed,STM32G474CEU6,30,PA8,AF11 FDCAN3_RX,CAN3_RX,input,MAX3055 pin 3,5.1 kOhm series and 10 kOhm to GND divider
 proposed,STM32G474CEU6,33,PA11,AF9 FDCAN1_RX,CAN1_RX,input,TCAN1046AV pin 4,STM32 USB unavailable with this allocation
 proposed,STM32G474CEU6,34,PA12,AF9 FDCAN1_TX,CAN1_TX,output,TCAN1046AV pin 1,External 10 kOhm pull-up gives recessive during reset

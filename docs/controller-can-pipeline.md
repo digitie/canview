@@ -37,7 +37,7 @@ raw CAN 자체는 차량 제어 명령이 아니다. Controller 수신 필터는
 ## 2. 이중 허용 경계
 
 1. ESP-NOW peer/session/auth 검증: 올바른 설치 peer와 online session만 처리한다.
-2. CAN record allow-list: session이 맞아도 필터에 일치하지 않는 record는 Controller model queue에 넣지 않는다.
+2. Controller local CAN record allow-list: session이 맞아도 필터에 일치하지 않는 record는 Controller model queue에 넣지 않는다. Communicator의 peer별 upstream subscription은 대역폭 절감용 별도 store이며 이 local 신뢰 경계를 대신하지 않는다.
 
 기본 상태는 default-deny다. 저장된 필터가 없거나 모든 필터가 disabled이면 raw CAN은 하나도 통과하지 않는다. 필터를 통과한 값도 DBC descriptor의 `quality`, sample age, catalog revision을 함께 가지고 있어야 UI에 표시할 수 있다.
 
@@ -74,13 +74,13 @@ record quota, period burst quota, byte/s quota를 모두 만족해야 admission�
 
 | 값 | 메시지 | 방향 | 의미 |
 |---:|---|---|---|
-| `0x23` | `CAN_FILTER_GET` | Controller ↔ Communicator | Controller-local filter snapshot 조회/응답. Communicator는 raw bridge로 요청·응답을 중계할 수 있지만 filter 소유자는 Controller다. |
-| `0x24` | `CAN_FILTER_SET` | Controller ↔ Communicator | ADD/REPLACE/DELETE/CLEAR 요청. secure session과 config lease를 요구하며 Controller ingress에서 적용한다. |
-| `0x25` | `CAN_FILTER_RESULT` | Controller ↔ Communicator | Controller가 revision, filter id, action, 결과와 numeric detail을 응답한다. |
-| `0x26` | `CAN_STREAM_CONFIG` | Controller ↔ Communicator | Controller의 raw admission 설정과, 필요하면 Communicator의 upstream stream hint를 동기화한다. |
-| `0x27` | `CAN_STREAM_STATUS` | Controller ↔ Communicator | Controller ingress의 허용·거부·budget drop 통계를 보고한다. |
+| `0x23` | `CAN_FILTER_GET` | peer ↔ Communicator | 해당 peer의 upstream subscription snapshot 조회/응답 |
+| `0x24` | `CAN_FILTER_SET` | peer ↔ Communicator | peer namespace의 ADD/REPLACE/DELETE/CLEAR 요청 |
+| `0x25` | `CAN_FILTER_RESULT` | Communicator → peer | subscription revision, filter id, action, 결과와 effective quota |
+| `0x26` | `CAN_STREAM_CONFIG` | peer ↔ Communicator | peer별 upstream period/count/byte budget 요청·수락값 |
+| `0x27` | `CAN_STREAM_STATUS` | Communicator → peer | 해당 peer stream의 허용·거부·budget drop 통계 |
 
-실제 wire layout은 [`canview_protocol.h`](../protocol/canview_protocol.h)의 다음 packed 구조가 정본이다.
+아래 크기는 현재 `1.2` draft의 migration 입력일 뿐 runtime 정본이 아니다. 실제 wire layout은 [T-002](tasks/T-002-espnow-schema-v1.3.md)의 schema와 생성 [`canview_protocol.h`](../protocol/canview_protocol.h)가 함께 동결된 뒤 확정한다.
 
 - `canview_can_filter_t`: 22 byte
 - `canview_can_filter_batch_header_t`: 8 byte
@@ -89,9 +89,11 @@ record quota, period burst quota, byte/s quota를 모두 만족해야 admission�
 - `canview_can_stream_config_t`: 16 byte
 - `canview_can_stream_status_t`: 16 byte
 
-`CAN_FILTER_SET`은 batch header 뒤에 filter entry를 붙인다. `action`은 한 batch에서 하나만 사용한다. `ADD`, `REPLACE`, `DELETE`는 1–8개이고 `CLEAR`는 count 0만 허용한다. `config_revision`이 현재 revision과 다르면 아무 entry도 적용하지 않고 conflict를 반환한다. 초기 provisioning에서만 revision 0을 “현재값 무관”으로 허용할 수 있으며 운행 중에는 exact match를 사용한다. 이 메시지를 Communicator로 전달하는 경우에도 Communicator는 이를 raw stream hint로만 취급하고 DBC 의미를 해석하지 않는다.
+`CAN_FILTER_SET`은 batch header 뒤에 filter entry를 붙인다. `action`은 한 batch에서 하나만 사용한다. `ADD`, `REPLACE`, `DELETE`는 1–8개이고 `CLEAR`는 count 0만 허용한다. `config_revision`이 해당 peer namespace의 현재 subscription revision과 다르면 아무 entry도 적용하지 않고 conflict를 반환한다. 초기 provisioning에서만 revision 0을 “현재값 무관”으로 허용할 수 있으며 운행 중에는 exact match를 사용한다. Communicator는 이를 raw stream 조건으로만 취급하고 DBC 의미를 해석하지 않는다.
 
-`CAN_FILTER_GET`의 전체 조회는 최대 8개 entry 단위로 나누고 `FRAGMENT`/`LAST_FRAGMENT` flag로 끝을 표시한다. 조회 결과는 설정을 적용하지 않는다. filter entry의 `reserved0`, batch header의 `reserved_le`, stream config의 `reserved_le`은 반드시 0이어야 한다.
+Controller local allow-list는 별도 `controller_config_revision`으로 NVS에 저장한다. 축소·삭제는 local deny를 먼저 적용한 뒤 upstream을 갱신하고, 확대·추가는 local staging 후 upstream 수락과 matching catalog digest가 있을 때만 effective로 승격한다. 두 store가 어긋나도 local allow-list보다 넓은 frame을 decode하지 않는다.
+
+`CAN_FILTER_GET`의 전체 조회는 최대 8개 entry 단위로 나누며 각 result가 `snapshot_id`, `subscription_revision`, `part_index`, `part_count`, `total_count`를 가진다. 모든 part가 같은 snapshot/revision으로 모이기 전에는 표시·적용하지 않고, 손실·중복·조회 중 변경에서는 전체를 폐기한다. 조회 결과는 설정을 적용하지 않는다. filter entry의 `reserved0`, batch header의 `reserved_le`, stream config의 `reserved_le`은 반드시 0이어야 한다.
 
 ## 5. Controller catalog와 범용 decoder
 
@@ -111,7 +113,7 @@ decoder는 classic CAN record의 0–8 byte data에서 Intel little-endian과 Mo
 2. 기존 허용 ID이면 Controller catalog descriptor만 추가·교체한다.
 3. 새 ID이면 `CAN_FILTER_SET(ADD)`로 Controller filter를 추가한다.
 4. catalog revision과 digest를 바꾸고 이전 revision의 decoded value를 섞지 않는다.
-5. 실차 검증 전에는 `UNVERIFIED`로 유지하고, 값이 없으면 `—`를 표시한다.
+5. 실차 검증 전에는 evidence를 `CANDIDATE`로 유지해 Signal Lab에만 보내고, 운전자 화면은 `VALID + VERIFIED`가 아니면 `—`를 표시한다.
 
 Diagnostic Bridge에서 export한 `.cvtrace`를 근거로 작업하는 에이전트는 다음 순서를 지킨다.
 

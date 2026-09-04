@@ -10,7 +10,7 @@ Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 
 | Communicator ESP32 | ESP-IDF `v5.5.2` | ESP-NOW·UART image |
 | Diagnostic Bridge | ESP-IDF `v5.5.2`, built-in HTTP server | ESP-NOW observer·SoftAP·모바일 웹 image |
 | Communicator STM32 | CMake + Ninja + GNU Arm Embedded, STM32CubeG4 | CAN·safety image |
-| DBC 생성·검증 | Python virtual environment, `cantools` | Controller용 signal catalog와 검증 report |
+| DBC/profile 생성·검증 | Python virtual environment, `cantools`와 schema validator | Controller signal catalog, STM32 safety profile와 검증 report |
 
 Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
 
@@ -207,12 +207,13 @@ python -m pip install cantools
 python -m cantools list dbc/opendbc/hyundai_can.dbc
 ```
 
-DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 검증 산출물을 만든다.
+DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32용 최소 safety profile을 분리 생성한다. 사람 편집 정본은 vehicle profile과 evidence manifest이며, signal 이름과 bit layout을 Communicator ESP32에 생성하지 않는다.
 
-1. Controller용 signal descriptor table: `signal_id`, bus/ID, bit field, endian, signedness, factor/offset, range, unit, quality 포함
-2. 차량 profile 검증 report: source DBC commit, 실차 등급, freshness, 후보/미지원 사유
+1. Controller용 signal descriptor table: `signal_id`, bus/ID, bit field, endian, signedness, factor/offset, range, unit, runtime quality와 evidence grade 포함
+2. STM32용 safety/command table: 검증된 전제조건 signal, fixed command builder, counter/checksum, feedback만 포함
+3. 차량 profile 검증 report: source DBC commit, 실차 등급, freshness, capture evidence, 후보/미지원 사유
 
-두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 이름이 존재해도 `UNVERIFIED` quality를 유지한다. 새로운 signal이 기존 CAN ID를 사용하면 Communicator firmware를 바꾸지 않고 Controller catalog만 갱신한다. 새로운 ID를 사용하면 Controller allow-list entry를 함께 추가한다.
+두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 runtime quality와 별개인 `CANDIDATE` evidence grade를 유지한다. 새로운 signal이 기존 CAN ID를 사용하면 Communicator firmware를 바꾸지 않고 Controller catalog만 갱신한다. 새로운 ID를 사용하면 Controller allow-list entry와 upstream subscription을 함께 추가한다.
 
 ## 7. CI 권고 gate
 

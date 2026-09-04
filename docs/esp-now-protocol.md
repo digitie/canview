@@ -4,7 +4,7 @@
 
 이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다. 미확정 CAN 신호를 휴대폰으로 검증하는 선택 장치 `Diagnostic Bridge`도 같은 보안·frame·QoS 규칙을 사용하되 차량 명령 권한은 갖지 않는다.
 
-이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 구현 wire protocol 버전은 `1.2`다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다. Diagnostic Bridge의 observer/capture message는 [모바일 CAN 검증 명세](can-diagnostics-web.md)에 `1.3` 구현 대상으로 분리했으며, C header와 golden vector가 함께 갱신되기 전에는 wire에서 사용하지 않는다.
+이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 check-in된 C draft는 `1.2`지만 완전한 payload ABI와 codec이 없어 runtime 구현 기준이 아니다. 첫 통합 구현은 Diagnostic Bridge의 observer/capture message까지 포함한 `1.3`으로 동결하며, 미완성 `1.2` compatibility path를 만들지 않는다. machine-readable schema, 생성 C header와 golden vector가 함께 들어가는 [T-002](tasks/T-002-espnow-schema-v1.3.md)가 끝나기 전에는 wire firmware를 구현하지 않는다. 전체 owner·시간 epoch·gate 기준은 [구현 준비 기준](implementation-readiness.md)을 따른다.
 
 설계 원칙은 다음과 같다.
 
@@ -14,7 +14,7 @@
 4. 텔레메트리 손실과 제어 명령 손실을 다른 QoS로 처리한다.
 5. 연결이 불확실하면 표시값을 stale로 바꾸고 제어를 중단한다.
 6. v1의 모든 일반 frame은 ESP-NOW v1/v2 공통 범위 안인 240 byte 이하로 제한한다.
-7. 미확인 차량 신호는 wire protocol에서도 `UNVERIFIED` 품질을 보존한다.
+7. runtime `signal_quality`와 정적 `evidence_grade`를 분리하고, 미확인 차량 신호는 `CANDIDATE` evidence를 보존한다.
 
 ## 2. 전제와 ESP-NOW 제약
 
@@ -39,7 +39,7 @@ peer channel은 로컬 Wi-Fi channel과 같아야 한다. `channel=0`은 현재 
 | Primary Controller | 상태 표시, 사용자 입력, Controller-local CAN filter, DBC catalog/decode, 허용된 audio·SPORT 의도 명령, stale/error 표시 | Communicator가 보내는 값의 차량별 의미를 검증 없이 신뢰, 임의 raw CAN TX |
 | Read-only Controller | 추가 화면·정비 화면. 상태 수신만 허용 | 모든 제어 요청 |
 | Diagnostic Bridge | ID 통계·제한 raw capture, 후보 decoder/evidence, 휴대폰 웹 UI | control lease, 차량 명령, raw replay, 후보 자동 확정 |
-| Provisioning host | USB를 통한 설치 secret·peer 초기화 | 무선 discovery |
+| Provisioning host | USB를 통한 장치 로컬 PMK·pair별 link package 초기화 | 무선 discovery |
 
 Communicator는 최대 20개 peer라는 ESP-NOW 한도보다 훨씬 작은 운영 한도를 둔다. 현재 권고값은 Primary Controller 1개, Read-only Controller 1개, Diagnostic Bridge 1개다. 여러 peer가 등록돼도 control lease는 Primary Controller 한 peer만 소유한다. Diagnostic Bridge의 diagnostic lease는 filter/capture에만 적용되며 control lease와 별도다.
 
@@ -229,20 +229,27 @@ Controller                   Communicator
 
 ### 7.2 provisioning 정보
 
-생산 설치 단위마다 최소 다음 값을 만든다.
+생산 provisioning은 설치 전체가 공유하는 비밀값을 만들지 않는다. 설치 식별자는 공개 그룹 정보일 뿐이고, 신뢰 재료는 장치 로컬 또는 직접 연결할 두 장치에만 한정한다.
 
 | 값 | 크기 | 저장 |
 |---|---:|---|
-| `installation_id` | 64 bit random | 양쪽 NVS |
-| `pairing_secret` | 256 bit CSPRNG | 양쪽 encrypted NVS |
-| `device_id` | 64 bit random | 각 장치 NVS |
-| `key_generation` | 32 bit | 양쪽 NVS |
+| `installation_id` | 64 bit random | 설치 내 장치 NVS, 비밀 아님 |
+| `device_id` | 64 bit random | 해당 장치 NVS |
+| `local_pmk` | 128 bit CSPRNG | 해당 장치 encrypted NVS, 외부 반출 금지 |
+| `link_root` | 256 bit CSPRNG | 직접 연결할 두 endpoint의 encrypted NVS에만 저장 |
+| `link_key_generation` | 32 bit | 해당 peer record |
+| `authorized_role/scope/classes` | 고정 policy | 각 endpoint의 peer record |
+| `control_root` | 256 bit CSPRNG | Primary Controller encrypted NVS와 STM32 protected Flash에만 저장 |
 
-권장 방법은 USB serial provisioning이다. QR을 사용할 경우 외부에서 계속 보이는 고정 QR이 아니라 봉인된 일회용 설치 secret을 사용하고 pairing 후 폐기한다. ESP32 production 설정에서는 NVS encryption, secure boot, flash encryption을 함께 검토한다.
+각 링크는 `Communicator↔Primary Controller`, `Communicator↔Diagnostic Bridge`, 선택적인 `Controller↔Diagnostic Bridge`마다 서로 다른 `link_root`를 갖는다. Bridge가 침해되어도 `Communicator↔Primary Controller`의 LMK를 계산하거나 Primary role을 증명할 수 없어야 한다. 새 peer를 추가할 때 provisioning host가 새 pair package를 만들고 USB로 정확히 두 endpoint에만 넣는다. 봉인된 일회용 QR을 지원하더라도 같은 pair package를 전달한 뒤 폐기하며, 무선 pairing만으로 새 root를 전달하지 않는다.
+
+`control_root`는 ESP-NOW link root와도 별개다. provisioning host가 Controller USB와 STM32의 물리 service interface에 각각 넣고 Communicator ESP32나 Bridge에는 전달하지 않는다. vehicle-TX image에서는 STM32 debug/readout protection과 boot authenticity가 확인되지 않으면 control capability를 0으로 유지한다. debug unlock이나 root 초기화는 기존 root를 지우고 hard gate off 상태에서 재provisioning하게 한다.
+
+ESP32의 PMK는 각 장치가 peer LMK를 로컬에서 보호하기 위한 장치 로컬 random 값으로 취급한다. endpoint끼리 PMK를 공유하거나 PMK에서 여러 peer의 LMK를 파생하지 않는다. `VEHICLE_TX` production image는 NVS encryption, secure boot와 flash encryption을 필수로 하고 provisioning/recovery fixture를 통과해야 한다. 개발용 `CAPTURE_ONLY` image에서 이를 끌 수는 있지만 control scope는 항상 0이다.
 
 ### 7.3 물리 pairing window
 
-양쪽 장치에서 120초 이내에 물리 버튼 또는 USB 명령으로 pairing window를 열어야 한다. 차량 속도가 0이 아니거나 ignition 상태를 신뢰할 수 없으면 Communicator는 pairing을 시작하지 않는다.
+양쪽 장치에서 120초 이내에 물리 버튼 또는 USB 명령으로 pairing window를 열어야 한다. 차량 속도가 0이 아니거나 ignition 상태를 신뢰할 수 없으면 Communicator는 control-capable pairing을 시작하지 않는다. 빈 NVS의 bootstrap은 차량 연결 전 USB provisioning이 원칙이다. 예외적인 service bootstrap은 hard TX gate off, `CAPTURE_ONLY`, control scope 0, signed bitrate-only profile에서 read-only peer와 ID inventory만 허용한다.
 
 pairing 중 broadcast는 1 Hz 이하로 제한하고 다음 정보만 담는다.
 
@@ -262,29 +269,28 @@ Communicator                             Controller
   |-- DISCOVERY(comm_nonce, HMAC) broadcast ->|
   |<-- PAIR_REQUEST(controller_nonce, HMAC) --|
   |-- PAIR_CHALLENGE(selection, HMAC) -------->|
-  |       양쪽에서 HKDF로 PMK/LMK 파생          |
+  |       양쪽에서 peer LMK 파생                 |
   |<== PAIR_CONFIRM(transcript hash) encrypted=|
   |== PAIR_RESULT(key generation) encrypted ==>|
 ```
 
-HMAC은 `HMAC-SHA-256(pairing_secret, domain || canonical_fields)`를 사용하고 wire에는 앞 16 byte를 싣는다. `domain`은 message마다 `CV-DISCOVERY-1`, `CV-PAIR-REQUEST-1`처럼 분리한다. field 연결은 길이 prefix가 있는 canonical binary encoding을 사용한다.
+HMAC은 해당 pair package의 `HMAC-SHA-256(link_root, domain || canonical_fields)`를 사용하고 wire에는 앞 16 byte를 싣는다. `domain`은 message마다 `CV-DISCOVERY-1`, `CV-PAIR-REQUEST-1`처럼 분리한다. canonical fields에는 정렬된 양쪽 device ID와 MAC, 양쪽 nonce, channel, 선택 protocol version, 요청 role, 로컬 승인 role/scope/message class와 key generation을 모두 길이 prefix와 함께 넣는다. 요청 role은 로컬 peer record의 권한을 넓힐 수 없다.
 
-ESP-NOW의 PMK는 장치당 하나이고 LMK는 peer별이다. 따라서 PMK를 pairing session별 nonce로 만들면 Communicator가 여러 Controller를 동시에 유지할 수 없다. PMK는 설치 단위 전역으로, LMK만 peer별로 파생한다.
+ESP-NOW의 PMK는 장치당 하나이고 LMK는 peer별이다. 각 장치는 자신의 `local_pmk`를 설정하고, 두 endpoint는 pair 전용 `link_root`에서 같은 LMK만 파생한다.
 
 ```text
-install_salt = SHA-256("canview/install/v1" || installation_id || key_generation)
-PMK = HKDF-SHA-256(pairing_secret, install_salt,
-                   "canview/esp-now/pmk/v1")[0:16]
-
-peer_salt = communicator_nonce || controller_nonce
-LMK = HKDF-SHA-256(pairing_secret, peer_salt,
+endpoint_order = lexicographic_sort(device_id || MAC)
+peer_salt = nonce_of_endpoint_0 || nonce_of_endpoint_1
+LMK = HKDF-SHA-256(link_root, peer_salt,
                    "canview/esp-now/lmk/v1" || installation_id ||
-                   communicator_device_id || controller_device_id || key_generation)[0:16]
+                   endpoint_order || selected_version || channel ||
+                   authorized_role || authorized_scope ||
+                   authorized_message_classes || link_key_generation)[0:16]
 ```
 
-PMK와 LMK 자체는 공중으로 보내지 않는다. 같은 installation의 모든 node는 같은 PMK generation을 사용하지만 각 peer pair의 LMK는 nonce와 두 device ID 때문에 다르다. `PAIR_CONFIRM`부터 encrypted unicast여야 하며 transcript hash가 일치해야 한다. 성공 후 peer MAC, channel, PMK/LMK, generation을 encrypted NVS에 원자적으로 저장한다. 새 key 확인이 끝나기 전에는 encrypted NVS의 이전 generation 복구 사본을 지우지 않는다.
+PMK, LMK와 `link_root`는 공중으로 보내지 않는다. `PAIR_CONFIRM`부터 encrypted unicast여야 하며 transcript hash가 일치해야 한다. 성공 후 peer MAC, channel, LMK, link generation과 로컬 승인 권한을 encrypted NVS에 원자적으로 저장한다. 새 key 확인이 끝나기 전에는 encrypted NVS의 이전 generation 복구 사본을 지우지 않는다.
 
-이 PSK 방식은 unique secret이 유출되면 forward secrecy를 제공하지 않는다. 더 높은 위협 모델이 필요하면 차기 major에서 ECDH+서명 handshake를 별도 도입하되 v1 wire에 임시 확장을 섞지 않는다.
+이 pair별 PSK 방식은 해당 `link_root`가 유출되면 그 링크에 forward secrecy를 제공하지 않는다. 다만 다른 pair의 root나 LMK까지 파생되지는 않아야 한다. 더 높은 위협 모델이 필요하면 차기 major에서 ECDH+서명 handshake를 별도 도입하되 v1 wire에 임시 확장을 섞지 않는다.
 
 ### 7.5 평문 개발 mode
 
@@ -292,9 +298,10 @@ PMK와 LMK 자체는 공중으로 보내지 않는다. 같은 installation의 �
 
 ### 7.6 key 회전·삭제
 
-- key 회전은 차량 정지, 양쪽 물리 확인, 기존 encrypted session 인증 후에만 가능하다.
-- PMK generation 회전은 설치 전체 작업이다. ESP-NOW 장치에 PMK가 하나뿐이므로 Communicator가 서로 다른 PMK generation의 peer를 동시에 운용하지 않는다. 필요한 peer에 새 generation을 staging하고 모두 확인한 뒤 같은 activation 시점에 전환하며, 참여하지 못한 peer는 재등록 전까지 offline으로 둔다.
-- 5회 연속 HMAC/CCMP 인증 실패 시 60초 `AUTH_LOCKED`로 들어가 rate-limit한다.
+- link key 회전은 차량 정지, 해당 두 endpoint의 물리 확인, 기존 encrypted session 인증 후에만 가능하다. 다른 peer의 link generation에는 영향을 주지 않는다.
+- 새 `link_root`와 generation은 두 endpoint에 staging하고 양쪽 확인 뒤 전환한다. 실패하면 그 pair만 이전 generation으로 원자 복구하며 설치 전체를 잠그지 않는다.
+- `local_pmk` 회전은 장치 로컬 maintenance transaction으로 처리하고 power loss 전후 모든 peer LMK record의 복구를 시험한다.
+- 5회 연속 HMAC/CCMP 인증 실패는 알려진 peer 또는 pairing candidate별 exponential `AUTH_BACKOFF`를 적용한다. 알 수 없는 MAC이나 한 peer의 실패가 다른 정상 peer를 잠그지 못한다.
 - peer 삭제는 USB 또는 양쪽 물리 확인으로만 수행한다.
 - Communicator 초기화 시 Controller의 key가 남아 있어도 평문 fallback하지 않고 재-pairing을 요구한다.
 
@@ -319,7 +326,8 @@ ONLINE -- 3 heartbeat misses --> DEGRADED -- 3 s --> RECOVERING
    ^                                  |                    |
    |--------- valid heartbeat --------|---- secure hello ---|
 
-Any state -- repeated auth failure --> AUTH_LOCKED
+That peer/candidate -- repeated auth failure --> AUTH_BACKOFF
+Other established peers remain online
 ```
 
 ### 8.1 secure reconnect
@@ -375,7 +383,7 @@ heartbeat에는 `boot_id`, uptime, state revision, RSSI, bus mask, bus error mas
 
 `CAPABILITIES`는 고정 prefix 뒤 TLV로 확장한다.
 
-- role: Communicator, Primary Controller, Read-only Controller
+- role: Communicator, Primary Controller, Read-only Controller, Diagnostic Bridge
 - 최대 frame 크기와 ESP-NOW transport version
 - CAN bus 수: 최대 3개, wire `bus_id`는 `0–2`
 - raw CAN, Controller-local filter, decoded signal, bulk 지원 여부
@@ -417,6 +425,8 @@ rtt    = (t4 - t1) - (t3 - t2)
 ```
 
 3회 측정해 RTT가 가장 작은 sample을 채택한다. 10초마다 또는 drift가 5 ms를 넘을 때 다시 맞춘다. time sync 실패는 telemetry 표시를 막지 않지만 서로 다른 node의 event 정렬 신뢰도를 낮춘다.
+
+차량 명령은 이 인접 ESP time sync만 사용하지 않는다. Controller와 STM32 사이의 `CONTROL_TIME_SYNC`를 두 ESP/UART hop이 그대로 전달해 `(controller_boot_id, stm_boot_id, control_sync_generation)` mapping을 만든다. 10초마다 갱신하고 30초 또는 uncertainty 50 ms 초과에서 invalid로 만들며, 어느 MCU든 reboot하면 mapping·lease·pending을 모두 폐기한다. command의 issued time/TTL/generation은 hop마다 변경하지 않는다.
 
 신호마다 `sample_time`, `age_ms`, `quality`를 보존한다. UI stale 기본값은 signal class별로 둔다.
 
@@ -469,9 +479,9 @@ raw stream은 상시 전체 bus mirror가 아니다. 3×500 kbit/s CAN line traf
 
 ### 11.1.1 Controller 수신 필터 관리
 
-`CAN_FILTER_SET`의 payload는 `canview_can_filter_batch_header_t`와 `canview_can_filter_t` 배열이다. `ADD`, `REPLACE`, `DELETE`는 1–8개, `CLEAR`는 count 0만 허용한다. Controller는 설정을 적용하기 전에 secure session, config lease, `config_revision`, reserved 값, 범위를 확인한다. revision이 맞지 않으면 전체 batch를 적용하지 않는다.
+`CAN_FILTER_SET`의 payload는 `canview_can_filter_batch_header_t`와 `canview_can_filter_t` 배열이다. `ADD`, `REPLACE`, `DELETE`는 1–8개, `CLEAR`는 count 0만 허용한다. Communicator는 peer namespace에 적용하기 전에 secure session, peer role, expected `subscription_revision`, reserved 값과 모든 entry 범위를 staging copy에서 확인한다. 하나라도 실패하거나 revision이 맞지 않으면 전체 batch와 active revision을 바꾸지 않는다. Controller의 local RX allow-list는 별도 owner/store/revision이며 이 message로 직접 수정하지 않는다.
 
-`CAN_FILTER_GET`은 현재 filter snapshot을 조회한다. 32개 전체는 8개 단위 fragment로 반환하며, `CAN_FILTER_RESULT`는 각 action의 결과와 새 revision을 담는다. `CAN_STREAM_CONFIG`는 stream period, max record count, byte/s budget, burst 상한을 바꾸고 `CAN_STREAM_STATUS`는 accepted/rejected/budget drop을 보고한다. 이 메시지는 raw CAN을 차량에 재송신하는 기능이 아니다.
+`CAN_FILTER_GET`은 현재 filter snapshot을 조회한다. 32개 전체는 8개 단위 fragment로 반환하며 각 fragment는 `snapshot_id`, revision, part index/count와 total count를 갖는다. 하나라도 빠지거나 조회 중 revision이 바뀌면 전체 snapshot을 폐기한다. `CAN_FILTER_RESULT`는 action 결과와 새 revision을 담는다. `CAN_STREAM_CONFIG`는 stream period, max record count, byte/s budget, burst 상한을 바꾸고 `CAN_STREAM_STATUS`는 accepted/rejected/budget drop을 보고한다. 이 메시지는 raw CAN을 차량에 재송신하는 기능이 아니다.
 
 ### 11.2 decoded signal batch
 
@@ -481,9 +491,10 @@ raw stream은 상시 전체 bus mirror가 아니다. 3×500 kbit/s CAN line traf
 |---|---:|---|
 | `signal_id` | 2 | catalog key |
 | `value_type` | 1 | bool/u32/i32/f32/enum/bitset |
-| `quality` | 1 | valid/stale/unavailable/unverified/out-of-range/fault |
+| `quality` | 1 | valid/stale/unavailable/out-of-range/fault |
 | `age_ms` | 2 | sample 생성 후 경과, 65,535에서 포화 |
-| `reserved` | 2 | 0 |
+| `evidence_grade` | 1 | unknown/candidate/observed/verified |
+| `reserved` | 1 | 0 |
 | `value_bits` | 4 | type에 따른 LE bit pattern |
 
 12 byte batch header와 16 records를 합치면 204 byte다. 빠른 signal group은 20–50 Hz, 중간 group은 5–10 Hz, 온도·진단은 1–2 Hz로 보낸다. 동일 signal이 한 frame에 두 번 나오면 뒤 record를 사용하되 protocol counter를 올린다.
@@ -523,12 +534,20 @@ heartbeat 3회 누락, session 변경, Communicator reboot, physical TX disable�
 | `request_token:u64` | CSPRNG 기반 idempotency key |
 | `command_id:u16` | 사전 정의된 의도 명령 |
 | `ttl_ms:u16` | 생성 후 실행 가능한 최대 시간 |
+| `origin_device_id/origin_boot_id:u64` | provisioned Primary와 현재 boot binding |
+| `wireless_session_id:u64` | 현재 encrypted session binding |
+| `control_generation:u32` | Controller↔STM32 control root generation |
+| `issued_at_controller_ms:u32` | retry에서도 바뀌지 않는 생성 시각 |
+| `control_sync_generation:u32` | end-to-end clock mapping |
 | `expected_state_revision:u32` | optimistic concurrency |
-| `precondition_flags:u32` | Controller가 기대한 조건. Communicator가 독립 재검증 |
+| `precondition_flags:u32` | Controller가 기대한 조건 hint. STM32 필수조건을 대체하지 않음 |
 | `argument_tlv_length:u16` | 뒤 TLV 길이 |
 | `reserved:u16` | 0 |
+| `control_tag:16 bytes` | canonical envelope의 end-to-end HMAC |
 
-수신 endpoint는 `request_token + command_id + payload digest` 결과를 최소 60초 또는 256건 LRU로 보관한다. 같은 token과 같은 digest는 기존 result를 재전송하고, 같은 token과 다른 payload가 오면 auth/protocol 오류로 취급하고 실행하지 않는다.
+Primary Controller와 STM32에만 별도 pair-specific `control_root`를 provision한다. Communicator ESP32는 root를 저장하지 않고 canonical command/lease bytes를 UART로 전달한다. STM32는 origin identity, role/scope, tag, sync generation, TTL, lease와 generated command table을 검증하고 terminal result와 TX/feedback digest에도 tag를 붙인다. Bridge와 read-only peer에는 control root가 없다.
+
+STM32는 `(origin, boot, session, control generation, request token, command ID, payload digest)` 결과를 terminal 뒤 최소 60초 보관한다. TTL이 살아 있거나 result 보존 기간 안인 entry는 LRU로 축출하지 않으며 256개가 모두 live면 새 요청을 ACK 전에 `BUSY`로 거부한다. 같은 token과 같은 digest는 기존 result를 재전송하고, 같은 token과 다른 payload가 오면 auth/protocol 오류로 취급하고 실행하지 않는다. ACK와 RESULT는 모두 request token을 포함한다.
 
 ### 12.3 명령 수명주기
 
@@ -536,8 +555,8 @@ heartbeat 3회 누락, session 변경, Communicator reboot, physical TX disable�
 2. TTL·중복 검사
 3. lease와 capability 검사
 4. state revision 검사
-5. Communicator가 현재 vehicle signal로 precondition 재검사
-6. 차량 profile이 만든 CAN event 실행
+5. STM32가 generated command별 immutable known-mask와 현재 local vehicle signal로 precondition 재검사
+6. dequeue와 각 frame/pulse 직전 같은 조건을 다시 검사한 뒤 차량 profile이 만든 bounded CAN event 실행
 7. 별도 feedback message에서 기대 상태 관찰
 8. `COMPLETED` 또는 timeout `FAILED`
 
@@ -557,7 +576,7 @@ Controller에 audio 제어 권한을 주는 것은 위 의미 명령을 허용�
 
 현재 UI에서 volume ± 버튼과 임의 sound-position 조정 화면을 숨기는 결정은 이 내부 제어 권한을 제거하지 않는다. 주행 소음 자동 음량, 취침 mode, 뒷좌석 강화 mode와 정확한 OEM 상태 복원을 위해 필요한 scope는 계속 사용할 수 있다.
 
-`DRIVE_MODE_BUTTON_PULSE`도 Communicator가 속도·기어·브레이크·ESC·신호 freshness를 검사한다. 특정 drive mode state를 ECU에 직접 쓰는 명령은 정의하지 않는다.
+`DRIVE_MODE_BUTTON_PULSE`도 STM32가 속도·기어·브레이크·ESC·신호 freshness를 검사한다. 송신자가 보낸 zero/partial/unknown precondition mask로 generated 필수조건을 생략할 수 없다. 특정 drive mode state를 ECU에 직접 쓰는 명령은 정의하지 않는다.
 
 `AUTOMATION_ARM/DISARM`의 argument에는 `canview_automation_id_t`를 넣는다. 자동 SPORT가 arm되면 속도·종가속도 상태기계는 Communicator STM32에서 실행된다. Controller가 매 sample마다 SPORT 전환 명령을 보내지 않는다. STM32는 진입 직전 mode를 snapshot하고 vehicle profile의 제한된 button event와 feedback을 이용해 `SPORT -> previous mode`를 수행한다.
 
@@ -565,7 +584,7 @@ Controller에 audio 제어 권한을 주는 것은 위 의미 명령을 허용�
 
 `CONFIG_GET/SET/RESULT` payload는 `canview_config_batch_header_t` 뒤에 고정 8 byte `canview_config_record_t`를 `count`개 배치한다. `value_type`은 signal record와 같은 `CANVIEW_VALUE_*`를 사용하고 `reserved`는 0이어야 한다.
 
-protocol 1.2에서 Communicator가 소유하는 SPORT key는 다음과 같다.
+첫 통합 protocol 1.3에서 Communicator가 소유하는 SPORT key는 다음과 같다.
 
 | Key | 형식 | 범위 |
 |---|---|---|
@@ -577,7 +596,7 @@ protocol 1.2에서 Communicator가 소유하는 SPORT key는 다음과 같다.
 
 설정 변경은 secure session, Primary Controller, 차량 정지, control lease, compatible config schema를 모두 요구한다. `CONFIG_RESULT`의 성공과 새 `state_revision`을 받은 뒤에만 Controller mirror를 commit한다. 범위를 벗어난 값은 clamp하지 않고 application error로 거부해 UI와 Communicator의 실제 설정이 조용히 달라지지 않게 한다.
 
-화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset, RTC 표시 설정은 Controller-local NVS 값이다. RTC 시간 변경은 날짜를 보존하는 `CANVIEW_COMMAND_RTC_SET_LOCAL_TIME` 의도 명령으로 전송하고, 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다. CAN filter와 raw stream budget은 Controller ingress에서 적용하고, 필요한 경우 같은 설정을 Communicator의 raw stream hint로 전파한다.
+화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset, RTC와 유휴 설정은 Controller-local NVS 값이다. RTC 시간 변경은 Controller가 PCF85063에 직접 적용하며 차량 command 또는 Communicator config로 전송하지 않는다. 휴대폰 설정을 구현할 때는 Diagnostic Bridge와 Controller 사이의 owner-targeted remote config를 사용한다. 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다. CAN filter는 Controller local default-deny 경계와 Communicator의 peer별 upstream subscription을 별도 revision으로 관리한다.
 
 ## 13. 상태 snapshot과 revision
 
@@ -624,7 +643,7 @@ error payload는 code, severity, origin, offending message type/sequence, 짧은
 | channel mismatch | send error/timeout | control 중단, 저장 channel 우선 복구 | `무선 채널 확인` |
 | queue overflow | watermark | P4→P3 drop | `데이터 지연` if sustained |
 | version mismatch | HELLO/CAPS | read-only fallback 또는 incompatible | `버전 업데이트 필요` |
-| key mismatch | encrypted HELLO 실패 | retry 제한 후 AUTH_LOCKED | `다시 등록 필요` |
+| key mismatch | encrypted HELLO 실패 | 해당 peer만 retry 제한 후 AUTH_BACKOFF | `다시 등록 필요` |
 | CAN bus-off | controller status | 해당 bus TX 금지, recovery policy | bus 번호와 오류 |
 | stale safety signal | age threshold | 관련 command 거부/automation 해제 | 구체적 inhibit 이유 |
 | external OEM override | feedback≠requested | automation 중단, snapshot 갱신 | `차량에서 직접 변경됨` |
@@ -650,7 +669,7 @@ flash/NVS write는 운행 중 빈번히 하지 않고 config commit과 pairing�
 
 ## 17. 대역폭 예산
 
-ESP-NOW 기본 bit rate는 1 Mbit/s지만 MAC overhead, airtime 경쟁, retry를 제외한 값이 아니다. CANView v1은 한 display당 application payload sustained 20 kB/s, 1초 burst 40 kB/s를 초기 engineering budget으로 둔다. 이 값은 실차 RF 시험 후 낮출 수 있으며 보장 throughput이 아니다.
+ESP-NOW 기본 bit rate는 1 Mbit/s지만 MAC overhead, airtime 경쟁, retry를 제외한 값이 아니다. CANView v1은 모든 peer를 합친 application payload sustained 20 kB/s, 1초 burst 32 kB를 installation hard cap으로 둔다. P0/P1에 2 kB/s, Primary Controller runtime에 8 kB/s를 빌려주지 않는 reserve로 두고 나머지를 read-only, stats, raw capture 순서로 배분한다. 이 값은 실차 RF 시험 후 낮출 수 있으며 보장 throughput이 아니다.
 
 권장 traffic 예시는 다음과 같다.
 
