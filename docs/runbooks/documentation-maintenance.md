@@ -57,9 +57,12 @@
 적대적 리뷰는 실행마다 `docs/reviews/adversarial/YYYY-MM-DD-<scope>.md`를 새로 만든다. 기존 report에 다음 리뷰 결과를 추가하지 않는다.
 
 1. 두 전문 리뷰어의 독립 finding과 기준 commit을 새 report에 기록한다.
-2. 수정·ADR·task·기각 근거와 재검증 결과를 같은 report의 disposition에 연결한다.
-3. `docs/reviews/README.md` 표 맨 위에 report를 추가한다.
-4. 과거 report의 링크나 사실 오류를 고칠 때는 correction note와 날짜를 남긴다.
+2. 교차 비교 전에 reviewer별 실행 metadata와 원본 결과를 `docs/reviews/adversarial/evidence/`의 별도 파일에 보존하고 통합 report에서 연결한다.
+3. 수정·ADR·task·기각 근거와 재검증 결과를 같은 report의 disposition에 연결한다.
+4. `docs/reviews/README.md` 표 맨 위에 report를 추가한다.
+5. 과거 report의 링크나 사실 오류를 고칠 때는 correction note와 날짜를 남긴다.
+
+원본 evidence, 통합 disposition·재검증 결과와 index 한 행만 추가하는 closure 기록은 같은 review를 재귀적으로 다시 시작하지 않는다. 이때 정책·설계 문구를 함께 변경하면 새 review 기준선이 된다.
 
 리뷰 운영과 merge gate는 [agent workflow](agent-workflow.md), 형식은 [review archive](../reviews/README.md)와 [template](../reviews/adversarial/TEMPLATE.md)이 정본이다.
 

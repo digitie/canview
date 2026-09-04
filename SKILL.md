@@ -9,9 +9,9 @@
 1. [AGENTS.md](AGENTS.md)
 2. [docs 문서 지도](docs/README.md)
 3. [현재 상태](docs/resume.md)
-4. 지정된 상세 task 한 파일
+4. 해당 상세 task가 있는 경우 그 파일 한 개
 
-전체 `docs/`, 모든 ADR, 모든 task, 과거 review와 journal을 한꺼번에 읽지 않는다. 작업 대상이 정해지지 않았을 때만 [task 요약](docs/tasks.md)을 연다.
+전체 `docs/`, 모든 ADR, 모든 task, 과거 review와 journal을 한꺼번에 읽지 않는다. 작업 대상이 정해지지 않았을 때만 [task 요약](docs/tasks.md)을 연다. task가 없는 문서·review 요청은 해당 runbook 또는 review template을 기준으로 삼는다.
 
 ## 2. 작업별 시작점
 

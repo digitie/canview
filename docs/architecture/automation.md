@@ -71,7 +71,7 @@ rheostat 미수신 야간 목표 = 30%
 
 ### 2.4 일몰 후 전조등 미점등 경고
 
-저장 DBC에는 1차 차량의 GPS 좌표·현재 시각 CAN signal이 없으므로 `PCF85063 RTC + 설정된 일출·일몰`을 사용한다. GPS·시간 후보의 조사 결과는 [`can-gps-time-investigation.md`](../vehicle/gps-time-investigation.md)에 있다.
+저장 DBC에는 1차 차량의 GPS 좌표·현재 시각 CAN signal이 없으므로 `PCF85063 RTC + 설정된 일출·일몰`을 사용한다. GPS·시간 후보의 조사 결과는 [GPS·시간 조사](../vehicle/gps-time-investigation.md)에 있다.
 
 경고 입력은 `rtc_valid`, `solar_window_valid`, `vehicle_awake`, `CF_Gway_HeadLampLow`/`C_TailLampActivity` 중 실차에서 확인된 조명 상태와 각 입력의 age다. 다음 조건이 모두 충족될 때만 밤으로 판정한다.
 

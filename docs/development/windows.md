@@ -26,19 +26,7 @@
 
 ## 3. 필요 시 생성하는 임시 worktree
 
-기본 작업은 `F:/dev/canview`에서 수행한다. 병렬 작업이나 격리가 필요할 때만 임시 worktree를 만들고, 작업이 끝나면 삭제한다.
-
-    New-Item -ItemType Directory -Force F:/dev/canview-wt | Out-Null
-    git -C F:/dev/canview fetch origin main
-    git -C F:/dev/canview worktree add -b agent/codex-t001 F:/dev/canview-wt/codex-t001 origin/main
-    Set-Location F:/dev/canview-wt/codex-t001
-
-검증과 commit/push는 해당 Windows worktree에서 수행한다. 작업이 merge 또는 abandon으로 끝난 뒤 실행 중인 프로세스와 미커밋 변경이 없을 때만 다음으로 정리한다.
-
-    git -C F:/dev/canview worktree remove F:/dev/canview-wt/codex-t001
-    git -C F:/dev/canview worktree prune
-
-worktree 제거 후에도 필요하면 원격 branch를 별도 확인해 정리한다. 사용자의 활성 worktree나 미커밋 변경을 강제로 제거하지 않는다.
+기본 작업은 `F:/dev/canview`의 작업 branch에서 수행하고 병렬·격리·독립 리뷰가 필요할 때만 임시 worktree를 만든다. 생성, reviewer detached 기준선 검증, CodeGraph 수명주기와 안전한 삭제 명령은 [agent workflow](../runbooks/agent-workflow.md)에만 둔다.
 
 ## 4. 검증 계층
 

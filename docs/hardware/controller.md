@@ -113,7 +113,7 @@ Waveshare의 Arduino 예제와 ESP-IDF 예제에서 확인한 기본 점유는 �
 
 Arduino 예제의 화면 관련 기준값은 `320×480`, rotation `0`, `ST7796`이다. ESP-IDF 예제도 `SPI2_HOST`, MOSI `GPIO1`, SCLK `GPIO5`, DC `GPIO3`, backlight `GPIO6`, I2C SDA `GPIO8`, SCL `GPIO7`을 사용한다. LCD CS와 RST는 예제 설정에서 `GPIO_NC`/`-1`로 표시되고, reset은 `TCA9554`를 통해 처리되므로 회로도와 예제 드라이버의 초기화 순서를 유지한다.
 
-Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시한다. 주변 소음 측정 prototype은 onboard microphone부터 사용한다. `GPIO12`–`16`은 audio 경로에 점유된 핀이므로 외부 microphone을 병렬 연결하지 않는다. 설치 위치 때문에 송풍음·speaker 누설이 지배적이면 별도 microphone node를 검토하며, 판단 기준과 신호처리는 [`feature-design.md`](../architecture/features.md)에 정리했다.
+Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시한다. 주변 소음 측정 prototype은 onboard microphone부터 사용한다. `GPIO12`–`16`은 audio 경로에 점유된 핀이므로 외부 microphone을 병렬 연결하지 않는다. 설치 위치 때문에 송풍음·speaker 누설이 지배적이면 별도 microphone node를 검토하며, 판단 기준과 신호처리는 [기능 설계](../architecture/features.md)에 정리했다.
 
 ### 4.1 I²C RTC와 시간 원천
 
@@ -121,7 +121,7 @@ Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시
 
 PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, backup 전원 상태를 읽어 `rtc_quality`를 만든다. Controller가 RTC 소유자이며 UI의 시·분 선택은 Controller local transaction으로 RTC와 NVS에 직접 적용한다. 휴대폰에서 바꿀 때도 Diagnostic Bridge와 Controller 사이의 owner-targeted remote config를 사용하며 차량 command로 보내지 않는다. RTC wall clock은 화면·로그·일몰 계산용이고 CAN timestamp ordering은 Communicator STM32의 monotonic clock을 사용한다.
 
-저장된 Hyundai DBC에는 1차 대상의 확정 GPS 좌표·현재 시각 신호가 없으므로 일출·일몰은 설정값 또는 별도 위치 원천에서 공급한다. 조사 결과는 [`can-gps-time-investigation.md`](../vehicle/gps-time-investigation.md)에 기록한다.
+저장된 Hyundai DBC에는 1차 대상의 확정 GPS 좌표·현재 시각 신호가 없으므로 일출·일몰은 설정값 또는 별도 위치 원천에서 공급한다. 조사 결과는 [GPS·시간 조사](../vehicle/gps-time-investigation.md)에 기록한다.
 
 ## 5. Communicator 하드웨어 요구사항
 

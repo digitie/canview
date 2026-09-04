@@ -6,11 +6,11 @@
 
 | 단계 | 읽는 경우 | 문서 |
 |---|---|---|
-| 반드시 | 모든 저장소 작업 | `AGENTS.md`, 이 문서, `docs/resume.md`, 지정된 상세 task |
+| 반드시 | 모든 저장소 작업 | `AGENTS.md`, 이 문서, `docs/resume.md`, 해당 task가 있으면 그 상세 파일 |
 | 필요 시 | 변경 분야가 정해졌을 때 | 아래 분야별 인덱스와 관련 상세 문서 한두 개 |
 | 특수 | 리뷰·과거 원인·결정 이력·복구가 필요할 때 | `reviews/`, `journal.md`, 관련 ADR, failure patterns |
 
-이미 task가 지정됐으면 `tasks.md` 전체를 읽지 않는다. ADR·review·journal은 기본 요구사항이 아니라 이력 자료이므로 현재 작업과 직접 관련된 항목만 검색한다.
+이미 task가 지정됐으면 `tasks.md` 전체를 읽지 않는다. task가 없는 문서·review 작업은 관련 runbook 또는 template을 진입점으로 삼는다. ADR·review·journal은 기본 요구사항이 아니라 이력 자료이므로 현재 작업과 직접 관련된 항목만 검색한다.
 
 ## 정본 관계
 
@@ -82,7 +82,7 @@ branch·PR·리뷰 절차는 development가 아니라 [agent workflow](runbooks/
 | 화면 정보 구조·token·상태·LVGL mapping | [UI design](ui/design.md) |
 | 공식 LVGL demo 채택·제외 근거 | [LVGL demo review](ui/lvgl-demo-review.md) |
 
-구현 세부는 `ui/prototype/`, `ui/lvgl/`, `ui/diagnostic-web/`의 README에서 이어서 확인한다.
+구현 세부는 [정적 운전자 prototype](../ui/prototype/README.md), [LVGL 구현](../ui/lvgl/README.md), [진단 웹 prototype](../ui/diagnostic-web/README.md)에서 이어서 확인한다.
 
 ## 작업·운영·이력
 

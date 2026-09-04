@@ -413,7 +413,7 @@ TLV header는 `type:u16`, `length:u16`이고 value가 뒤따른다. 다음 규�
 
 ## 10. 시간 동기화와 freshness
 
-Communicator STM32 monotonic clock을 CAN sample 기준으로 사용한다. Controller의 PCF85063 RTC와 wall clock은 화면·로그·일몰 계산용일 뿐 ordering 기준이 아니다. 저장된 1차 Hyundai DBC에는 GPS 좌표나 현재 날짜·시각 CAN signal이 없으므로 시간 동기화가 GPS/RTC 값을 대신 만들어내지 않는다. 후보 조사 결과는 [`can-gps-time-investigation.md`](../../vehicle/gps-time-investigation.md)에 있다.
+Communicator STM32 monotonic clock을 CAN sample 기준으로 사용한다. Controller의 PCF85063 RTC와 wall clock은 화면·로그·일몰 계산용일 뿐 ordering 기준이 아니다. 저장된 1차 Hyundai DBC에는 GPS 좌표나 현재 날짜·시각 CAN signal이 없으므로 시간 동기화가 GPS/RTC 값을 대신 만들어내지 않는다. 후보 조사 결과는 [GPS·시간 조사](../../vehicle/gps-time-investigation.md)에 있다.
 
 time sync는 NTP와 같은 4 timestamp를 사용한다.
 

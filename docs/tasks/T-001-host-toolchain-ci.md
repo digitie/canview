@@ -12,8 +12,8 @@
 
 ## 결정사항
 
-- Linux를 기준 환경으로 사용한다.
-- CMake `>=3.22`, Ninja, GCC/Clang, Python `3.12`를 CI matrix에 둔다.
+- Windows PowerShell과 Windows native toolchain을 local 재현성의 기준 환경으로 사용한다.
+- 필수 CI는 `windows-latest`에서 CMake `>=3.22`, Ninja, MSVC 또는 Windows LLVM, Python `3.12`를 실행한다. Linux GCC/Clang job은 cross-platform portability와 sanitizer를 위한 별도 matrix로 유지하되 Windows 기준을 대체하지 않는다.
 - ESP-IDF와 GNU Arm build는 별도 container/job으로 두고 host job과 섞지 않는다.
 - Python dependency는 hash가 고정된 lock file을 사용한다.
 - ESP-IDF component lock, Waveshare example commit, STM32CubeG4 commit과 archive digest도 불변값으로 기록한다. 이동하는 branch/tag만 pin으로 인정하지 않는다.
@@ -60,8 +60,9 @@ tools/check_generated.py
 
 ## 수용 기준
 
-- [ ] clean clone에서 문서에 적힌 한 명령으로 configure/build/test가 된다.
+- [ ] Windows clean clone에서 문서에 적힌 PowerShell 명령으로 configure/build/test가 된다.
 - [ ] GCC와 Clang 모두 기존 host test를 통과한다.
+- [ ] 필수 `windows-latest` job과 Linux portability/sanitizer job의 실패가 구분되어 표시된다.
 - [ ] ASan/UBSan에서 오류가 없다.
 - [ ] 생성물 수동 변경 fixture가 CI에서 실패한다.
 - [ ] 깨진 Markdown link fixture가 실패한다.
@@ -72,15 +73,15 @@ tools/check_generated.py
 
 ## 검증 명령
 
-```bash
+```powershell
 cmake --preset host-debug
 cmake --build --preset host-debug
 ctest --preset host-debug --output-on-failure
 cmake --preset host-sanitize
 cmake --build --preset host-sanitize
 ctest --preset host-sanitize --output-on-failure
-python -m pytest -q
-python tools/check_generated.py
+py -3 -m pytest -q
+py -3 tools/check_generated.py
 ```
 
 ## 증거와 rollback
