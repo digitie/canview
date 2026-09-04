@@ -30,6 +30,8 @@ STM32G474 ── raw CAN batch ── ESP32 Communicator
 
 Communicator에는 화면용 DBC 의미를 넣지 않는다. 기존 ID 안에서 새 signal을 추가하거나, 다른 차량용 catalog를 선택하거나, candidate의 factor/bit layout을 바꿀 때는 Controller의 catalog/decoder만 배포하면 된다. 새 CAN ID를 사용하려면 Controller의 필터를 먼저 추가한다. 이때도 Communicator firmware는 변경하지 않는다.
 
+실차에서 미확정 ID를 찾고 bit layout을 바꿔 보는 과정은 별도 `Diagnostic Bridge`와 휴대폰 웹 `Signal Lab`이 담당한다. Bridge도 Communicator의 raw record 계약을 사용하며 DBC별 코드를 Communicator에 추가하지 않는다. 전체 구조, 행동 전후 capture, candidate/evidence 형식은 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)를 따른다.
+
 raw CAN 자체는 차량 제어 명령이 아니다. Controller 수신 필터는 **수신량을 제한하는 보안·대역폭 경계**이며, raw record를 차량에 다시 송신하는 권한을 만들지 않는다.
 
 ## 2. 이중 허용 경계
@@ -111,6 +113,15 @@ decoder는 classic CAN record의 0–8 byte data에서 Intel little-endian과 Mo
 4. catalog revision과 digest를 바꾸고 이전 revision의 decoded value를 섞지 않는다.
 5. 실차 검증 전에는 `UNVERIFIED`로 유지하고, 값이 없으면 `—`를 표시한다.
 
+Diagnostic Bridge에서 export한 `.cvtrace`를 근거로 작업하는 에이전트는 다음 순서를 지킨다.
+
+1. manifest의 protocol, vehicle profile, bus, filter, drop/gap, DBC digest를 먼저 확인한다.
+2. candidate가 참조한 capture와 marker 반복 횟수를 확인한다.
+3. Bridge generic decoder와 Controller decoder에 같은 raw vector를 넣어 값이 일치하는지 확인한다.
+4. `OBSERVED/B`까지는 candidate catalog에서 시험할 수 있지만 `VERIFIED/A` 조건이 없으면 운전자 화면의 정상값으로 승격하지 않는다.
+5. Controller catalog 변경과 함께 source capture ID, bit numbering, endian, scale, range, stale 기준을 문서화한다.
+6. 새 ID이면 Controller filter와 stream budget 영향도 함께 검토한다. Communicator에 signal 이름별 분기문을 추가하지 않는다.
+
 Communicator는 signal name, factor, UI label을 알 필요가 없다. 새 차량이나 새 DBC가 들어와도 raw `bus_id`, arbitration ID, flags, DLC, data, timestamp를 그대로 전달하는 계약만 유지한다.
 
 ## 6. 명령 응답 확인
@@ -156,3 +167,5 @@ ACK만으로 UI의 차량 상태를 바꾸지 않는다. 상태 snapshot 또는 
 5. Intel/Motorola, signed, scale/offset, out-of-range decoder golden vector
 6. duplicate ACK, result-before-ACK, late result, token collision과 reboot 처리
 7. 세 CAN bus 고부하에서 P1 command queue가 raw telemetry drop보다 우선하는지 확인
+8. Bridge candidate decoder와 Controller decoder가 같은 golden raw frame에서 같은 값을 내는지 확인
+9. gap/drop이 있는 capture가 자동으로 `VERIFIED`로 승격되지 않는지 확인

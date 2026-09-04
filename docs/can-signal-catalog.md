@@ -121,6 +121,8 @@ Controller는 raw CAN ID/payload를 Communicator로 지시할 수 없다. 명령
 
 ## 6. 실차 검증 절차
 
+PC 기반 CAN tool 없이 현장에서 반복 검증할 때는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)의 `INVENTORY → EVENT_DIFF → FILTERED_RAW → Signal Lab` 흐름을 사용한다. Bridge가 만든 `.cvtrace` manifest의 bus, filter, drop/gap, marker 반복, firmware와 DBC digest를 이 문서의 등급 근거로 보존한다.
+
 1. 차량 옵션, 시장, HU·AMP·TMU·BCM/IBU·4WD ECU 부품번호를 기록하고 VIN은 마스킹한다.
 2. 세 채널을 물리 TX disable과 FDCAN bus-monitoring mode로 두고 bitrate·idle voltage·connector pin을 찾는다.
 3. C-CAN/M-CAN 후보를 동시 캡처해 `0x043→0x53A`, `0x1EB→0x521`, `0x16A→0x522` 같은 gateway 변환 가설을 timestamp로 확인한다.

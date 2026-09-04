@@ -7,7 +7,7 @@ CANView는 순정 계기판을 대체하지 않는 320×480 세로형 보조 화
 - 화면 언어는 현대 표준형 5W 내비게이션의 검정·딥네이비 바탕, 청색 활성선, 흰색 수치, 낮은 채도의 보조 텍스트를 따른다.
 - 시각 밀도와 상호작용은 LVGL 공식 데모를 기능 단위로 비교해 채택한다. 특히 `ebike`의 큰 핵심 수치, 얕은 계층, 설정 구성과 `music`의 세로형 미디어 레이아웃을 적극 사용한다.
 - 4WD는 현대 순정 AWD 정보 화면처럼 중앙 차량과 네 바퀴 주변의 구동 막대를 한 덩어리로 읽게 한다.
-- DBC 후보명, raw 값, 판단 경로와 통신 진단은 일반 화면에서 숨긴다. 값이 검증되지 않았거나 stale이면 숫자를 꾸며내지 않고 `—` 또는 중립 상태로 바꾼다.
+- DBC 후보명, raw 값, 판단 경로와 통신 진단은 일반 화면에서 숨긴다. 현장 분석은 별도 [Diagnostic Bridge 모바일 웹 UI](can-diagnostics-web.md)에서 수행한다. 값이 검증되지 않았거나 stale이면 숫자를 꾸며내지 않고 `—` 또는 중립 상태로 바꾼다.
 - 화면 속도 단위는 `km/h`로 고정한다.
 
 참고 원문은 [LVGL 현재 공식 데모](https://github.com/lvgl/lv_demos/tree/master/src), [LVGL 8.4 공식 데모](https://github.com/lvgl/lvgl/tree/v8.4.0/demos), [LVGL eBike](https://github.com/lvgl/lv_demos/tree/master/src/ebike), [현대 표준형 5W 업데이트 가이드](https://update.hyundai.com/KR/KO/updateGuide/lR1ECJ?pfm=std_5w), [현대 AWD 표시 설명](https://ownersmanual.hyundai.com/full_webhelp/NE1N/2025/en_UK/id2362EL00RUI.html), [Tucson 순정 AWD 화면이 실린 설명서 mirror](https://manuals.plus/m/e70406c0d290b3a4e1cc1088e5256e2b3312df5fbd2e1c80583eb9203b77e45f_optim.pdf)다. 최신·타시장 AWD 설명의 차량별 계산식이나 색상을 2017 Tucson에 적용한다는 뜻은 아니며, 중앙 차량과 바퀴별 분배 표시라는 시각 문법만 차용한다.
