@@ -9,7 +9,7 @@
 설계 원칙은 다음과 같다.
 
 1. 차량 CAN 송신 권한과 최종 안전 판단은 항상 Communicator가 가진다.
-2. Controller는 raw CAN frame을 생성하지 않고 검증된 “의도 명령”만 요청한다.
+2. Primary Controller는 활성 차량 profile에서 검증된 기능별 “의도 명령”만 요청할 수 있다. 음량·fader/balance·mute 같은 필요한 제어는 허용하되 raw CAN frame은 생성하지 않는다.
 3. ESP-NOW의 MAC 계층 성공을 애플리케이션 처리 성공으로 간주하지 않는다.
 4. 텔레메트리 손실과 제어 명령 손실을 다른 QoS로 처리한다.
 5. 연결이 불확실하면 표시값을 stale로 바꾸고 제어를 중단한다.
@@ -36,7 +36,7 @@ peer channel은 로컬 Wi-Fi channel과 같아야 한다. `channel=0`은 현재 
 | 역할 | 책임 | 신뢰하지 않는 입력 |
 |---|---|---|
 | Communicator | CAN1–3 raw 수집, timestamp, raw bridge, upstream stream hint, control lease, 최종 안전 gate | Controller 명령, 무선 payload, 화면용 DBC 의미 |
-| Primary Controller | 상태 표시, 사용자 입력, Controller-local CAN filter, DBC catalog/decode, profile 요청, stale/error 표시 | Communicator가 보내는 값의 차량별 의미를 검증 없이 신뢰 |
+| Primary Controller | 상태 표시, 사용자 입력, Controller-local CAN filter, DBC catalog/decode, 허용된 audio·SPORT 의도 명령, stale/error 표시 | Communicator가 보내는 값의 차량별 의미를 검증 없이 신뢰, 임의 raw CAN TX |
 | Read-only Controller | 추가 화면·정비 화면. 상태 수신만 허용 | 모든 제어 요청 |
 | Diagnostic Bridge | ID 통계·제한 raw capture, 후보 decoder/evidence, 휴대폰 웹 UI | control lease, 차량 명령, raw replay, 후보 자동 확정 |
 | Provisioning host | USB를 통한 설치 secret·peer 초기화 | 무선 discovery |
@@ -63,6 +63,31 @@ Phone <-> Bridge SoftAP HTTP/WebSocket; CAN command path 없음
 - Controller는 자신이 알고 있는 상태 revision을 명령에 넣는다. Communicator 상태가 바뀌었으면 stale command를 거부한다.
 - link가 `DEGRADED`가 되는 즉시 새 명령을 거부하고 control lease를 회수한다.
 - 재부팅 뒤 이전 session의 command를 재실행하지 않는다.
+
+### 3.3 Primary Controller 제어 권한
+
+Primary Controller는 단순 read-only 장치가 아니다. CANView 기능 구현에 필요한 아래 제어를 **기능별 capability와 차량 profile allow-list가 모두 허용한 경우에만** 요청할 수 있다.
+
+| control scope bit | 이름 | 허용 용도 |
+|---:|---|---|
+| 0 | `AUDIO_PROFILE` | `QUIET`, `REAR_BOOST`, `CENTER` 같은 검증된 profile transaction |
+| 1 | `AUDIO_VOLUME_OFFSET` | 주행 소음 보정과 profile의 제한된 상대 음량 변경 |
+| 2 | `AUDIO_FADER` | 취침·뒷좌석 강화 profile의 앞/뒤 패닝 |
+| 3 | `AUDIO_BALANCE` | profile에 필요한 좌/우 패닝. 현재 운전자 UI에는 임의 조정 화면을 두지 않음 |
+| 4 | `AUDIO_MUTE` | main mute 상태 설정·복원 |
+| 5 | `AUDIO_REAR_MUTE` | 취침 mode의 뒷좌석 speaker mute 설정·복원 |
+| 6 | `AUDIO_SDVC` | OEM SDVC 충돌 회피 또는 검증된 설정 복원 |
+| 7 | `AUDIO_RESTORE` | 적용 전 OEM audio snapshot 원자적 복원 |
+| 8 | `DRIVE_MODE_PULSE` | 검증된 SPORT button event와 이전 mode 복귀 |
+| 9 | `ADAPTIVE_VOLUME_AUTOMATION` | 주행 소음 기반 음량 자동화 arm/disarm |
+| 10 | `AUTO_SPORT_AUTOMATION` | 속도·가속도 기반 SPORT 자동화 arm/disarm |
+| 11–15 | reserved | 송신 0, 수신 시 거부 |
+
+권한 판정은 `인증된 Primary Controller peer ∩ control lease ∩ 협상된 control scope ∩ 활성 vehicle profile command allow-list ∩ 현재 safety precondition`의 교집합이다. 하나라도 없으면 명령을 실행하지 않는다. capability bit가 없거나 미확정이면 false가 기본값이다.
+
+`AUDIO_PROFILE_SET`은 profile이 사용하는 모든 하위 scope가 있어야 한다. 예를 들어 `QUIET`이 rear mute, fader와 volume cap을 사용한다면 bit 0·1·2·5가 모두 필요하다. 일부만 허용된 상태에서 조용히 축소 적용하지 않고 `CAPABILITY_MISSING`으로 전체 transaction을 거부한다.
+
+Read-only Controller와 Diagnostic Bridge에는 bit 0–10을 모두 0으로 고정한다. 문 잠금, 등화, 임의 arbitration ID/payload, 확인되지 않은 ECU 설정은 현재 허용 scope에 포함하지 않는다.
 
 ## 4. 무선 frame
 
@@ -355,7 +380,7 @@ heartbeat에는 `boot_id`, uptime, state revision, RSSI, bus mask, bus error mas
 - CAN bus 수: 최대 3개, wire `bus_id`는 `0–2`
 - raw CAN, Controller-local filter, decoded signal, bulk 지원 여부
 - control lease 지원 여부
-- audio/drive-mode command bitset
+- 위 3.3절의 16-bit control scope bitset. Primary Controller만 non-zero이며 차량 profile 검증 결과를 반영
 - TPMS, lighting/rheostat, longitudinal-acceleration signal capability
 - firmware semantic version와 build hash
 - vehicle profile ID
@@ -527,6 +552,10 @@ v1의 공개 명령은 raw frame이 아니라 다음과 같은 의미 단위다.
 - `AUDIO_RESTORE_SNAPSHOT`: Communicator가 저장한 OEM 상태 복원
 - `DRIVE_MODE_BUTTON_PULSE`: 검증된 물리 버튼 1회 동작만 요청
 - `AUTOMATION_ARM`, `AUTOMATION_DISARM`
+
+Controller에 audio 제어 권한을 주는 것은 위 의미 명령을 허용한다는 뜻이다. `AUDIO_PROFILE_SET` argument는 profile enum과 기대 snapshot revision만 전달하고, Communicator가 해당 profile의 volume·fader·balance·main/rear mute·SDVC 값을 vehicle profile의 검증된 범위에서 만든다. Controller가 CAN ID, byte offset 또는 임의 값 조합을 전달하지 않는다.
+
+현재 UI에서 volume ± 버튼과 임의 sound-position 조정 화면을 숨기는 결정은 이 내부 제어 권한을 제거하지 않는다. 주행 소음 자동 음량, 취침 mode, 뒷좌석 강화 mode와 정확한 OEM 상태 복원을 위해 필요한 scope는 계속 사용할 수 있다.
 
 `DRIVE_MODE_BUTTON_PULSE`도 Communicator가 속도·기어·브레이크·ESC·신호 freshness를 검사한다. 특정 drive mode state를 ECU에 직접 쓰는 명령은 정의하지 않는다.
 

@@ -162,6 +162,26 @@ typedef enum {
     CANVIEW_PRECOND_VEHICLE_STOPPED = 1u << 7,
 } canview_precondition_flag_t;
 
+/* Negotiated Primary Controller control scopes.  The wire capability is a
+ * little-endian 16-bit bitset.  Read-only Controllers and Diagnostic Bridges
+ * must advertise zero.  AUDIO_PROFILE_SET additionally requires every scope
+ * used by the selected vehicle-profile transaction. */
+typedef enum {
+    CANVIEW_CONTROL_SCOPE_AUDIO_PROFILE = 1u << 0,
+    CANVIEW_CONTROL_SCOPE_AUDIO_VOLUME_OFFSET = 1u << 1,
+    CANVIEW_CONTROL_SCOPE_AUDIO_FADER = 1u << 2,
+    CANVIEW_CONTROL_SCOPE_AUDIO_BALANCE = 1u << 3,
+    CANVIEW_CONTROL_SCOPE_AUDIO_MUTE = 1u << 4,
+    CANVIEW_CONTROL_SCOPE_AUDIO_REAR_MUTE = 1u << 5,
+    CANVIEW_CONTROL_SCOPE_AUDIO_SDVC = 1u << 6,
+    CANVIEW_CONTROL_SCOPE_AUDIO_RESTORE = 1u << 7,
+    CANVIEW_CONTROL_SCOPE_DRIVE_MODE_PULSE = 1u << 8,
+    CANVIEW_CONTROL_SCOPE_ADAPTIVE_VOLUME_AUTOMATION = 1u << 9,
+    CANVIEW_CONTROL_SCOPE_AUTO_SPORT_AUTOMATION = 1u << 10,
+} canview_control_scope_t;
+
+#define CANVIEW_CONTROL_SCOPE_KNOWN_MASK UINT16_C(0x07FF)
+
 typedef enum {
     CANVIEW_COMMAND_AUDIO_PROFILE_SET = 0x0101,
     CANVIEW_COMMAND_AUDIO_VOLUME_OFFSET_SET = 0x0102,

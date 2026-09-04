@@ -11,6 +11,8 @@ Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF project가 들어갈 위치다.
 
 Controller 펌웨어가 Controller 로컬 CAN 수신 필터와 DBC signal catalog/decoder를 소유한다. Communicator는 raw CAN record만 보내므로 새 signal이나 차량 profile은 필요할 때 Controller catalog와 allow-list만 바꿔 추가할 수 있으며 Communicator firmware는 바꾸지 않는다.
 
+Primary Controller는 read-only 장치가 아니며, 활성 차량 profile에서 검증된 audio·SPORT 기능별 의도 명령을 요청할 수 있다. 주행 소음 기반 volume offset, 취침·뒷좌석 강화 profile의 fader/balance·main/rear mute, OEM snapshot 복원과 SPORT 자동화가 대상이다. Controller는 임의 CAN ID/payload를 만들지 않고 Communicator STM32가 control lease, capability, allow-list, 최신 차량 상태와 feedback을 최종 검사한다.
+
 온보드 ES8311 microphone의 16 kHz mono capture에서 1024-point FFT를 계산해 23개 표시 bin과 peak 주파수·레벨만 LVGL 모델에 전달한다. raw PCM은 UI task나 ESP-NOW로 전달하지 않는다.
 
 `components/canview_automation/`은 ESP-IDF에 바로 포함할 수 있는 순수 C component다.
