@@ -1,5 +1,7 @@
 # LVGL 공식 데모 검토 기록
 
+이 문서는 [UI 설계](design.md)의 선택 근거를 보존하는 참고 기록이다. 현재 제품 화면 규칙은 UI 설계 문서가 정본이다.
+
 ## 범위
 
 CANView의 펌웨어 기준 API는 LVGL 8.4다. 다만 최신 임베디드 UI 패턴을 놓치지 않기 위해 2026-09-03 기준 별도 [`lv_demos/src`](https://github.com/lvgl/lv_demos/tree/master/src)의 모든 7개 데모와 [`lvgl/v8.4.0/demos`](https://github.com/lvgl/lvgl/tree/v8.4.0/demos)의 모든 5개 데모를 각각 검토했다.
@@ -78,4 +80,4 @@ transform은 데모와 성능 시험에만 사용한다. 실시간 숫자·바�
 | 실물 FPS/heap gate | benchmark, stress |
 | 한글/숫자 font 분리 | multilang, high_res |
 
-구체 화면 명세와 스크린샷은 [운전자 UI 설계](ui-design.md)에 있다.
+구체 화면 명세와 스크린샷은 [운전자 UI 설계](design.md)에 있다.

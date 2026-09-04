@@ -1,6 +1,6 @@
 # CANView 개발환경
 
-이 문서는 개발 도구와 실행 위치의 요약 정본이다. Controller·Communicator·Diagnostic Bridge별 상세 SDK와 핀·주변장치 설정은 [development-environments.md](development-environments.md)를 따른다.
+이 문서는 [문서 지도](../README.md)의 Windows 실행 위치와 도구 정책 정본이다. Controller·Communicator·Diagnostic Bridge별 상세 SDK와 핀·주변장치 설정은 [장치별 toolchain](toolchains.md)을 따른다.
 
 ## 1. 실행 원칙
 

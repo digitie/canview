@@ -1,6 +1,6 @@
 # CANView 장치 명칭과 운영 데이터 흐름
 
-상위 구조의 정본은 [architecture/architecture.md](architecture/architecture.md)다. 이 문서는 장치 명칭, peer routing, 권한과 장애 시 동작을 자세히 설명한다.
+상위 구조와 상세 문서 선택은 [architecture overview](README.md)가 정본이다. 이 문서는 장치 명칭, peer routing, 권한과 장애 시 동작만 자세히 설명한다. wire layout은 [protocol 문서](protocols/README.md), 회로는 [hardware 문서](../README.md#하드웨어)를 따른다.
 
 ## 1. 정식 장치명
 
@@ -92,14 +92,8 @@ Primary Controller에는 CANView 기능에 필요한 control lease와 의미 명
 ## 5. 관련 문서
 
 - [구현 준비 기준·정본·gate](implementation-readiness.md)
-- [원자 구현 task backlog](tasks.md)
-- [독립 적대적 설계 리뷰](adversarial-design-review.md)
-- [Controller 하드웨어와 Waveshare 핀맵](hardware-and-development.md)
-- [Communicator 회로·IC·핀맵](communicator-hardware.md)
-- [개발환경과 빌드](development-environments.md)
-- [Communicator MCU 간 UART 프로토콜](communicator-uart-protocol.md)
-- [Controller–Communicator ESP-NOW 프로토콜](esp-now-protocol.md)
-- [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)
-- [Controller CAN 수신·DBC 파이프라인](controller-can-pipeline.md)
-- [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)
-- [기능 안전 설계](feature-design.md)
+- [프로토콜 인덱스](protocols/README.md)
+- [Diagnostic Bridge](diagnostic-bridge.md)
+- [Controller CAN pipeline](controller-can-pipeline.md)
+- [기능 설계](features.md)
+- [문서 지도](../README.md) — hardware·development·vehicle·UI·task·review 진입점

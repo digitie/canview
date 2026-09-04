@@ -46,7 +46,7 @@ CAN/ESP-NOW task에서 `canview_ui_update()`를 직접 호출하지 않는다. �
 
 한글은 `lv_font_conv`로 실제 글리프만 변환해 `font`에 지정한다. 대형 숫자·영문은 `metric_font`에 따로 주입한다. 생략하면 `LV_FONT_DEFAULT`를 사용하므로 기본 빌드에서는 한글이 보이지 않을 수 있다.
 
-최신 공식 데모의 설계 패턴을 참고했지만 코드는 LVGL 8.4 API만 사용하고 `lv_demos`에 runtime 의존하지 않는다. 채용·제외 내역은 [공식 데모 검토](../../docs/lvgl-demo-review.md)에 있다.
+최신 공식 데모의 설계 패턴을 참고했지만 코드는 LVGL 8.4 API만 사용하고 `lv_demos`에 runtime 의존하지 않는다. 채용·제외 내역은 [공식 데모 검토](../../docs/ui/lvgl-demo-review.md)에 있다.
 
 ## 안전 경계
 
@@ -59,4 +59,4 @@ CAN/ESP-NOW task에서 `canview_ui_update()`를 직접 호출하지 않는다. �
 - 자동 밝기는 차량 미등·rheostat CAN만 사용한다.
 - 주행 중 설정 control은 상위 계층에서 `LV_STATE_DISABLED`로 전환한다.
 
-상세 화면 계약은 [운전자 UI 설계](../../docs/ui-design.md), 자동화는 [자동 제어 로직](../../docs/automation-control.md), 무선 명령 수명주기는 [ESP-NOW 프로토콜](../../docs/esp-now-protocol.md)을 참고한다.
+상세 화면 계약은 [운전자 UI 설계](../../docs/ui/design.md), 자동화는 [자동 제어 로직](../../docs/architecture/automation.md), 무선 명령 수명주기는 [ESP-NOW 프로토콜](../../docs/architecture/protocols/esp-now.md)을 참고한다.

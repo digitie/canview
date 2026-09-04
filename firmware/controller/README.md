@@ -4,10 +4,10 @@ Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF project가 들어갈 위치다.
 
 - 기준 ESP-IDF: `v5.5.2`
 - UI: [`../../ui/lvgl/`](../../ui/lvgl/)
-- hardware/pinmap: [`../../docs/hardware-and-development.md`](../../docs/hardware-and-development.md)
-- 개발환경: [`../../docs/development-environments.md`](../../docs/development-environments.md)
-- ESP-NOW: [`../../docs/esp-now-protocol.md`](../../docs/esp-now-protocol.md)
-- CAN 수신·DBC 파이프라인: [`../../docs/controller-can-pipeline.md`](../../docs/controller-can-pipeline.md)
+- hardware/pinmap: [Controller hardware](../../docs/hardware/controller.md)
+- 개발환경: [장치별 toolchain](../../docs/development/toolchains.md)
+- ESP-NOW: [ESP-NOW protocol](../../docs/architecture/protocols/esp-now.md)
+- CAN 수신·DBC 파이프라인: [Controller CAN pipeline](../../docs/architecture/controller-can-pipeline.md)
 
 Controller 펌웨어가 Controller 로컬 CAN 수신 필터와 DBC signal catalog/decoder를 소유한다. Communicator는 raw CAN record만 보내므로 새 signal이나 차량 profile은 필요할 때 Controller catalog와 allow-list만 바꿔 추가할 수 있으며 Communicator firmware는 바꾸지 않는다.
 
@@ -22,6 +22,6 @@ Primary Controller는 read-only 장치가 아니며, 활성 차량 profile에서
 - `표준/보통/자연스럽게` preset은 160–1,250 Hz, +5.0/+2.5 dB 문턱, 5초/12초 dwell로 매핑한다.
 - 실제 LEDC write와 ESP-NOW command enqueue는 component 호출자가 담당한다.
 
-통합 수치와 실패 처리는 [`../../docs/automation-control.md`](../../docs/automation-control.md)를 따른다.
+통합 수치와 실패 처리는 [자동 제어 로직](../../docs/architecture/automation.md)을 따른다.
 
 Waveshare BSP와 실제 보드 bring-up 설정을 고정하기 전에는 placeholder project를 양산 firmware로 사용하지 않는다.

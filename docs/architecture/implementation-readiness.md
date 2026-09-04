@@ -1,8 +1,10 @@
 # CANView 구현 준비 기준과 통합 설계
 
+이 문서는 [아키텍처 개요](README.md)의 subsystem 설계를 구현 gate와 코드 경계로 통합한다. 개별 구현 범위와 acceptance는 해당 [상세 task](../tasks/)가 정본이다.
+
 ## 1. 문서 목적과 현재 판정
 
-이 문서는 CANView의 여러 설계 문서를 실제 구현 순서와 코드 경계로 통합한 정본이다. 구현자는 개별 문서 사이의 빈칸을 임의로 해석하지 않고 이 문서와 [`tasks/`](tasks/)의 원자 작업을 따른다.
+이 문서는 CANView의 여러 설계 문서를 실제 구현 순서와 코드 경계로 통합한 정본이다. 구현자는 개별 문서 사이의 빈칸을 임의로 해석하지 않고 이 문서와 [`tasks/`](../tasks/)의 원자 작업을 따른다.
 
 검토 기준은 `origin/main`의 `50b5e733ea469e37bbb762876386625ef8b3b11f`다. 현재 저장소의 판정은 다음과 같다.
 
@@ -612,7 +614,7 @@ T-100 schematic ─ T-101 board bring-up ──────────┘
 
 protocol, hardware, Controller BSP, Bridge web shell은 G0 이후 병렬 진행할 수 있다. 차량 command executor는 profile evidence와 hard TX gate가 모두 완료될 때까지 mock backend만 구현한다.
 
-상세 원자 작업, 의존성, 변경 파일, 검증 명령과 산출 증거는 [`tasks.md`](tasks.md)와 [`tasks/`](tasks/)를 따른다.
+상세 원자 작업, 의존성, 변경 파일, 검증 명령과 산출 증거는 [`tasks.md`](../tasks.md)와 [`tasks/`](../tasks/)를 따른다.
 
 ## 18. 구현 준비 완료 정의
 

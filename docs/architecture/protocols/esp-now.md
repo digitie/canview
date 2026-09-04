@@ -1,10 +1,12 @@
 # CANView ESP-NOW 양방향 프로토콜
 
+이 문서는 [protocol index](README.md)에 속한 Controller·Communicator·Diagnostic Bridge 무선 계약의 상세 정본이다. 내부 MCU UART 계약과 독립적으로 versioning한다.
+
 ## 1. 문서 목적
 
 이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다. 미확정 CAN 신호를 휴대폰으로 검증하는 선택 장치 `Diagnostic Bridge`도 같은 보안·frame·QoS 규칙을 사용하되 차량 명령 권한은 갖지 않는다.
 
-이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 check-in된 C draft는 `1.2`지만 완전한 payload ABI와 codec이 없어 runtime 구현 기준이 아니다. 첫 통합 구현은 Diagnostic Bridge의 observer/capture message까지 포함한 `1.3`으로 동결하며, 미완성 `1.2` compatibility path를 만들지 않는다. machine-readable schema, 생성 C header와 golden vector가 함께 들어가는 [T-002](tasks/T-002-espnow-schema-v1.3.md)가 끝나기 전에는 wire firmware를 구현하지 않는다. 전체 owner·시간 epoch·gate 기준은 [구현 준비 기준](implementation-readiness.md)을 따른다.
+이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 check-in된 C draft는 `1.2`지만 완전한 payload ABI와 codec이 없어 runtime 구현 기준이 아니다. 첫 통합 구현은 Diagnostic Bridge의 observer/capture message까지 포함한 `1.3`으로 동결하며, 미완성 `1.2` compatibility path를 만들지 않는다. machine-readable schema, 생성 C header와 golden vector가 함께 들어가는 [T-002](../../tasks/T-002-espnow-schema-v1.3.md)가 끝나기 전에는 wire firmware를 구현하지 않는다. 전체 owner·시간 epoch·gate 기준은 [구현 준비 기준](../implementation-readiness.md)을 따른다.
 
 설계 원칙은 다음과 같다.
 
@@ -411,7 +413,7 @@ TLV header는 `type:u16`, `length:u16`이고 value가 뒤따른다. 다음 규�
 
 ## 10. 시간 동기화와 freshness
 
-Communicator STM32 monotonic clock을 CAN sample 기준으로 사용한다. Controller의 PCF85063 RTC와 wall clock은 화면·로그·일몰 계산용일 뿐 ordering 기준이 아니다. 저장된 1차 Hyundai DBC에는 GPS 좌표나 현재 날짜·시각 CAN signal이 없으므로 시간 동기화가 GPS/RTC 값을 대신 만들어내지 않는다. 후보 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 있다.
+Communicator STM32 monotonic clock을 CAN sample 기준으로 사용한다. Controller의 PCF85063 RTC와 wall clock은 화면·로그·일몰 계산용일 뿐 ordering 기준이 아니다. 저장된 1차 Hyundai DBC에는 GPS 좌표나 현재 날짜·시각 CAN signal이 없으므로 시간 동기화가 GPS/RTC 값을 대신 만들어내지 않는다. 후보 조사 결과는 [`can-gps-time-investigation.md`](../../vehicle/gps-time-investigation.md)에 있다.
 
 time sync는 NTP와 같은 4 timestamp를 사용한다.
 
@@ -814,10 +816,10 @@ counter overflow는 saturating 또는 64-bit로 처리한다. UI는 운전 화�
 
 ## 23. 관련 문서
 
-- [기능 조사 및 구현 설계](feature-design.md)
-- [UI/UX 설계와 LVGL 매핑](ui-design.md)
-- [하드웨어 및 개발환경](hardware-and-development.md)
-- [DBC 출처·검증 절차](../dbc/README.md)
-- [Controller CAN 수신·DBC 파이프라인](controller-can-pipeline.md)
-- [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)
-- [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)
+- [기능 조사 및 구현 설계](../features.md)
+- [UI/UX 설계와 LVGL 매핑](../../ui/design.md)
+- [하드웨어 및 개발환경](../../hardware/controller.md)
+- [DBC 출처·검증 절차](../../../dbc/README.md)
+- [Controller CAN 수신·DBC 파이프라인](../controller-can-pipeline.md)
+- [Diagnostic Bridge·모바일 CAN 검증 UI](../diagnostic-bridge.md)
+- [CAN 신호의 GPS·시간 조사](../../vehicle/gps-time-investigation.md)

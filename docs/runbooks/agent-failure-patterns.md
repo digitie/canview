@@ -2,7 +2,7 @@
 
 | 증상 | 먼저 확인할 것 | 복구 |
 |------|----------------|------|
-| CMake가 target을 찾지 못함 | CMake version, Ninja, STM32CubeG4_ROOT | docs/dev-environment.md 기준으로 도구와 pinned dependency 확인 |
+| CMake가 target을 찾지 못함 | CMake version, Ninja, STM32CubeG4_ROOT | `docs/development/windows.md` 기준으로 도구와 pinned dependency 확인 |
 | STM32 build가 헤더를 찾지 못함 | CubeG4 경로와 device package | 환경변수만 고치고 성공 처리하지 말고 미실행 gate 기록 |
 | ESP-IDF target 설정이 Controller와 섞임 | esp32s3, Flash/PSRAM, sdkconfig | Controller와 Communicator 설정을 별도 유지 |
 | KiCad ERC가 power pin을 경고함 | 실제 symbol pin, PWR_FLAG, rail ownership | 데이터시트·symbol library 대조 후 waiver 근거 작성 |

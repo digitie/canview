@@ -24,11 +24,12 @@ task를 시작할 때 문서 상단의 상태, 담당 branch, PR을 갱신한다
 3. 생성물은 source schema/generator와 함께 변경한다. 생성 header만 수정하지 않는다.
 4. 차량 TX 관련 task는 요구 gate보다 낮은 환경에서 실행하지 않는다.
 5. 새 protocol 필드는 golden vector와 malformed input test 없이 merge하지 않는다.
-6. ESP-NOW/Wi-Fi callback, ISR, LVGL task ownership 규칙은 [통합 설계](implementation-readiness.md)를 따른다.
+6. ESP-NOW/Wi-Fi callback, ISR, LVGL task ownership 규칙은 [통합 설계](architecture/implementation-readiness.md)를 따른다.
 7. UI에 candidate/estimated 값을 정상 숫자로 표시하지 않는다.
 8. validation command를 실행할 수 없는 환경이면 미실행 사유를 적고 task를 완료하지 않는다.
 9. PR 본문에는 `Task`, `Gate`, `Risk`, `Tests`, `Evidence`, `Rollback`을 쓴다.
 10. 차량 capture와 secret은 원본 그대로 public Git에 commit하지 않는다. 익명화·승인된 fixture만 넣는다.
+11. 비단순 변경은 [agent workflow](runbooks/agent-workflow.md)의 전문 리뷰어 서브에이전트 2인 독립 적대적 리뷰를 통과한다.
 
 ## 3. task 목록
 
@@ -116,11 +117,11 @@ hardware는 `T-100 → T-101`로 병렬 진행한다. 두 경로가 G2에서 합
 
 ## 6. task 완료 후 갱신
 
-완료 PR은 이 index의 상태와 다음 문서를 함께 갱신한다.
+완료 PR은 이 index와 해당 상세 task를 갱신하고, 실제로 바뀐 정본만 함께 갱신한다.
 
-- [구현 준비 기준과 통합 설계](implementation-readiness.md)
-- [적대적 설계 리뷰](adversarial-design-review.md)
+- [구현 준비 기준과 통합 설계](architecture/implementation-readiness.md)
 - 해당 subsystem README
 - public 동작이 바뀌면 root `README.md`
+- 적대적 리뷰를 실행했다면 기존 report를 수정하지 않고 [review archive](reviews/README.md)에 새 report
 
 설계가 바뀌면 기존 task를 조용히 수정하지 말고 변경 이유, 영향을 받는 task, migration 여부를 task 문서의 `결정 변경 기록`에 남긴다.

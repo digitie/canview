@@ -1,10 +1,12 @@
 # CAN 신호 검증용 Diagnostic Bridge와 모바일 웹 UI 명세
 
+이 문서는 [아키텍처 개요](README.md)에 속한 read-only 진단 경로의 상세 정본이다. 일반 운전자 UI가 아니라 미확정 CAN signal의 capture·비교·evidence 생성을 다룬다.
+
 ## 1. 문서 목적과 구현 상태
 
 이 문서는 2017 Tucson TL에서 아직 확정되지 않은 CAN ID·bit·scale·enum·주기를 PC, 터미널, CAN 분석기 전용 프로그램이나 코드 수정 없이 반복 검증하기 위한 구조를 정의한다. 사용자는 휴대폰 브라우저만으로 연결 상태를 확인하고, 수신 필터를 만들고, 행동 전후 데이터를 비교하고, 후보 signal을 저장하고, 증거 묶음을 내려받을 수 있어야 한다.
 
-이 문서는 **구현 명세**다. 현재 저장소의 ESP-NOW `1.2` header는 payload가 미완성인 draft라서 실행 가능한 protocol이 아니다. 아래 `CAN_OBSERVER_*`, capture, Diagnostic Bridge 역할을 포함한 첫 구현은 `1.3`이며, 그 전에는 어떤 message도 wire로 보내지 않는다. 구현 PR은 machine-readable schema, [`protocol/canview_protocol.h`](../protocol/canview_protocol.h), codec, static assertion과 golden vector를 같은 변경으로 생성해야 한다.
+이 문서는 **구현 명세**다. 현재 저장소의 ESP-NOW `1.2` header는 payload가 미완성인 draft라서 실행 가능한 protocol이 아니다. 아래 `CAN_OBSERVER_*`, capture, Diagnostic Bridge 역할을 포함한 첫 구현은 `1.3`이며, 그 전에는 어떤 message도 wire로 보내지 않는다. 구현 PR은 machine-readable schema, [`protocol/canview_protocol.h`](../../protocol/canview_protocol.h), codec, static assertion과 golden vector를 같은 변경으로 생성해야 한다.
 
 이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다.
 
@@ -96,7 +98,7 @@ capability 협상에 다음 permission bit를 추가한다.
 | 6 | `CONTROL_LEASE` | **조건부 허용** | **금지** | **금지** |
 | 7 | `VEHICLE_COMMAND` | **기능 scope별 조건부 허용** | **금지** | **금지** |
 
-이 표의 `VEHICLE_COMMAND`는 포괄적인 raw 송신 권한이 아니다. Primary Controller도 [ESP-NOW 프로토콜의 기능별 control scope](esp-now-protocol.md#33-primary-controller-제어-권한)와 Communicator의 차량 profile allow-list를 모두 통과한 음량 offset, profile 내부 fader/balance·mute, SPORT button pulse 같은 의미 명령만 요청한다.
+이 표의 `VEHICLE_COMMAND`는 포괄적인 raw 송신 권한이 아니다. Primary Controller도 [ESP-NOW 프로토콜의 기능별 control scope](protocols/esp-now.md#33-primary-controller-제어-권한)와 Communicator의 차량 profile allow-list를 모두 통과한 음량 offset, profile 내부 fader/balance·mute, SPORT button pulse 같은 의미 명령만 요청한다.
 
 수신 장치는 role 문자열이 아니라 permission bit, encrypted peer context, service window와 현재 차량 상태를 모두 확인한다. Bridge에서 bit 6 또는 7이 요청되면 protocol 오류가 아니라 명시적인 `PERMISSION_DENIED` application error로 거부하고 보안 counter를 올린다.
 
@@ -586,7 +588,7 @@ SoftAP HTTP는 같은 radio를 공유하므로 별도 통합 pressure policy를 
 
 ## 13. Bridge firmware 구조
 
-구현 전 protocol payload와 API schema의 선행 작업은 [구현 준비 기준](implementation-readiness.md)과 [T-002](tasks/T-002-espnow-schema-v1.3.md), [T-402](tasks/T-402-diagnostic-api-web.md)를 따른다. 이 절의 prose만으로 C payload나 REST response를 임의 정의하지 않는다.
+구현 전 protocol payload와 API schema의 선행 작업은 [구현 준비 기준](implementation-readiness.md)과 [T-002](../tasks/T-002-espnow-schema-v1.3.md), [T-402](../tasks/T-402-diagnostic-api-web.md)를 따른다. 이 절의 prose만으로 C payload나 REST response를 임의 정의하지 않는다.
 
 ```text
 firmware/diagnostic-bridge/
@@ -946,9 +948,9 @@ Bridge 기본 설정:
 
 | 상태·버스·캡처 준비 | 64-bit Signal Lab |
 |---|---|
-| ![Diagnostic Bridge 상태 화면](images/can-debug-overview.png) | ![Diagnostic Bridge 신호 분석 화면](images/can-debug-signal-lab.png) |
+| ![Diagnostic Bridge 상태 화면](../images/can-debug-overview.png) | ![Diagnostic Bridge 신호 분석 화면](../images/can-debug-signal-lab.png) |
 
-[`ui/diagnostic-web/index.html`](../ui/diagnostic-web/index.html)을 브라우저에서 열고 `?screen=status`, `frames`, `capture`, `signals`, `settings` query로 각 화면을 확인한다. 실제 REST·WebSocket 연결 전의 정적 prototype이며, backend 구현이 끝났다고 간주하면 안 된다.
+[`ui/diagnostic-web/index.html`](../../ui/diagnostic-web/index.html)을 브라우저에서 열고 `?screen=status`, `frames`, `capture`, `signals`, `settings` query로 각 화면을 확인한다. 실제 REST·WebSocket 연결 전의 정적 prototype이며, backend 구현이 끝났다고 간주하면 안 된다.
 
 ## 18. LED와 물리 button UX
 
@@ -1170,10 +1172,10 @@ Controller fallback에서 heap low watermark, UI render deadline miss 또는 ESP
 
 ## 26. 관련 문서
 
-- [시스템 아키텍처와 명명](system-architecture.md)
-- [ESP-NOW 양방향 프로토콜](esp-now-protocol.md)
-- [Communicator 내부 UART](communicator-uart-protocol.md)
+- [시스템 아키텍처와 명명](system.md)
+- [ESP-NOW 양방향 프로토콜](protocols/esp-now.md)
+- [Communicator 내부 UART](protocols/communicator-uart.md)
 - [Controller CAN filter·DBC pipeline](controller-can-pipeline.md)
-- [2017 Tucson TL CAN 후보](can-signal-catalog.md)
-- [장치별 개발환경](development-environments.md)
-- [운전자 LVGL UI](ui-design.md)
+- [2017 Tucson TL CAN 후보](../vehicle/signal-catalog.md)
+- [장치별 개발환경](../development/toolchains.md)
+- [운전자 LVGL UI](../ui/design.md)

@@ -1,6 +1,6 @@
 # ADR-002: 문서·task·ADR·runbook 정본 구조
 
-- 상태: accepted
+- 상태: superseded by ADR-004
 - 날짜: 2026-09-05
 
 ## 컨텍스트
@@ -23,3 +23,7 @@ kor-travel-geo의 문서 구조를 적용한다.
 ## 결과
 
 task 본문이 길어져도 요약 인덱스가 안정적으로 유지되고, 새 에이전트가 같은 순서로 작업을 시작할 수 있다. 기존 docs/tasks/README.md 링크는 호환용 포인터로 남긴다.
+
+## 대체
+
+문서 분류와 agent 읽기 정책을 더 명확히 한 [ADR-004](004-layered-documentation-and-review-archive.md)가 이 결정을 대체한다. 상세 task 분리 원칙은 ADR-004에서도 유지한다.

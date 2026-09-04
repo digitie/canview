@@ -1,6 +1,20 @@
 # CANView 아키텍처
 
-이 문서는 CANView의 장치 관계, 데이터 흐름, 권한 경계와 저장소 구조를 설명하는 상위 아키텍처 정본이다. 세부 안전 규칙과 구현 순서는 [구현 준비 기준과 통합 설계](../implementation-readiness.md), 결정의 역사는 [ADR 색인](../adr/README.md), 현재 작업은 [tasks.md](../tasks.md)를 따른다.
+이 문서는 CANView의 장치 관계, 데이터 흐름과 권한 경계를 설명하는 상위 아키텍처 정본이다. 여기서 전체 형태를 확인한 뒤 변경 대상에 해당하는 상세 문서만 읽는다. 구현 순서는 [implementation readiness](implementation-readiness.md), 결정의 역사는 [ADR 색인](../adr/README.md), 현재 작업은 [tasks](../tasks.md)를 따른다.
+
+## 문서 사용법
+
+| 변경 대상 | 상세 정본 |
+|---|---|
+| 장치명·peer routing·장애 상태 | [시스템 구조](system.md) |
+| repository 목표 구조·runtime 경계·release gate | [구현 준비 기준](implementation-readiness.md) |
+| ESP-NOW·UART wire 계약 | [프로토콜 인덱스](protocols/README.md) |
+| Controller 수신·filter·DBC decode | [Controller CAN pipeline](controller-can-pipeline.md) |
+| Diagnostic Bridge·capture·REST/WS | [Diagnostic Bridge](diagnostic-bridge.md) |
+| 4WD·DPF·audio·SPORT 기능 | [기능 설계](features.md) |
+| 밝기·FFT 음량·SPORT 상태기계 | [자동화 설계](automation.md) |
+
+하드웨어, 차량 evidence와 UI 시각 설계는 architecture의 입력이지만 각각 [hardware](../README.md#하드웨어), [vehicle](../README.md#차량과-신호), [UI](../README.md#ui) 문서가 상세 정본이다. 일반 작업에서 위 문서를 모두 선제적으로 읽지 않는다.
 
 ## 1. 시스템 범위
 
@@ -85,7 +99,12 @@ Controller와 Communicator 사이에는 ESP-NOW 양방향 링크를 사용한다
     ui/lvgl/                          — LVGL 화면 코드
     ui/diagnostic-web/                — 모바일 진단 웹 prototype
     tests/                            — host·protocol·fault·HIL test
-    docs/architecture/                — 상위 구조와 subsystem 문서
+    docs/architecture/                — 상위 구조·protocol·기능 설계
+    docs/hardware/                    — Controller·Communicator 하드웨어
+    docs/development/                 — Windows 환경과 toolchain
+    docs/vehicle/                     — 대상 차량·DBC·signal evidence
+    docs/ui/                          — UI 설계와 LVGL 검토
+    docs/reviews/                     — 독립 review 이력
     docs/adr/                         — 결정 기록
     docs/runbooks/                    — 에이전트 운영 절차
     docs/tasks.md                     — 열린 task 요약
@@ -95,12 +114,12 @@ Controller와 Communicator 사이에는 ESP-NOW 양방향 링크를 사용한다
 
 | 목적 | 정본 |
 |------|------|
-| 전체 구현 기준 | [implementation-readiness.md](../implementation-readiness.md) |
-| 장치·데이터 흐름 | 이 문서와 [system-architecture.md](../system-architecture.md) |
-| 하드웨어 | [communicator-hardware.md](../communicator-hardware.md), [hardware-and-development.md](../hardware-and-development.md) |
-| protocol | [esp-now-protocol.md](../esp-now-protocol.md), [communicator-uart-protocol.md](../communicator-uart-protocol.md) |
-| 차량 신호·기능 | [can-signal-catalog.md](../can-signal-catalog.md), [feature-design.md](../feature-design.md) |
-| 진단 웹 | [can-diagnostics-web.md](../can-diagnostics-web.md) |
-| 결정 | [docs/adr/README.md](../adr/README.md), [docs/decisions.md](../decisions.md) |
-| 진척 | [docs/resume.md](../resume.md), [docs/journal.md](../journal.md) |
-| 작업 | [docs/tasks.md](../tasks.md)와 [docs/tasks/](../tasks/) 상세 문서 |
+| 전체 구현 기준 | [구현 준비 기준](implementation-readiness.md) |
+| 장치·데이터 흐름 | 이 문서와 [시스템 상세](system.md) |
+| 하드웨어 | [Communicator](../hardware/communicator.md), [Controller](../hardware/controller.md) |
+| protocol | [protocol index](protocols/README.md) |
+| 차량 신호·기능 | [signal catalog](../vehicle/signal-catalog.md), [기능 설계](features.md) |
+| 진단 웹 | [Diagnostic Bridge](diagnostic-bridge.md) |
+| 결정 | [ADR](../adr/README.md), [결정 색인](../decisions.md) |
+| 진척 | [resume](../resume.md), [journal](../journal.md) |
+| 작업 | [task 요약](../tasks.md)과 [상세 task](../tasks/) |

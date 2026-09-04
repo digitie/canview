@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-05 기준, CANView는 설계·문서·정적 prototype·기존 host 자동화 test를 포함한 구현 준비 단계다. PR #14에서 통합 설계, 두 명의 적대적 리뷰 결과, 34개 상세 task가 반영됐고, 문서 운영 구조와 Windows 개발환경 정책도 정리됐다.
+2026-09-05 기준, CANView는 설계·문서·정적 prototype·기존 host 자동화 test를 포함한 구현 준비 단계다. PR #14에서 통합 설계, 두 명의 적대적 리뷰 결과, 34개 상세 task가 반영됐다. 문서는 중앙 지도에서 필요한 상세 자료만 선택하도록 architecture·hardware·development·vehicle·UI·review 하위 구조로 정리됐고, 리뷰는 실행마다 새 report를 누적한다.
 
 개발 정본은 Windows PowerShell checkout이다. worktree는 필요할 때만 만들고 merge 또는 abandon 후 삭제하며, WSL/Linux는 보조 환경으로만 사용한다. `rovinax/embedded-skills`의 임베디드 개발 스킬 6개는 Codex 환경에 설치했다.
 
@@ -12,7 +12,7 @@
 
 T-001 재현 가능한 host toolchain과 CI를 수행한다.
 
-- 시작 문서: docs/tasks/T-001-host-toolchain-ci.md, docs/dev-environment.md
+- 시작 문서: docs/tasks/T-001-host-toolchain-ci.md, docs/development/windows.md
 - 확인 대상: CMake/Ninja, C11 host test, Python validator, Node static checks, 생성물 검사
 - 완료 조건: 반복 가능한 명령과 CI gate가 정의되고, 도구가 없는 항목은 차단 사유로 기록됨
 
@@ -34,8 +34,11 @@ T-001 → T-002/T-004/T-005 → T-003/T-006 → T-102/T-200/T-300 → T-103/T-10
 
 ## 문서 정본
 
-- 설계: docs/implementation-readiness.md
-- 아키텍처: docs/architecture/architecture.md
+- 문서 지도: docs/README.md
+- 설계: docs/architecture/implementation-readiness.md
+- 아키텍처: docs/architecture/README.md
 - 작업: docs/tasks.md와 docs/tasks/
 - 결정: docs/decisions.md와 docs/adr/
+- 절차: docs/runbooks/
+- 리뷰 이력: docs/reviews/
 - 로그: docs/journal.md

@@ -1,8 +1,10 @@
 # Controller 하드웨어 및 개발환경
 
+이 문서는 [문서 지도](../README.md)에 속한 Waveshare Controller의 board·pin·주변장치 상세 자료다. 전체 장치 책임은 [시스템 아키텍처](../architecture/system.md)가 정본이다.
+
 ## 1. 프로젝트 범위
 
-`canview`는 차량 네트워크에 직접 연결되는 **Communicator**와, 데이터를 표시·제어하는 **Controller**를 분리한다. 전체 장치 경계는 [`system-architecture.md`](system-architecture.md), Communicator의 부품·회로·핀 배정은 [`communicator-hardware.md`](communicator-hardware.md)에 정의한다.
+`canview`는 차량 네트워크에 직접 연결되는 **Communicator**와, 데이터를 표시·제어하는 **Controller**를 분리한다. 전체 장치 경계는 [시스템 아키텍처](../architecture/system.md), Communicator의 부품·회로·핀 배정은 [Communicator hardware](communicator.md)에 정의한다.
 
 ```text
 차량 CAN 1 ─┐
@@ -16,7 +18,7 @@
 
 여기서 “최대 3개 CAN 버스”는 시스템 요구사항이다. Waveshare 보드 자체에 CAN 트랜시버가 3개 들어 있다는 뜻이 아니며, 보드에는 차량 CAN 커넥터나 CAN 물리계층 회로가 없다. 별도 Communicator에 CAN 채널을 3개 구성한다.
 
-미확정 CAN 신호 검증에는 차량 CAN에 직접 연결되지 않는 선택 장치 `Diagnostic Bridge`를 추가할 수 있다. Bridge는 Communicator의 ESP-NOW read-only peer이자 휴대폰 SoftAP 웹서버이며, 권장 module·전원·버튼·저장장치와 안전 경계는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)에 정의한다.
+미확정 CAN 신호 검증에는 차량 CAN에 직접 연결되지 않는 선택 장치 `Diagnostic Bridge`를 추가할 수 있다. Bridge는 Communicator의 ESP-NOW read-only peer이자 휴대폰 SoftAP 웹서버이며, 권장 module·전원·버튼·저장장치와 안전 경계는 [Diagnostic Bridge·모바일 CAN 검증 UI](../architecture/diagnostic-bridge.md)에 정의한다.
 
 기본 동작은 **listen-only/read-only**다. 차량 제어를 활성화한 설치에서는 Primary Controller에 검증된 음량·profile 패닝·mute·SPORT 등 필요한 의미 명령만 기능별로 허용한다. 실차에서 바로 활성화하지 않고, 벤치 테스트·명령 허용 목록·속도 제한·사용자 확인·통신 단절 시 fail-safe를 모두 통과해야 하며 최종 CAN 송신 판정은 Communicator STM32가 담당한다.
 
@@ -111,7 +113,7 @@ Waveshare의 Arduino 예제와 ESP-IDF 예제에서 확인한 기본 점유는 �
 
 Arduino 예제의 화면 관련 기준값은 `320×480`, rotation `0`, `ST7796`이다. ESP-IDF 예제도 `SPI2_HOST`, MOSI `GPIO1`, SCLK `GPIO5`, DC `GPIO3`, backlight `GPIO6`, I2C SDA `GPIO8`, SCL `GPIO7`을 사용한다. LCD CS와 RST는 예제 설정에서 `GPIO_NC`/`-1`로 표시되고, reset은 `TCA9554`를 통해 처리되므로 회로도와 예제 드라이버의 초기화 순서를 유지한다.
 
-Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시한다. 주변 소음 측정 prototype은 onboard microphone부터 사용한다. `GPIO12`–`16`은 audio 경로에 점유된 핀이므로 외부 microphone을 병렬 연결하지 않는다. 설치 위치 때문에 송풍음·speaker 누설이 지배적이면 별도 microphone node를 검토하며, 판단 기준과 신호처리는 [`feature-design.md`](feature-design.md)에 정리했다.
+Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시한다. 주변 소음 측정 prototype은 onboard microphone부터 사용한다. `GPIO12`–`16`은 audio 경로에 점유된 핀이므로 외부 microphone을 병렬 연결하지 않는다. 설치 위치 때문에 송풍음·speaker 누설이 지배적이면 별도 microphone node를 검토하며, 판단 기준과 신호처리는 [`feature-design.md`](../architecture/features.md)에 정리했다.
 
 ### 4.1 I²C RTC와 시간 원천
 
@@ -119,13 +121,13 @@ Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시
 
 PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, backup 전원 상태를 읽어 `rtc_quality`를 만든다. Controller가 RTC 소유자이며 UI의 시·분 선택은 Controller local transaction으로 RTC와 NVS에 직접 적용한다. 휴대폰에서 바꿀 때도 Diagnostic Bridge와 Controller 사이의 owner-targeted remote config를 사용하며 차량 command로 보내지 않는다. RTC wall clock은 화면·로그·일몰 계산용이고 CAN timestamp ordering은 Communicator STM32의 monotonic clock을 사용한다.
 
-저장된 Hyundai DBC에는 1차 대상의 확정 GPS 좌표·현재 시각 신호가 없으므로 일출·일몰은 설정값 또는 별도 위치 원천에서 공급한다. 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 기록한다.
+저장된 Hyundai DBC에는 1차 대상의 확정 GPS 좌표·현재 시각 신호가 없으므로 일출·일몰은 설정값 또는 별도 위치 원천에서 공급한다. 조사 결과는 [`can-gps-time-investigation.md`](../vehicle/gps-time-investigation.md)에 기록한다.
 
 ## 5. Communicator 하드웨어 요구사항
 
 ### 5.1 채널 수와 물리계층
 
-Communicator는 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`, 2채널 `TCAN1046AV-Q1`, 1채널 `MAX3055`로 구성한다. 상세 회로 조건과 제안 핀맵은 [`communicator-hardware.md`](communicator-hardware.md), 기계 판독용 표는 [`../hardware/communicator/pinmap-proposed.csv`](../hardware/communicator/pinmap-proposed.csv)를 따른다.
+Communicator는 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`, 2채널 `TCAN1046AV-Q1`, 1채널 `MAX3055`로 구성한다. 상세 회로 조건과 제안 핀맵은 [Communicator hardware](communicator.md), 기계 판독용 표는 [`hardware/communicator/pinmap-proposed.csv`](../../hardware/communicator/pinmap-proposed.csv)를 따른다.
 
 Communicator는 최소 다음을 만족해야 한다.
 
@@ -140,7 +142,7 @@ Communicator는 최소 다음을 만족해야 한다.
 
 CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2는 `TCAN1046AV-Q1`의 두 high-speed 채널에, CAN3는 `MAX3055`의 125 kbps fault-tolerant 채널에 연결한다. MAX3055를 고속 CAN 버스에 연결하거나 일반 120 Ω 종단을 그대로 적용하지 않는다. ESP32-S3-MINI-1-N4R2는 CAN frame 처리보다 ESP-NOW, provisioning, update를 맡고 STM32와 4 Mbps UART/RTS/CTS로 통신한다.
 
-전원 기준안은 `LM74800-Q1 + back-to-back N-FET → MAX20040B 5 V → PGOOD-gated TPS629210 3.3 V → TLV803EA30DPWR 공통 reset`이다. MCU reset과 무전원 상태에서는 외부 pull resistor만으로 CAN1·2가 standby, CAN3가 Power-On Standby, UART가 flow-stop 상태가 되어야 한다. 구체 회로와 핀은 [`communicator-hardware.md`](communicator-hardware.md)를 정본으로 사용한다.
+전원 기준안은 `LM74800-Q1 + back-to-back N-FET → MAX20040B 5 V → PGOOD-gated TPS629210 3.3 V → TLV803EA30DPWR 공통 reset`이다. MCU reset과 무전원 상태에서는 외부 pull resistor만으로 CAN1·2가 standby, CAN3가 Power-On Standby, UART가 flow-stop 상태가 되어야 한다. 구체 회로와 핀은 [Communicator hardware](communicator.md)를 정본으로 사용한다.
 
 1차 차량이 classic CAN인지 실제 차량 캡처로 확인하기 전까지 bitrate, connector pin, bus 이름을 고정하지 않는다. 특히 `CAN1/2/3`은 프로젝트 내부 논리 이름이며 차량의 실제 CAN 버스 명칭과 같다고 가정하지 않는다.
 
@@ -155,7 +157,7 @@ CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2�
 
 역할은 Communicator가 최대 3개 CAN raw 수집·TX 안전 gate를 담당하고, Controller가 수신 allow-list·DBC decode·telemetry·LVGL·사용자 의도 명령을 담당하는 것으로 분리한다. wire protocol v1의 고정 frame은 ESP-NOW v1과 v2가 함께 처리할 수 있도록 240 byte 이하로 제한한다.
 
-전체 명세는 [`esp-now-protocol.md`](esp-now-protocol.md), C wire 구조는 [`../protocol/canview_protocol.h`](../protocol/canview_protocol.h)에 있다. 명세에는 다음을 포함한다.
+전체 명세는 [ESP-NOW protocol](../architecture/protocols/esp-now.md), C wire 구조는 [`protocol/canview_protocol.h`](../../protocol/canview_protocol.h)에 있다. 명세에는 다음을 포함한다.
 
 - 32 byte little-endian header, CRC-32, sequence와 session
 - QoS 0 telemetry와 QoS 1 command의 분리
@@ -210,7 +212,7 @@ idf.py -p PORT flash monitor
 | TCA9554 | 0.1.2 |
 | `es8311` | Waveshare example 포함 offline library |
 
-Arduino 예제 폴더에는 audio, AXP2101, camera, ES8311, RTC, IMU, TF, GFX, JPEG/PNG, LVGL 예제가 있다. Arduino는 Controller의 기능 확인에 사용하고, Communicator ESP32와 ESP-NOW 프로토콜의 정식 빌드는 ESP-IDF 기준으로 통합한다. STM32 firmware는 CMake 기반으로 빌드하며 상세 명령은 [`development-environments.md`](development-environments.md)를 따른다.
+Arduino 예제 폴더에는 audio, AXP2101, camera, ES8311, RTC, IMU, TF, GFX, JPEG/PNG, LVGL 예제가 있다. Arduino는 Controller의 기능 확인에 사용하고, Communicator ESP32와 ESP-NOW 프로토콜의 정식 빌드는 ESP-IDF 기준으로 통합한다. STM32 firmware는 CMake 기반으로 빌드하며 상세 명령은 [장치별 toolchain](../development/toolchains.md)을 따른다.
 
 ### 7.3 개발 단계
 

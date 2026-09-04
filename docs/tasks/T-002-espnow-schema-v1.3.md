@@ -42,7 +42,7 @@ duplicate/idempotency key
 sensitive-log policy
 ```
 
-payload 범위는 [통합 설계 §7](../implementation-readiness.md#7-protocol-구현-기준)의 모든 계열을 포함한다. control scope가 CAPABILITIES wire에 실제로 존재해야 하고, snapshot에는 STM boot ID·TX build mode·hard gate·profile digest·safety inhibit가 있어야 한다.
+payload 범위는 [통합 설계 §7](../architecture/implementation-readiness.md#7-protocol-구현-기준)의 모든 계열을 포함한다. control scope가 CAPABILITIES wire에 실제로 존재해야 하고, snapshot에는 STM boot ID·TX build mode·hard gate·profile digest·safety inhibit가 있어야 한다.
 
 ## 예상 변경 파일
 
@@ -53,7 +53,7 @@ protocol/golden/espnow-v1.3/*.json
 protocol/golden/espnow-v1.3/*.bin
 tools/generate_protocol.py
 tests/protocol/test_schema.py
-docs/esp-now-protocol.md
+docs/architecture/protocols/esp-now.md
 ```
 
 ## 구현 순서

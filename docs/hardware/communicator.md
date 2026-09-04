@@ -1,8 +1,10 @@
 # Communicator 하드웨어 설계 기준
 
+이 문서는 [문서 지도](../README.md)에 속한 Communicator 전원·CAN PHY·MCU pinmap의 회로 입력 요구사항이다. 시스템 권한 경계는 [시스템 아키텍처](../architecture/system.md), 제작 산출물은 T-100이 정본이다.
+
 ## 1. 문서 상태와 안전 목표
 
-이 문서는 `Communicator`의 전원, 회로, 핀 할당과 부팅 안전 상태를 정의하는 회로 입력 요구사항이다. 아직 승인 KiCad 회로도·BOM·ERC·firmware 독립 hard TX gate가 없으므로 제작 정본이나 차량 송신 승인으로 사용하지 않는다. 해당 산출물은 [T-100](tasks/T-100-communicator-schematic.md)에서 확정한다. AEC/PPAP 적합성 판단은 범위 밖이며, 다음 전기적 목표를 우선한다.
+이 문서는 `Communicator`의 전원, 회로, 핀 할당과 부팅 안전 상태를 정의하는 회로 입력 요구사항이다. 아직 승인 KiCad 회로도·BOM·ERC·firmware 독립 hard TX gate가 없으므로 제작 정본이나 차량 송신 승인으로 사용하지 않는다. 해당 산출물은 [T-100](../tasks/T-100-communicator-schematic.md)에서 확정한다. AEC/PPAP 적합성 판단은 범위 밖이며, 다음 전기적 목표를 우선한다.
 
 - MCU가 무전원·reset·brownout·watchdog reset·firmware 정지 상태여도 CAN bus를 dominant로 붙잡지 않는다.
 - 5 V가 유효해지기 전에 3.3 V MCU rail을 켜지 않고, 3.3 V가 안정된 뒤 두 MCU의 reset을 해제한다.
@@ -229,7 +231,7 @@ FT-CAN 종단은 고속 CAN과 다르다. CANH–CANL 사이에 120 Ω을 넣지
 
 ## 5. STM32G474CEU6 UFQFPN48 최종 제안 핀맵
 
-기계 판독용 정본은 [`../hardware/communicator/pinmap-proposed.csv`](../hardware/communicator/pinmap-proposed.csv)다.
+기계 판독용 정본은 [`../hardware/communicator/pinmap-proposed.csv`](../../hardware/communicator/pinmap-proposed.csv)다.
 
 | package pin | MCU pin | AF/모드 | 기능 | 연결·reset 처리 |
 |---:|---|---|---|---|

@@ -44,7 +44,7 @@ cmake --build --preset release
 
 상세 설계는 다음 문서를 따른다.
 
-- [`../../../docs/communicator-hardware.md`](../../../docs/communicator-hardware.md)
-- [`../../../docs/communicator-uart-protocol.md`](../../../docs/communicator-uart-protocol.md)
-- [`../../../docs/automation-control.md`](../../../docs/automation-control.md)
-- [`../../../docs/development-environments.md`](../../../docs/development-environments.md)
+- [Communicator hardware](../../../docs/hardware/communicator.md)
+- [Communicator UART protocol](../../../docs/architecture/protocols/communicator-uart.md)
+- [자동 제어 로직](../../../docs/architecture/automation.md)
+- [장치별 toolchain](../../../docs/development/toolchains.md)

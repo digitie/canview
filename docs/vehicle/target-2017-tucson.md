@@ -1,5 +1,7 @@
 # 1차 대상 차량: 2017 Tucson TL
 
+이 문서는 [문서 지도](../README.md)에 속한 1차 차량 식별과 evidence 승격 기준이다. signal별 후보와 등급은 [signal catalog](signal-catalog.md)를 따른다.
+
 ## 대상 식별
 
 | 항목 | 값 |
@@ -94,7 +96,7 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 
 A 등급만 기본 화면의 신뢰 가능한 값으로 사용한다. B/C는 `candidate` 또는 `raw` 배지를 표시하고, X는 자동으로 stale 처리한다.
 
-기능별 후보, 인포테인먼트·BCM·IPS·도어 잠금의 위험도와 실차 검증 순서는 [CAN 신호 후보 카탈로그](can-signal-catalog.md)에 정리한다.
+기능별 후보, 인포테인먼트·BCM·IPS·도어 잠금의 위험도와 실차 검증 순서는 [CAN 신호 후보 카탈로그](signal-catalog.md)에 정리한다.
 
 ## 제어 기능 경계
 

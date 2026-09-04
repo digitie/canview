@@ -48,4 +48,4 @@ python tests/ui/capture_screens.py --profile tucson-tl-2017 --all-quality-states
 
 ## 결과 문서
 
-`docs/can-signal-catalog.md`, `docs/target-vehicle-2017-tucson.md`, profile report와 UI screenshot을 함께 갱신한다.
+`docs/vehicle/signal-catalog.md`, `docs/vehicle/target-2017-tucson.md`, profile report와 UI screenshot을 함께 갱신한다.

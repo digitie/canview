@@ -1,5 +1,7 @@
 # CANView 자동 제어 로직
 
+이 문서는 [아키텍처 개요](README.md)에 속한 자동화 상세 정본이다. 기능 경계는 [기능 설계](features.md), 실제 구현 순서와 gate는 [구현 준비 기준](implementation-readiness.md)을 함께 따른다.
+
 ## 1. 범위와 실행 위치
 
 이 문서는 CAN 자동 밝기, 무조작 감광·기본 화면 복귀, 제한속도 경고, 주행 소음 기반 음량 보정, 자동 SPORT 전환의 실행 가능한 초기 로직을 정의한다. 기능마다 입력과 실패 영향이 다르므로 다음처럼 나눈다.
@@ -16,9 +18,9 @@ Controller가 계산한 음량 명령과 설정값은 차량 CAN frame이 아니
 
 기준 구현은 다음 파일에 있다.
 
-- [`canview_controller_automation.c`](../firmware/controller/components/canview_automation/canview_controller_automation.c): 자동 밝기와 FFT 소음 보정
-- [`canview_auto_sport.c`](../firmware/communicator/stm32/src/canview_auto_sport.c): SPORT 진입·복원 상태기계
-- [`test_automation.c`](../tests/automation/test_automation.c): 지속시간, 히스테리시스, 수동 우선 동작 시험
+- [`canview_controller_automation.c`](../../firmware/controller/components/canview_automation/canview_controller_automation.c): 자동 밝기와 FFT 소음 보정
+- [`canview_auto_sport.c`](../../firmware/communicator/stm32/src/canview_auto_sport.c): SPORT 진입·복원 상태기계
+- [`test_automation.c`](../../tests/automation/test_automation.c): 지속시간, 히스테리시스, 수동 우선 동작 시험
 
 모든 시간 계산은 wall clock이 아니라 wrap-safe monotonic tick 차이를 사용한다. task가 오래 정지했다가 재개되면 한 번의 큰 `elapsed_ms`를 그대로 넣지 않고 운행 입력을 stale 처리한 뒤 상태기계를 재동기화한다.
 
@@ -69,7 +71,7 @@ rheostat 미수신 야간 목표 = 30%
 
 ### 2.4 일몰 후 전조등 미점등 경고
 
-저장 DBC에는 1차 차량의 GPS 좌표·현재 시각 CAN signal이 없으므로 `PCF85063 RTC + 설정된 일출·일몰`을 사용한다. GPS·시간 후보의 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 있다.
+저장 DBC에는 1차 차량의 GPS 좌표·현재 시각 CAN signal이 없으므로 `PCF85063 RTC + 설정된 일출·일몰`을 사용한다. GPS·시간 후보의 조사 결과는 [`can-gps-time-investigation.md`](../vehicle/gps-time-investigation.md)에 있다.
 
 경고 입력은 `rtc_valid`, `solar_window_valid`, `vehicle_awake`, `CF_Gway_HeadLampLow`/`C_TailLampActivity` 중 실차에서 확인된 조명 상태와 각 입력의 age다. 다음 조건이 모두 충족될 때만 밤으로 판정한다.
 

@@ -1,5 +1,7 @@
 # 2017 Tucson TL CAN 신호 후보 카탈로그
 
+이 문서는 [대상 차량](target-2017-tucson.md)의 DBC 후보, 표시·제어 등급과 실차 승격 상태 정본이다. 공개 DBC 정의와 실제 차량 evidence를 구분한다.
+
 ## 1. 판정 범위
 
 대상은 2017 Hyundai Tucson TL 2.0 디젤 4WD BlueLink다. 이 조합의 공개 fingerprint는 [commaai/opendbc](https://github.com/commaai/opendbc)에 별도로 고정되어 있지 않다. 이 문서의 모든 ID와 signal은 저장한 upstream [`3e92d112` snapshot](https://github.com/commaai/opendbc/tree/3e92d112129507debe45364891954db70238997a)의 **실차 검증 전 후보**다.
@@ -11,7 +13,7 @@
 
 현재 저장소 기준 확정 등급은 모두 `C`다. 실차 프로파일에서만 `A/B/X`로 승격한다. DBC 세 파일은 message 주기를 정의하지 않으므로 표의 주기는 `실측 필요`로 둔다. C-CAN/M-CAN/FT-CAN 명칭과 실제 Communicator 물리 채널 1/2/3의 대응도 먼저 listen-only로 찾아야 한다.
 
-GPS 좌표·현재 날짜·시각 CAN 신호의 별도 조사 결과는 [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)에 있다. 주 DBC에는 해당 정보가 없으므로 Controller RTC와 별도 위치 원천을 사용한다.
+GPS 좌표·현재 날짜·시각 CAN 신호의 별도 조사 결과는 [CAN 신호의 GPS·시간 조사](gps-time-investigation.md)에 있다. 주 DBC에는 해당 정보가 없으므로 Controller RTC와 별도 위치 원천을 사용한다.
 
 ## 2. 우선 구현 신호
 
@@ -121,7 +123,7 @@ Controller는 raw CAN ID/payload를 Communicator로 지시할 수 없다. 명령
 
 ## 6. 실차 검증 절차
 
-PC 기반 CAN tool 없이 현장에서 반복 검증할 때는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)의 `INVENTORY → EVENT_DIFF → FILTERED_RAW → Signal Lab` 흐름을 사용한다. Bridge가 만든 `.cvtrace` manifest의 bus, filter, drop/gap, marker 반복, firmware와 DBC digest를 이 문서의 등급 근거로 보존한다.
+PC 기반 CAN tool 없이 현장에서 반복 검증할 때는 [Diagnostic Bridge·모바일 CAN 검증 UI](../architecture/diagnostic-bridge.md)의 `INVENTORY → EVENT_DIFF → FILTERED_RAW → Signal Lab` 흐름을 사용한다. Bridge가 만든 `.cvtrace` manifest의 bus, filter, drop/gap, marker 반복, firmware와 DBC digest를 이 문서의 등급 근거로 보존한다.
 
 1. 차량 옵션, 시장, HU·AMP·TMU·BCM/IBU·4WD ECU 부품번호를 기록하고 VIN은 마스킹한다.
 2. 세 채널을 물리 TX disable과 FDCAN bus-monitoring mode로 두고 bitrate·idle voltage·connector pin을 찾는다.
@@ -134,4 +136,4 @@ PC 기반 CAN tool 없이 현장에서 반복 검증할 때는 [Diagnostic Bridg
 9. 문은 각 래치, 수동 노브, 실내 switch, key fob, passive handle, BlueLink를 한 번에 하나씩 조작해 open/lock/request/feedback을 분리한다.
 10. 송신 연구는 bench에서 시작하고 control lease 만료, ACK timeout, 반복 명령 제한, OEM 수동 조작 우선과 snapshot 복원을 검증한다.
 
-원본 파일과 hash는 [`dbc/README.md`](../dbc/README.md), 기능별 계산과 release gate는 [기능 설계](feature-design.md), Controller–Communicator 명령 수명주기는 [ESP-NOW 프로토콜](esp-now-protocol.md)에 있다.
+원본 파일과 hash는 [`dbc/README.md`](../../dbc/README.md), 기능별 계산과 release gate는 [기능 설계](../architecture/features.md), Controller–Communicator 명령 수명주기는 [ESP-NOW 프로토콜](../architecture/protocols/esp-now.md)에 있다.

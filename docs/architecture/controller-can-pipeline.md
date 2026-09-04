@@ -1,5 +1,7 @@
 # Controller CAN 수신·DBC 파이프라인
 
+이 문서는 [아키텍처 개요](README.md)에 속한 Controller 수신·filter·decode 상세 정본이다. wire 자체는 [protocol index](protocols/README.md), 차량별 승격 근거는 [signal catalog](../vehicle/signal-catalog.md)에서 관리한다.
+
 ## 1. 책임 배치
 
 CAN의 물리 수집과 Controller의 해석을 분리한다.
@@ -30,7 +32,7 @@ STM32G474 ── raw CAN batch ── ESP32 Communicator
 
 Communicator에는 화면용 DBC 의미를 넣지 않는다. 기존 ID 안에서 새 signal을 추가하거나, 다른 차량용 catalog를 선택하거나, candidate의 factor/bit layout을 바꿀 때는 Controller의 catalog/decoder만 배포하면 된다. 새 CAN ID를 사용하려면 Controller의 필터를 먼저 추가한다. 이때도 Communicator firmware는 변경하지 않는다.
 
-실차에서 미확정 ID를 찾고 bit layout을 바꿔 보는 과정은 별도 `Diagnostic Bridge`와 휴대폰 웹 `Signal Lab`이 담당한다. Bridge도 Communicator의 raw record 계약을 사용하며 DBC별 코드를 Communicator에 추가하지 않는다. 전체 구조, 행동 전후 capture, candidate/evidence 형식은 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)를 따른다.
+실차에서 미확정 ID를 찾고 bit layout을 바꿔 보는 과정은 별도 `Diagnostic Bridge`와 휴대폰 웹 `Signal Lab`이 담당한다. Bridge도 Communicator의 raw record 계약을 사용하며 DBC별 코드를 Communicator에 추가하지 않는다. 전체 구조, 행동 전후 capture, candidate/evidence 형식은 [Diagnostic Bridge·모바일 CAN 검증 UI](diagnostic-bridge.md)를 따른다.
 
 raw CAN 자체는 차량 제어 명령이 아니다. Controller 수신 필터는 **수신량을 제한하는 보안·대역폭 경계**이며, raw record를 차량에 다시 송신하는 권한을 만들지 않는다.
 
@@ -80,7 +82,7 @@ record quota, period burst quota, byte/s quota를 모두 만족해야 admission�
 | `0x26` | `CAN_STREAM_CONFIG` | peer ↔ Communicator | peer별 upstream period/count/byte budget 요청·수락값 |
 | `0x27` | `CAN_STREAM_STATUS` | Communicator → peer | 해당 peer stream의 허용·거부·budget drop 통계 |
 
-아래 크기는 현재 `1.2` draft의 migration 입력일 뿐 runtime 정본이 아니다. 실제 wire layout은 [T-002](tasks/T-002-espnow-schema-v1.3.md)의 schema와 생성 [`canview_protocol.h`](../protocol/canview_protocol.h)가 함께 동결된 뒤 확정한다.
+아래 크기는 현재 `1.2` draft의 migration 입력일 뿐 runtime 정본이 아니다. 실제 wire layout은 [T-002](../tasks/T-002-espnow-schema-v1.3.md)의 schema와 생성 [`canview_protocol.h`](../../protocol/canview_protocol.h)가 함께 동결된 뒤 확정한다.
 
 - `canview_can_filter_t`: 22 byte
 - `canview_can_filter_batch_header_t`: 8 byte
@@ -155,10 +157,10 @@ ACK만으로 UI의 차량 상태를 바꾸지 않는다. 상태 snapshot 또는 
 
 핵심 구현은 다음에 있다.
 
-- [`canview_controller_can.h`](../firmware/controller/components/canview_can/include/canview_controller_can.h): filter store, stream budget, generic descriptor API
-- [`canview_controller_can.c`](../firmware/controller/components/canview_can/canview_controller_can.c): default-deny admission과 quota
-- [`canview_controller_signal.c`](../firmware/controller/components/canview_can/canview_controller_signal.c): endian/signed/scale decoder
-- [`canview_command_tracker.c`](../firmware/controller/components/canview_can/canview_command_tracker.c): ACK/result 상태기계와 재시도
+- [`canview_controller_can.h`](../../firmware/controller/components/canview_can/include/canview_controller_can.h): filter store, stream budget, generic descriptor API
+- [`canview_controller_can.c`](../../firmware/controller/components/canview_can/canview_controller_can.c): default-deny admission과 quota
+- [`canview_controller_signal.c`](../../firmware/controller/components/canview_can/canview_controller_signal.c): endian/signed/scale decoder
+- [`canview_command_tracker.c`](../../firmware/controller/components/canview_can/canview_command_tracker.c): ACK/result 상태기계와 재시도
 
 최소 시험 항목은 다음과 같다.
 

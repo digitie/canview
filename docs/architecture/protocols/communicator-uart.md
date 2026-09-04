@@ -1,5 +1,7 @@
 # Communicator 내부 UART 프로토콜
 
+이 문서는 [protocol index](README.md)에 속한 Communicator 내부 MCU 간 계약의 상세 정본이다. 외부 ESP-NOW frame을 그대로 터널링하지 않는다.
+
 ## 1. 목적과 경계
 
 이 프로토콜은 한 Communicator PCB 안의 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`를 연결한다. Controller와 Communicator 사이의 ESP-NOW wire protocol과는 별도다.
@@ -118,7 +120,7 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 | `0x17` | `CAN_CAPTURE_STATUS` | STM→ESP | 실제 적용 revision, record/drop, 완료·오류 |
 | `0x18` | `CAN_EVENT_MARKER` | ESP→STM | marker ID, 종류, sender time과 uncertainty |
 
-현재는 UART header와 codec이 없으므로 어떤 version도 전송 가능한 구현 상태가 아니다. 정확한 payload, plan 원자 적용, diagnostic lease, peer별 재필터링은 [T-004](tasks/T-004-uart-schema-codec.md)와 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)를 따른다. 이 확장은 DBC signal 이름이나 factor를 UART에 넣지 않는다.
+현재는 UART header와 codec이 없으므로 어떤 version도 전송 가능한 구현 상태가 아니다. 정확한 payload, plan 원자 적용, diagnostic lease, peer별 재필터링은 [T-004](../../tasks/T-004-uart-schema-codec.md)와 [Diagnostic Bridge·모바일 CAN 검증 UI](../diagnostic-bridge.md)를 따른다. 이 확장은 DBC signal 이름이나 factor를 UART에 넣지 않는다.
 
 ## 5. CAN batch 형식
 
@@ -143,7 +145,7 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 | `can_id_le` | 4 | 11/29-bit ID |
 | `data` | 8 | DLC 뒤 byte는 0으로 정규화 |
 
-classic CAN record는 고정 16 byte다. v1은 0–8 byte data만 보존하며, CAN FD 12/16-byte DLC와 FD/BRS 의미는 별도 record type과 capability를 추가하기 전까지 거부한다. MAX3055 채널에서 FD/BRS flag는 항상 거부한다. ESP-NOW로 넘길 때도 [`canview_protocol.h`](../protocol/canview_protocol.h)의 16 byte layout을 그대로 사용한다.
+classic CAN record는 고정 16 byte다. v1은 0–8 byte data만 보존하며, CAN FD 12/16-byte DLC와 FD/BRS 의미는 별도 record type과 capability를 추가하기 전까지 거부한다. MAX3055 채널에서 FD/BRS flag는 항상 거부한다. ESP-NOW로 넘길 때도 [`canview_protocol.h`](../../../protocol/canview_protocol.h)의 16 byte layout을 그대로 사용한다.
 
 ## 6. queue와 backpressure
 
@@ -254,4 +256,4 @@ Heartbeat 주기는 100 ms다.
 - [Espressif ESP32-S3 GPIO matrix](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/gpio.html)
 - [ST STM32G474CE 데이터시트](https://www.st.com/resource/en/datasheet/stm32g474ce.pdf)
 
-관련 observer/capture 구현 명세는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)에 있다.
+관련 observer/capture 구현 명세는 [Diagnostic Bridge·모바일 CAN 검증 UI](../diagnostic-bridge.md)에 있다.

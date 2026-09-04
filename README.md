@@ -13,38 +13,14 @@
 
 ## 문서
 
-### 운영 정본
+상세 문서를 한꺼번에 읽지 않도록 [문서 지도](docs/README.md)가 작업별 진입점과 정본 관계를 관리한다.
 
-- [상위 아키텍처](docs/architecture/architecture.md)
+- [아키텍처 개요](docs/architecture/README.md): 장치·권한·protocol·기능 설계
 - [현재 진척과 다음 작업](docs/resume.md)
-- [작업 요약](docs/tasks.md)
-- [작업 상세 규칙](docs/tasks-rule.md)
+- [열린 task와 gate](docs/tasks.md)
 - [결정 색인과 ADR](docs/decisions.md)
-- [에이전트 작업 가이드](docs/agent-guide.md)
-- [개발환경 요약](docs/dev-environment.md)
-- [공용 runbook](docs/runbooks/README.md)
-
-### 설계·구현 문서
-
-- [구현 준비 기준과 통합 설계](docs/implementation-readiness.md)
-- [원자 구현 task backlog](docs/tasks.md)
-- [독립 적대적 설계 리뷰와 조치](docs/adversarial-design-review.md)
-- [하드웨어 및 개발환경](docs/hardware-and-development.md)
-- [시스템 구조와 장치 명칭](docs/system-architecture.md)
-- [Communicator 회로·IC·핀맵](docs/communicator-hardware.md)
-- [장치별 개발환경](docs/development-environments.md)
-- [Communicator 내부 4 Mbps UART 프로토콜](docs/communicator-uart-protocol.md)
-- [DBC 파일과 차량 적용 지침](dbc/README.md)
-- [1차 대상 차량 검증 메모](docs/target-vehicle-2017-tucson.md)
-- [내비·엔진·4WD·BCM·IPS·오디오 CAN 신호 후보 카탈로그](docs/can-signal-catalog.md)
-- [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
-- [자동 밝기·소음 음량·SPORT 제어 로직](docs/automation-control.md)
-- [ESP-NOW 양방향 프로토콜](docs/esp-now-protocol.md)
-- [미확정 CAN 신호용 Diagnostic Bridge·모바일 웹 UI](docs/can-diagnostics-web.md)
-- [Controller CAN 수신·DBC 파이프라인](docs/controller-can-pipeline.md)
-- [CAN 신호의 GPS·시간 조사](docs/can-gps-time-investigation.md)
-- [운전자 UI·LVGL 설계](docs/ui-design.md)
-- [LVGL 공식 데모 전체 검토](docs/lvgl-demo-review.md)
+- [적대적 리뷰 아카이브](docs/reviews/README.md)
+- [에이전트 workflow](docs/runbooks/agent-workflow.md)
 
 ## UI prototype
 
@@ -62,7 +38,7 @@
 - LVGL 8.4 UI: [`ui/lvgl/`](ui/lvgl/)
 - wire protocol C 구조: [`protocol/canview_protocol.h`](protocol/canview_protocol.h)
 
-미확정 CAN ID·bit·scale은 별도 `Diagnostic Bridge`가 ESP-NOW read-only peer로 수신하고, 휴대폰이 Bridge의 고정-channel SoftAP에 접속해 확인하는 구조를 기본안으로 한다. 아래 정적 prototype은 세 CAN bus 상태, 행동 전후 capture, 64-bit 변화 지도와 후보 decoder의 모바일 정보 구조를 보여준다. 실제 REST·WebSocket firmware는 [구현 명세](docs/can-diagnostics-web.md)의 단계에 따라 추가한다.
+미확정 CAN ID·bit·scale은 별도 `Diagnostic Bridge`가 ESP-NOW read-only peer로 수신하고, 휴대폰이 Bridge의 고정-channel SoftAP에 접속해 확인하는 구조를 기본안으로 한다. 아래 정적 prototype은 세 CAN bus 상태, 행동 전후 capture, 64-bit 변화 지도와 후보 decoder의 모바일 정보 구조를 보여준다. 실제 REST·WebSocket firmware는 [구현 명세](docs/architecture/diagnostic-bridge.md)의 단계에 따라 추가한다.
 
 | Diagnostic Bridge 상태 | Signal Lab |
 |---|---|
@@ -85,7 +61,7 @@
 
 DBC 원본, hardware 기준, 기능 안전 경계, ESP-NOW wire 구조, 화면 prototype과 LVGL UI 계층을 포함한 설계 기준 저장소다. 실제 Communicator와 Controller firmware 통합은 실차 capture로 신호를 검증하면서 단계적으로 추가한다.
 
-현재 저장소는 차량 송신 가능 상태가 아니다. protocol payload ABI·codec, 완성 firmware project, 승인 회로도와 firmware 독립 hard TX gate, 대상 차량 evidence가 모두 미완료다. 구현 순서와 차량 연결 gate는 [구현 준비 기준](docs/implementation-readiness.md)과 [task backlog](docs/tasks.md)를 따른다.
+현재 저장소는 차량 송신 가능 상태가 아니다. protocol payload ABI·codec, 완성 firmware project, 승인 회로도와 firmware 독립 hard TX gate, 대상 차량 evidence가 모두 미완료다. 구현 순서와 차량 연결 gate는 [구현 준비 기준](docs/architecture/implementation-readiness.md)과 [task backlog](docs/tasks.md)를 따른다.
 
 ## 주요 원문
 

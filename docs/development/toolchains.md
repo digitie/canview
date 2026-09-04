@@ -1,5 +1,7 @@
 # Controller·Communicator·Diagnostic Bridge 개발환경
 
+이 문서는 [Windows 개발환경](windows.md) 아래에서 장치별 SDK, compiler, build 산출물을 구체화한다. branch·worktree·review 절차는 [agent workflow](../runbooks/agent-workflow.md)를 따른다.
+
 ## 1. 공통 원칙
 
 Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 저장소에서 관리하지만 firmware image와 target 설정은 분리한다.
@@ -26,9 +28,9 @@ Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline�
 
 ### 2.1 하드웨어와 framework
 
-Controller는 Waveshare `ESP32-S3-Touch-LCD-3.5`다. 보드에는 ESP32-S3R8, 16 MB external Flash, 8 MB PSRAM, ST7796 LCD, FT6336 touch, AXP2101 PMIC, QMI8658 IMU, PCF85063 RTC, ES8311 audio codec가 있다. 세부 핀은 [하드웨어 및 개발환경](hardware-and-development.md)을 따른다.
+Controller는 Waveshare `ESP32-S3-Touch-LCD-3.5`다. 보드에는 ESP32-S3R8, 16 MB external Flash, 8 MB PSRAM, ST7796 LCD, FT6336 touch, AXP2101 PMIC, QMI8658 IMU, PCF85063 RTC, ES8311 audio codec가 있다. 세부 핀은 [하드웨어 및 개발환경](../hardware/controller.md)을 따른다.
 
-Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구하고 예제는 5.5.2 기준이므로 baseline을 `v5.5.2`로 고정한다. LVGL UI는 이 저장소의 [`../ui/lvgl/`](../ui/lvgl/)를 보드 BSP의 display/touch driver 위에 연결한다.
+Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구하고 예제는 5.5.2 기준이므로 baseline을 `v5.5.2`로 고정한다. LVGL UI는 이 저장소의 [`../ui/lvgl/`](../../ui/lvgl/)를 보드 BSP의 display/touch driver 위에 연결한다.
 
 ### 2.2 설치와 빌드
 
@@ -112,7 +114,7 @@ idf.py -p /dev/ttyACM2 flash monitor
 - web asset은 external CDN 없이 gzip으로 Flash에 포함
 - watchdog은 ESP-NOW protocol, capture, HTTP task를 각각 감시
 
-표준 경로와 component 분리는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)의 `Bridge firmware 구조`를 따른다. 정적 UI prototype은 [`../ui/diagnostic-web/`](../ui/diagnostic-web/)에 있다.
+표준 경로와 component 분리는 [Diagnostic Bridge·모바일 CAN 검증 UI](../architecture/diagnostic-bridge.md)의 `Bridge firmware 구조`를 따른다. 정적 UI prototype은 [`../ui/diagnostic-web/`](../../ui/diagnostic-web/)에 있다.
 
 ### 4.2 Web asset 검증
 
@@ -138,7 +140,7 @@ STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공
 
 ### 5.2 repository CMake scaffold
 
-[`../firmware/communicator/stm32/`](../firmware/communicator/stm32/)의 CMake project는 STM32CubeG4를 repository 밖 dependency로 참조한다. vendor package를 이 저장소에 무분별하게 복사하지 않는다.
+[`../firmware/communicator/stm32/`](../../firmware/communicator/stm32/)의 CMake project는 STM32CubeG4를 repository 밖 dependency로 참조한다. vendor package를 이 저장소에 무분별하게 복사하지 않는다.
 
 ```bash
 git clone --recursive --depth 1 --branch v1.6.3 \

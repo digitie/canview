@@ -1,15 +1,13 @@
 # CANView 에이전트 운영 Runbook
 
-이 디렉터리는 반복 작업 절차와 실패 복구 방법을 둔다. 설계 정본은 docs/architecture/와 docs/implementation-readiness.md, task 정본은 docs/tasks.md와 docs/tasks/에 있다.
+이 디렉터리에는 반복 실행 절차만 둔다. 시스템·protocol 설계는 [architecture](../architecture/README.md), 작업 정본은 [tasks](../tasks.md)와 `docs/tasks/`, 전체 문서 선택은 [문서 지도](../README.md)를 따른다.
 
-## 필독
+모든 runbook을 작업 시작 때 읽지 않는다. 현재 상황에 해당하는 문서만 연다.
 
-- [agent-workflow.md](agent-workflow.md): branch·미러·검증·PR·문서 갱신 흐름
-- [agent-failure-patterns.md](agent-failure-patterns.md): 환경·하드웨어·protocol·merge 실패의 분류와 복구
+| 문서 | 읽는 시점 | 책임 |
+|---|---|---|
+| [agent workflow](agent-workflow.md) | branch 생성, 구현 검증, 2인 리뷰, PR, merge를 수행할 때 | Windows branch/worktree, CodeGraph, gate, 독립 적대적 리뷰, 보안 감사, 정리 |
+| [documentation maintenance](documentation-maintenance.md) | 문서·ADR·task·review를 만들거나 이동할 때 | 정본 관계, 갱신 조건, 누적 기록, link 검증 |
+| [failure patterns](agent-failure-patterns.md) | 실제 실패를 분류하거나 반복을 막을 때 | 환경·protocol·hardware·merge 실패의 진단과 복구 |
 
-## 구분
-
-| 문서 | 범위 |
-|------|------|
-| agent-workflow.md | 모든 agent가 따르는 표준 1-PR 절차 |
-| agent-failure-patterns.md | 반복 실패를 재현·분류·기록하는 방법 |
+새 반복 절차를 추가할 때 제품 설계나 일회성 작업 로그를 이 디렉터리에 넣지 않는다. 설계 결정은 ADR, 현재 구조는 architecture, 일회성 결과는 task·review·journal에 둔다.

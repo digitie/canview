@@ -1,5 +1,7 @@
 # CANView 기능 조사 및 구현 설계
 
+이 문서는 [아키텍처 개요](README.md)에 속한 기능별 의미·권한 경계의 정본이다. 자동화 수치와 상태기는 [자동 제어 로직](automation.md), 실제 signal 근거는 [차량 문서](../vehicle/signal-catalog.md)를 따른다.
+
 ## 1. 범위와 결론
 
 이 문서는 2017년식 Hyundai Tucson TL 2.0 디젤 4WD BlueLink 차량을 1차 대상으로 다음 기능을 조사하고 구현 경계를 정한다.
@@ -59,7 +61,7 @@ Communicator
 
 ### 4.1 DBC 후보
 
-[`dbc/opendbc/hyundai_can.dbc`](../dbc/opendbc/hyundai_can.dbc)에 다음 신호가 있다.
+[`dbc/opendbc/hyundai_can.dbc`](../../dbc/opendbc/hyundai_can.dbc)에 다음 신호가 있다.
 
 | Message | ID | Signal | DBC 단위/범위 | 후보 의미 |
 |---|---:|---|---|---|
@@ -230,7 +232,7 @@ Hyundai의 현재 Quiet Mode 문서는 rear-seat speaker를 끄고 front speaker
 
 ### 6.2 M-CAN 후보
 
-[`dbc/opendbc/hyundai_2015_mcan.dbc`](../dbc/opendbc/hyundai_2015_mcan.dbc)의 후보는 다음과 같다.
+[`dbc/opendbc/hyundai_2015_mcan.dbc`](../../dbc/opendbc/hyundai_2015_mcan.dbc)의 후보는 다음과 같다.
 
 | Message | ID | 주요 신호 | 방향 후보 |
 |---|---:|---|---|
@@ -386,7 +388,7 @@ lower = speed < 30 km/h
 - navigation/parking/safety warning: OEM priority를 방해하지 않음
 - reverse: 새 volume 상승 금지
 
-짧은 peak 이탈은 누적 evidence를 즉시 0으로 만들지 않고 반대 방향으로 서서히 감쇠한다. head unit의 기존 SDVC가 활성화돼 있으면 이중 보상이 생기므로 `OEM SDVC`와 `CANView adaptive`를 동시에 켜지 않는다. preset과 정수 상태기계는 [자동 제어 로직](automation-control.md)을 따른다.
+짧은 peak 이탈은 누적 evidence를 즉시 0으로 만들지 않고 반대 방향으로 서서히 감쇠한다. head unit의 기존 SDVC가 활성화돼 있으면 이중 보상이 생기므로 `OEM SDVC`와 `CANView adaptive`를 동시에 켜지 않는다. preset과 정수 상태기계는 [자동 제어 로직](automation.md)을 따른다.
 
 ### 7.4 calibration
 
@@ -520,7 +522,7 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 
 ## 9. CAN 기반 자동 밝기
 
-`C_TailLampActivity`, `CF_Gway_HeadLampLow`, `CF_Gway_LightSwState`, `CF_Clu_RheostatLevel`을 후보로 사용한다. 실제 tail/low-beam 활성 신호를 1순위로 하고 rheostat를 야간 밝기 범위에 매핑한다. 점등은 500 ms, 소등은 1.5초 확인하며 1.2초 ramp로 PWM을 바꾼다. 신호 stale에서는 갑자기 밝아지지 않고 마지막 유효 밝기를 유지한다. 상세값과 구현은 [자동 제어 로직](automation-control.md)에 있다.
+`C_TailLampActivity`, `CF_Gway_HeadLampLow`, `CF_Gway_LightSwState`, `CF_Clu_RheostatLevel`을 후보로 사용한다. 실제 tail/low-beam 활성 신호를 1순위로 하고 rheostat를 야간 밝기 범위에 매핑한다. 점등은 500 ms, 소등은 1.5초 확인하며 1.2초 ramp로 PWM을 바꾼다. 신호 stale에서는 갑자기 밝아지지 않고 마지막 유효 밝기를 유지한다. 상세값과 구현은 [자동 제어 로직](automation.md)에 있다.
 
 같은 Controller 상태기계가 기본 30초 무조작 시 감광과 주행 화면 복귀를 수행한다. 유효한 내비 제한속도보다 10% 이상 빠른 상태가 확인되면 모든 화면 위의 제한속도 표지를 400 ms 간격으로 점멸하고 밝기를 일시적으로 높인다. 해제 threshold는 5%로 낮춰 경계 왕복을 막으며 overlay는 touch event를 가로채지 않는다.
 
@@ -536,7 +538,7 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 - audio와 automation 설정의 multi-step 편집은 speed 0에서만 연다.
 - touch 후 250 ms 안에 pressed/pending feedback을 표시한다.
 
-상세 화면 구성과 LVGL mapping은 [UI/UX 설계](ui-design.md)를 따른다.
+상세 화면 구성과 LVGL mapping은 [UI/UX 설계](../ui/design.md)를 따른다.
 
 ## 11. 우선순위와 구현 backlog
 
@@ -615,4 +617,4 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 - [Google Design for Driving — interaction principles](https://developers.google.com/cars/design/design-foundations/interaction-principles)
 - [Google Design for Driving — sizing](https://developers.google.com/cars/design/automotive-os/design-system/sizing)
 
-DBC 전 영역 후보와 도어 잠금·IPS 안전 경계는 [CAN 신호 후보 카탈로그](can-signal-catalog.md)에 있다.
+DBC 전 영역 후보와 도어 잠금·IPS 안전 경계는 [CAN 신호 후보 카탈로그](../vehicle/signal-catalog.md)에 있다.

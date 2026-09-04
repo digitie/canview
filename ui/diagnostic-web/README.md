@@ -1,6 +1,6 @@
 # Diagnostic Bridge 모바일 웹 prototype
 
-이 폴더는 [CAN 신호 검증용 Diagnostic Bridge와 모바일 웹 UI 명세](../../docs/can-diagnostics-web.md)의 360–430 px 화면 구조를 검토하는 정적 prototype이다. 실차 CAN, ESP-NOW, REST, WebSocket에는 아직 연결되지 않았다.
+이 폴더는 [CAN 신호 검증용 Diagnostic Bridge와 모바일 웹 UI 명세](../../docs/architecture/diagnostic-bridge.md)의 360–430 px 화면 구조를 검토하는 정적 prototype이다. 실차 CAN, ESP-NOW, REST, WebSocket에는 아직 연결되지 않았다.
 
 브라우저에서 `index.html`을 열고 다음 query를 사용한다.
 
