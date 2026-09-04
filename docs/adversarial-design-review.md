@@ -2,7 +2,7 @@
 
 ## 1. 범위와 방법
 
-2026-09-04 기준 두 독립 리뷰어가 `origin/main`의 merge commit `50b5e733ea469e37bbb762876386625ef8b3b11f`만 읽기 전용으로 검토했다. 작업 중 작성된 [구현 준비 기준](implementation-readiness.md)과 [task 명세](tasks/README.md)는 보지 못하게 분리해 기존 설계가 스스로 닫혀 있는지 확인했다.
+2026-09-04 기준 두 독립 리뷰어가 `origin/main`의 merge commit `50b5e733ea469e37bbb762876386625ef8b3b11f`만 읽기 전용으로 검토했다. 작업 중 작성된 [구현 준비 기준](implementation-readiness.md)과 [task 명세](tasks.md)는 보지 못하게 분리해 기존 설계가 스스로 닫혀 있는지 확인했다.
 
 - 리뷰어 A: 전원, brownout/reset, 핀맵, CAN PHY, TX safety, ESP-NOW/UART, 권한·재전송·Diagnostic Bridge를 공격했다.
 - 리뷰어 B: build 가능성, 모듈/API 경계, LVGL 수명주기, DBC 생성, storage/web, CI·HIL·resource budget을 공격했다.
@@ -114,4 +114,4 @@
 - CAN3가 실제 125 kbps fault-tolerant bus인지 확인 전 MAX3055는 enable하지 않는다.
 - AEC/PPAP·양산 EMC/법규는 사용자가 제외한 범위이므로 이 설계의 G6도 engineering prototype qualification이다.
 
-구현 순서, 파일, 수용 기준과 검증 명령은 [작업 인덱스](tasks/README.md)를 정본으로 사용한다.
+구현 순서, 파일, 수용 기준과 검증 명령은 [작업 인덱스](tasks.md)를 정본으로 사용한다.

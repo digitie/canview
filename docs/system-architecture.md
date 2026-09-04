@@ -1,4 +1,6 @@
-# CANView 시스템 아키텍처와 명명 규칙
+# CANView 장치 명칭과 운영 데이터 흐름
+
+상위 구조의 정본은 [architecture/architecture.md](architecture/architecture.md)다. 이 문서는 장치 명칭, peer routing, 권한과 장애 시 동작을 자세히 설명한다.
 
 ## 1. 정식 장치명
 
@@ -90,7 +92,7 @@ Primary Controller에는 CANView 기능에 필요한 control lease와 의미 명
 ## 5. 관련 문서
 
 - [구현 준비 기준·정본·gate](implementation-readiness.md)
-- [원자 구현 task backlog](tasks/README.md)
+- [원자 구현 task backlog](tasks.md)
 - [독립 적대적 설계 리뷰](adversarial-design-review.md)
 - [Controller 하드웨어와 Waveshare 핀맵](hardware-and-development.md)
 - [Communicator 회로·IC·핀맵](communicator-hardware.md)

@@ -612,7 +612,7 @@ T-100 schematic ─ T-101 board bring-up ──────────┘
 
 protocol, hardware, Controller BSP, Bridge web shell은 G0 이후 병렬 진행할 수 있다. 차량 command executor는 profile evidence와 hard TX gate가 모두 완료될 때까지 mock backend만 구현한다.
 
-상세 원자 작업, 의존성, 변경 파일, 검증 명령과 산출 증거는 [`tasks/README.md`](tasks/README.md)를 따른다.
+상세 원자 작업, 의존성, 변경 파일, 검증 명령과 산출 증거는 [`tasks.md`](tasks.md)와 [`tasks/`](tasks/)를 따른다.
 
 ## 18. 구현 준비 완료 정의
 

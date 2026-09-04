@@ -1,5 +1,18 @@
 # Local firmware build output
 firmware/**/build/
+build/
 
 # Local editor/tool state
 .vscode/
+.claude/
+.codegraph/
+
+# Local credentials, provisioning and vehicle evidence
+.env
+.env.*
+!.env.example
+*.local.md
+provisioning/
+captures/
+artifacts/
+evidence/private/
