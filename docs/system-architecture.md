@@ -64,13 +64,15 @@ ESP-NOW 1:N은 한 Communicator가 Controller와 Bridge에 각각 필요한 stre
 
 | 계층 | 맡는 일 | 맡지 않는 일 |
 |---|---|---|
-| Controller | 사람이 읽을 상태 표현, 입력 debounce, Controller-local CAN allow-list, DBC catalog/decode, stale/error 표시, 명령 의도 생성 | raw CAN frame 생성, 차량 안전 조건 최종 판정 |
+| Controller | 사람이 읽을 상태 표현, 입력 debounce, Controller-local CAN allow-list, DBC catalog/decode, stale/error 표시, 검증된 audio·SPORT 명령 의도 생성 | raw CAN frame 생성, 차량 안전 조건 최종 판정, profile 밖 기능 제어 |
 | Communicator ESP32-S3 | ESP-NOW 인증·세션·재전송, Controller별 권한, raw telemetry bridge, 무선/내부 UART queue | DBC 의미 해석, CAN peripheral 직접 제어, 최종 TX 허용 |
 | Communicator STM32 | 3개 CAN의 hardware timestamp·bus/error 처리, raw stream, command allow-list, 차량 상태 재검증 | UI 상태를 차량 사실로 신뢰, 무선 payload 직접 신뢰, 화면용 DBC decode |
 | Diagnostic Bridge | ID inventory, 행동 전후 capture, generic 후보 decode, evidence/export, schema 기반 설정 요청 | control lease, raw replay, 차량 CAN TX, DBC 후보 자동 확정 |
 | CAN transceiver | 논리 신호와 차량 bus 물리계층 변환, standby, 물리 보호 일부 | bitrate 결정, 메시지 의미 판정 |
 
 차량 CAN 송신의 최종 권한은 STM32에 둔다. ESP32나 Controller가 raw arbitration ID와 data를 전달해 즉시 송신하게 만들지 않는다. STM32는 컴파일된 command ID, 차량 profile, 최신 차량 상태, control lease, 물리 TX enable을 모두 확인한 뒤 제한된 frame만 만든다.
+
+Primary Controller에는 CANView 기능에 필요한 control lease와 의미 명령 요청 권한을 준다. 허용 대상은 검증된 음량 offset, 취침·뒷좌석 강화 profile 내부의 fader/balance·main/rear mute, OEM audio snapshot 복원, SPORT button pulse와 관련 자동화다. 임의 sound-position UI가 없더라도 profile 내부 패닝 권한은 유지한다. Read-only Controller와 Diagnostic Bridge에는 이 권한을 주지 않는다.
 
 ## 4. 장애 시 기본 상태
 

@@ -37,6 +37,7 @@
 
 - Diagnostic Bridge는 차량 CAN 선에 연결하지 않는다.
 - Bridge는 `CONTROL_LEASE`와 차량 `COMMAND_REQUEST` 권한을 절대 받지 않는다.
+- Primary Controller는 별도이며, 활성 차량 profile에서 검증된 음량·fader/balance·mute·SPORT 등 기능별 의도 명령과 control lease를 조건부로 사용할 수 있다.
 - ESP-NOW broadcast는 discovery 외에 쓰지 않는다. raw CAN과 설정은 peer별 encrypted unicast다.
 - Communicator에는 DBC 이름·factor·UI 문구를 넣지 않는다. 한 번 구현한 범용 ID 통계, runtime filter, raw capture만 유지한다.
 - signal 후보의 bit 추출·scale 변경은 Bridge와 브라우저에서 처리한다. 새 후보를 볼 때 Communicator firmware를 다시 빌드하지 않는다.
@@ -60,7 +61,7 @@
 
 | 정식 명칭 | protocol role | 책임 | 금지 |
 |---|---|---|---|
-| Controller | `PRIMARY_CONTROLLER` | 운전자 UI, DBC runtime catalog, 사용자 의도 명령 | 임의 raw CAN TX |
+| Controller | `PRIMARY_CONTROLLER` | 운전자 UI, DBC runtime catalog, 허용된 audio·SPORT 의도 명령 | 임의 raw CAN TX, profile 밖 기능 |
 | Read-only Controller | `READ_ONLY_CONTROLLER` | 추가 표시 화면 | 모든 차량 명령 |
 | Communicator | `COMMUNICATOR` | 세 CAN 수집, raw/stat stream, 최종 TX safety | 표시용 DBC 해석 |
 | Diagnostic Bridge | `DIAGNOSTIC_BRIDGE` | 휴대폰 UI, 캡처·후보·증거 저장, observer subscription | control lease, 차량 명령, raw replay |
@@ -80,20 +81,22 @@ ESP-NOW 자체 상한보다 낮은 다음 운영 한도를 둔다.
 
 wire format은 `source_device_id`와 peer session으로 미래의 여러 Communicator를 구분할 수 있게 하되, 첫 구현에서 다중 차량·다중 hop routing을 만들지 않는다. Bridge는 ESP-NOW packet을 다른 ESP-NOW peer로 중계하지 않으므로 loop와 route discovery가 없다.
 
-### 4.2 권한 bit
+### 4.2 장치 권한 bit
 
 capability 협상에 다음 permission bit를 추가한다.
 
-| bit | 이름 | Bridge 기본값 |
-|---:|---|---|
-| 0 | `TELEMETRY_READ` | 허용 |
-| 1 | `DIAGNOSTIC_STATS` | 허용 |
-| 2 | `DIAGNOSTIC_CAPTURE` | 허용 |
-| 3 | `DIAGNOSTIC_FILTER_WRITE` | 정차 service window에서 허용 |
-| 4 | `REMOTE_CONFIG_READ` | 허용 |
-| 5 | `REMOTE_CONFIG_WRITE` | 대상·설정 등급별 조건부 |
-| 6 | `CONTROL_LEASE` | **금지** |
-| 7 | `VEHICLE_COMMAND` | **금지** |
+| bit | 이름 | Primary Controller | Read-only Controller | Diagnostic Bridge |
+|---:|---|---|---|---|
+| 0 | `TELEMETRY_READ` | 허용 | 허용 | 허용 |
+| 1 | `DIAGNOSTIC_STATS` | service mode | 조건부 | 허용 |
+| 2 | `DIAGNOSTIC_CAPTURE` | service mode | 금지 | 허용 |
+| 3 | `DIAGNOSTIC_FILTER_WRITE` | secure session | 금지 | 정차 service window |
+| 4 | `REMOTE_CONFIG_READ` | 허용 | 조건부 | 허용 |
+| 5 | `REMOTE_CONFIG_WRITE` | 설정 owner 정책 | 금지 | 대상·등급별 조건부 |
+| 6 | `CONTROL_LEASE` | **조건부 허용** | **금지** | **금지** |
+| 7 | `VEHICLE_COMMAND` | **기능 scope별 조건부 허용** | **금지** | **금지** |
+
+이 표의 `VEHICLE_COMMAND`는 포괄적인 raw 송신 권한이 아니다. Primary Controller도 [ESP-NOW 프로토콜의 기능별 control scope](esp-now-protocol.md#33-primary-controller-제어-권한)와 Communicator의 차량 profile allow-list를 모두 통과한 음량 offset, profile 내부 fader/balance·mute, SPORT button pulse 같은 의미 명령만 요청한다.
 
 수신 장치는 role 문자열이 아니라 permission bit, encrypted peer context, service window와 현재 차량 상태를 모두 확인한다. Bridge에서 bit 6 또는 7이 요청되면 protocol 오류가 아니라 명시적인 `PERMISSION_DENIED` application error로 거부하고 보안 counter를 올린다.
 

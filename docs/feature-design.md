@@ -250,6 +250,8 @@ Hyundai의 현재 Quiet Mode 문서는 rear-seat speaker를 끄고 front speaker
 
 raw CAN 값 대신 다음 semantic profile을 정의한다.
 
+Primary Controller는 이 profile을 실행하는 데 필요한 volume, fader/balance, main/rear mute와 복원 명령 권한을 가진다. 다만 권한은 활성 차량 profile에서 실차 검증된 기능 scope에 한정하고, Read-only Controller와 Diagnostic Bridge에는 주지 않는다. 임의 sound-position UI를 제공하지 않는 것과 profile 내부 패닝을 금지하는 것은 서로 다른 결정이다.
+
 | Profile | rear speaker mute | fader | balance | volume | SDVC |
 |---|---|---|---|---|---|
 | `OEM` | 변경 없음 | 변경 없음 | 변경 없음 | 변경 없음 | 변경 없음 |

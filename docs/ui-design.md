@@ -135,7 +135,7 @@ FFT 전용 화면은 본문 대부분을 50 Hz–8 kHz spectrum에 할당한다.
 | 설정 | range/button/select | `lv_slider`, `lv_btn`, `lv_dropdown` |
 | 하단 탐색 | fixed buttons | five `lv_btn` |
 
-[`canview_ui.c`](../ui/lvgl/canview_ui.c)는 `canview_ui_model_t`만 입력받고 `CANVIEW_UI_CMD_*` 의미 명령만 callback으로 내보낸다. raw CAN frame 생성과 제어 허용 판단은 UI 밖에 둔다.
+[`canview_ui.c`](../ui/lvgl/canview_ui.c)는 `canview_ui_model_t`만 입력받고 `CANVIEW_UI_CMD_*` 의미 명령만 callback으로 내보낸다. Primary Controller는 취침·뒷좌석 강화·주행 소음 보정에 필요한 volume, profile 내부 fader/balance와 mute 명령을 요청할 수 있지만, raw CAN frame 생성과 최종 제어 허용 판단은 UI 밖에 둔다. 임의 sound-position 조정 화면과 volume ± 버튼을 숨긴 현재 UI 방침은 유지한다.
 
 ## 7. 화면 prototype
 

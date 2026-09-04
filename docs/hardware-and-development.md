@@ -18,7 +18,7 @@
 
 미확정 CAN 신호 검증에는 차량 CAN에 직접 연결되지 않는 선택 장치 `Diagnostic Bridge`를 추가할 수 있다. Bridge는 Communicator의 ESP-NOW read-only peer이자 휴대폰 SoftAP 웹서버이며, 권장 module·전원·버튼·저장장치와 안전 경계는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)에 정의한다.
 
-기본 동작은 **listen-only/read-only**다. 차량 제어는 실차에서 바로 활성화하지 않고, 벤치 테스트·명령 허용 목록·속도 제한·사용자 확인·통신 단절 시 fail-safe를 모두 통과한 뒤 별도 기능으로 다룬다.
+기본 동작은 **listen-only/read-only**다. 차량 제어를 활성화한 설치에서는 Primary Controller에 검증된 음량·profile 패닝·mute·SPORT 등 필요한 의미 명령만 기능별로 허용한다. 실차에서 바로 활성화하지 않고, 벤치 테스트·명령 허용 목록·속도 제한·사용자 확인·통신 단절 시 fail-safe를 모두 통과해야 하며 최종 CAN 송신 판정은 Communicator STM32가 담당한다.
 
 ## 2. Waveshare 보드 사양
 
