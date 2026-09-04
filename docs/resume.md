@@ -2,7 +2,9 @@
 
 ## 현재 진척도
 
-2026-09-05 기준, CANView는 설계·문서·정적 prototype·기존 host 자동화 test를 포함한 구현 준비 단계다. PR #14에서 통합 설계, 두 명의 적대적 리뷰 결과, 34개 상세 task가 main에 반영됐다.
+2026-09-05 기준, CANView는 설계·문서·정적 prototype·기존 host 자동화 test를 포함한 구현 준비 단계다. PR #14에서 통합 설계, 두 명의 적대적 리뷰 결과, 34개 상세 task가 반영됐고, 문서 운영 구조와 Windows 개발환경 정책도 정리됐다.
+
+개발 정본은 Windows PowerShell checkout이다. worktree는 필요할 때만 만들고 merge 또는 abandon 후 삭제하며, WSL/Linux는 보조 환경으로만 사용한다. `rovinax/embedded-skills`의 임베디드 개발 스킬 6개는 Codex 환경에 설치했다.
 
 현재 차량 CAN 송신 판정은 NO-GO다. 이는 프로젝트 전체 중단이 아니라 실제 차량 bus에 제어 frame을 보내지 않는다는 뜻이다. CAN 수신·capture·UI·host protocol 개발은 계속할 수 있다.
 

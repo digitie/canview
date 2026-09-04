@@ -16,3 +16,4 @@ CANView의 구조적 결정은 파일당 하나의 ADR로 둔다. 파일명은 N
 |-----|------|------|
 | [ADR-001](001-canview-safety-boundary.md) | Controller·Communicator·Diagnostic Bridge와 차량 송신 안전 경계 | accepted |
 | [ADR-002](002-documentation-and-task-structure.md) | 문서·task·ADR·runbook 정본 구조 | accepted |
+| [ADR-003](003-windows-development-and-ephemeral-worktrees.md) | Windows 개발환경과 일회성 worktree | accepted |

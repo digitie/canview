@@ -70,48 +70,41 @@ canview는 현대·기아·제네시스 차량의 CAN 데이터를 수집·표�
 | build mode | CAPTURE_ONLY, BENCH_TX, VEHICLE_TX |
 | 환경변수 prefix | CANVIEW_* |
 
-## 개발 환경 정책 (Linux-only, WSL 포함)
+## 개발 환경 정책 (Windows)
 
-모든 개발 명령은 Linux 환경에서만 실행한다. WSL은 허용되는 Linux 환경이며, Windows native git.exe/Node/npm/Python/CodeGraph/KiCad CLI는 표준 개발 경로가 아니다. 물리 파일이 NTFS mount(/mnt/f/...)에 있을 수는 있지만, Git metadata와 실행 명령은 Linux 경로를 기준으로 맞춘다.
+모든 개발 명령은 Windows 환경의 PowerShell 또는 Windows native 도구로 실행한다. Git for Windows, PowerShell, Windows Node.js/npm, Python, CodeGraph, KiCad CLI, CMake/Ninja, ESP-IDF, GNU Arm Embedded를 표준 경로로 삼는다. WSL/Linux shell과 `/mnt/...` 경로는 보조 검증 환경일 뿐 정본 개발 경로가 아니다.
 
-- **메인 repo**: Linux에서 읽히는 /mnt/f/dev/canview checkout 또는 ext4 clone을 사용한다. Windows 드라이브 표기(F:\dev\canview, F:/dev/canview)를 Git/CodeGraph 정본 경로로 쓰지 않는다.
-- **에이전트 worktree**: /mnt/f/dev/canview 계열 worktree를 유지하되, branch/commit/push/PR 준비는 Linux git으로 수행한다.
-- **테스트 미러**: WSL ext4의 ~/dev/canview-<agent>-test 같은 임시 복사본에서 의존성 설치와 장기 실행을 수행한다. 미러에서는 commit/push하지 않는다.
-- **하드웨어 도구**: KiCad schematic/ERC/netlist 도구, ESP-IDF, GNU Arm Embedded, CMake/Ninja는 Linux 설치본을 기준으로 한다. 제조사 GUI가 필요한 경우에도 생성 파일과 검증 명령을 Linux 기준으로 재현한다.
-- **카피 정책**: 작업 시작과 검증 전 고정 worktree를 테스트 미러로 복사한다. 작업 완료 후 별도 미러를 source of truth로 삼지 않는다.
-- **Git 실행 기준**: Git은 Linux git만 사용한다. 기존 worktree의 .git/gitdir이 Windows 경로를 가리키면 작업 전에 Linux 환경에서 repair하거나 worktree를 재생성한다.
-- **CodeGraph 실행 기준**: CodeGraph가 연결된 환경에서는 branch 전환·pull·merge 뒤 codegraph sync 후 codegraph status를 순서대로 실행한다.
-- **원천·capture 데이터**: DBC 원본은 dbc/ 아래에 보관한다. 차량 capture, 키, provisioning 파일과 대용량 evidence는 익명화·승인된 fixture만 Git에 넣고 나머지는 local artifact로 둔다.
-- **로컬 키**: .env, sdkconfig.local, provisioning 파일, 차량 식별 정보, *.local.md 등은 각 worktree에 복사하되 Git에 커밋하지 않는다.
-- **펌웨어·UI 실행**: ESP-IDF와 CMake/Ninja build는 ext4 테스트 미러의 Linux 도구를 우선한다. 정적 UI prototype은 Linux Node의 node --check와 필요한 browser test로 검증한다.
-- **Playwright**: 브라우저 e2e가 추가되면 Linux 환경에서 먼저 실행하고, fallback을 사용한 경우 PR 설명이나 docs/journal.md에 사유와 명령을 남긴다.
+- **메인 repo**: `F:/dev/canview` 또는 Windows 로컬 checkout을 사용한다. Git/CodeGraph 정본 경로에 Linux `/mnt/f/...`를 사용하지 않는다.
+- **작업 worktree**: 평소에는 메인 checkout 또는 단일 작업 branch를 사용하고, 병렬 작업·격리·리뷰가 필요할 때만 `F:/dev/canview-wt/<agent>-<task>` 같은 임시 worktree를 만든다. 작업 또는 PR 종료 후 worktree를 제거하고 `git worktree prune`으로 메타데이터를 정리한다.
+- **테스트/빌드**: Windows checkout에서 host test, CMake/Ninja, ESP-IDF, Node, KiCad 검증을 실행한다. WSL ext4 미러와 `rsync` 복사는 필수가 아니다.
+- **하드웨어 도구**: Windows KiCad GUI/CLI, ESP-IDF PowerShell 환경, GNU Arm Embedded, CMake/Ninja를 기준으로 한다. 생성 파일과 검증 명령은 Windows에서 재현 가능해야 한다.
+- **Git 실행 기준**: Git for Windows만 정본 branch·commit·push·PR 준비에 사용한다. `.git`/worktree metadata가 WSL 경로를 가리키는 checkout을 정본으로 삼지 않는다.
+- **CodeGraph 실행 기준**: CodeGraph가 연결된 환경에서는 branch 전환·pull·merge 뒤 `codegraph sync` 후 `codegraph status`를 순서대로 실행한다. 임시 worktree에서는 작업 시작 후 초기화하고 worktree 제거와 함께 로컬 상태도 폐기한다.
+- **원천·capture 데이터**: DBC 원본은 `dbc/` 아래에 보관한다. 차량 capture, 키, provisioning 파일과 대용량 evidence는 익명화·승인된 fixture만 Git에 넣고 나머지는 local artifact로 둔다.
+- **로컬 키**: `.env`, `sdkconfig.local`, provisioning 파일, 차량 식별 정보, `*.local.md` 등은 각 checkout/worktree에 복사하되 Git에 커밋하지 않는다.
+- **펌웨어·UI 실행**: ESP-IDF와 CMake/Ninja build는 Windows 도구로 실행한다. 정적 UI prototype은 Windows Node의 `node --check`와 필요한 browser test로 검증한다.
+- **Playwright**: 브라우저 e2e는 Windows Playwright를 기준으로 실행한다. 다른 환경을 fallback으로 사용한 경우 PR 설명이나 `docs/journal.md`에 사유와 명령을 남긴다.
 
 ## 에이전트 공용 runbook (필독)
 
 docs/runbooks/ — Codex/Claude/Antigravity가 공유하는 운영 runbook. 작업 전 두 개는 훑는다:
 
-- docs/runbooks/agent-workflow.md — 표준 1-PR 흐름(Linux worktree → branch → 테스트 미러 gate → PR → CI green → 머지 → 동기화)과 문서 갱신 절차.
+- docs/runbooks/agent-workflow.md — 표준 1-PR 흐름(Windows checkout → branch → host/target gate → PR → CI green → 머지 → 임시 worktree 정리)과 문서 갱신 절차.
 - docs/runbooks/agent-failure-patterns.md — 반복 실패 패턴(CMake/ESP-IDF 환경, KiCad library/파워 핀, UART/CAN timing, stale evidence, merge 충돌)과 회피·복구.
 
 인덱스: docs/runbooks/README.md. 환경 1차 문서는 docs/dev-environment.md와 docs/agent-guide.md다. 설계 정본은 docs/architecture/architecture.md와 docs/implementation-readiness.md다.
 
-## 에이전트별 고정 worktree와 CodeGraph
+## 필요 시 생성하는 작업 worktree와 CodeGraph
 
-AI 에이전트는 같은 checkout을 번갈아 쓰지 않고 Linux에서 읽히는 /mnt/f/dev 아래 고정 worktree를 유지한다.
+AI 에이전트는 고정 worktree를 보유하지 않는다. 기본 작업은 `F:/dev/canview`의 Windows checkout에서 수행하고, 병렬 작업·실험 격리·독립 리뷰처럼 별도 checkout이 실제로 필요한 경우에만 임시 worktree를 생성한다.
 
-| 에이전트 | 고정 worktree | idle branch |
-|----------|---------------|-------------|
-| ChatGPT Codex | /mnt/f/dev/canview | agent/codex-idle |
-| Claude Code | /mnt/f/dev/canview-claude | agent/claude-idle |
-| Google Antigravity 2.0 | /mnt/f/dev/canview-antigravity | agent/antigravity-idle |
-
-- worktree는 에이전트별로 1회만 생성하고, 작업마다 해당 worktree 안에서 새 branch만 만든다.
-- 예: git fetch origin main && git switch -c agent/codex-<task> origin/main
-- 같은 branch를 여러 worktree에서 checkout하지 않는다. branch 이름에는 agent/<agent>-<task>처럼 소유자를 넣는다.
-- Git worktree 생성·repair·status·commit·push는 Linux git으로 실행한다.
-- CodeGraph는 worktree마다 최초 1회 codegraph init -i로 초기화하고, 이후 branch 전환·pull·merge 뒤에는 codegraph sync로 유지한다. NTFS /mnt worktree에서는 live watch가 비활성화될 수 있으므로 수동 sync를 더 엄격히 지킨다.
-- 동기화 상태는 codegraph status로 확인한다. 현재 세션에 CodeGraph 도구가 노출되지 않으면 그 사실을 작업 로그에 남기고 가능한 CLI 점검으로 대체한다.
-- .codegraph/와 .claude/는 로컬 상태·secret이므로 Git에 커밋하지 않는다.
+- 예: `git worktree add -b agent/codex-<task> F:/dev/canview-wt/codex-<task> origin/main`
+- 같은 branch를 여러 worktree에서 checkout하지 않는다. branch 이름에는 `agent/<agent>-<task>`처럼 소유자를 넣는다.
+- 작업이 merge 또는 abandon으로 끝나고 해당 worktree에 실행 중인 작업이 없을 때 `git worktree remove F:/dev/canview-wt/codex-<task>`를 실행한다. 이후 `git worktree prune`으로 stale metadata를 정리한다.
+- Git worktree 생성·status·commit·push는 Windows Git으로 실행한다. 활성 작업 중인 worktree나 사용자의 미커밋 변경이 있는 worktree는 삭제하지 않는다.
+- CodeGraph가 연결된 임시 worktree는 처음 사용할 때 `codegraph init -i`, branch 전환·pull·merge 뒤 `codegraph sync` → `codegraph status` 순서로 관리한다. worktree를 제거하면 해당 로컬 CodeGraph 상태도 함께 폐기한다.
+- 동기화 상태를 확인할 CodeGraph 도구가 현재 세션에 노출되지 않으면 그 사실을 작업 로그에 남기고 가능한 CLI 점검으로 대체한다.
+- `.codegraph/`와 `.claude/`는 로컬 상태·secret이므로 Git에 커밋하지 않는다.
 
 작업 전에 반드시 다음을 읽는다:
 
@@ -192,11 +185,11 @@ AI 에이전트는 같은 checkout을 번갈아 쓰지 않고 Linux에서 읽히
     git status --short --branch
     git diff --check
 
-host tests:
+host tests (PowerShell):
 
-    cmake -S tests/automation -B /tmp/canview-automation-build -G Ninja
-    cmake --build /tmp/canview-automation-build
-    ctest --test-dir /tmp/canview-automation-build --output-on-failure
+    cmake -S tests/automation -B build/automation -G Ninja
+    cmake --build build/automation
+    ctest --test-dir build/automation --output-on-failure
 
 STM32 firmware(STM32CubeG4_ROOT가 준비된 경우):
 
@@ -208,9 +201,9 @@ STM32 firmware(STM32CubeG4_ROOT가 준비된 경우):
     node --check ui/prototype/prototype.js
     node --check ui/diagnostic-web/prototype.js
 
-Python 검증기가 추가된 경우:
+Python 검증기가 추가된 경우 (PowerShell):
 
-    python -m pytest -q
-    python -m ruff check .
+    py -3 -m pytest -q
+    py -3 -m ruff check .
 
 도구·SDK·하드웨어가 없는 경우 명령을 억지로 성공 처리하지 말고, 실행하지 못한 이유와 영향을 받은 gate를 기록한다.

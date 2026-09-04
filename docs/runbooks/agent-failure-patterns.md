@@ -14,6 +14,7 @@
 | protocol 변경 후 일부 장치만 동작함 | schema version, generated header, golden vector | 수동 header 수정 대신 generator와 모든 codec을 함께 갱신 |
 | queue가 가득 참 | priority별 quota와 backpressure | raw observer부터 drop, safety/control은 BUSY/fail-closed |
 | branch merge 후 문서 링크가 깨짐 | docs/tasks.md 이동에 따른 상대 경로 | Markdown local-link 검사와 root README 링크를 함께 확인 |
-| test가 로컬에서만 성공함 | worktree와 ext4 mirror 차이 | mirror를 다시 rsync하고 실행 환경을 기록 |
+| Windows와 WSL에서 결과가 다름 | `F:/...`와 `/mnt/f/...` 경로·도구·개행 차이 | Windows checkout을 정본으로 삼고 표준 검증은 Windows native 도구로 재실행 |
+| 임시 worktree가 남아 있음 | merge/abandon 후 cleanup 누락 | 활성 프로세스와 미커밋 변경을 확인한 뒤 `git worktree remove`와 `git worktree prune` 실행 |
 
 같은 실패가 반복되면 새 task로 분리하고, 원인·재현 명령·복구·남은 위험을 이 문서 또는 task에 추가한다.

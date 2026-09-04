@@ -9,6 +9,7 @@
 - kor-travel-geo 방식의 에이전트 운영 문서 구조를 추가했다.
 - 상위 아키텍처, ADR, runbook, resume, journal 정본을 추가했다.
 - 열린 task 요약을 docs/tasks.md로 분리하고 상세 task 파일은 docs/tasks/에 유지했다.
+- Windows 개발환경과 일회성 worktree 운영 결정을 ADR-003으로 추가했다.
 
 ### Changed
 

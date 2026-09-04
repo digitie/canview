@@ -24,27 +24,29 @@
 
 ### 개발 환경
 
-- **모든 개발 명령은 Linux 환경에서만 실행**한다. WSL은 허용되는 Linux 환경이며 Windows native git.exe/Node/npm/Python/CodeGraph/KiCad CLI는 표준 경로가 아니다.
-- **Git source of truth는 Linux git이 읽는 checkout/worktree**다. /mnt/f/dev/canview를 사용할 수 있지만 Git metadata와 명령은 Linux 경로를 기준으로 한다.
-- **테스트와 장기 실행은 WSL ext4 테스트 미러**에서 수행한다. 고정 worktree를 rsync한 뒤 host test, CMake/Ninja, ESP-IDF, Node 검증을 실행한다. 미러에서는 commit/push하지 않는다.
+- **모든 개발 명령은 Windows native 환경에서 실행**한다. PowerShell, Git for Windows, Windows Node.js/npm, Python, CodeGraph, KiCad CLI, CMake/Ninja, ESP-IDF, GNU Arm Embedded를 표준 경로로 삼는다. WSL/Linux shell은 보조 검증 환경일 뿐이다.
+- **Git source of truth는 Windows Git이 읽는 checkout/worktree**다. 기본 경로는 `F:/dev/canview`이며 `/mnt/f/dev/canview`를 정본 경로로 사용하지 않는다.
+- **테스트와 장기 실행은 Windows checkout**에서 수행한다. 고정 worktree를 유지하거나 WSL ext4 mirror로 복사하는 절차는 요구하지 않는다.
 - **하드웨어 검증은 KiCad 산출물 기준**이다. schematic, PCB, BOM, ERC, netlist와 계산서가 서로 같은 revision인지 확인한다.
-- **Git/CodeGraph 명령은 Linux 기준**이다. branch, commit, push, PR 준비, codegraph sync/status는 Linux shell에서 실행한다.
-- **로컬 secret/capture**(.env, sdkconfig.local, provisioning, 차량 식별정보, raw capture)는 Git에 커밋하지 않는다.
+- **Git/CodeGraph 명령은 Windows 기준**이다. branch, commit, push, PR 준비, `codegraph sync/status`는 PowerShell에서 실행한다.
+- **로컬 secret/capture**(`.env`, `sdkconfig.local`, provisioning, 차량 식별정보, raw capture)는 Git에 커밋하지 않는다.
 
-### 에이전트별 worktree / CodeGraph
+### 필요 시 생성하는 worktree / CodeGraph
 
-- ChatGPT Codex는 /mnt/f/dev/canview, Claude Code는 /mnt/f/dev/canview-claude, Google Antigravity 2.0은 /mnt/f/dev/canview-antigravity worktree를 권장한다.
-- worktree는 에이전트별로 유지하고 작업마다 새 branch만 만든다.
-- CodeGraph는 최초 1회 codegraph init -i, 이후 branch 전환·pull·merge 뒤 codegraph sync → codegraph status 순서로 유지한다. 도구가 노출되지 않으면 그 사실을 journal에 남긴다.
-- .codegraph/와 .claude/는 로컬 상태이므로 Git에 커밋하지 않는다.
+- 고정 에이전트 worktree를 만들지 않는다. 평소에는 `F:/dev/canview`에서 작업하고, 병렬 작업·격리·독립 리뷰가 필요할 때만 임시 worktree를 만든다.
+- 예: `git worktree add -b agent/codex-<task> F:/dev/canview-wt/codex-<task> origin/main`
+- 작업이 merge 또는 abandon으로 끝나면 활성 프로세스와 미커밋 변경이 없는지 확인한 뒤 `git worktree remove F:/dev/canview-wt/codex-<task>`와 `git worktree prune`으로 정리한다.
+- 임시 worktree를 사용할 때만 처음에 `codegraph init -i`를 실행하고, branch 전환·pull·merge 뒤 `codegraph sync` → `codegraph status` 순서로 유지한다. 도구가 노출되지 않으면 그 사실을 journal에 남긴다.
+- `.codegraph/`와 `.claude/`는 로컬 상태이므로 Git에 커밋하지 않는다.
 
 ## 2. 빠른 시작
 
-    cd /mnt/f/dev/canview
+    Set-Location F:/dev/canview
     git fetch origin main
     git switch -c agent/codex-<task> origin/main
-    rsync -a --delete --exclude .git --exclude build --exclude artifacts . ~/dev/canview-codex-test/
-    cd ~/dev/canview-codex-test
+    # 위 branch가 별도 격리를 필요로 할 때만, checkout 대신 다음을 사용한다.
+    # git worktree add -b agent/codex-<task> F:/dev/canview-wt/codex-<task> origin/main
+    # Set-Location F:/dev/canview-wt/codex-<task>
     codegraph sync
     codegraph status
 

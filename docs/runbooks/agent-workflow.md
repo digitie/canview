@@ -4,17 +4,22 @@
 
 1. README.md, AGENTS.md, SKILL.md, docs/architecture/architecture.md, docs/resume.md, docs/tasks.md를 읽는다.
 2. docs/tasks-rule.md와 관련 상세 task에서 scope·선행·gate를 확인한다.
-3. Linux worktree에서 최신 main을 가져와 새 branch를 만든다.
+3. Windows checkout에서 최신 main을 가져온 뒤, 기본 작업과 격리 작업 중 하나를 선택한다.
 
-    cd /mnt/f/dev/canview
+    # 기본 작업
+    Set-Location F:/dev/canview
     git fetch origin main
     git switch -c agent/<agent>-<task> origin/main
 
-4. CodeGraph가 연결되어 있으면 sync 후 status를 실행한다.
+    # 병렬 작업·격리·독립 리뷰가 필요할 때는 위 git switch 대신 다음을 실행한다.
+    # git -C F:/dev/canview worktree add -b agent/<agent>-<task> F:/dev/canview-wt/<agent>-<task> origin/main
+    # Set-Location F:/dev/canview-wt/<agent>-<task>
+
+4. CodeGraph가 연결되어 있으면 작업 경로에서 `sync` 후 `status`를 실행한다. 임시 worktree를 쓴 경우에만 작업 시작 시 `codegraph init -i`를 먼저 실행한다.
 
 ## 2. 작업과 검증
 
-고정 worktree에서는 편집·commit·push를 하고, WSL ext4 미러에서는 의존성 설치·build·test를 한다.
+Windows checkout 또는 필요 시 만든 임시 worktree에서 편집·commit·push·의존성 설치·build·test를 한다. WSL ext4 미러 복사는 표준 절차가 아니다.
 
 검증 순서는 protocol/schema → host test → target build → KiCad 또는 UI 검증 → HIL/fault → 관련 evidence다. 실제 차량이 필요한 task는 차량 gate를 낮추어 대체하지 않는다.
 
@@ -38,4 +43,4 @@ CI와 필요한 리뷰가 완료되기 전 main에 직접 push하지 않는다.
 
 ## 5. 머지 후
 
-main과 origin/main을 확인하고, branch 전환 뒤 CodeGraph sync/status를 실행한다. 머지 결과와 다음 작업을 journal/resume에 반영한다.
+main과 origin/main을 확인하고, branch 전환 뒤 CodeGraph `sync`/`status`를 실행한다. 임시 worktree를 사용했다면 merge 또는 abandon이 끝나고 활성 프로세스·미커밋 변경이 없는지 확인한 뒤 worktree를 제거하고 `git worktree prune`을 실행한다. 머지 결과와 다음 작업을 journal/resume에 반영한다.
