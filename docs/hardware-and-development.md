@@ -16,6 +16,8 @@
 
 여기서 “최대 3개 CAN 버스”는 시스템 요구사항이다. Waveshare 보드 자체에 CAN 트랜시버가 3개 들어 있다는 뜻이 아니며, 보드에는 차량 CAN 커넥터나 CAN 물리계층 회로가 없다. 별도 Communicator에 CAN 채널을 3개 구성한다.
 
+미확정 CAN 신호 검증에는 차량 CAN에 직접 연결되지 않는 선택 장치 `Diagnostic Bridge`를 추가할 수 있다. Bridge는 Communicator의 ESP-NOW read-only peer이자 휴대폰 SoftAP 웹서버이며, 권장 module·전원·버튼·저장장치와 안전 경계는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)에 정의한다.
+
 기본 동작은 **listen-only/read-only**다. 차량 제어는 실차에서 바로 활성화하지 않고, 벤치 테스트·명령 허용 목록·속도 제한·사용자 확인·통신 단절 시 fail-safe를 모두 통과한 뒤 별도 기능으로 다룬다.
 
 ## 2. Waveshare 보드 사양

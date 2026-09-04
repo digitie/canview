@@ -24,6 +24,7 @@
 - [4WD·DPF·오디오·SPORT 기능 설계](docs/feature-design.md)
 - [자동 밝기·소음 음량·SPORT 제어 로직](docs/automation-control.md)
 - [ESP-NOW 양방향 프로토콜](docs/esp-now-protocol.md)
+- [미확정 CAN 신호용 Diagnostic Bridge·모바일 웹 UI](docs/can-diagnostics-web.md)
 - [Controller CAN 수신·DBC 파이프라인](docs/controller-can-pipeline.md)
 - [CAN 신호의 GPS·시간 조사](docs/can-gps-time-investigation.md)
 - [운전자 UI·LVGL 설계](docs/ui-design.md)
@@ -44,6 +45,14 @@
 - 브라우저 prototype: [`ui/prototype/`](ui/prototype/)
 - LVGL 8.4 UI: [`ui/lvgl/`](ui/lvgl/)
 - wire protocol C 구조: [`protocol/canview_protocol.h`](protocol/canview_protocol.h)
+
+미확정 CAN ID·bit·scale은 별도 `Diagnostic Bridge`가 ESP-NOW read-only peer로 수신하고, 휴대폰이 Bridge의 고정-channel SoftAP에 접속해 확인하는 구조를 기본안으로 한다. 아래 정적 prototype은 세 CAN bus 상태, 행동 전후 capture, 64-bit 변화 지도와 후보 decoder의 모바일 정보 구조를 보여준다. 실제 REST·WebSocket firmware는 [구현 명세](docs/can-diagnostics-web.md)의 단계에 따라 추가한다.
+
+| Diagnostic Bridge 상태 | Signal Lab |
+|---|---|
+| ![진단 상태 화면](docs/images/can-debug-overview.png) | ![신호 분석 화면](docs/images/can-debug-signal-lab.png) |
+
+- 모바일 진단 prototype: [`ui/diagnostic-web/`](ui/diagnostic-web/)
 
 ## 저장된 DBC
 

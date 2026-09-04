@@ -1,17 +1,18 @@
-# Controller·Communicator 개발환경
+# Controller·Communicator·Diagnostic Bridge 개발환경
 
 ## 1. 공통 원칙
 
-두 ESP32와 STM32는 한 저장소에서 관리하지만 firmware image와 toolchain은 분리한다.
+Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 저장소에서 관리하지만 firmware image와 target 설정은 분리한다.
 
 | 대상 | 기준 framework/toolchain | 산출물 |
 |---|---|---|
 | Controller | ESP-IDF `v5.5.2`, LVGL `8.4.x`, Waveshare BSP/example | Controller Flash image |
 | Communicator ESP32 | ESP-IDF `v5.5.2` | ESP-NOW·UART image |
+| Diagnostic Bridge | ESP-IDF `v5.5.2`, built-in HTTP server | ESP-NOW observer·SoftAP·모바일 웹 image |
 | Communicator STM32 | CMake + Ninja + GNU Arm Embedded, STM32CubeG4 | CAN·safety image |
 | DBC 생성·검증 | Python virtual environment, `cantools` | Controller용 signal catalog와 검증 report |
 
-Controller와 Communicator ESP32는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
+Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
 
 `sdkconfig`, compiler version, STM32CubeG4 tag, DBC upstream commit을 build metadata에 넣는다. release artifact는 다음 정보를 함께 보관한다.
 
@@ -86,9 +87,42 @@ idf.py -p /dev/ttyACM1 flash monitor
 
 ESP32 Communicator firmware는 DBC 표시 catalog를 필요로 하지 않는다. raw CAN batch를 전달하는 bridge만 유지하고, DBC에서 생성된 signal catalog와 decoder는 Controller에 둔다. 차량 송신 판단용 안전 signal과 command frame 생성은 STM32에 독립적으로 남긴다.
 
-## 4. Communicator STM32 CMake 환경
+## 4. Diagnostic Bridge 개발환경
 
-### 4.1 도구
+### 4.1 target과 module
+
+첫 prototype은 `ESP32-S3-WROOM-1-N8R2` 개발보드를 권장한다. 8 MB Flash는 OTA A/B와 gzip web asset을 담고, 2 MB PSRAM은 제한된 pre-trigger ring과 HTTP buffer에 사용한다. 차량 상시 설치에서 온도 여유가 중요하므로 기본 권장 주변온도가 65 °C인 `N8R8`보다 -40~85 °C의 `N8R2`를 우선한다.
+
+```bash
+cd firmware/diagnostic-bridge
+idf.py set-target esp32s3
+idf.py menuconfig
+idf.py build
+idf.py -p /dev/ttyACM2 flash monitor
+```
+
+필수 configuration 기준은 다음과 같다.
+
+- ESP-IDF `v5.5.2`, target `esp32s3`
+- Flash 8 MB Quad SPI, PSRAM 2 MB Quad SPI
+- `WIFI_MODE_APSTA`: STA는 ESP-NOW 전용, SoftAP는 휴대폰 한 대
+- external STA credential과 NAPT 기능 제외
+- `CONFIG_HTTPD_WS_SUPPORT`, WebSocket pre-handshake 인증 지원
+- encrypted NVS, production Secure Boot·Flash Encryption 검토
+- web asset은 external CDN 없이 gzip으로 Flash에 포함
+- watchdog은 ESP-NOW protocol, capture, HTTP task를 각각 감시
+
+표준 경로와 component 분리는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)의 `Bridge firmware 구조`를 따른다. 정적 UI prototype은 [`../ui/diagnostic-web/`](../ui/diagnostic-web/)에 있다.
+
+### 4.2 Web asset 검증
+
+정적 UI는 Node runtime을 target에 넣지 않는다. 개발 시 HTML/CSS/JS lint와 screenshot을 수행한 뒤 gzip asset으로 내장한다. REST·WebSocket schema version과 web build hash를 화면 `시스템 정보`에 표시한다.
+
+필수 browser matrix는 Android Chrome과 iOS Safari다. captive portal mini-browser가 file download를 제한하면 일반 browser로 여는 안내를 제공한다. 인터넷이 끊긴 SoftAP에서도 font, icon, chart와 모든 설정 화면이 동작해야 한다.
+
+## 5. Communicator STM32 CMake 환경
+
+### 5.1 도구
 
 권장 구성은 다음과 같다.
 
@@ -102,7 +136,7 @@ ESP32 Communicator firmware는 DBC 표시 catalog를 필요로 하지 않는다.
 
 STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 로컬 package manager의 GNU Arm toolchain을 사용해도 되지만 CI와 개발 PC의 compiler major를 맞춘다.
 
-### 4.2 repository CMake scaffold
+### 5.2 repository CMake scaffold
 
 [`../firmware/communicator/stm32/`](../firmware/communicator/stm32/)의 CMake project는 STM32CubeG4를 repository 밖 dependency로 참조한다. vendor package를 이 저장소에 무분별하게 복사하지 않는다.
 
@@ -125,7 +159,7 @@ STM32_Programmer_CLI -c port=SWD \
   -v -rst
 ```
 
-### 4.3 CMake source-of-truth 규칙
+### 5.3 CMake source-of-truth 규칙
 
 - `.ioc`를 사용할 수 있지만 build option, include path, linker script 선택은 CMake가 정본이다.
 - CubeMX 재생성 영역과 수동 작성 영역을 디렉터리로 분리한다.
@@ -135,7 +169,7 @@ STM32_Programmer_CLI -c port=SWD \
 - warning은 최소 `-Wall -Wextra -Wshadow -Wdouble-promotion -Wformat=2`를 사용하고 project source는 warning-free를 요구한다.
 - release는 LTO 적용 전 timing, interrupt latency, stack watermark를 다시 측정한다.
 
-### 4.4 clock과 peripheral 기준
+### 5.4 clock과 peripheral 기준
 
 PF0/OSC_IN과 PF1/OSC_OUT에 STM32 지원 범위인 4–48 MHz HSE crystal을 연결한다. STM32 system clock 170 MHz, FDCAN kernel clock, USART2 4 Mbps를 정확히 만들 수 있는 clock tree를 CubeMX와 reference manual에서 검산한다. CAN FD 5/8 Mbps의 oscillator tolerance와 sample point를 계산한 뒤 crystal 값과 load capacitor를 확정한다. HSE startup 또는 clock 검증 실패 시 HSI로 차량 CAN 송신을 계속하지 않고 모든 PHY를 비활성 상태로 둔 채 watchdog reset한다.
 
@@ -149,7 +183,7 @@ USART2는 PA0 CTS, PA1 RTS, PA2 TX, PA3 RX의 AF7을 사용한다. FDCAN은 다�
 
 PB3/PB4와 PB5/PB6의 이전 배치는 사용하지 않는다. reset debug pull과 UCPD dead-battery pull-down 경로가 CAN TX의 하드웨어 기본 상태를 복잡하게 만들기 때문이다. PA12, PB13, PA15의 TXD에는 각각 외부 10 kΩ pull-up을 둔다.
 
-### 4.5 reset-safe 초기화와 watchdog
+### 5.5 reset-safe 초기화와 watchdog
 
 3.3 V rail은 MAX20040 PGOOD으로 enable되는 TPS629210이 만들고, `TLV803EA30DPWR`가 STM32 NRST와 ESP32 CHIP_PU를 함께 감시한다. firmware가 개입하기 전 회로 기본값은 TCAN STB1/2 high, MAX3055 EN low, UART RTS/CTS high다.
 
@@ -163,7 +197,7 @@ STM32 firmware 초기화 순서는 다음과 같이 고정한다.
 
 IWDG 목표 timeout은 250–500 ms다. main loop만으로 refresh하지 않고 CAN 처리, UART worker, safety state가 모두 정상일 때만 refresh한다. reset이 발생하면 외부 pull resistor가 즉시 CAN 1·2 standby와 CAN 3 disabled 상태를 복원한다.
 
-## 5. DBC toolchain
+## 6. DBC toolchain
 
 ```bash
 python3 -m venv .venv
@@ -180,21 +214,25 @@ DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 검증 
 
 두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 이름이 존재해도 `UNVERIFIED` quality를 유지한다. 새로운 signal이 기존 CAN ID를 사용하면 Communicator firmware를 바꾸지 않고 Controller catalog만 갱신한다. 새로운 ID를 사용하면 Controller allow-list entry를 함께 추가한다.
 
-## 6. CI 권고 gate
+## 7. CI 권고 gate
 
 - Controller/Communicator ESP32: `idf.py build`, partition size, `sdkconfig` drift
 - STM32: CMake configure/build, warnings, ELF size, linker overflow
 - protocol: C header static assertions, encode/decode golden vectors, malformed length/CRC fuzz
 - DBC: source hash, generated output reproducibility, duplicate signal ID
 - UI: host prototype screenshot diff와 LVGL host compile
+- Diagnostic Bridge: ESP-IDF build, web asset offline check, REST schema, WebSocket reconnect, 390×844 screenshot diff
 - hardware docs: pinmap CSV 중복 pin/net 검사
 
-## 7. 공식 출처
+## 8. 공식 출처
 
 - [Waveshare ESP-IDF 안내](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5/ESP-IDF)
 - [Waveshare example repository](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/)
 - [Espressif ESP-IDF 시작하기](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/get-started/index.html)
 - [Espressif ESP-NOW API](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/network/esp_now.html)
+- [ESP-IDF 5.5.2 HTTP server](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-reference/protocols/esp_http_server.html)
+- [ESP-IDF 5.5.2 Wi-Fi APSTA](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-guides/wifi.html)
+- [ESP32-S3-WROOM-1/1U datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf)
 - [Espressif UART API](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/uart.html)
 - [ST STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html)
 - [ST STM32CubeG4](https://github.com/STMicroelectronics/STM32CubeG4)

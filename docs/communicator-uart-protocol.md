@@ -106,6 +106,19 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 
 알 수 없는 type은 length와 CRC가 정상인 경우에만 `UNSUPPORTED_MESSAGE`로 응답한다. 오류 응답에 다시 ACK를 요구하지 않는다.
 
+### 4.1 protocol 1.3 Diagnostic Bridge 확장 예약
+
+미확정 CAN ID를 signal별 firmware 수정 없이 찾기 위해 아래 generic message를 `1.3` 구현 대상으로 예약한다.
+
+| 값 | 이름 | 방향 | 역할 |
+|---:|---|---|---|
+| `0x14` | `CAN_ID_STATS` | STM→ESP | bus/ID/DLC별 rate·period·change mask·last data |
+| `0x15` | `CAN_OBSERVER_PLAN` | ESP→STM | 여러 ESP-NOW peer 요청을 합친 software filter·budget plan |
+| `0x16` | `CAN_CAPTURE_CONTROL` | ESP→STM | arm/start/marker/stop/cancel |
+| `0x17` | `CAN_CAPTURE_STATUS` | STM→ESP | 실제 적용 revision, record/drop, 완료·오류 |
+
+현재 구현 protocol `1.2`에서는 전송하지 않는다. 정확한 payload, plan 원자 적용, diagnostic lease, peer별 재필터링은 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)를 정본으로 한다. 이 확장은 DBC signal 이름이나 factor를 UART에 넣지 않는다.
+
 ## 5. CAN batch 형식
 
 `CAN_RX_BATCH` payload는 공통 protocol의 `canview_can_batch_header_t`와 `canview_can_record_t` 배열을 사용한다. 내부 UART는 이 raw payload를 semantic message로 전달하며 ESP32가 DBC decode를 수행하지 않는다.
@@ -234,3 +247,5 @@ Heartbeat 주기는 100 ms다.
 - [Espressif ESP32-S3 UART API](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/uart.html)
 - [Espressif ESP32-S3 GPIO matrix](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/gpio.html)
 - [ST STM32G474CE 데이터시트](https://www.st.com/resource/en/datasheet/stm32g474ce.pdf)
+
+관련 observer/capture 구현 명세는 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)에 있다.

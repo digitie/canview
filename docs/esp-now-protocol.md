@@ -2,9 +2,9 @@
 
 ## 1. 문서 목적
 
-이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다.
+이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다. 미확정 CAN 신호를 휴대폰으로 검증하는 선택 장치 `Diagnostic Bridge`도 같은 보안·frame·QoS 규칙을 사용하되 차량 명령 권한은 갖지 않는다.
 
-이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 wire protocol 버전은 `1.2`다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다.
+이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 구현 wire protocol 버전은 `1.2`다. C 레이아웃 기준은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)다. Diagnostic Bridge의 observer/capture message는 [모바일 CAN 검증 명세](can-diagnostics-web.md)에 `1.3` 구현 대상으로 분리했으며, C header와 golden vector가 함께 갱신되기 전에는 wire에서 사용하지 않는다.
 
 설계 원칙은 다음과 같다.
 
@@ -38,9 +38,10 @@ peer channel은 로컬 Wi-Fi channel과 같아야 한다. `channel=0`은 현재 
 | Communicator | CAN1–3 raw 수집, timestamp, raw bridge, upstream stream hint, control lease, 최종 안전 gate | Controller 명령, 무선 payload, 화면용 DBC 의미 |
 | Primary Controller | 상태 표시, 사용자 입력, Controller-local CAN filter, DBC catalog/decode, profile 요청, stale/error 표시 | Communicator가 보내는 값의 차량별 의미를 검증 없이 신뢰 |
 | Read-only Controller | 추가 화면·정비 화면. 상태 수신만 허용 | 모든 제어 요청 |
+| Diagnostic Bridge | ID 통계·제한 raw capture, 후보 decoder/evidence, 휴대폰 웹 UI | control lease, 차량 명령, raw replay, 후보 자동 확정 |
 | Provisioning host | USB를 통한 설치 secret·peer 초기화 | 무선 discovery |
 
-Communicator는 최대 20개 peer라는 ESP-NOW 한도보다 훨씬 작은 운영 한도를 둔다. v1 권고값은 Primary Controller 1개, Read-only Controller 2개다. 여러 Controller가 등록돼도 control lease는 동시에 한 peer만 소유한다.
+Communicator는 최대 20개 peer라는 ESP-NOW 한도보다 훨씬 작은 운영 한도를 둔다. 현재 권고값은 Primary Controller 1개, Read-only Controller 1개, Diagnostic Bridge 1개다. 여러 peer가 등록돼도 control lease는 Primary Controller 한 peer만 소유한다. Diagnostic Bridge의 diagnostic lease는 filter/capture에만 적용되며 control lease와 별도다.
 
 ### 3.1 데이터 방향
 
@@ -49,6 +50,10 @@ CAN1/2/3 -> Communicator -> CAN_BATCH / BUS_STATUS -> Controller
 Controller ingress -> allow-list -> Controller DBC catalog/decoder -> UI model
 Controller -> COMMAND_REQUEST / CONFIG_* / LEASE_REQUEST -> Communicator
 Communicator -> ACK + COMMAND_RESULT / ERROR / SNAPSHOT -> Controller
+
+Communicator -> CAN_ID_STATS / bounded CAN_BATCH -> Diagnostic Bridge
+Diagnostic Bridge -> observer filter / capture request -> Communicator
+Phone <-> Bridge SoftAP HTTP/WebSocket; CAN command path 없음
 ```
 
 ### 3.2 안전 경계
@@ -327,6 +332,7 @@ heartbeat에는 `boot_id`, uptime, state revision, RSSI, bus mask, bus error mas
 - production 기본은 설치 시 정한 고정 2.4 GHz channel이다.
 - Communicator와 Controller의 Wi-Fi country 설정이 일치해야 한다.
 - Controller가 AP에 연결되면 ESP-NOW도 AP channel 제약을 받는다. 운행 mode에서는 일반 AP 연결을 금지하거나, 정차 상태에서 인증된 channel 재설정 절차를 거친다.
+- Diagnostic Bridge는 `WIFI_MODE_APSTA`에서 STA interface를 ESP-NOW에, SoftAP를 휴대폰에 사용하되 외부 AP에 연결하지 않는다. SoftAP channel은 installation channel과 같아야 한다.
 - active control lease 중 channel을 바꾸지 않는다.
 - scan 결과만으로 peer channel을 영구 저장하지 않고 secure HELLO 성공 뒤 commit한다.
 
@@ -765,4 +771,5 @@ counter overflow는 saturating 또는 64-bit로 처리한다. UI는 운전 화�
 - [하드웨어 및 개발환경](hardware-and-development.md)
 - [DBC 출처·검증 절차](../dbc/README.md)
 - [Controller CAN 수신·DBC 파이프라인](controller-can-pipeline.md)
+- [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)
 - [CAN 신호의 GPS·시간 조사](can-gps-time-investigation.md)

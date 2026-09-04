@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>CANView Diagnostic Bridge UI prototype</title>
+  <link rel="stylesheet" href="canview-diagnostics.css">
+</head>
+<body>
+  <main class="service-shell" aria-label="CANView Diagnostic Bridge 모바일 웹 프로토타입">
+    <header class="service-header">
+      <div>
+        <span class="eyebrow">CANVIEW SERVICE</span>
+        <strong>차량 진단</strong>
+      </div>
+      <div class="header-state">
+        <span class="readonly-badge">READ ONLY</span>
+        <span class="connection-dot" aria-hidden="true"></span>
+      </div>
+      <div class="vehicle-state"><b>차량 정지</b><span>Communicator −48 dBm</span></div>
+    </header>
+
+    <div class="service-content">
+      <section class="service-view is-active" data-view="status" aria-label="연결 상태">
+        <article class="link-hero">
+          <div>
+            <span class="section-label">COMMUNICATOR</span>
+            <strong><i></i>연결됨</strong>
+          </div>
+          <dl>
+            <div><dt>RTT</dt><dd>18 ms</dd></div>
+            <div><dt>손실</dt><dd>0.3%</dd></div>
+            <div><dt>CH</dt><dd>6</dd></div>
+          </dl>
+        </article>
+
+        <section class="bus-section" aria-labelledby="bus-title">
+          <div class="section-heading">
+            <div><span class="section-label">VEHICLE NETWORK</span><h2 id="bus-title">CAN 버스</h2></div>
+            <span class="freshness">방금 갱신</span>
+          </div>
+          <div class="bus-grid">
+            <article class="bus-card">
+              <div><span>CAN 1</span><b class="state-good">ONLINE</b></div>
+              <strong>642<small> f/s</small></strong>
+              <p>500 kbit/s · 오류 0</p>
+            </article>
+            <article class="bus-card">
+              <div><span>CAN 2</span><b class="state-good">ONLINE</b></div>
+              <strong>188<small> f/s</small></strong>
+              <p>500 kbit/s · 오류 0</p>
+            </article>
+            <article class="bus-card">
+              <div><span>CAN 3</span><b class="state-good">ONLINE</b></div>
+              <strong>34<small> f/s</small></strong>
+              <p>125 kbit/s · FT CAN</p>
+            </article>
+          </div>
+        </section>
+
+        <article class="capture-ready">
+          <div class="capture-icon" aria-hidden="true"><span></span></div>
+          <div><span class="section-label">CAPTURE READY</span><strong>행동 전후 비교 준비</strong><p>저장 6.2 MB · 필터 4/32 · 누락 0</p></div>
+          <button type="button" data-open-view="capture">시작</button>
+        </article>
+
+        <section class="activity-section" aria-labelledby="activity-title">
+          <div class="section-heading compact"><h2 id="activity-title">최근 변화</h2><button type="button" data-open-view="frames">모두 보기</button></div>
+          <button class="activity-row" type="button" data-open-view="signals">
+            <span class="bus-tag">C1</span><strong>0x541</strong><code>3A 00 91 10 20 04 8C 6F</code><em>7 bit</em>
+          </button>
+          <button class="activity-row" type="button" data-open-view="signals">
+            <span class="bus-tag">C2</span><strong>0x1EB</strong><code>00 44 10 00 0C 00 21 9A</code><em>NEW</em>
+          </button>
+        </section>
+      </section>
+
+      <section class="service-view" data-view="frames" aria-label="CAN 프레임 목록" hidden>
+        <div class="page-heading">
+          <span class="section-label">LIVE INVENTORY</span>
+          <h1>CAN 프레임</h1>
+          <p>ID, 주기와 바뀐 bit를 먼저 좁힙니다.</p>
+        </div>
+        <div class="frame-filters">
+          <label><span>버스</span><select><option>전체</option><option>CAN 1</option><option>CAN 2</option><option>CAN 3</option></select></label>
+          <label><span>상태</span><select><option>변화 순</option><option>새 ID</option><option>빈도 순</option><option>ID 순</option></select></label>
+          <label class="id-search"><span>정확한 ID</span><input inputmode="text" value="0x" aria-label="정확한 CAN ID 검색"></label>
+          <button class="freeze-button" type="button" aria-pressed="false">화면 고정</button>
+        </div>
+        <div class="frame-list">
+          <button class="frame-row is-hot" type="button" data-open-view="signals">
+            <div class="frame-meta"><span class="bus-tag">CAN 1</span><strong>0x541</strong><span>DLC 8</span><em>21.4 Hz · 18 ms</em></div>
+            <code><b>3A</b> 00 <b>91</b> 10 20 <b>04</b> 8C 6F</code>
+            <div class="change-line"><i style="--change: 72%"></i><span>7/64 bit · marker 상관 높음</span></div>
+          </button>
+          <button class="frame-row" type="button" data-open-view="signals">
+            <div class="frame-meta"><span class="bus-tag">CAN 1</span><strong>0x386</strong><span>DLC 8</span><em>50.0 Hz · 8 ms</em></div>
+            <code>1B 32 1C 34 1A F0 1B 01</code>
+            <div class="change-line"><i style="--change: 44%"></i><span>28/64 bit · 지속 변화</span></div>
+          </button>
+          <button class="frame-row" type="button" data-open-view="signals">
+            <div class="frame-meta"><span class="bus-tag">CAN 2</span><strong>0x1EB</strong><span>DLC 8</span><em>10.0 Hz · 42 ms</em></div>
+            <code>00 44 10 00 0C 00 21 9A</code>
+            <div class="change-line"><i style="--change: 30%"></i><span>4/64 bit · 이번 세션 신규</span></div>
+          </button>
+          <button class="frame-row" type="button" data-open-view="signals">
+            <div class="frame-meta"><span class="bus-tag">CAN 3</span><strong>0x593</strong><span>DLC 6</span><em>1.0 Hz · 310 ms</em></div>
+            <code>23 22 22 23 00 18</code>
+            <div class="change-line"><i style="--change: 12%"></i><span>2/48 bit · 느린 상태</span></div>
+          </button>
+        </div>
+      </section>
+
+      <section class="service-view" data-view="capture" aria-label="행동 전후 캡처" hidden>
+        <div class="page-heading">
+          <span class="section-label">GUIDED CAPTURE</span>
+          <h1>행동 전후 캡처</h1>
+          <p>한 번에 하나만 조작하고 같은 행동을 세 번 반복합니다.</p>
+        </div>
+
+        <ol class="capture-steps" aria-label="캡처 단계"><li class="is-current">1 <span>행동</span></li><li>2 <span>범위</span></li><li>3 <span>확인</span></li></ol>
+
+        <section class="template-list" aria-labelledby="template-title">
+          <div class="section-heading compact"><h2 id="template-title">무엇을 확인합니까?</h2><span>1개 선택</span></div>
+          <label class="template-row is-selected"><input type="radio" name="template" checked><span class="template-symbol">◐</span><span><strong>미등 · 전조등</strong><small>OFF → 미등 → 전조등, 각 단계 marker</small></span><i></i></label>
+          <label class="template-row"><input type="radio" name="template"><span class="template-symbol">▯</span><span><strong>문 · 잠금 상태</strong><small>한 문만 열고 닫아 request와 feedback 분리</small></span><i></i></label>
+          <label class="template-row"><input type="radio" name="template"><span class="template-symbol">4W</span><span><strong>4WD LOCK</strong><small>정지와 저속 상태를 나누어 3회 반복</small></span><i></i></label>
+          <label class="template-row"><input type="radio" name="template"><span class="template-symbol">↗</span><span><strong>가속 · 속도</strong><small>정차에서 arm하고 주행 중에는 화면 잠금</small></span><i></i></label>
+        </section>
+
+        <article class="capture-plan">
+          <div><span>모드</span><strong>EVENT DIFF</strong></div>
+          <div><span>기록</span><strong>앞 5초 · 뒤 15초</strong></div>
+          <div><span>예상</span><strong>약 420 KB</strong></div>
+          <div><span>대역폭</span><strong>요청 100 · 적용 100 f/s</strong></div>
+        </article>
+
+        <button class="primary-action" type="button" data-capture-start>사전 확인으로 이동</button>
+        <p class="safety-note">차량 명령은 전송하지 않습니다. 속도가 감지되면 설정은 자동 잠깁니다.</p>
+      </section>
+
+      <section class="service-view signal-view" data-view="signals" aria-label="CAN 신호 분석" hidden>
+        <div class="signal-title-row">
+          <div><span class="section-label">SIGNAL LAB</span><h1>CAN 1 · 0x541</h1></div>
+          <span class="candidate-badge">후보 C</span>
+        </div>
+
+        <article class="raw-card">
+          <div class="raw-head"><span>DLC 8 · 21.4 Hz</span><em>18 ms 전</em></div>
+          <code><b>3A</b> 00 <b>91</b> 10 20 <b>04</b> 8C 6F</code>
+          <div class="bit-labels"><span>BYTE</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+          <div class="bit-map" data-bit-map aria-label="8바이트 64비트 변화 지도"></div>
+          <div class="bit-legend"><span><i class="changed"></i>변화</span><span><i class="selected"></i>선택</span><span><i class="correlated"></i>marker 상관</span></div>
+        </article>
+
+        <article class="correlation-card">
+          <div class="section-heading compact"><h2>Marker 상관</h2><span>반복 3회</span></div>
+          <div class="correlation-row"><strong>bit 12</strong><span>0 → 1</span><b>3/3회</b><em>+84 ms</em></div>
+          <div class="correlation-row is-muted"><strong>bit 20</strong><span>계속 변화</span><b>alive 후보</b><em>배경</em></div>
+        </article>
+
+        <article class="decoder-card">
+          <div class="section-heading compact"><h2>후보 Decoder</h2><span>live</span></div>
+          <div class="decoder-grid">
+            <label><span>시작 bit</span><select><option>12</option><option>13</option><option>20</option></select></label>
+            <label><span>길이</span><select><option>1 bit</option><option>2 bit</option><option>8 bit</option><option>16 bit</option></select></label>
+            <label><span>Endian</span><select><option>Intel</option><option>Motorola</option></select></label>
+            <label><span>Signed</span><select><option>끔</option><option>사용</option></select></label>
+            <label><span>Factor</span><select><option>1</option><option>0.1</option><option>0.01</option><option>0.5</option></select></label>
+            <label><span>Offset</span><select><option>0</option><option>-40</option><option>6</option></select></label>
+          </div>
+        </article>
+
+        <article class="live-value-card">
+          <div><span>현재값</span><strong>1</strong><small>bool</small></div>
+          <dl><div><dt>MIN</dt><dd>0</dd></div><div><dt>MAX</dt><dd>1</dd></div><div><dt>GAP</dt><dd>0</dd></div></dl>
+          <svg viewBox="0 0 340 86" role="img" aria-label="후보 신호 시간 그래프">
+            <path class="chart-grid" d="M0 16.5H340M0 48.5H340M0 80.5H340"/>
+            <path class="chart-line" d="M0 73H25V70H48V72H73V19H99V20H123V18H148V71H174V69H201V20H228V19H254V73H279V70H305V18H340"/>
+            <path class="marker-line" d="M74 5V82M202 5V82M306 5V82"/>
+          </svg>
+        </article>
+
+        <div class="evidence-summary"><span>증거</span><strong>반복 3회 · gap 0</strong><em>독립 기준 없음</em></div>
+        <button class="primary-action" type="button">후보 저장</button>
+      </section>
+
+      <section class="service-view" data-view="settings" aria-label="진단 설정" hidden>
+        <div class="page-heading">
+          <span class="section-label">SCHEMA CONFIG</span>
+          <h1>설정</h1>
+          <p>장치가 허용한 항목과 선택값만 표시합니다.</p>
+        </div>
+        <div class="target-tabs" role="tablist"><button class="is-selected" type="button">Bridge</button><button type="button">Controller</button><button type="button">진단 Stream</button></div>
+
+        <section class="settings-list" aria-labelledby="bridge-settings-title">
+          <div class="section-heading compact"><h2 id="bridge-settings-title">Bridge</h2><span>revision 12</span></div>
+          <label class="setting-row"><span><strong>AP 자동 종료</strong><small>휴대폰 연결이 없을 때</small></span><select><option>5분</option><option selected>10분</option><option>20분</option><option>30분</option></select></label>
+          <label class="setting-row"><span><strong>화면 갱신</strong><small>WebSocket summary 주기</small></span><select><option>절약 · 5 Hz</option><option selected>표준 · 10 Hz</option></select></label>
+          <label class="setting-row"><span><strong>Capture 보존</strong><small>증거 연결 세션은 자동 보호</small></span><select><option>최근 5개</option><option selected>최근 10개</option><option>최근 20개</option></select></label>
+          <div class="setting-row"><span><strong>개인정보 보호 Export</strong><small>장치 ID와 위치정보 제거</small></span><button class="switch is-on" type="button" aria-pressed="true"><i></i></button></div>
+        </section>
+
+        <section class="settings-list">
+          <div class="section-heading compact"><h2>무선</h2><span>고정</span></div>
+          <div class="setting-row is-locked"><span><strong>ESP-NOW Channel</strong><small>운행 중 변경할 수 없음</small></span><b>6</b></div>
+          <div class="setting-row is-locked"><span><strong>차량 제어 권한</strong><small>Diagnostic Bridge에서는 항상 금지</small></span><b class="denied">없음</b></div>
+        </section>
+
+        <button class="secondary-action" type="button">AP 암호 회전</button>
+        <p class="safety-note">암호 회전에는 Bridge 물리 버튼 확인이 필요합니다.</p>
+      </section>
+    </div>
+
+    <nav class="service-nav" aria-label="진단 화면" role="tablist">
+      <button class="is-active" type="button" role="tab" aria-selected="true" data-target="status"><span class="nav-icon">◫</span><span>상태</span></button>
+      <button type="button" role="tab" aria-selected="false" data-target="frames"><span class="nav-icon">≡</span><span>프레임</span></button>
+      <button class="capture-nav" type="button" role="tab" aria-selected="false" data-target="capture"><span class="nav-icon">●</span><span>캡처</span></button>
+      <button type="button" role="tab" aria-selected="false" data-target="signals"><span class="nav-icon">⌁</span><span>신호</span></button>
+      <button type="button" role="tab" aria-selected="false" data-target="settings"><span class="nav-icon">⚙</span><span>설정</span></button>
+    </nav>
+  </main>
+  <script src="prototype.js"></script>
+</body>
+</html>
