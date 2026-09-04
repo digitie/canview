@@ -13,6 +13,9 @@
 
 ## 문서
 
+- [구현 준비 기준과 통합 설계](docs/implementation-readiness.md)
+- [원자 구현 task backlog](docs/tasks/README.md)
+- [독립 적대적 설계 리뷰와 조치](docs/adversarial-design-review.md)
 - [하드웨어 및 개발환경](docs/hardware-and-development.md)
 - [시스템 구조와 장치 명칭](docs/system-architecture.md)
 - [Communicator 회로·IC·핀맵](docs/communicator-hardware.md)
@@ -68,6 +71,8 @@
 ## 저장소 상태
 
 DBC 원본, hardware 기준, 기능 안전 경계, ESP-NOW wire 구조, 화면 prototype과 LVGL UI 계층을 포함한 설계 기준 저장소다. 실제 Communicator와 Controller firmware 통합은 실차 capture로 신호를 검증하면서 단계적으로 추가한다.
+
+현재 저장소는 차량 송신 가능 상태가 아니다. protocol payload ABI·codec, 완성 firmware project, 승인 회로도와 firmware 독립 hard TX gate, 대상 차량 evidence가 모두 미완료다. 구현 순서와 차량 연결 gate는 [구현 준비 기준](docs/implementation-readiness.md)과 [task backlog](docs/tasks/README.md)를 따른다.
 
 ## 주요 원문
 

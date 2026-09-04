@@ -117,7 +117,7 @@ Waveshare FAQ는 보드에 ES8311, speaker와 SMD microphone이 있다고 명시
 
 보드의 `GPIO7=SCL`, `GPIO8=SDA` 공유 I²C에는 onboard `PCF85063` RTC가 있다. `TCA9554`(`0x20`), FT6336 touch, QMI8658 IMU와 같은 bus를 공유하므로 드라이버 초기화 시 address probe와 bus recovery를 수행한다. PCF85063의 7-bit I²C 주소는 `0x51`이다. Waveshare 보드 리비전과 부품 실장은 schematic 및 실제 probe로 최종 확인한다. [NXP PCF85063TP 데이터시트](https://www.nxp.com/docs/en/data-sheet/PCF85063TP.pdf)
 
-PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, backup 전원 상태를 읽어 `rtc_quality`를 만든다. Controller가 RTC 소유자이며 UI의 시·분 선택은 `CANVIEW_COMMAND_RTC_SET_LOCAL_TIME`으로 전달한다. 현재 날짜는 Controller가 보존한다. RTC wall clock은 화면·로그·일몰 계산용이고 CAN timestamp ordering은 Communicator STM32의 monotonic clock을 사용한다.
+PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, backup 전원 상태를 읽어 `rtc_quality`를 만든다. Controller가 RTC 소유자이며 UI의 시·분 선택은 Controller local transaction으로 RTC와 NVS에 직접 적용한다. 휴대폰에서 바꿀 때도 Diagnostic Bridge와 Controller 사이의 owner-targeted remote config를 사용하며 차량 command로 보내지 않는다. RTC wall clock은 화면·로그·일몰 계산용이고 CAN timestamp ordering은 Communicator STM32의 monotonic clock을 사용한다.
 
 저장된 Hyundai DBC에는 1차 대상의 확정 GPS 좌표·현재 시각 신호가 없으므로 일출·일몰은 설정값 또는 별도 위치 원천에서 공급한다. 조사 결과는 [`can-gps-time-investigation.md`](can-gps-time-investigation.md)에 기록한다.
 
@@ -160,12 +160,12 @@ CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2�
 - 32 byte little-endian header, CRC-32, sequence와 session
 - QoS 0 telemetry와 QoS 1 command의 분리
 - ACK와 실제 `COMMAND_RESULT`의 분리, 중복 제거와 재전송
-- USB 설치 secret, pairing window, transcript HMAC, HKDF 기반 PMK/LMK
+- USB pair package, 장치 로컬 PMK, pair별 link root/LMK, pairing window와 transcript HMAC/HKDF
 - channel 불일치, heartbeat 만료, queue overflow, bus-off 복구
 - control lease, state revision, snapshot 복원, 사용자 물리 조작 우선
 - capability bitset, TLV, major/minor version과 제한된 bulk transfer
 
-production에서는 기본 PMK, LMK 없는 평문 unicast, 자동 보안 downgrade를 금지한다. ESP-NOW 송신 callback 성공은 애플리케이션 처리 성공이 아니므로 제어 완료는 Communicator feedback까지 확인한 `COMMAND_RESULT(COMPLETED)`로만 판단한다.
+production에서는 기본 PMK, LMK 없는 평문 unicast, 자동 보안 downgrade를 금지한다. ESP-NOW 송신 callback 성공은 애플리케이션 처리 성공이 아니므로 제어 완료는 STM32의 end-to-end tag와 차량 feedback까지 확인한 `COMMAND_RESULT(COMPLETED)`로만 판단한다.
 
 ## 7. 펌웨어 개발환경
 

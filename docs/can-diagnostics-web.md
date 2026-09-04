@@ -4,7 +4,7 @@
 
 이 문서는 2017 Tucson TL에서 아직 확정되지 않은 CAN ID·bit·scale·enum·주기를 PC, 터미널, CAN 분석기 전용 프로그램이나 코드 수정 없이 반복 검증하기 위한 구조를 정의한다. 사용자는 휴대폰 브라우저만으로 연결 상태를 확인하고, 수신 필터를 만들고, 행동 전후 데이터를 비교하고, 후보 signal을 저장하고, 증거 묶음을 내려받을 수 있어야 한다.
 
-이 문서는 **구현 명세**다. 현재 저장소의 ESP-NOW protocol은 `1.2`이고 아래 `CAN_OBSERVER_*`, capture, Diagnostic Bridge 역할은 `1.3` 구현 대상으로 정의한다. 구현 전에는 해당 message type을 wire로 보내지 않는다. 구현 PR은 [`protocol/canview_protocol.h`](../protocol/canview_protocol.h)의 minor version, enum, packed layout, static assertion, golden vector를 같은 변경으로 갱신해야 한다.
+이 문서는 **구현 명세**다. 현재 저장소의 ESP-NOW `1.2` header는 payload가 미완성인 draft라서 실행 가능한 protocol이 아니다. 아래 `CAN_OBSERVER_*`, capture, Diagnostic Bridge 역할을 포함한 첫 구현은 `1.3`이며, 그 전에는 어떤 message도 wire로 보내지 않는다. 구현 PR은 machine-readable schema, [`protocol/canview_protocol.h`](../protocol/canview_protocol.h), codec, static assertion과 golden vector를 같은 변경으로 생성해야 한다.
 
 이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다.
 
@@ -429,8 +429,8 @@ part 하나가 없어져도 다음 stats window를 기다리고 재전송하지 
 |---:|---|
 | 8 | `request_token` |
 | 8 | `capture_id` |
-| 1 | `action`: ARM/START/MARK/STOP/CANCEL |
-| 1 | `marker_kind` 또는 0 |
+| 1 | `action`: ARM/START/STOP/CANCEL |
+| 1 | `reserved0=0` |
 | 2 | `flags` |
 | 4 | `requested_time_ms` |
 | 4 | `reserved=0` |
@@ -454,7 +454,7 @@ part 하나가 없어져도 다음 stats window를 기다리고 재전송하지 
 
 HTTP 202, ESP-NOW MAC success, app ACK, capture completion을 한 상태로 합치지 않는다. Web UI는 `요청 전송`, `장치 수락`, `기록 중`, `저장 완료`를 순서대로 표현한다.
 
-`CAN_EVENT_MARKER`는 raw text를 싣지 않고 다음 고정 payload를 사용한다.
+marker는 `CAN_CAPTURE_CONTROL` action으로도 표현하지 않는다. `CAN_EVENT_MARKER` 한 경로만 사용하며 raw text를 싣지 않고 다음 고정 payload를 사용한다.
 
 | 크기 | 필드 |
 |---:|---|
@@ -507,7 +507,7 @@ response payload는 `request_token:u64`, `lease_id:u64`, `status:u8`, `reserved[
 | 2 | `reserved=0` |
 | 8×N | config records |
 
-`REMOTE_CONFIG_STATUS` payload는 `request_token:u64`, `stage:u8`, `reason:u8`, `applied_count:u8`, `pending_count:u8`, `state_revision:u32`, `completed_time_ms:u32`, `detail:u32`의 24 byte다. stage는 `RECEIVED`, `PENDING_CONFIRMATION`, `APPLIED`, `REJECTED`, `EXPIRED`, `UNCHANGED`다.
+`REMOTE_CONFIG_STATUS` payload는 `request_token:u64`, `stage:u8`, `applied_count:u8`, `pending_count:u8`, `reserved0:u8=0`, `reason:u16`, `reserved1:u16=0`, `state_revision:u32`, `completed_time_ms:u32`, `detail:u32`의 28 byte다. stage는 `RECEIVED`, `PENDING_CONFIRMATION`, `APPLIED`, `REJECTED`, `EXPIRED`, `UNCHANGED`다. `reason`은 공통 16-bit error code namespace를 사용한다.
 
 D3 요청은 Controller가 먼저 `PENDING_CONFIRMATION`을 보내고 화면에서 사용자가 승인한 뒤 기존 owner transaction을 수행한다. Bridge의 HTTP operation은 최종 `APPLIED` 전까지 완료가 아니다. 같은 token과 digest는 저장된 status를 다시 보내고, 같은 token의 다른 payload는 거부한다.
 
@@ -519,8 +519,9 @@ ESP32와 STM32 사이에는 signal별 코드를 추가하지 않고 다음 범�
 |---:|---|---|---|
 | `0x14` | `CAN_ID_STATS` | STM→ESP | 모든 수신 ID의 generic 통계 |
 | `0x15` | `CAN_OBSERVER_PLAN` | ESP→STM | peer별 요청을 합친 software filter·budget plan |
-| `0x16` | `CAN_CAPTURE_CONTROL` | ESP→STM | arm/start/stop/marker |
+| `0x16` | `CAN_CAPTURE_CONTROL` | ESP→STM | arm/start/stop/cancel |
 | `0x17` | `CAN_CAPTURE_STATUS` | STM→ESP | 실제 적용 revision·drop·상태 |
+| `0x18` | `CAN_EVENT_MARKER` | ESP→STM | capture marker와 sender time/uncertainty |
 
 STM32는 FDCAN acceptance를 너무 좁게 바꿔 inventory를 잃지 않는다. bus별 hardware FIFO는 표준/확장 frame을 넓게 받고, 다음 순서로 처리한다.
 
@@ -581,7 +582,11 @@ Bridge UI가 200 raw record/s를 선택해도 전체 budget과 Controller reserv
 
 queue 우선순위는 기존 ESP-NOW 문서의 P0–P4를 유지한다. stats와 raw capture는 P4다. capture drop이 지속돼도 command ACK나 bus-off event가 지연돼서는 안 된다.
 
+SoftAP HTTP는 같은 radio를 공유하므로 별도 통합 pressure policy를 적용한다. 정차하고 control lease가 없을 때만 upload/download를 최대 64 kB/s로 허용한다. speed가 0이 아니거나 unknown, control lease active, P0/P1 deadline miss 또는 ESP-NOW queue high-water가 발생하면 bulk를 0으로 pause하고 operation cursor로 나중에 재개한다. live system summary는 5 Hz 이하의 작은 응답만 유지한다.
+
 ## 13. Bridge firmware 구조
+
+구현 전 protocol payload와 API schema의 선행 작업은 [구현 준비 기준](implementation-readiness.md)과 [T-002](tasks/T-002-espnow-schema-v1.3.md), [T-402](tasks/T-402-diagnostic-api-web.md)를 따른다. 이 절의 prose만으로 C payload나 REST response를 임의 정의하지 않는다.
 
 ```text
 firmware/diagnostic-bridge/
@@ -670,6 +675,7 @@ token은 HTTP token 문법에 맞는 base64url로 만들고 브라우저 memory�
 | header 수 | 필요한 allow-list만 |
 | auth 실패 | 5회/분 뒤 60초 lock |
 | mutation rate | 5 req/s |
+| capture bulk | 정차·control lease 없음 64 kB/s, 그 밖에는 pause |
 
 모든 mutation은 128-bit `request_id`, `expected_revision`, body digest를 가져야 한다. 재전송된 같은 요청은 기존 operation을 반환하고 두 번 적용하지 않는다.
 
@@ -733,7 +739,7 @@ offline import는 저장된 `.cvtrace`를 브라우저 분석 화면에서 다�
 | `PUT /api/v1/filters/{id}` | filter 교체 | D1 |
 | `DELETE /api/v1/filters/{id}` | filter 삭제 | D1 |
 | `POST /api/v1/captures` | capture arm/start | D1 |
-| `POST /api/v1/captures/{id}/markers` | event marker | read, capture active |
+| `POST /api/v1/captures/{id}/markers` | event marker | D1 (`capture:write`), capture active |
 | `POST /api/v1/captures/{id}/stop` | 정상 종료 | D1 |
 | `GET /api/v1/captures` | 저장 session 목록 | read |
 | `GET /api/v1/captures/{id}` | manifest·summary | read |
@@ -757,7 +763,7 @@ Bridge web asset을 다시 빌드하지 않고 새 설정을 표시할 수 있�
 
 ```json
 {
-  "key": 513,
+  "key": 514,
   "group": "SPORT AUTO",
   "label": "진입 속도",
   "widget": "select",
@@ -975,7 +981,7 @@ raw record는 고정 24 byte다.
 | 4 | CAN ID |
 | 8 | data |
 
-marker와 note는 별도 metadata journal에 기록한다. write는 4 KiB block으로 묶고 각 block에 sequence, used length, CRC-32를 둔다. power loss 뒤 마지막 불완전 block만 버리고 이전 block은 보존한다.
+capture 중 ZIP에 직접 쓰지 않는다. marker와 note는 별도 metadata journal에 기록한다. write는 4 KiB `CVJB` block으로 묶고 각 block에 format version, sequence, used length, CRC-32를 둔다. power loss 뒤 마지막 불완전 block만 버리고 이전 valid block까지 `partial=true`와 GAP/end reason으로 복구한다. `frames.bin`은 8-byte magic `CVFRAME1`, little-endian version/record-size header 뒤에 위 24-byte record를 둔다.
 
 ### 19.2 `.cvtrace` 묶음
 
@@ -984,7 +990,7 @@ marker와 note는 별도 metadata journal에 기록한다. write는 4 KiB block�
 ```text
 manifest.json
 frames.bin
-markers.json
+markers.jsonl
 inventory.json
 candidates.json
 diagnostics.json
@@ -1004,6 +1010,8 @@ README.txt
 - marker 목록과 template
 - privacy mode
 
+finalize는 frames/metadata digest 검증 뒤 manifest와 ZIP central directory를 마지막에 commit한다. incomplete capture는 partial export만 허용하고 VERIFIED evidence 입력으로 사용할 수 없다.
+
 VIN, peer MAC 원문, SSID, AP password, LMK/PMK, session token, precise GPS는 넣지 않는다. full raw export는 CAN payload 자체에 식별 정보가 있을 수 있다는 경고를 보여주고 사용자가 명시적으로 선택한다.
 
 ### 19.3 자동 정리
@@ -1013,6 +1021,15 @@ VIN, peer MAC 원문, SSID, AP password, LMK/PMK, session token, precise GPS는 
 - 공간이 15% 미만이면 오래된 complete capture부터 지우되 candidate evidence가 참조한 capture는 보호한다.
 - 공간이 부족해 새 capture를 끝까지 보존할 수 없으면 시작 전에 거부한다.
 - NVS에는 raw sample을 반복 기록하지 않는다.
+
+internal Flash preflight는 아래 식을 사용한다.
+
+```text
+required = 64 KiB + ceil(rate_limit × 24 × duration_seconds × 1.15)
+available = min(capture_partition_free - 256 KiB, 1.5 MiB)
+```
+
+`required > available`이면 block 하나도 쓰기 전에 거부한다. microSD가 없는 200 record/s capture는 최대 180초이고, 10분 `ARMED_DRIVE`는 검증된 SD가 있을 때만 선택할 수 있다.
 
 ## 20. 오류와 사용자 표시
 
@@ -1030,7 +1047,7 @@ VIN, peer MAC 원문, SSID, AP password, LMK/PMK, session token, precise GPS는 
 | Bridge reboot | phone session 폐기 | 이전 mutation 재실행 금지 |
 | speed unknown/moving | lock banner | 모든 D1–D3 편집 금지 |
 
-오류가 끝났다고 기존 candidate quality를 자동으로 복원하지 않는다. gap이 포함된 capture는 계속 `coverage 낮음` 표시를 가진다.
+오류가 끝났다고 기존 candidate evidence grade를 자동으로 올리지 않는다. gap이 포함된 capture는 계속 `coverage 낮음` 표시를 가진다.
 
 ## 21. Controller 내장 fallback
 

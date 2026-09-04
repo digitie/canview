@@ -106,18 +106,19 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 
 알 수 없는 type은 length와 CRC가 정상인 경우에만 `UNSUPPORTED_MESSAGE`로 응답한다. 오류 응답에 다시 ACK를 요구하지 않는다.
 
-### 4.1 protocol 1.3 Diagnostic Bridge 확장 예약
+### 4.1 UART protocol 1.0 Diagnostic Bridge 메시지
 
-미확정 CAN ID를 signal별 firmware 수정 없이 찾기 위해 아래 generic message를 `1.3` 구현 대상으로 예약한다.
+미확정 CAN ID를 signal별 firmware 수정 없이 찾기 위해 아래 generic message를 UART protocol의 첫 완전 구현인 `1.0`에 포함한다. ESP-NOW protocol `1.3`과 UART version은 서로 독립이다.
 
 | 값 | 이름 | 방향 | 역할 |
 |---:|---|---|---|
 | `0x14` | `CAN_ID_STATS` | STM→ESP | bus/ID/DLC별 rate·period·change mask·last data |
 | `0x15` | `CAN_OBSERVER_PLAN` | ESP→STM | 여러 ESP-NOW peer 요청을 합친 software filter·budget plan |
-| `0x16` | `CAN_CAPTURE_CONTROL` | ESP→STM | arm/start/marker/stop/cancel |
+| `0x16` | `CAN_CAPTURE_CONTROL` | ESP→STM | arm/start/stop/cancel |
 | `0x17` | `CAN_CAPTURE_STATUS` | STM→ESP | 실제 적용 revision, record/drop, 완료·오류 |
+| `0x18` | `CAN_EVENT_MARKER` | ESP→STM | marker ID, 종류, sender time과 uncertainty |
 
-현재 구현 protocol `1.2`에서는 전송하지 않는다. 정확한 payload, plan 원자 적용, diagnostic lease, peer별 재필터링은 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)를 정본으로 한다. 이 확장은 DBC signal 이름이나 factor를 UART에 넣지 않는다.
+현재는 UART header와 codec이 없으므로 어떤 version도 전송 가능한 구현 상태가 아니다. 정확한 payload, plan 원자 적용, diagnostic lease, peer별 재필터링은 [T-004](tasks/T-004-uart-schema-codec.md)와 [Diagnostic Bridge·모바일 CAN 검증 UI](can-diagnostics-web.md)를 따른다. 이 확장은 DBC signal 이름이나 factor를 UART에 넣지 않는다.
 
 ## 5. CAN batch 형식
 
@@ -181,23 +182,28 @@ ESP32                                     STM32
 STM32는 UART online 여부와 무관하게 reset 직후 transceiver standby를 유지한다. CAN bitrate/profile가 검증되면 listen-only 수신을 시작할 수 있지만 vehicle TX는 다음 조건을 모두 만족해야 한다.
 
 1. UART online과 heartbeat 정상
-2. ESP32가 전달한 유효 Controller control lease
+2. STM32가 `control_root` tag로 직접 검증한 Primary Controller control lease와 origin/session/generation
 3. STM32의 현재 vehicle state와 safety revision 일치
 4. command ID와 parameter가 local allow-list에 존재
-5. physical/service TX enable 정책 충족
+5. generated 필수 precondition을 admission/dequeue/각 TX 직전에 재검사
+6. physical TX_ARM, rail-good와 외부 guardian permit 충족
+
+Controller와 STM32는 UART/ESP 두 hop을 통과하는 `CONTROL_TIME_SYNC`로 별도 clock mapping을 만든다. mapping은 양쪽 boot ID와 generation에 묶이고 10초마다 갱신하며 30초 또는 uncertainty 50 ms 초과에서 invalid다. command의 origin, issued time, TTL, sync generation과 16-byte end-to-end control tag는 ESP32가 재작성하지 않고 opaque bytes로 전달한다.
 
 ## 8. 명령 신뢰성과 중복 제거
 
 UART가 point-to-point라고 해서 command를 exactly-once transport로 가정하지 않는다.
 
 - Controller가 만든 64-bit `request_token`을 ESP-NOW와 UART 경계에서 유지한다.
-- STM32는 최근 256개 또는 60초의 token과 최종 result를 보관한다.
+- STM32는 256개 entry에 live TTL과 terminal result를 최소 60초 보관한다. live entry는 LRU로 축출하지 않고 모두 차면 새 요청을 ACK 전에 `BUSY`로 거부한다.
 - 같은 token·같은 payload는 실행하지 않고 기존 result를 다시 보낸다.
 - 같은 token·다른 payload는 protocol/auth fault로 거부한다.
 - ACK는 packet을 queue에 수락했다는 뜻이고 차량 feedback 완료는 `COMMAND_RESULT(COMPLETED)`만 뜻한다.
 - ESP32 reboot, STM32 reboot, safety revision 변경 시 이전 pending command를 자동 재실행하지 않는다.
 - ACK가 `ACCEPTED` 또는 `DUPLICATE`여도 완료로 확정하지 않는다. `COMMAND_RESULT(COMPLETED)`만 feedback 확인 후 최종 성공이다.
 - result가 ACK보다 먼저 도착해도 terminal result를 유지하며, 늦은 ACK가 `WAITING_RESULT`로 되돌리지 않는다.
+- cache key는 origin device/boot, wireless session, control generation, token, command ID와 canonical payload digest다. ACK와 RESULT는 token을 모두 포함한다.
+- Primary Controller와 STM32만 가진 pair-specific `control_root` tag가 틀리면 UART frame CRC가 정상이어도 실행하지 않는다. terminal result도 STM32 tag로 Controller가 확인한다.
 
 ## 9. heartbeat와 오류 복구
 

@@ -1,5 +1,8 @@
 /*
- * canview ESP-NOW wire protocol v1
+ * canview ESP-NOW wire protocol v1.2 INCOMPLETE DRAFT
+ *
+ * This header is not a deployable runtime ABI.  It is replaced by the
+ * schema-generated v1.3 header in task T-002 before transport integration.
  *
  * SPDX-License-Identifier: GPL-3.0-only
  *
