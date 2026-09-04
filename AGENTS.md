@@ -50,7 +50,8 @@ canview는 현대·기아·제네시스 차량의 CAN 데이터를 수집·표�
 
 - 코드가 동작한다는 이유만으로 검증이 끝났다고 여기지 말 것
 - 적대적 리뷰어로 세워 숨겨진 취약점과 부작용을 집요하게 찾아낼 것
-- 방어 로직의 빈틈이 완전히 소명되기 전까지는 구현을 완료로 판단하지 말 것
+- 당연하다고 믿은 가정을 의심하고 코드가 실패하는 시나리오를 찾을 것
+- 숨겨진 부작용과 취약점이 소명되기 전까지는 완료로 보지 말 것
 
 ## 문서 언어 정책
 
@@ -77,7 +78,7 @@ canview는 현대·기아·제네시스 차량의 CAN 데이터를 수집·표�
 
 - **메인 repo**: `F:/dev/canview` 또는 Windows 로컬 checkout을 사용한다. Git/CodeGraph 정본 경로에 Linux `/mnt/f/...`를 사용하지 않는다.
 - **작업 worktree**: 평소에는 메인 checkout 또는 단일 작업 branch를 사용하고, 병렬 작업·격리·리뷰가 필요할 때만 `F:/dev/canview-wt/<agent>-<task>` 같은 임시 worktree를 만든다. 작업 또는 PR 종료 후 worktree를 제거하고 `git worktree prune`으로 메타데이터를 정리한다.
-- **테스트/빌드**: Windows checkout에서 host test, CMake/Ninja, ESP-IDF, Node, KiCad 검증을 실행한다. WSL ext4 미러와 `rsync` 복사는 필수가 아니다.
+- **테스트/빌드**: Windows checkout에서 host test, CMake/Ninja, ESP-IDF, Node, KiCad 검증을 실행한다.
 - **하드웨어 도구**: Windows KiCad GUI/CLI, ESP-IDF PowerShell 환경, GNU Arm Embedded, CMake/Ninja를 기준으로 한다. 생성 파일과 검증 명령은 Windows에서 재현 가능해야 한다.
 - **Git 실행 기준**: Git for Windows만 정본 branch·commit·push·PR 준비에 사용한다. `.git`/worktree metadata가 WSL 경로를 가리키는 checkout을 정본으로 삼지 않는다.
 - **CodeGraph 실행 기준**: CodeGraph가 연결된 환경에서는 branch 전환·pull·merge 뒤 `codegraph sync` 후 `codegraph status`를 순서대로 실행한다. 임시 worktree에서는 작업 시작 후 초기화하고 worktree 제거와 함께 로컬 상태도 폐기한다.
