@@ -4,13 +4,13 @@
 - 종류: 전문 리뷰어 서브에이전트 2인 독립 적대적 리뷰
 - Review candidate commit: `b6f523fe1d5fdaa01b337facbbda127cc384cda5`
 - Base/parent commit: `018d9ecc4d1651a5d00f640011ee861f164d7d87`
-- Post-fix commit: 재검토 전 `PENDING`
+- Post-fix commit: `ab613c8f70d6bb5658c20b662e152e61d421c239`
 - 대상 범위: AGENTS·문서 정보구조·Windows/worktree·CodeGraph·2인 review gate·대규모 문서 이동
 - 범위 밖: firmware runtime, 실제 hardware/HIL/차량, 외부 link 내용 검증
 - 관련 요청: 문서 개괄→상세 재구성, 상세 문서 하위 분류, 실행별 review 누적, 전문 reviewer 2인의 결과 반영
 - Coordinator: Codex 주 작업 에이전트
-- 리뷰 시작·종료: `2026-09-05T06:50:52+09:00` ~ `2026-09-05T06:59:20+09:00`
-- 상태: `FIXES_PENDING_RECHECK`
+- 리뷰 시작·종료: `2026-09-05T06:50:52+09:00` ~ `2026-09-05T09:29:58+09:00`
+- 상태: `COMPLETE`
 
 ## 1. 공통 manifest와 독립성
 
@@ -61,33 +61,35 @@ Reviewer A는 83개 Markdown의 local link 547개, Reviewer B는 별도 parser�
 
 | Finding | 상태 | 변경 또는 근거 | Owner·task·gate·기한 | 재검증 | 원 reviewer 재확인 |
 |---|---|---|---|---|---|
-| A-P1-01 | `OPEN` | 이 report, reviewer별 evidence, archive index를 추가 | Coordinator, 현재 PR | local link·report metadata | 대기 |
-| A-P2-01 | `OPEN` | SKILL·문서 지도·workflow에 “task가 있는 경우”와 docs/review 진입점 명시 | Coordinator, 현재 PR | 정본 문구 교차 검색 | 대기 |
-| A-P3-01 | `OPEN` | 4개 옛 basename label을 역할 label로 교체 | Coordinator, 현재 PR | stale basename 검색 | 대기 |
-| A 추가 관찰 | `OPEN` | Windows 문서에서 worktree 명령을 제거해 workflow 한 곳으로 위임하고 parent 생성 명령 추가 | Coordinator, 현재 PR | 두 문서 비교 | 대기 |
-| B-P1-01 | `OPEN` | object-only와 detached 방식, hash·clean 검증 명령 추가 | Coordinator, 현재 PR | post-fix 문서 검사 | 대기 |
-| B-P1-02 | `OPEN` | execution/time/manifest/hash/evidence를 template과 archive에 필수화하고 두 원본 파일 보존 | Coordinator, 현재 PR | evidence metadata 교차 확인 | 대기 |
-| B-P1-03 | `OPEN` | disposition 4종 정의, P0/P1은 FIXED 또는 evidence 기각+원 reviewer 확인만 허용 | Coordinator, 현재 PR | 상충 문구 검색 | 대기 |
-| B-P1-04 | `OPEN` | normative 경로 비면제, 면제 조건 전부 충족과 비작성자 승인, closure artifact 경계 명시 | Coordinator, 현재 PR | 면제 문구 교차 검사 | 대기 |
-| B-P1-05 | `OPEN` | T-001을 Windows 필수 기준으로 바꾸고 Linux는 portability/sanitizer matrix로 분리 | Coordinator, T-001/G0 | Windows/Linux 기준 검색 | 대기 |
-| B-P2-01 | `OPEN` | template에 재현·실패 형태와 영향 열 추가 | Coordinator, 현재 PR | template 필드 검사 | 대기 |
-| B-P2-02 | `OPEN` | workflow에 P0~P3 기준과 merge 효과 추가 | Coordinator, 현재 PR | 등급 정의 검사 | 대기 |
-| B-P3-01 | `OPEN` | `ui/prototype/README.md`를 추가하고 문서 지도에서 직접 링크 | Coordinator, 현재 PR | local link 검사 | 대기 |
+| A-P1-01 | `FIXED` | 이 report, reviewer별 최초·post-fix evidence, archive index를 추가 | Coordinator, 현재 PR | report metadata·link 검사 | `FIXED*`; closure 기록 조건 충족 |
+| A-P2-01 | `FIXED` | SKILL·문서 지도·workflow에 “task가 있는 경우”와 docs/review 진입점 명시 | Coordinator, 현재 PR | 세 정본 문구 교차 검사 | `FIXED` |
+| A-P3-01 | `FIXED` | 4개 옛 basename label을 역할 label로 교체 | Coordinator, 현재 PR | stale basename 검색 0건 | `FIXED` |
+| A 추가 관찰 | `FIXED` | Windows 문서에서 worktree 명령을 제거해 workflow 한 곳으로 위임하고 두 worktree 절차에 parent 생성 추가 | Coordinator, 현재 PR | 두 문서와 명령 교차 검사 | `FIXED` |
+| B-P1-01 | `FIXED` | object-only와 detached 방식, hash·clean 검증 명령 추가 | Coordinator, 현재 PR | post-fix object-only 검사 | `FIXED` |
+| B-P1-02 | `FIXED` | execution/time/manifest/hash/evidence를 template과 archive에 필수화하고 reviewer별 원본 보존 | Coordinator, 현재 PR | evidence metadata 교차 확인 | `FIXED` |
+| B-P1-03 | `FIXED` | disposition 4종 정의, P0/P1은 FIXED 또는 evidence 기각+원 reviewer 확인만 허용 | Coordinator, 현재 PR | 상충 문구 검색 0건 | `FIXED` |
+| B-P1-04 | `FIXED` | normative 경로 비면제, 좁은 면제 조건·비작성자 승인·closure artifact 경계 명시 | Coordinator, 현재 PR | 면제 문구 교차 검사 | `FIXED` |
+| B-P1-05 | `FIXED` | T-001을 Windows 필수 기준으로 바꾸고 Linux는 portability/sanitizer matrix로 분리 | Coordinator, T-001/G0 | Windows/Linux 기준 교차 검사 | `FIXED` |
+| B-P2-01 | `FIXED` | template에 재현·실패 형태와 영향 열 추가 | Coordinator, 현재 PR | template 필드 검사 | `FIXED` |
+| B-P2-02 | `FIXED` | workflow에 P0~P3 기준과 merge 효과 추가 | Coordinator, 현재 PR | 등급 정의 검사 | `FIXED` |
+| B-P3-01 | `FIXED` | `ui/prototype/README.md`를 추가하고 문서 지도에서 직접 링크 | Coordinator, 현재 PR | snapshot local link 검사 | `FIXED` |
 
-post-fix commit을 만든 뒤 두 원 reviewer가 자신의 finding과 전체 delta를 재검토하기 전에는 `FIXED`를 확정하지 않는다.
+두 원 reviewer는 `ab613c8`에서 자신의 finding 전부가 해소됐고 전체 delta에 신규 `P0`/`P1` 회귀가 없음을 확인했다. 두 재검토의 `CONDITIONAL` 조건은 이 절의 disposition과 아래 post-fix 결과를 closure artifact에 기록하는 것뿐이며, 규범·제품 문서의 추가 변경은 요구하지 않았다.
 
 ## 6. Post-fix 재검토
 
 | Reviewer | 확인 commit | 확인 범위 | verdict | 잔여 위험 |
 |---|---|---|---|---|
-| A | `PENDING` | A findings + 전체 delta | `PENDING` | Windows/CodeGraph 실제 실행 여부 |
-| B | `PENDING` | B findings + 전체 delta | `PENDING` | runtime·hardware는 범위 밖 |
+| A | `ab613c8f70d6bb5658c20b662e152e61d421c239` | A findings·추가 관찰 + 전체 delta | `CONDITIONAL`; 모든 항목 `FIXED`, closure 기록만 요구 | Windows PowerShell·CodeGraph·SDK/HIL 미실행; [post-fix evidence](evidence/2026-09-05-document-information-architecture-post-fix-reviewer-a.md) |
+| B | `ab613c8f70d6bb5658c20b662e152e61d421c239` | B findings + 전체 delta | `CONDITIONAL`; 모든 항목 `FIXED`, closure 기록만 요구 | runtime·hardware·외부 link 내용은 범위 밖; [post-fix evidence](evidence/2026-09-05-document-information-architecture-post-fix-reviewer-b.md) |
 
 ## 7. 최종 판정
 
-- 최종 verdict: `PENDING`
-- 열린 finding: post-fix 재검토 전 전부 열린 상태
-- 미실행 검증: 실제 CodeGraph, SDK build, HIL은 문서 전용 변경 범위 밖
-- PR 반영 위치: PR 생성 후 기록
+- 최종 verdict: `PASS`
+- 열린 finding: 0개. 최초 11개 finding과 추가 관찰 1개를 모두 `FIXED`로 닫았다.
+- 판정 근거: 두 원 reviewer가 자신의 모든 finding 해소와 신규 `P0`/`P1` 회귀 없음에 동의했다. 두 `CONDITIONAL` verdict가 요구한 post-fix hash, disposition, 두 결과와 검증을 이 closure artifact에 기록했으므로 조건이 충족됐다.
+- Coordinator 최종 검증: closure 포함 Markdown 89개 기준 local link 476개·fragment 11개 오류 0, 상세 task/요약 link 34/34, 이동 전 경로 잔존 0개, Windows Node `prototype.js --check`, Windows Git `diff --check` 통과.
+- 미실행 검증: 실제 CodeGraph, SDK build, firmware runtime, CI, HIL·hardware·차량과 외부 link 내용 검증은 문서 전용 변경 범위 밖이다.
+- PR 반영 위치: 현재 branch의 본 report와 PR 본문의 리뷰·검증 절
 
 이 report는 이번 실행의 누적 기록이며 2026-09-04 기준선 report에 append하지 않는다.

@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-05 기준, CANView는 설계·문서·정적 prototype·기존 host 자동화 test를 포함한 구현 준비 단계다. PR #14에서 통합 설계, 두 명의 적대적 리뷰 결과, 34개 상세 task가 반영됐다. 문서는 중앙 지도에서 필요한 상세 자료만 선택하도록 architecture·hardware·development·vehicle·UI·review 하위 구조로 정리됐고, 리뷰는 실행마다 새 report를 누적한다.
+2026-09-05 기준, CANView는 설계·문서·정적 prototype·기존 host 자동화 test를 포함한 구현 준비 단계다. PR #14에서 통합 설계, 두 명의 적대적 리뷰 결과, 34개 상세 task가 반영됐다. 문서는 중앙 지도에서 필요한 상세 자료만 선택하도록 architecture·hardware·development·vehicle·UI·review 하위 구조로 정리됐고, 리뷰는 실행마다 새 report를 누적한다. 문서 정보구조 변경은 [2인 독립 적대적 리뷰](reviews/adversarial/2026-09-05-document-information-architecture.md)에서 열린 finding 0개와 최종 `PASS`로 종결했다.
 
 개발 정본은 Windows PowerShell checkout이다. worktree는 필요할 때만 만들고 merge 또는 abandon 후 삭제하며, WSL/Linux는 보조 환경으로만 사용한다. `rovinax/embedded-skills`의 임베디드 개발 스킬 6개는 Codex 환경에 설치했다.
 
