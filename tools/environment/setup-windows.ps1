@@ -132,6 +132,16 @@ function Invoke-PinnedClone {
             }
         }
 
+        $nestedDirtyStatus = @(& git -C $checkoutPath submodule foreach --quiet --recursive "git status --porcelain=v1")
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to inspect nested submodule worktrees at $checkoutPath."
+        }
+        foreach ($line in $nestedDirtyStatus) {
+            if ($line.Trim().Length -gt 0) {
+                throw "Nested submodule worktree is not clean at ${checkoutPath}: $line"
+            }
+        }
+
         if ($null -ne $temporaryDestination) {
             Move-Item -LiteralPath $temporaryDestination -Destination $Destination
             $temporaryDestination = $null
