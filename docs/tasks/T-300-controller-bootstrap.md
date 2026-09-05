@@ -31,7 +31,7 @@ Waveshare `ESP32-S3-Touch-LCD-3.5`에서 build/flash 가능한 ESP-IDF 6.0.3 app
 ## 현재 준비된 bootstrap
 
 - `firmware/controller/CMakeLists.txt`와 `main/`이 독립 ESP-IDF application으로 구성되어 있다.
-- `canview_can`은 private protocol include path가 아니라 public `canview_protocol` component를 `REQUIRES`로 사용한다.
+- `canview_can`은 private protocol include path가 아니라 public `canview_protocol` component를 `REQUIRES`로 사용하도록 준비했다. 현재 application은 incomplete v1.2 header를 링크하지 않으며 T-002 v1.3 완료 뒤 연결한다.
 - `sdkconfig.defaults`와 `partitions.csv`가 16 MB Flash / 8 MB Octal PSRAM target을 고정한다.
 - Waveshare BSP, LVGL, RTC/audio와 실제 `idf.py build/flash`는 아직 구현·검증하지 않았다.
 

@@ -44,13 +44,15 @@
 
 ## 검증
 
-```bash
-cd firmware/diagnostic-bridge
+```powershell
+# T-400에서 firmware/diagnostic-bridge project를 추가한 뒤 실행한다.
+Push-Location firmware/diagnostic-bridge
 idf.py set-target esp32s3
 idf.py build
 idf.py size-components
-python ../../tests/security/bridge_http.py
-python ../../tests/ui/bridge_offline_browser.py
+Pop-Location
+py -3 tests/security/bridge_http.py
+py -3 tests/ui/bridge_offline_browser.py
 ```
 
 ## 보안 경계

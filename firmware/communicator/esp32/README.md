@@ -24,4 +24,4 @@ idf.py -C firmware/communicator/esp32 size-components
 
 `sdkconfig.defaults`는 N4R2의 4 MB Flash와 2 MB Quad PSRAM만 선택하고 NVS encryption key partition을 예약한다. `GPIO26`을 외부 기능에 재사용하지 않으며, `partitions.csv`와 생성된 `sdkconfig`가 서로 다른 module 설정을 갖지 않도록 build log를 확인한다. 현재 bootstrap은 단일 factory image다. OTA A/B는 4 MB image budget과 보안 provisioning을 측정한 뒤 별도 partition 설계로 추가한다.
 
-현재 `app_main()`은 protocol version log만 수행한다. 실제 UART1 DMA/RTS-CTS, ESP-NOW session/QoS, STM32 handoff와 CAN 데이터 전달은 각각의 후속 task에서 구현한다.
+현재 `app_main()`은 protocol v1.3 통합 전용 대기 상태를 log한다. 현재 저장된 v1.2 incomplete header는 application dependency로 연결하지 않는다. 실제 UART1 DMA/RTS-CTS, ESP-NOW session/QoS, STM32 handoff와 CAN 데이터 전달은 각각의 후속 task에서 구현한다.

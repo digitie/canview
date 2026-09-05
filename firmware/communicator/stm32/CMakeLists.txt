@@ -5,9 +5,10 @@ project(canview_communicator_stm32
     LANGUAGES C ASM
 )
 
-if(CMAKE_C_COMPILER_VERSION VERSION_LESS 15.3)
+if(CMAKE_C_COMPILER_VERSION VERSION_LESS 15.3 OR
+   CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 15.4)
     message(FATAL_ERROR
-        "Arm GNU Toolchain GCC 15.3.x or newer is required; found ${CMAKE_C_COMPILER_VERSION}."
+        "Arm GNU Toolchain GCC 15.3.x from release 15.3.Rel1 is required; found ${CMAKE_C_COMPILER_VERSION}."
     )
 endif()
 

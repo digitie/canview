@@ -42,51 +42,125 @@ function Assert-ExactVersion {
     }
 }
 
+function Assert-ArmGccVersion {
+    param([Parameter(Mandatory = $true)][string]$Text)
+
+    $version = Get-FirstVersion -Text $Text
+    $prefix = [regex]::Escape($manifest.tools.armGnuToolchain.compilerVersionPrefix)
+    if ($version -notmatch "^$prefix(?:\.|$)") {
+        throw "Arm GNU Toolchain compiler mismatch: expected GCC $($manifest.tools.armGnuToolchain.compilerVersionPrefix).x from release $($manifest.tools.armGnuToolchain.release), found $Text"
+    }
+    return $version
+}
+
+function Normalize-GitUrl {
+    param([Parameter(Mandatory = $true)][string]$Value)
+
+    return (($Value.Trim() -replace "[\\/]+$", "") -replace "\.git$", "").ToLowerInvariant()
+}
+
 function Invoke-PinnedClone {
     param(
         [Parameter(Mandatory = $true)][string]$Repository,
         [Parameter(Mandatory = $true)][string]$Tag,
         [Parameter(Mandatory = $true)][string]$Commit,
-        [Parameter(Mandatory = $true)][string]$Destination
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [switch]$AllowClone
     )
 
-    if (-not (Test-Path -LiteralPath $Destination)) {
-        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
-        & git clone --recursive --depth 1 --branch $Tag $Repository $Destination
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to clone $Repository at $Tag."
+    $temporaryDestination = $null
+    try {
+        if (-not (Test-Path -LiteralPath $Destination)) {
+            if (-not $AllowClone) {
+                throw "Pinned checkout is missing in verify-only mode: $Destination"
+            }
+
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
+            $temporaryDestination = "$Destination.partial-$([guid]::NewGuid().ToString('N'))"
+            & git clone --recursive --depth 1 --branch $Tag $Repository $temporaryDestination
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to clone $Repository at $Tag."
+            }
         }
-    }
 
-    $currentCommit = (& git -C $Destination rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0 -or $currentCommit -ne $Commit) {
-        throw "Pinned checkout mismatch at $Destination. Expected $Commit, found $currentCommit. Remove the checkout or repair it manually."
-    }
+        $checkoutPath = if ($null -ne $temporaryDestination) {
+            $temporaryDestination
+        } else {
+            $Destination
+        }
 
-    & git -C $Destination submodule update --init --recursive
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to update submodules at $Destination."
+        $remoteUrl = (& git -C $checkoutPath remote get-url origin).Trim()
+        if ($LASTEXITCODE -ne 0 -or (Normalize-GitUrl -Value $remoteUrl) -ne (Normalize-GitUrl -Value $Repository)) {
+            throw "Pinned checkout remote mismatch at $checkoutPath. Expected $Repository, found $remoteUrl."
+        }
+
+        $tagRef = "refs/tags/$Tag"
+        & git -C $checkoutPath show-ref --verify --quiet $tagRef
+        if ($LASTEXITCODE -ne 0) {
+            throw "Pinned tag $Tag is not present at $checkoutPath."
+        }
+
+        $tagCommit = (& git -C $checkoutPath rev-parse "$Tag^{commit}").Trim()
+        if ($LASTEXITCODE -ne 0 -or $tagCommit -ne $Commit) {
+            throw "Pinned tag mismatch at $checkoutPath. Expected $Commit, found $tagCommit."
+        }
+
+        $currentCommit = (& git -C $checkoutPath rev-parse HEAD).Trim()
+        if ($LASTEXITCODE -ne 0 -or $currentCommit -ne $Commit) {
+            throw "Pinned checkout mismatch at $checkoutPath. Expected $Commit, found $currentCommit."
+        }
+
+        $dirtyFiles = ((& git -C $checkoutPath status --porcelain=v1) -join "`n").Trim()
+        if ($LASTEXITCODE -ne 0 -or $dirtyFiles.Length -ne 0) {
+            throw "Pinned checkout is not clean at $checkoutPath."
+        }
+
+        if ($AllowClone) {
+            & git -C $checkoutPath submodule update --init --recursive
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to update submodules at $checkoutPath."
+            }
+        }
+
+        $submoduleStatus = @(& git -C $checkoutPath submodule status --recursive)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to inspect submodules at $checkoutPath."
+        }
+        foreach ($line in $submoduleStatus) {
+            if ($line.Length -gt 0 -and @('-', '+', 'U') -contains $line.Substring(0, 1)) {
+                throw "Submodule checkout is incomplete or differs from the pinned commit at ${checkoutPath}: $line"
+            }
+        }
+
+        if ($null -ne $temporaryDestination) {
+            Move-Item -LiteralPath $temporaryDestination -Destination $Destination
+            $temporaryDestination = $null
+        }
+    } catch {
+        if ($null -ne $temporaryDestination -and (Test-Path -LiteralPath $temporaryDestination)) {
+            Remove-Item -LiteralPath $temporaryDestination -Recurse -Force
+        }
+        throw
     }
 }
 
 $cmakeCommand = Get-RequiredCommand -Name "cmake"
 $ninjaCommand = Get-RequiredCommand -Name "ninja"
 $gccCommand = Get-RequiredCommand -Name "arm-none-eabi-gcc"
-$null = Get-RequiredCommand -Name "arm-none-eabi-objcopy"
-$null = Get-RequiredCommand -Name "arm-none-eabi-size"
+$objcopyCommand = Get-RequiredCommand -Name "arm-none-eabi-objcopy"
+$sizeCommand = Get-RequiredCommand -Name "arm-none-eabi-size"
 $null = Get-RequiredCommand -Name "git"
 
 $cmakeVersion = Get-FirstVersion -Text (& cmake --version | Select-Object -First 1)
 $cmakeBin = Split-Path -Parent $cmakeCommand
 $ninjaVersion = Get-FirstVersion -Text (& ninja --version | Select-Object -First 1)
+$ninjaBin = Split-Path -Parent $ninjaCommand
 $gccVersionText = (& arm-none-eabi-gcc --version | Select-Object -First 1)
-$gccVersion = Get-FirstVersion -Text $gccVersionText
+$gccVersion = Assert-ArmGccVersion -Text $gccVersionText
+$gccBin = Split-Path -Parent $gccCommand
 
 Assert-ExactVersion -Name "CMake" -Actual $cmakeVersion -Expected $manifest.tools.cmake.version
 Assert-ExactVersion -Name "Ninja" -Actual $ninjaVersion -Expected $manifest.tools.ninja.version
-if ($gccVersion -notmatch "^$([regex]::Escape($manifest.tools.armGnuToolchain.compilerVersionPrefix))(?:\.|$)") {
-    throw "Arm GNU Toolchain compiler mismatch: expected GCC $($manifest.tools.armGnuToolchain.compilerVersionPrefix).x from release $($manifest.tools.armGnuToolchain.release), found $gccVersionText"
-}
 
 $espIdfRoot = Join-Path $ToolRoot "esp-idf-$($manifest.sdk.espIdf.version.TrimStart('v'))"
 $cubeG4Root = Join-Path $ToolRoot "STM32CubeG4-$($manifest.sdk.stm32CubeG4.version.TrimStart('v'))"
@@ -95,19 +169,22 @@ if ($ToolRoot -match "\s") {
     throw "ToolRoot cannot contain spaces because ESP-IDF does not support spaces in SDK paths: $ToolRoot"
 }
 
+$allowClone = -not $VerifyOnly
+Invoke-PinnedClone `
+    -Repository $manifest.sdk.espIdf.repository `
+    -Tag $manifest.sdk.espIdf.version `
+    -Commit $manifest.sdk.espIdf.gitCommit `
+    -Destination $espIdfRoot `
+    -AllowClone:$allowClone
+
+Invoke-PinnedClone `
+    -Repository $manifest.sdk.stm32CubeG4.repository `
+    -Tag $manifest.sdk.stm32CubeG4.version `
+    -Commit $manifest.sdk.stm32CubeG4.gitCommit `
+    -Destination $cubeG4Root `
+    -AllowClone:$allowClone
+
 if (-not $VerifyOnly) {
-    Invoke-PinnedClone `
-        -Repository $manifest.sdk.espIdf.repository `
-        -Tag $manifest.sdk.espIdf.version `
-        -Commit $manifest.sdk.espIdf.gitCommit `
-        -Destination $espIdfRoot
-
-    Invoke-PinnedClone `
-        -Repository $manifest.sdk.stm32CubeG4.repository `
-        -Tag $manifest.sdk.stm32CubeG4.version `
-        -Commit $manifest.sdk.stm32CubeG4.gitCommit `
-        -Destination $cubeG4Root
-
     Write-Host "Installing ESP-IDF tools for esp32s3..."
     & (Join-Path $espIdfRoot "install.ps1") esp32s3
     if ($LASTEXITCODE -ne 0) {
@@ -130,9 +207,29 @@ if (Test-Path -LiteralPath (Join-Path $espIdfRoot "export.ps1")) {
     . (Join-Path $espIdfRoot "export.ps1")
 }
 
-# ESP-IDF export may prepend its own bundled CMake. Keep the manifest-pinned
-# Windows CMake first so STM32 presets and IDF both use the validated host tool.
-$env:Path = "$cmakeBin;$env:Path"
+# ESP-IDF export may prepend its own tools. Keep the manifest-pinned Windows
+# tool directories first for the checks below and for STM32 CMake presets.
+$hostToolBins = @(
+    $cmakeBin,
+    $ninjaBin,
+    $gccBin,
+    (Split-Path -Parent $objcopyCommand),
+    (Split-Path -Parent $sizeCommand)
+) | Where-Object { $_ } | Select-Object -Unique
+$env:Path = (($hostToolBins -join ";") + ";" + $env:Path)
+
+$cmakeAfterExport = Get-FirstVersion -Text (& cmake --version | Select-Object -First 1)
+$ninjaAfterExport = Get-FirstVersion -Text (& ninja --version | Select-Object -First 1)
+$gccAfterExportText = (& arm-none-eabi-gcc --version | Select-Object -First 1)
+$gccAfterExport = Assert-ArmGccVersion -Text $gccAfterExportText
+Assert-ExactVersion -Name "CMake after ESP-IDF export" -Actual $cmakeAfterExport -Expected $manifest.tools.cmake.version
+Assert-ExactVersion -Name "Ninja after ESP-IDF export" -Actual $ninjaAfterExport -Expected $manifest.tools.ninja.version
+
+$env:CANVIEW_CMAKE_EXECUTABLE = $cmakeCommand
+$env:CANVIEW_NINJA_EXECUTABLE = $ninjaCommand
+$env:CANVIEW_ARM_GCC_EXECUTABLE = $gccCommand
+$env:CANVIEW_ARM_OBJCOPY_EXECUTABLE = $objcopyCommand
+$env:CANVIEW_ARM_SIZE_EXECUTABLE = $sizeCommand
 
 $idfCommand = Get-Command idf.py -ErrorAction SilentlyContinue
 if ($null -eq $idfCommand) {
@@ -142,5 +239,5 @@ if ($null -eq $idfCommand) {
 Write-Host "CANView Windows toolchain is ready."
 Write-Host "  IDF_PATH=$env:IDF_PATH"
 Write-Host "  STM32CUBE_G4_ROOT=$env:STM32CUBE_G4_ROOT"
-Write-Host "  CMake=$cmakeVersion, Ninja=$ninjaVersion, Arm GCC=$gccVersion"
+Write-Host "  CMake=$cmakeAfterExport, Ninja=$ninjaAfterExport, Arm GCC=$gccAfterExport"
 Write-Host "Run this script with dot-sourcing so the environment remains in the current PowerShell session."

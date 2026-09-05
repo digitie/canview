@@ -69,12 +69,11 @@ idf.py -C firmware/controller -p COMx flash monitor
 
 Communicator의 무선 MCU는 `ESP32-S3-MINI-1-N4R2`다. build target은 `esp32s3`, Flash는 4 MB Quad SPI, PSRAM은 2 MB Quad SPI로 설정한다. Controller의 16 MB/8 MB 설정을 복사하면 partition과 PSRAM mode가 틀리므로 별도 `sdkconfig.defaults`를 유지한다.
 
-```bash
-cd firmware/communicator/esp32
-idf.py set-target esp32s3
-idf.py menuconfig
-idf.py build
-idf.py -p /dev/ttyACM1 flash monitor
+```powershell
+idf.py -C firmware/communicator/esp32 set-target esp32s3
+idf.py -C firmware/communicator/esp32 menuconfig
+idf.py -C firmware/communicator/esp32 build
+idf.py -C firmware/communicator/esp32 -p COMx flash monitor
 ```
 
 초기 configuration 기준은 다음과 같다.
@@ -95,13 +94,7 @@ ESP32 Communicator firmware는 DBC 표시 catalog를 필요로 하지 않는다.
 
 첫 prototype은 `ESP32-S3-WROOM-1-N8R2` 개발보드를 권장한다. 8 MB Flash는 OTA A/B와 gzip web asset을 담고, 2 MB PSRAM은 제한된 pre-trigger ring과 HTTP buffer에 사용한다. 차량 상시 설치에서 온도 여유가 중요하므로 기본 권장 주변온도가 65 °C인 `N8R8`보다 -40~85 °C의 `N8R2`를 우선한다.
 
-```bash
-cd firmware/diagnostic-bridge
-idf.py set-target esp32s3
-idf.py menuconfig
-idf.py build
-idf.py -p /dev/ttyACM2 flash monitor
-```
+Diagnostic Bridge firmware directory는 아직 생성되지 않았다. T-400에서 top-level project를 추가한 뒤 Controller·Communicator와 같은 `setup-windows.ps1` 및 `idf.py -C firmware/diagnostic-bridge ...` 순서를 적용한다.
 
 필수 configuration 기준은 다음과 같다.
 
@@ -137,7 +130,7 @@ idf.py -p /dev/ttyACM2 flash monitor
 - ST-LINK/V3 또는 동등한 SWD probe
 - STM32CubeMX는 pin/clock 검산과 초기화 코드 생성에만 선택적으로 사용
 
-STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 로컬 package manager의 GNU Arm toolchain을 사용해도 되지만 CI와 개발 PC의 compiler major를 맞춘다.
+STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 setup script는 PATH에 있는 GCC가 `15.3.x`인지 export 전후 모두 확인하고 CMake preset에 실제 실행 파일 경로를 전달한다.
 
 ### 5.2 repository CMake scaffold
 
@@ -154,9 +147,9 @@ Pop-Location
 
 Flash 예시는 다음과 같다. 실제 probe serial과 reset 방식은 개발 PC 설정에 맞춘다.
 
-```bash
-STM32_Programmer_CLI -c port=SWD \
-  -w build/debug/canview-communicator-stm32.bin 0x08000000 \
+```powershell
+STM32_Programmer_CLI -c port=SWD `
+  -w firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin 0x08000000 `
   -v -rst
 ```
 
@@ -200,12 +193,13 @@ IWDG 목표 timeout은 250–500 ms다. main loop만으로 refresh하지 않고 
 
 ## 6. DBC toolchain
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
+```powershell
+py -3.12 -m venv .venv
+. .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install cantools
 python -m cantools list dbc/opendbc/hyundai_can.dbc
+deactivate
 ```
 
 DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32용 최소 safety profile을 분리 생성한다. 사람 편집 정본은 vehicle profile과 evidence manifest이며, signal 이름과 bit layout을 Communicator ESP32에 생성하지 않는다.

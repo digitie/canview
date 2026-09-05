@@ -31,7 +31,7 @@ README만 있던 directory를 build 가능한 독립 ESP-IDF 6.0.3 application�
 ## 현재 준비된 bootstrap
 
 - `firmware/communicator/esp32/CMakeLists.txt`와 `main/`이 독립 ESP-IDF application으로 구성되어 있다.
-- generated public protocol header는 `canview_protocol` component로 노출하고 main component가 `REQUIRES`로 소비한다.
+- 향후 generated public protocol header를 받을 `canview_protocol` component directory를 준비하되, 현재 incomplete v1.2 header는 main component가 소비하지 않는다. T-002 완료 뒤 `REQUIRES`를 연결한다.
 - `sdkconfig.defaults`와 `partitions.csv`가 4 MB Flash / 2 MB Quad PSRAM target을 고정한다.
 - 현재 partition은 단일 factory image로 OTA를 의도적으로 비활성화하며, image budget·provisioning 확인 후 A/B 전략을 별도 task로 확정한다.
 - ESP-NOW, UART, watchdog, memory budget과 실제 `idf.py build`는 아직 구현·검증하지 않았다.

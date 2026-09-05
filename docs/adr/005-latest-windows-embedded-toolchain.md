@@ -21,7 +21,7 @@
 
 - clean Windows checkout에서 같은 manifest와 setup script로 두 ESP-IDF project와 STM32 CMake project를 준비할 수 있다.
 - IDF 5.5.x 예제와 IDF 6.x의 API·Kconfig 차이는 BSP bring-up에서 드러나며, 그때 migration diff를 review한다.
-- 현재 setup script는 CMake·Ninja·Arm GCC를 자동으로 임의 upgrade하지 않는다. 설치된 버전이 manifest와 다르면 실패시켜 drift를 숨기지 않는다.
+- 현재 setup script는 CMake·Ninja·Arm GCC를 자동으로 임의 upgrade하지 않는다. 설치된 버전이 manifest와 다르면 실패시키고, ESP-IDF export가 PATH를 바꿔도 host tool 경로를 다시 앞세워 drift를 숨기지 않는다.
 - 현재 target bootstrap은 safe/log-only 상태다. 실제 차량 CAN 송신 권한은 이 결정으로 변경되지 않는다.
 
 ## 대안 검토

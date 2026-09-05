@@ -38,4 +38,4 @@ idf.py -C firmware/controller size-components
 
 `set-target`이 생성하는 `sdkconfig`와 `build/`는 로컬 산출물이며 Git에 커밋하지 않는다. `sdkconfig.defaults`와 `partitions.csv`가 이 프로젝트의 기본 target 설정이며 NVS encryption key partition도 예약한다. 현재 bootstrap은 단일 factory image다. OTA A/B는 실제 UI image 크기와 secure provisioning을 측정한 뒤 별도 partition 설계로 추가한다.
 
-현재 `app_main()`은 filter store 초기화와 protocol version log만 수행한다. Waveshare BSP, LVGL task, RTC/audio, UART/ESP-NOW transport와 실제 보드 bring-up은 후속 task에서 추가하며 그 전에는 양산 firmware로 사용하지 않는다.
+현재 `app_main()`은 protocol v1.3 통합 전용 대기 상태를 log한다. 현재 저장된 v1.2 incomplete header는 application dependency로 연결하지 않는다. Waveshare BSP, LVGL task, RTC/audio, UART/ESP-NOW transport와 실제 보드 bring-up은 후속 task에서 추가하며 그 전에는 양산 firmware로 사용하지 않는다.

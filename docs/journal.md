@@ -7,13 +7,13 @@
 **결정**:
 
 - ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`, CMake `4.4.3`, Ninja `1.13.2`, Arm GNU Toolchain `15.3.Rel1`을 manifest에 고정했다.
-- ESP-IDF `v6.0.3` commit `06e31f0c9ac86f713a1b10d252e7396ac8a1552a`, STM32CubeG4 `v1.6.3` commit `64d78dd7042d277a31878178284e17882af51690`을 기록했다.
+- ESP-IDF `v6.0.3` peeled commit `76f5dedd9950a3012fee8fb7d5586df21fc67802`, STM32CubeG4 `v1.6.3` peeled commit `d11b194a9f05d1b143d154771f3dbc282c8052a5`을 기록했다.
 - 버전 선택과 upgrade 규칙을 [ADR-005](adr/005-latest-windows-embedded-toolchain.md)에 기록했다.
 
 **변경**:
 
 - `tools/environment/setup-windows.ps1`가 Windows host tool version, SDK checkout commit, ESP-IDF export와 핵심 SDK 파일을 검증한다.
-- `firmware/controller/`와 `firmware/communicator/esp32/`에 독립 ESP-IDF project, `main`, public `canview_protocol` component, `sdkconfig.defaults`, partition table을 추가했다.
+- `firmware/controller/`와 `firmware/communicator/esp32/`에 독립 ESP-IDF project, `main`, 향후 public `canview_protocol` component, `sdkconfig.defaults`, partition table를 추가했다. T-002 전에는 incomplete v1.2 header를 application dependency로 연결하지 않는다.
 - STM32 CMake minimum/preset/toolchain에서 CMake 4.4, Ninja, Arm GCC 15.3.x를 검증하고 memory usage report를 출력하도록 했다.
 - `canview_can`의 private protocol include path를 public `REQUIRES canview_protocol` 경계로 바꿨다.
 
