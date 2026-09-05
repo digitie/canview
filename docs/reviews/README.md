@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-05 | R1 상세 회로·센서 protocol | `c1c15b5`, 네 보드 KiCad·전원/CAN gate·GNSS/INS·mic·host codec | 전원·CAN·reset / 센서·pin/land·protocol·생성물 | [report](adversarial/2026-09-05-r1-hardware-navigation.md), 원 finding 전부 FIXED·검토본 통합 PASS·제작 승인 아님 |
 | 2026-09-05 | 최신 toolchain bootstrap post-fix | `cb7aae9`, recursive SDK submodule 검증과 최종 bootstrap | embedded safety·target build / reproducibility·integration | [report](adversarial/2026-09-05-latest-toolchain-bootstrap-post-fix.md) |
 | 2026-09-05 | 최신 toolchain bootstrap | `bfdd2c2`, target 환경·SDK pin·ESP-IDF/STM32 CMake | embedded safety·target build / protocol·재현성·문서 | [report](adversarial/2026-09-05-latest-toolchain-bootstrap.md) |
 | 2026-09-05 | 문서 정보구조·review gate | `b6f523f`, 문서 구조·운영 정책 | 문서 IA·agent 실행성 / 품질 gate·감사성 | [report](adversarial/2026-09-05-document-information-architecture.md) |

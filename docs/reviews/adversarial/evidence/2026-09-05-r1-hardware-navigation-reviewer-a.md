@@ -3,6 +3,7 @@
 - 서브에이전트: `01a06f2e-7129-7261-99bc-1bf2a1d6d490`
 - 전달 요청 원문·동일 기준선: [manifest](2026-09-05-r1-hardware-navigation-manifest.md)
 - 아래는 reviewer final 원문이며, 최초 상호 공개 전에 보존했다.
+- 2026-09-05 보존 형식 교정: 저장 과정에서 추가된 EOF 빈 줄 한 개만 제거했다. 아래 reviewer 원문 내용·판정은 바꾸지 않았다.
 
 ## 판정: BLOCK — P1 3건, P2 1건
 
@@ -124,4 +125,3 @@ Git blob: 6040868dc3cd57be1439fef89a83f76d17ef6ea71af5791c3c8206542289aaf0
 - 109문서/669 local target 링크 검사는 재실행하지 않았습니다.
 
 **P1 세 건은 “제작 미승인” 표시만으로 닫을 수 없습니다. 수정된 immutable commit에서 원 reviewer 재확인 전까지 BLOCK입니다.**
-

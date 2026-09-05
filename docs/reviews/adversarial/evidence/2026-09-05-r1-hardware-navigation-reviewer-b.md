@@ -3,6 +3,7 @@
 - 서브에이전트: `01a06f2e-735a-7221-9541-de848f1984b2`
 - 전달 요청 원문·동일 기준선: [manifest](2026-09-05-r1-hardware-navigation-manifest.md)
 - 아래는 reviewer final 원문이며, 최초 상호 공개 전에 보존했다.
+- 2026-09-05 보존 형식 교정: 저장 과정에서 추가된 EOF 빈 줄 한 개만 제거했다. 아래 reviewer 원문 내용·판정은 바꾸지 않았다.
 
 ## 독립 판정: CONDITIONAL
 
@@ -107,4 +108,3 @@ Replay/idempotency cache, 전체 peer allocator, 실제 brownout·PPS outage·3m
 검토 자료는 AGENTS/runbook, ADR006, T100/T100b, navigation 계약·schema·codec·시험, R1 주요 문서, hardware 생성/검증 소스, 네 보드 연결/BOM/netlist/footprint와 선택 제조사 페이지입니다. 전체 문서 링크 109개/669 target 검사는 재현하지 않았으며, 모든 PDF 표·도면의 정독이나 모든 전력부품의 최악조건 qualification도 하지 않았습니다. `embedded-documentation` 스킬은 핀·소유권·계약 추적 기준으로만 적용했고 파일은 생성하지 않았습니다.
 
 **조건:** P2 세 건을 수정하거나, 각각 담당자·작업 항목·마감·재검증 gate를 명시한 수용 기록이 필요합니다. 기존 제작 금지만으로 이 세 결함이 해결되지는 않습니다.
-
