@@ -35,6 +35,16 @@ def validate(name,values):
         if not low<=values[n]<=high:raise ValueError('range: '+n)
     for bit,fields in message.get('validity_groups',{}).items():
         if not values['validity']&int(bit) and any(values[n]!=0 for n in fields):raise ValueError('nonzero invalid field')
+    if name=='SENSOR_CAPABILITIES':
+        for kind,stream in enumerate(['nav','imu','baro','utc'],start=1):
+            allowed=(1<<len(SCHEMA['rates_hz'][str(kind)]))-1
+            mask=values[stream+'_rate_mask']
+            if mask&~allowed:raise ValueError('undefined rate mask bit')
+            if mask and not values['feature_mask']&(1<<(kind-1)):raise ValueError('rate without feature')
+        dr=bool(values['feature_mask']&16)
+        if values['hardware_profile']==0 and values['feature_mask']:raise ValueError('absent hardware has feature')
+        if dr and (values['hardware_profile']!=1 or not values['feature_mask']&1 or not values['max_dr_age_ms']):raise ValueError('DR requires INS profile, NAV and age limit')
+        if not dr and values['max_dr_age_ms']:raise ValueError('age limit without DR support')
     if name=='NAV_STATE':
         if values['fix_type']==0 and values['validity']&127:raise ValueError('invalid fix carries navigation values')
         if values['fix_type']!=0 and not values['validity']&1:raise ValueError('fix without position')
@@ -55,6 +65,10 @@ def validate(name,values):
         if op==1 and (not kind or rate not in SCHEMA['rates_hz'][str(kind)]):raise ValueError('unsupported rate')
         if op==2 and (not kind or rate or count):raise ValueError('DELETE requires kind and zero rate/count')
     if name=='SENSOR_RESULT':
+        if values['status']==3:
+            public={'request_id','source_boot_id','status'}
+            for n,t in message['fields']:
+                if n not in public and values[n]!=(bytes(16) if t=='bytes16' else 0):raise ValueError('unauthorized result exposes snapshot')
         for kind,stream in enumerate(['nav','imu','baro','utc'],start=1):
             rate,count=values[stream+'_rate_hz'],values[stream+'_count_limit']
             if rate and rate not in SCHEMA['rates_hz'][str(kind)]:raise ValueError('unsupported snapshot rate')
@@ -72,6 +86,8 @@ def encode(name,values):
 def decode(name,payload,*,version,capabilities):
     m=SCHEMA['messages'][name]
     required=SCHEMA[m['transport']+'_min_version']
+    if not isinstance(version,(list,tuple)) or len(version)!=2 or any(type(n) is not int or not 0<=n<=255 for n in version):
+        raise ValueError('version must be two unsigned bytes')
     if tuple(version)<tuple(required) or version[0]!=required[0] or m['capability'] not in capabilities:
         raise ValueError('version/capability not negotiated')
     if not isinstance(payload,bytes) or len(payload)!=layout(name).size:raise ValueError('exact length required')

@@ -34,9 +34,18 @@
       "sha256": "67c95bcd2a49d31cd2792f31973c786abf6c2274ced774e286c57193a47f7ff9"
     },
     {
+      "id": "buk7y12-100e",
+      "url": "https://assets.nexperia.com/documents/data-sheet/BUK7Y12-100E.pdf",
+      "download_url": "https://assets.nexperia.com/documents/data-sheet/BUK7Y12-100E.pdf?download=1",
+      "use": "pp1-2 100V,DC VGS +/-20V,pins; p4 SOA; p10 SOT669. Replaces BUK9Y12-100E without footprint enlargement",
+      "file": "hardware/references/pdf/buk7y12-100e.pdf",
+      "bytes": 744259,
+      "sha256": "97bea0ac4d6b882a6b22fe60531b5d1830d6655e3d16adaf94098f097f29ce96"
+    },
+    {
       "id": "buk9y12-100e",
       "url": "https://assets.nexperia.com/documents/data-sheet/BUK9Y12-100E.pdf",
-      "use": "100V LFPAK56 reverse/OV FET pin map and SOA",
+      "use": "rejected: DC VGS +/-10V is insufficient for LM74800 continuous gate drive; keep original audit evidence",
       "file": "hardware/references/pdf/buk9y12-100e.pdf",
       "bytes": 742143,
       "sha256": "e60389aa5c20574ae52147b6675d20d336a9979abbc13d3358d8dd8bf5375de3"
@@ -223,6 +232,14 @@
       "sha256": "dbaf49b3af33690fc7f7356afe387e7815a56b8bb73fe1e88bf794f4fb8e0d2f"
     },
     {
+      "id": "sn74ahct1g126-q1",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74ahct1g126-q1.pdf",
+      "use": "pp3-5 pins,3..5.5V,TTL,input tolerance; p8 OE high + pulldown; p13 orderable CAHCT1G126DBVRQ1; corrected FT fail-closed buffer",
+      "file": "hardware/references/pdf/sn74ahct1g126-q1.pdf",
+      "bytes": 1213874,
+      "sha256": "ce62d4e286ed62da137628c948fc0d6ceda93c58d19f68c565538d0d34d068d0"
+    },
+    {
       "id": "sn74axc1t45",
       "url": "https://www.ti.com/lit/ds/symlink/sn74axc1t45.pdf",
       "use": "1.8/3.3V microphone logic translation, Ioff/VCC isolation",
@@ -233,7 +250,7 @@
     {
       "id": "sn74lv1t125",
       "url": "https://www.ti.com/lit/ds/symlink/sn74lv1t125.pdf",
-      "use": "FT TX/EN track own5V rail, independent tolerant input, TTL thresholds pp3,5-6",
+      "use": "superseded FT buffer candidate; active-low OE cross-domain failure. Not fitted in corrected R1",
       "file": "hardware/references/pdf/sn74lv1t125.pdf",
       "bytes": 1208487,
       "sha256": "9015da94e1d20a4c3d8fd05dd18fcca62a1341e70f7ad9c9756c194a0bfae01b"
@@ -442,7 +459,7 @@
     }
   ],
   "failures": [
-    "stm32g4-hardware: The read operation timed out",
-    "max20040-schematic: The read operation timed out"
+    "max20040-schematic: The read operation timed out",
+    "stm32g4-hardware: The read operation timed out"
   ]
 }

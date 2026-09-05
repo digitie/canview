@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "F:\\dev\\canview\\hardware\\controller-adapter\\kicad\\controller-adapter.kicad_sch")
-		(date "2026-09-05T12:43:09")
+		(date "2026-09-05T13:09:21")
 		(tool "Eeschema 10.0.6")
 		(sheet
 			(number "1")
@@ -1931,7 +1931,7 @@
 				)
 				(pin
 					(num "25")
-					(name "RXD44_NC")
+					(name "TXD43_NC")
 					(type "passive")
 				)
 				(pin
@@ -1941,7 +1941,7 @@
 				)
 				(pin
 					(num "27")
-					(name "TXD43_NC")
+					(name "RXD44_NC")
 					(type "passive")
 				)
 				(pin
@@ -2800,12 +2800,12 @@
 		)
 		(net
 			(code "30")
-			(name "unconnected-(J1-RXD44_NC-Pad25)")
+			(name "unconnected-(J1-RXD44_NC-Pad27)")
 			(class "Default")
 			(node
 				(ref "J1")
-				(pin "25")
-				(pinfunction "RXD44_NC_25")
+				(pin "27")
+				(pinfunction "RXD44_NC_27")
 				(pintype "passive+no_connect")
 			)
 		)
@@ -2833,12 +2833,12 @@
 		)
 		(net
 			(code "33")
-			(name "unconnected-(J1-TXD43_NC-Pad27)")
+			(name "unconnected-(J1-TXD43_NC-Pad25)")
 			(class "Default")
 			(node
 				(ref "J1")
-				(pin "27")
-				(pinfunction "TXD43_NC_27")
+				(pin "25")
+				(pinfunction "TXD43_NC_25")
 				(pintype "passive+no_connect")
 			)
 		)

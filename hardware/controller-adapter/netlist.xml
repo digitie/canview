@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>F:\dev\canview\hardware\controller-adapter\kicad\controller-adapter.kicad_sch</source>
-    <date>2026-09-05T12:43:08</date>
+    <date>2026-09-05T13:09:20</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -775,9 +775,9 @@
         <pin num="22" name="RESET_NC" type="passive"/>
         <pin num="23" name="GPIO48_NC" type="passive"/>
         <pin num="24" name="PWR_NC" type="passive"/>
-        <pin num="25" name="RXD44_NC" type="passive"/>
+        <pin num="25" name="TXD43_NC" type="passive"/>
         <pin num="26" name="SCL7_NC" type="passive"/>
-        <pin num="27" name="TXD43_NC" type="passive"/>
+        <pin num="27" name="RXD44_NC" type="passive"/>
         <pin num="28" name="SDA8_NC" type="passive"/>
         <pin num="29" name="GND" type="passive"/>
         <pin num="30" name="GND" type="passive"/>
@@ -1005,8 +1005,8 @@
     <net code="29" name="unconnected-(J1-RESET_NC-Pad22)" class="Default">
       <node ref="J1" pin="22" pinfunction="RESET_NC_22" pintype="passive+no_connect"/>
     </net>
-    <net code="30" name="unconnected-(J1-RXD44_NC-Pad25)" class="Default">
-      <node ref="J1" pin="25" pinfunction="RXD44_NC_25" pintype="passive+no_connect"/>
+    <net code="30" name="unconnected-(J1-RXD44_NC-Pad27)" class="Default">
+      <node ref="J1" pin="27" pinfunction="RXD44_NC_27" pintype="passive+no_connect"/>
     </net>
     <net code="31" name="unconnected-(J1-SCL7_NC-Pad26)" class="Default">
       <node ref="J1" pin="26" pinfunction="SCL7_NC_26" pintype="passive+no_connect"/>
@@ -1014,8 +1014,8 @@
     <net code="32" name="unconnected-(J1-SDA8_NC-Pad28)" class="Default">
       <node ref="J1" pin="28" pinfunction="SDA8_NC_28" pintype="passive+no_connect"/>
     </net>
-    <net code="33" name="unconnected-(J1-TXD43_NC-Pad27)" class="Default">
-      <node ref="J1" pin="27" pinfunction="TXD43_NC_27" pintype="passive+no_connect"/>
+    <net code="33" name="unconnected-(J1-TXD43_NC-Pad25)" class="Default">
+      <node ref="J1" pin="25" pinfunction="TXD43_NC_25" pintype="passive+no_connect"/>
     </net>
     <net code="34" name="unconnected-(J1-USB_DM_NC-Pad6)" class="Default">
       <node ref="J1" pin="6" pinfunction="USB_DM_NC_6" pintype="passive+no_connect"/>

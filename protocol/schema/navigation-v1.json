@@ -10,7 +10,7 @@
     "SENSOR_CAPABILITIES": {
       "id": 112, "transport": "esp_now", "capability": "sensor.discovery.v1",
       "fields": [["source_boot_id","u64"],["feature_mask","u32"],["hardware_profile","u16"],["reserved","u16"],["vendor_firmware_version","u32"],["nav_rate_mask","u16"],["imu_rate_mask","u16"],["baro_rate_mask","u16"],["utc_rate_mask","u16"],["max_dr_age_ms","u32"],["peer_budget_bps","u32"]],
-      "limits": {"feature_mask":[0,31],"hardware_profile":[0,2],"nav_rate_mask":[0,63],"imu_rate_mask":[0,127],"baro_rate_mask":[0,15],"utc_rate_mask":[0,1],"max_dr_age_ms":[0,45000],"peer_budget_bps":[0,4096]}
+      "limits": {"feature_mask":[0,31],"hardware_profile":[0,2],"nav_rate_mask":[0,63],"imu_rate_mask":[0,63],"baro_rate_mask":[0,15],"utc_rate_mask":[0,1],"max_dr_age_ms":[0,45000],"peer_budget_bps":[0,4096]}
     },
     "NAV_STATE": {
       "id": 113, "transport": "esp_now", "capability": "sensor.nav.v1",

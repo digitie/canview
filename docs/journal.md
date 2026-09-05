@@ -1,5 +1,15 @@
 # CANView 작업 일지
 
+## 2026-09-05 (codex, R1 독립 리뷰 수정)
+
+동일 immutable `06bb51c72180f9c040db3ccf0b223a823c570409`를 전문 reviewer2명이 object-only 방식으로 검토했다. 두 원문을 상호 공개 전에 보존했다. P1 세 건(게이트 DC VGS 정격, PHY rail 소실 시 FT fail-open, USB CC 제어기 VDD 범위)을 BUK7Y12·active-high AHCT126·USB전용3.3V로 수정했다. B의 capability/UNAUTHORIZED payload/헤더 이름과 양쪽의 CRLF 해시 finding도 반영했다.
+
+- Windows KiCad10.0.6 전체 export: ERC0/waiver0,343개 BOM item/1,235 named pad 정합성 PASS.
+- Windows Python: navigation16시험, hardware net/Boolean5시험 PASS. 후자는 HIL/아날로그 과도 시뮬레이션이 아니다.
+- PDF56개/1,745쪽/95,230,736byte의 크기·SHA·parse 오류0. 기존 원문/land 미확보 gate는 유지한다.
+- 생성 text canonical LF와 immutable Git blob hash 검사 경로를 추가했다. 신규 USB회로/FET/FT enable은 기존 footprint 또는 소형 LDO만 사용하며 보드 소형화 우선을 유지한다.
+- 수정 기준선의 원 reviewer 재검토와 최종 disposition은 별도 review report에 기록한다. 이 로그만으로 P1 closure나 제작 허용을 선언하지 않는다.
+
 ## 2026-09-05 (codex, R1 상세 회로·센서 확장)
 
 **범위**: 사용자가 명확히 선택한 가격보다 소형화 우선 기준으로 네 보드 회로·local footprint·BOM·FW 핀맵과 센서 protocol을 작성했다. 이전 작업자의 KiCad version/Windows 문서·S3 footprint 수정을 유지하고 합쳤다. `embedded-architecture`와 `embedded-documentation` 원칙에 따라 센서 owner, wire 정본, 실측 gate와 후속 task를 분리했다.

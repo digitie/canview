@@ -3,10 +3,12 @@
 Run with KiCad's Windows Python (pcbnew). This is NOT electrical qualification.
 """
 from pathlib import Path
+import argparse
 import csv
 import hashlib
 import json
 import sys
+import subprocess
 import xml.etree.ElementTree as ET
 import pcbnew
 
@@ -71,6 +73,7 @@ def validate_board(board):
         expected = {
             ('U20','5'):'GND', ('U20','7'):'CAN2_RX_PHY', ('U20','8'):'CAN2_STB', ('U20','11'):'PHY3V3',
             ('U24','8'):'PHY3V3', ('U28','5'):'AUTO5V', ('U29','5'):'AUTO5V',
+            ('U28','1'):'TX_PERMIT', ('U29','1'):'RX_ALLOWED',
             ('U32','5'):'ARM_LATCH', ('U32','6'):'ARM_CLEAR_N', ('U37','6'):'TX_ARM',
             ('U8','15'):'AUTO5V', ('U4','2'):'SYS5V', ('U4','3'):'AUTO5V', ('U4','6'):'USB_LIMITED',
             ('U40','18'):'GPS_RX_TAP', ('U40','20'):'GPS_PPS', ('U41','2'):'BARO_SCK',
@@ -86,11 +89,27 @@ def validate_board(board):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--git-revision', help='Read-only verification of stored hashes against immutable Git blobs')
+    parser.add_argument('--git-executable', default='git')
+    args = parser.parse_args()
+    if args.git_revision:
+        def read(path):
+            return subprocess.check_output([args.git_executable, '-C', str(ROOT), 'show', args.git_revision+':'+path])
+        report = json.loads(read('hardware/validation.json'))
+        errors = []
+        for board in report['boards']:
+            for name, expected in board['artifact_sha256'].items():
+                path = 'hardware/'+board['board']+'/'+name
+                if hashlib.sha256(read(path)).hexdigest() != expected:
+                    errors.append(path)
+        print(json.dumps(dict(revision=args.git_revision, git_blob_digest_mismatches=errors)))
+        return int(bool(errors))
     results = [validate_board(b) for b in BOARDS]
     report = dict(status='PASS' if not any(r['errors'] for r in results) else 'FAIL',
                   scope='KiCad export/pad/BOM consistency only; no PCB, transient, thermal, RF or HIL approval',
                   boards=results)
-    (ROOT/'hardware/validation.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    (ROOT/'hardware/validation.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
     print(json.dumps(report,indent=2))
     return int(report['status'] != 'PASS')
 

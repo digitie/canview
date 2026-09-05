@@ -34,13 +34,16 @@ def usb_input(c):
     esd(c,s,'D1','USB_DP_CONN','USB_DM_CONN');esd(c,s,'D2','CC1','CC2')
     c.ic(s,'U1','TUSB320LAIRWBR','Package_DFN_QFN:Texas_X2QFN-12_1.6x1.6mm_P0.4mm',
          ['CC1','CC2','PORT','VBUS_DET','ADDR','OUT3','OUT1','OUT2','ID','GND','EN_N','VDD'],
-         {'1':'CC1','2':'CC2','3':'GND','4':'VBUS_DET','7':'USB_DEFAULT_N','10':'GND','11':'GND','12':'USB_VBUS'},
+         {'1':'CC1','2':'CC2','3':'GND','4':'VBUS_DET','7':'USB_DEFAULT_N','10':'GND','11':'GND','12':'USB_CC3V3'},
          types={'1':'bidirectional','2':'bidirectional','3':'input','4':'input','5':'input','6':'open_collector','7':'open_collector','8':'open_collector','9':'open_collector','10':'power_in','11':'input','12':'power_in'},
          source='tusb320lai:pp3,12 Table3,23 application,36 land',spec='PORT=GND UFP; ADDR NC GPIO mode; internal Rd, NO external5.1k; OUT1 low only attached1.5/3A')
-    c.r(s,'900k','USB_VBUS','VBUS_DET',tolerance='1%');c.r(s,'10k','USB_VBUS','USB_DEFAULT_N');c.c(s,'100n','USB_VBUS',size='0402')
-    c.ic(s,'U2','SN74LVC1G04DBVR',SOT5,['NC','A','GND','Y','VCC'],{'2':'USB_DEFAULT_N','3':'GND','4':'USB_POWER_ALLOWED','5':'USB_VBUS'},
+    c.r(s,'900k','USB_VBUS','VBUS_DET',tolerance='1%');c.r(s,'10k','USB_CC3V3','USB_DEFAULT_N');c.c(s,'100n','USB_CC3V3',size='0402')
+    c.ic(s,'U2','SN74LVC1G04DBVR',SOT5,['NC','A','GND','Y','VCC'],{'2':'USB_DEFAULT_N','3':'GND','4':'USB_POWER_ALLOWED','5':'USB_CC3V3'},
          types={'2':'input','3':'power_in','4':'output','5':'power_in'},source='sn74lvc1g04',spec='USB-domain inverter, default/unattached => limiter disabled')
-    c.c(s,'100n','USB_VBUS',size='0402');c.r(s,'100k','USB_POWER_ALLOWED','GND')
+    c.c(s,'100n','USB_CC3V3',size='0402');c.r(s,'100k','USB_POWER_ALLOWED','GND')
+    s=c.sheet('01a_usb_cc_supply','Pre-limiter USB-only3.3V powers CC detector and its inverter. TUSB320LAI VDD maximum5.0V: NEVER connect it directly to USB VBUS. No SYS rail dependency.')
+    ldo(c,s,'U16','USB_VBUS','USB_CC3V3','33')
+    c.r(s,'3k','USB_CC3V3','GND',note='>=1mA minimum load for LDO specified output accuracy; include in pre-attach/suspend current budget')
     s=c.sheet('01b_usb_limit','USB load current limit about1A, below the minimum1.5A CC advertisement. Input<=6.5V; no PD sink negotiation.')
     limit_switch(c,s,'U3','USB_VBUS','USB_LIMITED','USB_POWER_ALLOWED','26.7k','USB')
 
@@ -81,8 +84,8 @@ def vehicle_front(c):
     c.power_flag(s,'VBAT_FUSED','J2 vehicle source through fuse')
     s=c.sheet('00b_reverse_ov','LM74800 common-source: HGATE drives INPUT FET; DGATE drives OUTPUT FET; A/OUT both=CS. Exposed pad FLOATS.')
     for ref,drain,gate in [('Q1','VBAT_FUSED','HGATE'),('Q2','PROTECTED_VBAT','DGATE')]:
-        c.ic(s,ref,'BUK9Y12-100E','Package_TO_SOT_SMD:LFPAK56',['S','S','S','G','D'],
-             {'1':'CS','2':'CS','3':'CS','4':gate,'5':drain},types={'4':'input'},source='buk9y12-100e: pinout, SOA; lm7480 pp29-32',spec='100V N-MOS; LFPAK56; common-source pair; pulse SOA qualification required')
+        c.ic(s,ref,'BUK7Y12-100E','Package_TO_SOT_SMD:LFPAK56',['S','S','S','G','D'],
+             {'1':'CS','2':'CS','3':'CS','4':gate,'5':drain},types={'4':'input'},source='buk7y12-100e:pp1-2,4,10 pinout, DC VGS and SOA; lm7480 pp6,29-32',spec='100V N-MOS; DC VGS +/-20V; RDSon<=12mohm@10V/25C; LFPAK56; common-source pair; pulse SOA qualification required')
     c.ic(s,'U7','LM74800QDRRRQ1','Package_SON:WSON-12-1EP_3x3mm_P0.5mm_EP1.5x2.5mm',
          ['DGATE','A','VSNS','SW','OV','EN_UVLO','GND','HGATE','OUT','VS','CAP','C','RTN_FLOAT'],
          {'1':'DGATE','2':'CS','3':'LM_VS','4':'LM_VS','5':'LM_OV','6':'LM_VS','7':'GND','8':'HGATE','9':'CS','10':'LM_VS','11':'LM_CAP','12':'PROTECTED_VBAT'},

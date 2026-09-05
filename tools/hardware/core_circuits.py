@@ -108,8 +108,9 @@ def tx_gate(c):
     c.ic(s,'U24','SN74LVC2G125DCUR',VSS8,names,{'1':'TX_OE_N','2':'CAN1_TX_REQ','3':'CAN2_TXD','4':'GND','5':'CAN2_TX_REQ','6':'CAN1_TXD','7':'TX_OE_N','8':'PHY3V3'},types=types,source='sn74lvc2g125: p4, Ioff',spec='Dual independent tristate buffers; 3.3V PHY-domain supply')
     # FT logic outputs track the SAME rail as MAX3055 VCC. A separate3.3V
     # reservoir must not hold its logic pins above VCC+0.3V on5V collapse.
-    for ref,oe,inp,out in [('U28','TX_OE_N','CAN3_TX_REQ','CAN3_TXD'),('U29','FT_RX_OE_N','FT_EN_REQ','CAN3_EN')]:
-        c.ic(s,ref,'SN74LV1T125DBVR',SOT5,['OE_N','A','GND','Y','VCC'],{'1':oe,'2':inp,'3':'GND','4':out,'5':'AUTO5V'},types={'1':'input','2':'input','3':'power_in','4':'tri_state','5':'power_in'},source='sn74lv1t125:pp3,5-6; input tolerance independent of supply, VIH<=2.11V at5.5V',spec='3.3V input translated to MAX3055 own5V rail; do not claim general output Ioff isolation')
+    for ref,oe,inp,out in [('U28','TX_PERMIT','CAN3_TX_REQ','CAN3_TXD'),('U29','RX_ALLOWED','FT_EN_REQ','CAN3_EN')]:
+        c.ic(s,ref,'SN74AHCT1G126-Q1',SOT5,['OE','A','GND','Y','VCC'],{'1':oe,'2':inp,'3':'GND','4':out,'5':'AUTO5V'},types={'1':'input','2':'input','3':'power_in','4':'tri_state','5':'power_in'},mpn='CAHCT1G126DBVRQ1',source='sn74ahct1g126-q1:pp3-5,8,13; active-high OE with pulldown; input tolerance independent of supply',spec='3..5.5V supply; TTL VIH2V at5V; active-high permit. OE LOW => Z even when PHY3V3 is absent; no general output Ioff claim')
+        c.r(s,'1k',oe,'GND',size='0402',note='Required fail-closed OE pulldown, place at buffer pin1; about3.3mA permit driver load. Never replace with PHY-rail pull-up')
         c.c(s,'100n','AUTO5V',size='0402')
     c.r(s,'10k','PHY3V3','TX_OE_N');c.r(s,'10k','PHY3V3','FT_RX_OE_N')
     c.c(s,'100n','PHY3V3',size='0402')

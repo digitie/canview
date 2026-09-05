@@ -97,5 +97,38 @@ class PayloadTests(unittest.TestCase):
         for patch in [{'nav_rate_hz':20},{'imu_rate_hz':17},{'utc_count_limit':1},{'snapshot_sha256_128':bytes(16)}]:
             with self.assertRaises(ValueError):codec.encode('SENSOR_RESULT',v|patch)
 
+    def assert_rejected_both_directions(self,name,values):
+        with self.assertRaises(ValueError):codec.encode(name,values)
+        # Bypass encoder validation to exercise hostile on-wire input independently.
+        raw=codec.layout(name).pack(*(values[n] for n,_ in codec.SCHEMA['messages'][name]['fields']))
+        with self.assertRaises(ValueError):self.decode(name,raw)
+
+    def test_capability_masks_follow_rate_arrays(self):
+        v=blank('SENSOR_CAPABILITIES')|{'hardware_profile':1,'feature_mask':15}
+        for kind,stream in enumerate(['nav','imu','baro','utc'],start=1):
+            width=len(codec.SCHEMA['rates_hz'][str(kind)])
+            valid=v|{stream+'_rate_mask':(1<<width)-1}
+            self.assertEqual(self.decode('SENSOR_CAPABILITIES',codec.encode('SENSOR_CAPABILITIES',valid)),valid)
+            self.assert_rejected_both_directions('SENSOR_CAPABILITIES',v|{stream+'_rate_mask':1<<width})
+            self.assert_rejected_both_directions('SENSOR_CAPABILITIES',v|{'feature_mask':0,stream+'_rate_mask':1})
+
+    def test_dr_capability_cross_constraints(self):
+        v=blank('SENSOR_CAPABILITIES')|{'hardware_profile':1,'feature_mask':17,'max_dr_age_ms':45000}
+        self.assertEqual(self.decode('SENSOR_CAPABILITIES',codec.encode('SENSOR_CAPABILITIES',v)),v)
+        for patch in [{'hardware_profile':2},{'hardware_profile':0},{'feature_mask':16},{'feature_mask':1},{'max_dr_age_ms':0}]:
+            self.assert_rejected_both_directions('SENSOR_CAPABILITIES',v|patch)
+
+    def test_unauthorized_result_has_no_snapshot(self):
+        v=blank('SENSOR_RESULT')|{'request_id':1,'source_boot_id':1,'status':3,'snapshot_sha256_128':bytes(16)}
+        self.assertEqual(self.decode('SENSOR_RESULT',codec.encode('SENSOR_RESULT',v)),v)
+        for n,t in codec.SCHEMA['messages']['SENSOR_RESULT']['fields']:
+            if n in {'request_id','source_boot_id','status'}:continue
+            self.assert_rejected_both_directions('SENSOR_RESULT',v|{n:b'X'*16 if t=='bytes16' else 1})
+
+    def test_malformed_version_shape(self):
+        name='NAV_STATE';raw=codec.encode(name,blank(name))
+        for version in [[1,4,999],[1,4.0],[True,4],[1],[],None,'1.4',[1,256],[-1,4]]:
+            with self.assertRaises(ValueError):codec.decode(name,raw,version=version,capabilities={'sensor.nav.v1'})
+
 
 if __name__=='__main__':unittest.main()

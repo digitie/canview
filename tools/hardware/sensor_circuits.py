@@ -73,7 +73,7 @@ def microphone_connector(c,s,ref):
 
 def microphone_host(c):
     s=c.sheet('01_waveshare_header','Controller adapter ONLY: use onboard RTC0x51. Camera disabled/disconnected. GPIO38=BCLK,39=WS,40=I2S1 DIN.')
-    names=['BAT_NC','5V_IN','GND','GND','GPIO21_NC','USB_DM_NC','GPIO38','USB_DP_NC','GPIO39','GPIO11_NC','GPIO40','GPIO10_NC','GPIO41_NC','GPIO9_NC','GPIO42_NC','GPIO17_NC','GPIO45_NC','GPIO18_NC','GPIO46_NC','BOOT_NC','GPIO47_NC','RESET_NC','GPIO48_NC','PWR_NC','RXD44_NC','SCL7_NC','TXD43_NC','SDA8_NC','GND','GND','3V3_IN','3V3_IN']
+    names=['BAT_NC','5V_IN','GND','GND','GPIO21_NC','USB_DM_NC','GPIO38','USB_DP_NC','GPIO39','GPIO11_NC','GPIO40','GPIO10_NC','GPIO41_NC','GPIO9_NC','GPIO42_NC','GPIO17_NC','GPIO45_NC','GPIO18_NC','GPIO46_NC','BOOT_NC','GPIO47_NC','RESET_NC','GPIO48_NC','PWR_NC','TXD43_NC','SCL7_NC','RXD44_NC','SDA8_NC','GND','GND','3V3_IN','3V3_IN']
     c.ic(s,'J1','Waveshare 2x16 mating male','Connector_PinHeader_2.54mm:PinHeader_2x16_P2.54mm_Vertical',names,
          {'2':'HOST5V','3':'GND','4':'GND','7':'MIC_BCLK','9':'MIC_WS','11':'MIC_SD','29':'GND','30':'GND','31':'3V3','32':'3V3'},
          types={'2':'power_out','3':'power_out','31':'power_out'},mpn='GEN-2x16-MALE-2.54',source='waveshare-controller schematic and official STEP HEADER-SMD-F-2_54-2X16PIN',spec='Mates with board female socket;2.54mm pitch verified, insertion height/board-side orientation require mechanical check;5V only when host source provides it')

@@ -17,6 +17,18 @@ def main():
         body = re.sub(r'```.*?```', '', path.read_text(encoding='utf-8'), flags=re.S)
         for target in re.findall(r'!?\[[^\]\n]*\]\(([^)\n]+)\)', body):
             target = target.strip().strip('<>')
+            # Keep immutable reviewer text unchanged while resolving the two
+            # documented checkout spellings on either Windows or WSL.
+            absolute_repo_target = None
+            for prefix in ['/mnt/f/dev/canview/', 'F:/dev/canview/']:
+                if target.startswith(prefix):
+                    absolute_repo_target = re.sub(r':\d+$', '', target[len(prefix):])
+                    break
+            if absolute_repo_target is not None:
+                count += 1
+                if not (ROOT/unquote(urlsplit(absolute_repo_target).path)).exists():
+                    errors.append(f'{path.relative_to(ROOT)} -> {target}')
+                continue
             parsed = urlsplit(target)
             if parsed.scheme or not parsed.path or target.startswith('//'):
                 continue

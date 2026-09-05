@@ -21,6 +21,8 @@ Set-Location F:/dev/canview
 & 'C:\Program Files\KiCad\10.0\bin\python.exe' tools\hardware\validate_exports.py
 & 'C:\Program Files\KiCad\10.0\bin\python.exe' tools\hardware\check_margins.py
 & 'C:\Program Files\KiCad\10.0\bin\python.exe' -m unittest discover -s tools\protocol -p test_navigation_codec.py -v
+# commit 이후, 저장된 evidence와 실제 Git blob을 대조 (read-only)
+& 'C:\Program Files\KiCad\10.0\bin\python.exe' tools\hardware\validate_exports.py --git-revision HEAD
 ```
 
 회로 source → KiCad XML/sexpr netlist → ERC → PDF 순서이며 각 native process의 종료를 기다린다. validator는 모든 부품의 실제 footprint를 KiCad `pcbnew`로 열고, 번호 있는 패드 집합/NC/net/BOM/주요 안전 pin을 대조한다. 자동검사 통과는 정격·PCB parasitic·고장 주입 검증을 대신하지 않는다. 로컬 symbol과 footprint에는 생성 입력과 출처가 포함되며 3D 모델은 KiCad 설치 경로 참조일 수 있다.

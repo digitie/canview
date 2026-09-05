@@ -11,9 +11,15 @@
 
 최신 실제 결과는 [validation.json](../../../hardware/validation.json)과 [margin-check.json](../../../hardware/margin-check.json)이다. native KiCad version10.0.6을 사용했다. WSL의 `rg`/다운로드/patch는 보조이며 생성·ERC·host test는 Windows executable로 실행했다. 물리 STM/ESP·실물 보드·차량·오실로스코프는 이 작업 환경에 없으므로 target/HIL을 실행한 것처럼 기록하지 않는다.
 
-2026-09-05 실제 실행: 네 보드 ERC0/waiver0, Communicator248·Bridge39·adapter16·mic30개 BOM item의 named-pad/net 정합성 PASS. BOM 수에는24개 PCB test pad와 DNP가 포함되고 virtual PWR_FLAG는 제외된다. 센서 host 시험12개 통과, vendor PDF54개 전체 페이지 parse·크기·SHA 검증 오류0. 회로도는 기능별 sheet와 전역 net label로 연결하며 국부 wire와 실제 netlist가 일치한다.
+2026-09-05 수정본 실제 실행: 네 보드 ERC0/waiver0, Communicator254·Bridge43·adapter16·mic30개, **총343개 BOM item/1,235 named pad**의 정합성 PASS. BOM 수에는24개 PCB test pad와 DNP가 포함되고 virtual PWR_FLAG는 제외된다. 센서 host 시험16개와 hardware net/정상상태 Boolean 회귀시험5개가 통과했다. 회로도는 기능별 sheet와 전역 net label로 연결하며 국부 wire와 실제 netlist가 일치한다.
+
+최초2인 리뷰의 P1 세 건을 수정했다: Q1/Q2를 DC VGS±20V BUK7Y12로 교체, FT U28/U29를 active-high OE+GND pull-down으로 변경, USB CC detector 전원을 mux 앞3.3V로 분리. [test_safety_contracts.py](../../../tools/hardware/test_safety_contracts.py)는 부품·pin/net·pull과32가지 Boolean 조합을 검사한다. **아날로그 과도응답/HIL simulation이 아니며**, 수정 immutable commit의 독립 재검토와 실물 gate는 별도다.
+
+vendor PDF는56개/1,745쪽/95,230,736byte의 `%PDF`·SHA-256·바이트 수·전체 페이지 parse 검사 오류0이었다. AN5093와 MAX 단독 schematic은 다운로드 timeout으로 미확보이며 원문을 재작성해 대신하지 않았다. 저장 구판과 제조사 land 원본 미확보도 아래 gate에 남긴다.
 
 export script에서 native child 종료 전에 다음 명령이 실행되어 이전 회로와 새 BOM이 섞이는 현상을 재현했다. `Start-Process -Wait`로 바꾸고 전체 재생성 후 독립 pin/net validator로 검사한다. 명령 exit0 하나만으로 갱신 성공을 판정하지 않는다.
+
+후속 감사에서 Windows CRLF가 Git LF로 바뀌며 최초 candidate의 `.net`/`connectivity.json` 해시8개가 달라지는 문제를 재현했다. 생성 text는 hash 계산 전에 LF로 정규화하고 `.gitattributes`로 checkout도 LF로 유지한다. 제조사 PDF와 binary는 변경하지 않는다. `validate_exports.py --git-revision <commit>`은 worktree 대신 Git blob의 실제 bytes와 저장 hash를 비교하는 read-only 검사다.
 
 ## 아직 닫히지 않은 제작 gate
 
@@ -71,6 +77,8 @@ surge 시험 전 계산서에는 최소 다음을 채운다.
 | 시험 | 관찰 | 통과 기준 |
 |---|---|---|
 | 전원 순열 | USB/자동차/SWD 모든 투입·제거,slow ramp/fast drop | USB-only PHY/GPS OFF,상대 전원 backfeed/injection 정격 초과 없음 |
+| USB CC 전원 | VBUS4.75/5.0/5.25/5.5V,CC default/1.5A/3A,detach | U1 VDD2.7~5.0V 안,default-current limiter OFF,pre-attach/suspend 전류 적합 |
+| FET gate 정격 | Q1/Q2 VGS 정상 및 ON/OFF/reverse transient | DC±20V 이내·pulse/SOA 여유,gate ringing 포함 |
 | brownout |5V·3V3·PHY3V3 독립 fault,scope TXD/EN/STB/RESET | 전원 미유효 때 dominant 없음,회복 후 자동re-arm 없음 |
 | watchdog | task정지,WDIHIGH/LOW고착,부팅중timeout,ARMCLK고착 | 마지막 유효edge 이후 end-to-end100ms이내TX차단,새edge전복귀없음 |
 | CAN fault | CANH/L short/open/교차배선,단일선FT동작 | PHY정격범위시험,장비가정상차량bus를지속점유하지않음 |

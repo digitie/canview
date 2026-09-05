@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/erc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-09-05T12:43:06",
+    "date": "2026-09-05T13:09:18",
     "ignored_checks": [
         {
             "description": "Global label only appears once in the schematic",
@@ -34,6 +34,11 @@
         {
             "path": "/01_usb_c/",
             "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/ef614bba-2e85-5911-b09d-88e92816b14e",
+            "violations": []
+        },
+        {
+            "path": "/01a_usb_cc_supply/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/995a09c3-898c-5194-9624-895684d0cdc5",
             "violations": []
         },
         {

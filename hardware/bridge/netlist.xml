@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>F:\dev\canview\hardware\bridge\kicad\bridge.kicad_sch</source>
-    <date>2026-09-05T12:43:03</date>
+    <date>2026-09-05T13:09:15</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -40,7 +40,25 @@
         <comment number="9" value=""/>
       </title_block>
     </sheet>
-    <sheet number="3" name="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/">
+    <sheet number="3" name="/01a_usb_cc_supply/" tstamps="/995a09c3-898c-5194-9624-895684d0cdc5/">
+      <title_block>
+        <title>CANView / 01a_usb_cc_supply</title>
+        <company>digitie/canview</company>
+        <rev>R1 REVIEW</rev>
+        <date>2026-09-05</date>
+        <source>01a_usb_cc_supply.kicad_sch</source>
+        <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+    <sheet number="4" name="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/">
       <title_block>
         <title>CANView / 01b_usb_limit</title>
         <company>digitie/canview</company>
@@ -58,7 +76,7 @@
         <comment number="9" value=""/>
       </title_block>
     </sheet>
-    <sheet number="4" name="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/">
+    <sheet number="5" name="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/">
       <title_block>
         <title>CANView / 02_system_power</title>
         <company>digitie/canview</company>
@@ -76,7 +94,7 @@
         <comment number="9" value=""/>
       </title_block>
     </sheet>
-    <sheet number="5" name="/03_reset/" tstamps="/7ded663d-8fba-56a2-80cd-53907fe8a829/">
+    <sheet number="6" name="/03_reset/" tstamps="/7ded663d-8fba-56a2-80cd-53907fe8a829/">
       <title_block>
         <title>CANView / 03_reset</title>
         <company>digitie/canview</company>
@@ -94,7 +112,7 @@
         <comment number="9" value=""/>
       </title_block>
     </sheet>
-    <sheet number="6" name="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/">
+    <sheet number="7" name="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/">
       <title_block>
         <title>CANView / 02_esp32</title>
         <company>digitie/canview</company>
@@ -112,7 +130,7 @@
         <comment number="9" value=""/>
       </title_block>
     </sheet>
-    <sheet number="7" name="/03_service/" tstamps="/f45837cc-a8bb-5c7e-bc52-15102e8ffa7d/">
+    <sheet number="8" name="/03_service/" tstamps="/f45837cc-a8bb-5c7e-bc52-15102e8ffa7d/">
       <title_block>
         <title>CANView / 03_service</title>
         <company>digitie/canview</company>
@@ -509,9 +527,9 @@
       <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="01b_usb_limit"/>
-      <property name="Sheetfile" value="01b_usb_limit.kicad_sch"/>
-      <sheetpath names="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/"/>
+      <property name="Sheetname" value="01a_usb_cc_supply"/>
+      <property name="Sheetfile" value="01a_usb_cc_supply.kicad_sch"/>
+      <sheetpath names="/01a_usb_cc_supply/" tstamps="/995a09c3-898c-5194-9624-895684d0cdc5/"/>
       <tstamps>d174de7f-c88e-5864-a22d-aab1640d61a6</tstamps>
       <units>
         <unit name="A">
@@ -523,10 +541,10 @@
       </units>
     </comp>
     <comp ref="C5">
-      <value>1u</value>
+      <value>2.2u</value>
       <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
       <fields>
-        <field name="MPN">GEN-C-0603-1u-16V-X7R</field>
+        <field name="MPN">GEN-C-0603-2.2u-16V-X7R</field>
         <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
         <field name="Source"/>
         <field name="Assembly">FIT</field>
@@ -535,13 +553,13 @@
         <field name="Description"/>
       </fields>
       <libsource lib="CANView" part="CANView_bridge_C5" description=""/>
-      <property name="MPN" value="GEN-C-0603-1u-16V-X7R"/>
+      <property name="MPN" value="GEN-C-0603-2.2u-16V-X7R"/>
       <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="01b_usb_limit"/>
-      <property name="Sheetfile" value="01b_usb_limit.kicad_sch"/>
-      <sheetpath names="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/"/>
+      <property name="Sheetname" value="01a_usb_cc_supply"/>
+      <property name="Sheetfile" value="01a_usb_cc_supply.kicad_sch"/>
+      <sheetpath names="/01a_usb_cc_supply/" tstamps="/995a09c3-898c-5194-9624-895684d0cdc5/"/>
       <tstamps>16de5097-c322-56aa-b231-85b036101778</tstamps>
       <units>
         <unit name="A">
@@ -553,6 +571,129 @@
       </units>
     </comp>
     <comp ref="R4">
+      <value>3k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-3k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_R4" description=""/>
+      <property name="MPN" value="GEN-R-0402-3k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="01a_usb_cc_supply"/>
+      <property name="Sheetfile" value="01a_usb_cc_supply.kicad_sch"/>
+      <sheetpath names="/01a_usb_cc_supply/" tstamps="/995a09c3-898c-5194-9624-895684d0cdc5/"/>
+      <tstamps>207d9a04-e229-503e-bfc9-69384eae9db0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U16">
+      <value>TPS7A2033PDBVR</value>
+      <footprint>CANView:Package_TO_SOT_SMD__SOT-23-5</footprint>
+      <fields>
+        <field name="MPN">TPS7A2033PDBVR</field>
+        <field name="Specification">300mA LDO; fixed 3.3V; 1uF effective output minimum</field>
+        <field name="Source">tps7a20: p4 DBV pins, input/output capacitor requirements</field>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Package_TO_SOT_SMD__SOT-23-5</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_U16" description=""/>
+      <property name="MPN" value="TPS7A2033PDBVR"/>
+      <property name="Specification" value="300mA LDO; fixed 3.3V; 1uF effective output minimum"/>
+      <property name="Source" value="tps7a20: p4 DBV pins, input/output capacitor requirements"/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="01a_usb_cc_supply"/>
+      <property name="Sheetfile" value="01a_usb_cc_supply.kicad_sch"/>
+      <sheetpath names="/01a_usb_cc_supply/" tstamps="/995a09c3-898c-5194-9624-895684d0cdc5/"/>
+      <tstamps>d7cb95b0-64bc-581d-a97f-cacb50e37a67</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C6">
+      <value>1u</value>
+      <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-C-0603-1u-16V-X7R</field>
+        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_C6" description=""/>
+      <property name="MPN" value="GEN-C-0603-1u-16V-X7R"/>
+      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="01b_usb_limit"/>
+      <property name="Sheetfile" value="01b_usb_limit.kicad_sch"/>
+      <sheetpath names="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/"/>
+      <tstamps>ef46b048-5afb-5f17-b1be-96f4be338b8b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C7">
+      <value>1u</value>
+      <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-C-0603-1u-16V-X7R</field>
+        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_C7" description=""/>
+      <property name="MPN" value="GEN-C-0603-1u-16V-X7R"/>
+      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="01b_usb_limit"/>
+      <property name="Sheetfile" value="01b_usb_limit.kicad_sch"/>
+      <sheetpath names="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/"/>
+      <tstamps>86a35f07-682d-53ee-88f9-c3233b0383aa</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R5">
       <value>26.7k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -564,7 +705,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R4" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R5" description=""/>
       <property name="MPN" value="GEN-R-0402-26.7k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -572,7 +713,7 @@
       <property name="Sheetname" value="01b_usb_limit"/>
       <property name="Sheetfile" value="01b_usb_limit.kicad_sch"/>
       <sheetpath names="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/"/>
-      <tstamps>207d9a04-e229-503e-bfc9-69384eae9db0</tstamps>
+      <tstamps>b4cbf123-16f3-5b71-9f2a-bce4448623fc</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -582,7 +723,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="R5">
+    <comp ref="R6">
       <value>10k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -594,7 +735,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R5" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R6" description=""/>
       <property name="MPN" value="GEN-R-0402-10k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -602,7 +743,7 @@
       <property name="Sheetname" value="01b_usb_limit"/>
       <property name="Sheetfile" value="01b_usb_limit.kicad_sch"/>
       <sheetpath names="/01b_usb_limit/" tstamps="/5fa017d9-5285-54d3-94d1-bc40cf16f77e/"/>
-      <tstamps>b4cbf123-16f3-5b71-9f2a-bce4448623fc</tstamps>
+      <tstamps>eef5c949-de04-5cfb-951e-b0f55585ff74</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -646,7 +787,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="C6">
+    <comp ref="C8">
       <value>4.7u</value>
       <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
       <fields>
@@ -658,7 +799,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_C6" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_C8" description=""/>
       <property name="MPN" value="GEN-C-0603-4.7u-16V-X7R"/>
       <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
       <property name="Source" value=""/>
@@ -666,7 +807,7 @@
       <property name="Sheetname" value="02_system_power"/>
       <property name="Sheetfile" value="02_system_power.kicad_sch"/>
       <sheetpath names="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/"/>
-      <tstamps>ef46b048-5afb-5f17-b1be-96f4be338b8b</tstamps>
+      <tstamps>98d52e27-3c31-5290-a995-a4a104f7f524</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -676,7 +817,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="C7">
+    <comp ref="C9">
       <value>22u</value>
       <footprint>CANView:Capacitor_SMD__C_0805_2012Metric</footprint>
       <fields>
@@ -688,7 +829,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_C7" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_C9" description=""/>
       <property name="MPN" value="GEN-C-0805-22u-10V-X7R"/>
       <property name="Specification" value="10V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
       <property name="Source" value=""/>
@@ -696,7 +837,7 @@
       <property name="Sheetname" value="02_system_power"/>
       <property name="Sheetfile" value="02_system_power.kicad_sch"/>
       <sheetpath names="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/"/>
-      <tstamps>86a35f07-682d-53ee-88f9-c3233b0383aa</tstamps>
+      <tstamps>69784227-ebda-580d-9f80-56b5f3d2a886</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -736,7 +877,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="R6">
+    <comp ref="R7">
       <value>0</value>
       <footprint>CANView:Resistor_SMD__R_0805_2012Metric</footprint>
       <fields>
@@ -748,39 +889,9 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R6" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R7" description=""/>
       <property name="MPN" value="GEN-R-0805-0-1%"/>
       <property name="Specification" value="0.25W; 50V; ±1%; ±100ppm/K; -55..155C"/>
-      <property name="Source" value=""/>
-      <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="02_system_power"/>
-      <property name="Sheetfile" value="02_system_power.kicad_sch"/>
-      <sheetpath names="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/"/>
-      <tstamps>eef5c949-de04-5cfb-951e-b0f55585ff74</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="R7">
-      <value>249k</value>
-      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
-      <fields>
-        <field name="MPN">GEN-R-0402-249k-1%</field>
-        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
-        <field name="Source"/>
-        <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="CANView" part="CANView_bridge_R7" description=""/>
-      <property name="MPN" value="GEN-R-0402-249k-1%"/>
-      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
       <property name="Sheetname" value="02_system_power"/>
@@ -797,6 +908,36 @@
       </units>
     </comp>
     <comp ref="R8">
+      <value>249k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-249k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_R8" description=""/>
+      <property name="MPN" value="GEN-R-0402-249k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="02_system_power"/>
+      <property name="Sheetfile" value="02_system_power.kicad_sch"/>
+      <sheetpath names="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/"/>
+      <tstamps>576cac8b-c4d4-54f5-870c-29bad96c400f</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R9">
       <value>27.4k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -808,7 +949,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R8" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R9" description=""/>
       <property name="MPN" value="GEN-R-0402-27.4k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -816,7 +957,7 @@
       <property name="Sheetname" value="02_system_power"/>
       <property name="Sheetfile" value="02_system_power.kicad_sch"/>
       <sheetpath names="/02_system_power/" tstamps="/e5c7eae0-4cf6-5e62-8a35-e31a14090a64/"/>
-      <tstamps>576cac8b-c4d4-54f5-870c-29bad96c400f</tstamps>
+      <tstamps>a1e686b2-3b21-5092-874d-d709b422bfd0</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -862,7 +1003,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="C8">
+    <comp ref="C10">
       <value>100n</value>
       <footprint>CANView:Capacitor_SMD__C_0402_1005Metric</footprint>
       <fields>
@@ -874,7 +1015,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_C8" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_C10" description=""/>
       <property name="MPN" value="GEN-C-0402-100n-16V-X7R"/>
       <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
       <property name="Source" value=""/>
@@ -882,7 +1023,7 @@
       <property name="Sheetname" value="03_reset"/>
       <property name="Sheetfile" value="03_reset.kicad_sch"/>
       <sheetpath names="/03_reset/" tstamps="/7ded663d-8fba-56a2-80cd-53907fe8a829/"/>
-      <tstamps>98d52e27-3c31-5290-a995-a4a104f7f524</tstamps>
+      <tstamps>4a68991a-6ee7-5dc2-9d22-1563a447a5c7</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -892,7 +1033,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="R9">
+    <comp ref="R10">
       <value>10k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -904,7 +1045,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R9" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R10" description=""/>
       <property name="MPN" value="GEN-R-0402-10k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -912,7 +1053,7 @@
       <property name="Sheetname" value="03_reset"/>
       <property name="Sheetfile" value="03_reset.kicad_sch"/>
       <sheetpath names="/03_reset/" tstamps="/7ded663d-8fba-56a2-80cd-53907fe8a829/"/>
-      <tstamps>a1e686b2-3b21-5092-874d-d709b422bfd0</tstamps>
+      <tstamps>2834d0b0-256e-521b-8e96-7ad90ac78fa4</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -985,7 +1126,7 @@
         </unit>
       </units>
     </comp>
-    <comp ref="C9">
+    <comp ref="C11">
       <value>100n</value>
       <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
       <fields>
@@ -997,68 +1138,8 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_C9" description=""/>
-      <property name="MPN" value="GEN-C-0603-100n-16V-X7R"/>
-      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
-      <property name="Source" value=""/>
-      <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="02_esp32"/>
-      <property name="Sheetfile" value="02_esp32.kicad_sch"/>
-      <sheetpath names="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/"/>
-      <tstamps>69784227-ebda-580d-9f80-56b5f3d2a886</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="C10">
-      <value>10u</value>
-      <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
-      <fields>
-        <field name="MPN">GEN-C-0603-10u-16V-X7R</field>
-        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
-        <field name="Source"/>
-        <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="CANView" part="CANView_bridge_C10" description=""/>
-      <property name="MPN" value="GEN-C-0603-10u-16V-X7R"/>
-      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
-      <property name="Source" value=""/>
-      <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="02_esp32"/>
-      <property name="Sheetfile" value="02_esp32.kicad_sch"/>
-      <sheetpath names="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/"/>
-      <tstamps>4a68991a-6ee7-5dc2-9d22-1563a447a5c7</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="C11">
-      <value>10u</value>
-      <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
-      <fields>
-        <field name="MPN">GEN-C-0603-10u-16V-X7R</field>
-        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
-        <field name="Source"/>
-        <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
       <libsource lib="CANView" part="CANView_bridge_C11" description=""/>
-      <property name="MPN" value="GEN-C-0603-10u-16V-X7R"/>
+      <property name="MPN" value="GEN-C-0603-100n-16V-X7R"/>
       <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
@@ -1075,7 +1156,67 @@
         </unit>
       </units>
     </comp>
-    <comp ref="R10">
+    <comp ref="C12">
+      <value>10u</value>
+      <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-C-0603-10u-16V-X7R</field>
+        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_C12" description=""/>
+      <property name="MPN" value="GEN-C-0603-10u-16V-X7R"/>
+      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="02_esp32"/>
+      <property name="Sheetfile" value="02_esp32.kicad_sch"/>
+      <sheetpath names="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/"/>
+      <tstamps>f1b76a88-115b-5761-8303-fc16e1d3b84b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C13">
+      <value>10u</value>
+      <footprint>CANView:Capacitor_SMD__C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-C-0603-10u-16V-X7R</field>
+        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_C13" description=""/>
+      <property name="MPN" value="GEN-C-0603-10u-16V-X7R"/>
+      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="02_esp32"/>
+      <property name="Sheetfile" value="02_esp32.kicad_sch"/>
+      <sheetpath names="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/"/>
+      <tstamps>533a2850-2607-5a12-90a5-0de705816686</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R11">
       <value>10k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -1087,7 +1228,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R10" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R11" description=""/>
       <property name="MPN" value="GEN-R-0402-10k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -1095,7 +1236,7 @@
       <property name="Sheetname" value="02_esp32"/>
       <property name="Sheetfile" value="02_esp32.kicad_sch"/>
       <sheetpath names="/02_esp32/" tstamps="/234d7795-fc3a-5f3e-8372-5430bb736c95/"/>
-      <tstamps>2834d0b0-256e-521b-8e96-7ad90ac78fa4</tstamps>
+      <tstamps>25b189ee-f314-58d8-a3ae-c85957de69da</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -1204,36 +1345,6 @@
         </unit>
       </units>
     </comp>
-    <comp ref="R11">
-      <value>22</value>
-      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
-      <fields>
-        <field name="MPN">GEN-R-0402-22-1%</field>
-        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
-        <field name="Source"/>
-        <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="CANView" part="CANView_bridge_R11" description=""/>
-      <property name="MPN" value="GEN-R-0402-22-1%"/>
-      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
-      <property name="Source" value=""/>
-      <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="03_service"/>
-      <property name="Sheetfile" value="03_service.kicad_sch"/>
-      <sheetpath names="/03_service/" tstamps="/f45837cc-a8bb-5c7e-bc52-15102e8ffa7d/"/>
-      <tstamps>25b189ee-f314-58d8-a3ae-c85957de69da</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
     <comp ref="R12">
       <value>22</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
@@ -1265,10 +1376,10 @@
       </units>
     </comp>
     <comp ref="R13">
-      <value>10k</value>
+      <value>22</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
-        <field name="MPN">GEN-R-0402-10k-1%</field>
+        <field name="MPN">GEN-R-0402-22-1%</field>
         <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
         <field name="Source"/>
         <field name="Assembly">FIT</field>
@@ -1277,7 +1388,7 @@
         <field name="Description"/>
       </fields>
       <libsource lib="CANView" part="CANView_bridge_R13" description=""/>
-      <property name="MPN" value="GEN-R-0402-10k-1%"/>
+      <property name="MPN" value="GEN-R-0402-22-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
@@ -1295,6 +1406,36 @@
       </units>
     </comp>
     <comp ref="R14">
+      <value>10k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-10k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_bridge_R14" description=""/>
+      <property name="MPN" value="GEN-R-0402-10k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="03_service"/>
+      <property name="Sheetfile" value="03_service.kicad_sch"/>
+      <sheetpath names="/03_service/" tstamps="/f45837cc-a8bb-5c7e-bc52-15102e8ffa7d/"/>
+      <tstamps>93f0167d-f8f3-5c22-9361-70f6cd5aee6d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R15">
       <value>2.2k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -1306,7 +1447,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_bridge_R14" description=""/>
+      <libsource lib="CANView" part="CANView_bridge_R15" description=""/>
       <property name="MPN" value="GEN-R-0402-2.2k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -1314,7 +1455,7 @@
       <property name="Sheetname" value="03_service"/>
       <property name="Sheetfile" value="03_service.kicad_sch"/>
       <sheetpath names="/03_service/" tstamps="/f45837cc-a8bb-5c7e-bc52-15102e8ffa7d/"/>
-      <tstamps>93f0167d-f8f3-5c22-9361-70f6cd5aee6d</tstamps>
+      <tstamps>13140845-aee4-52d6-93e2-f8d9a44b6713</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -1402,6 +1543,32 @@
     <libpart lib="CANView" part="CANView_bridge_C10">
       <fields>
         <field name="Reference">C</field>
+        <field name="Value">100n</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_bridge_C11">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">100n</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_bridge_C12">
+      <fields>
+        <field name="Reference">C</field>
         <field name="Value">10u</field>
         <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
         <field name="Datasheet"/>
@@ -1412,7 +1579,7 @@
         <pin num="2" name="2" type="passive"/>
       </pins>
     </libpart>
-    <libpart lib="CANView" part="CANView_bridge_C11">
+    <libpart lib="CANView" part="CANView_bridge_C13">
       <fields>
         <field name="Reference">C</field>
         <field name="Value">10u</field>
@@ -1467,7 +1634,7 @@
     <libpart lib="CANView" part="CANView_bridge_C5">
       <fields>
         <field name="Reference">C</field>
-        <field name="Value">1u</field>
+        <field name="Value">2.2u</field>
         <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1480,7 +1647,7 @@
     <libpart lib="CANView" part="CANView_bridge_C6">
       <fields>
         <field name="Reference">C</field>
-        <field name="Value">4.7u</field>
+        <field name="Value">1u</field>
         <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1493,8 +1660,8 @@
     <libpart lib="CANView" part="CANView_bridge_C7">
       <fields>
         <field name="Reference">C</field>
-        <field name="Value">22u</field>
-        <field name="Footprint">CANView:Capacitor_SMD__C_0805_2012Metric</field>
+        <field name="Value">1u</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
@@ -1506,8 +1673,8 @@
     <libpart lib="CANView" part="CANView_bridge_C8">
       <fields>
         <field name="Reference">C</field>
-        <field name="Value">100n</field>
-        <field name="Footprint">CANView:Capacitor_SMD__C_0402_1005Metric</field>
+        <field name="Value">4.7u</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
@@ -1519,8 +1686,8 @@
     <libpart lib="CANView" part="CANView_bridge_C9">
       <fields>
         <field name="Reference">C</field>
-        <field name="Value">100n</field>
-        <field name="Footprint">CANView:Capacitor_SMD__C_0603_1608Metric</field>
+        <field name="Value">22u</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0805_2012Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
@@ -1640,7 +1807,7 @@
     <libpart lib="CANView" part="CANView_bridge_R11">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">22</field>
+        <field name="Value">10k</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1666,7 +1833,7 @@
     <libpart lib="CANView" part="CANView_bridge_R13">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">10k</field>
+        <field name="Value">22</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1677,6 +1844,19 @@
       </pins>
     </libpart>
     <libpart lib="CANView" part="CANView_bridge_R14">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">10k</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_bridge_R15">
       <fields>
         <field name="Reference">R</field>
         <field name="Value">2.2k</field>
@@ -1718,7 +1898,7 @@
     <libpart lib="CANView" part="CANView_bridge_R4">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">26.7k</field>
+        <field name="Value">3k</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1731,7 +1911,7 @@
     <libpart lib="CANView" part="CANView_bridge_R5">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">10k</field>
+        <field name="Value">26.7k</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1744,6 +1924,19 @@
     <libpart lib="CANView" part="CANView_bridge_R6">
       <fields>
         <field name="Reference">R</field>
+        <field name="Value">10k</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_bridge_R7">
+      <fields>
+        <field name="Reference">R</field>
         <field name="Value">0</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0805_2012Metric</field>
         <field name="Datasheet"/>
@@ -1754,7 +1947,7 @@
         <pin num="2" name="2" type="passive"/>
       </pins>
     </libpart>
-    <libpart lib="CANView" part="CANView_bridge_R7">
+    <libpart lib="CANView" part="CANView_bridge_R8">
       <fields>
         <field name="Reference">R</field>
         <field name="Value">249k</field>
@@ -1767,23 +1960,10 @@
         <pin num="2" name="2" type="passive"/>
       </pins>
     </libpart>
-    <libpart lib="CANView" part="CANView_bridge_R8">
-      <fields>
-        <field name="Reference">R</field>
-        <field name="Value">27.4k</field>
-        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <pins>
-        <pin num="1" name="1" type="passive"/>
-        <pin num="2" name="2" type="passive"/>
-      </pins>
-    </libpart>
     <libpart lib="CANView" part="CANView_bridge_R9">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">10k</field>
+        <field name="Value">27.4k</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -1907,6 +2087,22 @@
         <pin num="41" name="GND" type="passive"/>
       </pins>
     </libpart>
+    <libpart lib="CANView" part="CANView_bridge_U16">
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">TPS7A2033PDBVR</field>
+        <field name="Footprint">CANView:Package_TO_SOT_SMD__SOT-23-5</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="IN" type="power_in"/>
+        <pin num="2" name="GND" type="power_in"/>
+        <pin num="3" name="EN" type="input"/>
+        <pin num="4" name="NC" type="passive"/>
+        <pin num="5" name="OUT" type="power_out"/>
+      </pins>
+    </libpart>
     <libpart lib="CANView" part="CANView_bridge_U2">
       <fields>
         <field name="Reference">U</field>
@@ -1985,13 +2181,13 @@
     <net code="1" name="3V3" class="Default">
       <node ref="C10" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C11" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="C7" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="C8" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C12" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C13" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C9" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="L1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R10" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R13" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R9" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R11" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R14" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="2" pinfunction="3V3_2" pintype="power_in"/>
       <node ref="U5" pin="3" pinfunction="VOS_3" pintype="input"/>
       <node ref="U6" pin="2" pinfunction="MR_N_2" pintype="input"/>
@@ -2008,7 +2204,7 @@
       <node ref="U1" pin="2" pinfunction="CC2_2" pintype="bidirectional"/>
     </net>
     <net code="4" name="ESP_BOOT_N" class="Default">
-      <node ref="R10" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R11" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW2" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="27" pinfunction="IO0_27" pintype="bidirectional"/>
     </net>
@@ -2016,6 +2212,8 @@
       <node ref="C1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C10" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C11" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C12" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C13" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C2" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C3" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C4" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -2034,8 +2232,9 @@
       <node ref="J1" pin="SH" pinfunction="SH_SH" pintype="passive"/>
       <node ref="R3" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R4" pin="2" pinfunction="2_2" pintype="passive"/>
-      <node ref="R7" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R5" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R8" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R9" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW2" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW3" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -2045,6 +2244,7 @@
       <node ref="U11" pin="1" pinfunction="GND_1" pintype="power_in"/>
       <node ref="U11" pin="40" pinfunction="GND_40" pintype="passive"/>
       <node ref="U11" pin="41" pinfunction="GND_41" pintype="passive"/>
+      <node ref="U16" pin="2" pinfunction="GND_2" pintype="power_in"/>
       <node ref="U2" pin="3" pinfunction="GND_3" pintype="power_in"/>
       <node ref="U3" pin="2" pinfunction="GND_2" pintype="power_in"/>
       <node ref="U5" pin="5" pinfunction="GND_5" pintype="power_in"/>
@@ -2053,29 +2253,29 @@
     </net>
     <net code="6" name="LED_A" class="Default">
       <node ref="D3" pin="2" pinfunction="A_2" pintype="passive"/>
-      <node ref="R14" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R15" pin="2" pinfunction="2_2" pintype="passive"/>
     </net>
     <net code="7" name="PAIR_BUTTON_N" class="Default">
-      <node ref="R13" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R14" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW3" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="4" pinfunction="IO4_4" pintype="bidirectional"/>
     </net>
     <net code="8" name="STATUS_LED" class="Default">
-      <node ref="R14" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R15" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="5" pinfunction="IO5_5" pintype="bidirectional"/>
     </net>
     <net code="9" name="SYS5V" class="Default">
-      <node ref="C6" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R6" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C8" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R7" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U5" pin="6" pinfunction="VIN_6" pintype="power_in"/>
       <node ref="U5" pin="7" pinfunction="EN_7" pintype="input"/>
     </net>
     <net code="10" name="SYS_MODE" class="Default">
-      <node ref="R8" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R9" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="8" pinfunction="MODE_8" pintype="passive"/>
     </net>
     <net code="11" name="SYS_RESET_N" class="Default">
-      <node ref="R9" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R10" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="3" pinfunction="EN_3" pintype="input"/>
       <node ref="U6" pin="1" pinfunction="RESET_N_1" pintype="open_collector"/>
@@ -2084,189 +2284,200 @@
       <node ref="L1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="4" pinfunction="SW_4" pintype="output"/>
     </net>
-    <net code="13" name="USB_DEFAULT_N" class="Default">
+    <net code="13" name="USB_CC3V3" class="Default">
+      <node ref="C2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C3" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C5" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R4" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="12" pinfunction="VDD_12" pintype="power_in"/>
+      <node ref="U16" pin="5" pinfunction="OUT_5" pintype="power_out"/>
+      <node ref="U2" pin="5" pinfunction="VCC_5" pintype="power_in"/>
+    </net>
+    <net code="14" name="USB_DEFAULT_N" class="Default">
       <node ref="R2" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U1" pin="7" pinfunction="OUT1_7" pintype="open_collector"/>
       <node ref="U2" pin="2" pinfunction="A_2" pintype="input"/>
     </net>
-    <net code="14" name="USB_DM" class="Default">
-      <node ref="R11" pin="2" pinfunction="2_2" pintype="passive"/>
+    <net code="15" name="USB_DM" class="Default">
+      <node ref="R12" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="13" pinfunction="USB_D-_13" pintype="bidirectional"/>
     </net>
-    <net code="15" name="USB_DM_CONN" class="Default">
+    <net code="16" name="USB_DM_CONN" class="Default">
       <node ref="D1" pin="2" pinfunction="IO2_2" pintype="passive"/>
       <node ref="J1" pin="A7" pinfunction="A7_A7" pintype="passive"/>
       <node ref="J1" pin="B7" pinfunction="B7_B7" pintype="passive"/>
-      <node ref="R11" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R12" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="16" name="USB_DP" class="Default">
-      <node ref="R12" pin="2" pinfunction="2_2" pintype="passive"/>
+    <net code="17" name="USB_DP" class="Default">
+      <node ref="R13" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="14" pinfunction="USB_D+_14" pintype="bidirectional"/>
     </net>
-    <net code="17" name="USB_DP_CONN" class="Default">
+    <net code="18" name="USB_DP_CONN" class="Default">
       <node ref="D1" pin="1" pinfunction="IO1_1" pintype="passive"/>
       <node ref="J1" pin="A6" pinfunction="A6_A6" pintype="passive"/>
       <node ref="J1" pin="B6" pinfunction="B6_B6" pintype="passive"/>
-      <node ref="R12" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R13" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="18" name="USB_FAULT_N" class="Default">
-      <node ref="R5" pin="2" pinfunction="2_2" pintype="passive"/>
+    <net code="19" name="USB_FAULT_N" class="Default">
+      <node ref="R6" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U3" pin="4" pinfunction="FAULT_N_4" pintype="open_collector"/>
     </net>
-    <net code="19" name="USB_ILIM" class="Default">
-      <node ref="R4" pin="1" pinfunction="1_1" pintype="passive"/>
+    <net code="20" name="USB_ILIM" class="Default">
+      <node ref="R5" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U3" pin="5" pinfunction="ILIM_5" pintype="passive"/>
     </net>
-    <net code="20" name="USB_LIMITED" class="Default">
-      <node ref="C5" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R6" pin="1" pinfunction="1_1" pintype="passive"/>
+    <net code="21" name="USB_LIMITED" class="Default">
+      <node ref="C7" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R7" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U3" pin="6" pinfunction="OUT_6" pintype="power_out"/>
     </net>
-    <net code="21" name="USB_POWER_ALLOWED" class="Default">
+    <net code="22" name="USB_POWER_ALLOWED" class="Default">
       <node ref="R3" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U2" pin="4" pinfunction="Y_4" pintype="output"/>
       <node ref="U3" pin="3" pinfunction="EN_3" pintype="input"/>
     </net>
-    <net code="22" name="USB_VBUS" class="Default">
+    <net code="23" name="USB_VBUS" class="Default">
       <node ref="C1" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="C2" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="C3" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C4" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C6" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="J1" pin="A4" pinfunction="A4_A4" pintype="power_out"/>
       <node ref="J1" pin="A9" pinfunction="A9_A9" pintype="passive"/>
       <node ref="J1" pin="B4" pinfunction="B4_B4" pintype="passive"/>
       <node ref="J1" pin="B9" pinfunction="B9_B9" pintype="passive"/>
       <node ref="R1" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R2" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R5" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="U1" pin="12" pinfunction="VDD_12" pintype="power_in"/>
-      <node ref="U2" pin="5" pinfunction="VCC_5" pintype="power_in"/>
+      <node ref="R6" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U16" pin="1" pinfunction="IN_1" pintype="power_in"/>
+      <node ref="U16" pin="3" pinfunction="EN_3" pintype="input"/>
       <node ref="U3" pin="1" pinfunction="IN_1" pintype="power_in"/>
     </net>
-    <net code="23" name="VBUS_DET" class="Default">
+    <net code="24" name="VBUS_DET" class="Default">
       <node ref="R1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U1" pin="4" pinfunction="VBUS_DET_4" pintype="input"/>
     </net>
-    <net code="24" name="VSET_3V3" class="Default">
-      <node ref="R7" pin="1" pinfunction="1_1" pintype="passive"/>
+    <net code="25" name="VSET_3V3" class="Default">
+      <node ref="R8" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="1" pinfunction="FB_VSET_1" pintype="passive"/>
     </net>
-    <net code="25" name="unconnected-(J1-PadA8)" class="Default">
+    <net code="26" name="unconnected-(J1-PadA8)" class="Default">
       <node ref="J1" pin="A8" pinfunction="A8_A8" pintype="passive+no_connect"/>
     </net>
-    <net code="26" name="unconnected-(J1-PadB8)" class="Default">
+    <net code="27" name="unconnected-(J1-PadB8)" class="Default">
       <node ref="J1" pin="B8" pinfunction="B8_B8" pintype="passive+no_connect"/>
     </net>
-    <net code="27" name="unconnected-(U1-ADDR-Pad5)" class="Default">
+    <net code="28" name="unconnected-(U1-ADDR-Pad5)" class="Default">
       <node ref="U1" pin="5" pinfunction="ADDR_5" pintype="input+no_connect"/>
     </net>
-    <net code="28" name="unconnected-(U1-ID-Pad9)" class="Default">
+    <net code="29" name="unconnected-(U1-ID-Pad9)" class="Default">
       <node ref="U1" pin="9" pinfunction="ID_9" pintype="open_collector+no_connect"/>
     </net>
-    <net code="29" name="unconnected-(U1-OUT2-Pad8)" class="Default">
+    <net code="30" name="unconnected-(U1-OUT2-Pad8)" class="Default">
       <node ref="U1" pin="8" pinfunction="OUT2_8" pintype="open_collector+no_connect"/>
     </net>
-    <net code="30" name="unconnected-(U1-OUT3-Pad6)" class="Default">
+    <net code="31" name="unconnected-(U1-OUT3-Pad6)" class="Default">
       <node ref="U1" pin="6" pinfunction="OUT3_6" pintype="open_collector+no_connect"/>
     </net>
-    <net code="31" name="unconnected-(U2-NC-Pad1)" class="Default">
+    <net code="32" name="unconnected-(U2-NC-Pad1)" class="Default">
       <node ref="U2" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
     </net>
-    <net code="32" name="unconnected-(U5-PG-Pad2)" class="Default">
+    <net code="33" name="unconnected-(U5-PG-Pad2)" class="Default">
       <node ref="U5" pin="2" pinfunction="PG_2" pintype="open_collector+no_connect"/>
     </net>
-    <net code="33" name="unconnected-(U11-IO1-Pad39)" class="Default">
+    <net code="34" name="unconnected-(U11-IO1-Pad39)" class="Default">
       <node ref="U11" pin="39" pinfunction="IO1_39" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="34" name="unconnected-(U11-IO2-Pad38)" class="Default">
+    <net code="35" name="unconnected-(U11-IO2-Pad38)" class="Default">
       <node ref="U11" pin="38" pinfunction="IO2_38" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="35" name="unconnected-(U11-IO3-Pad15)" class="Default">
+    <net code="36" name="unconnected-(U11-IO3-Pad15)" class="Default">
       <node ref="U11" pin="15" pinfunction="IO3_15" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="36" name="unconnected-(U11-IO6-Pad6)" class="Default">
+    <net code="37" name="unconnected-(U11-IO6-Pad6)" class="Default">
       <node ref="U11" pin="6" pinfunction="IO6_6" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="37" name="unconnected-(U11-IO7-Pad7)" class="Default">
+    <net code="38" name="unconnected-(U11-IO7-Pad7)" class="Default">
       <node ref="U11" pin="7" pinfunction="IO7_7" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="38" name="unconnected-(U11-IO8-Pad12)" class="Default">
+    <net code="39" name="unconnected-(U11-IO8-Pad12)" class="Default">
       <node ref="U11" pin="12" pinfunction="IO8_12" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="39" name="unconnected-(U11-IO9-Pad17)" class="Default">
+    <net code="40" name="unconnected-(U11-IO9-Pad17)" class="Default">
       <node ref="U11" pin="17" pinfunction="IO9_17" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="40" name="unconnected-(U11-IO10-Pad18)" class="Default">
+    <net code="41" name="unconnected-(U11-IO10-Pad18)" class="Default">
       <node ref="U11" pin="18" pinfunction="IO10_18" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="41" name="unconnected-(U11-IO11-Pad19)" class="Default">
+    <net code="42" name="unconnected-(U11-IO11-Pad19)" class="Default">
       <node ref="U11" pin="19" pinfunction="IO11_19" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="42" name="unconnected-(U11-IO12-Pad20)" class="Default">
+    <net code="43" name="unconnected-(U11-IO12-Pad20)" class="Default">
       <node ref="U11" pin="20" pinfunction="IO12_20" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="43" name="unconnected-(U11-IO13-Pad21)" class="Default">
+    <net code="44" name="unconnected-(U11-IO13-Pad21)" class="Default">
       <node ref="U11" pin="21" pinfunction="IO13_21" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="44" name="unconnected-(U11-IO14-Pad22)" class="Default">
+    <net code="45" name="unconnected-(U11-IO14-Pad22)" class="Default">
       <node ref="U11" pin="22" pinfunction="IO14_22" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="45" name="unconnected-(U11-IO15-Pad8)" class="Default">
+    <net code="46" name="unconnected-(U11-IO15-Pad8)" class="Default">
       <node ref="U11" pin="8" pinfunction="IO15_8" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="46" name="unconnected-(U11-IO16-Pad9)" class="Default">
+    <net code="47" name="unconnected-(U11-IO16-Pad9)" class="Default">
       <node ref="U11" pin="9" pinfunction="IO16_9" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="47" name="unconnected-(U11-IO17-Pad10)" class="Default">
+    <net code="48" name="unconnected-(U11-IO17-Pad10)" class="Default">
       <node ref="U11" pin="10" pinfunction="IO17_10" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="48" name="unconnected-(U11-IO18-Pad11)" class="Default">
+    <net code="49" name="unconnected-(U11-IO18-Pad11)" class="Default">
       <node ref="U11" pin="11" pinfunction="IO18_11" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="49" name="unconnected-(U11-IO21-Pad23)" class="Default">
+    <net code="50" name="unconnected-(U11-IO21-Pad23)" class="Default">
       <node ref="U11" pin="23" pinfunction="IO21_23" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="50" name="unconnected-(U11-IO35-Pad28)" class="Default">
+    <net code="51" name="unconnected-(U11-IO35-Pad28)" class="Default">
       <node ref="U11" pin="28" pinfunction="IO35_28" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="51" name="unconnected-(U11-IO36-Pad29)" class="Default">
+    <net code="52" name="unconnected-(U11-IO36-Pad29)" class="Default">
       <node ref="U11" pin="29" pinfunction="IO36_29" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="52" name="unconnected-(U11-IO37-Pad30)" class="Default">
+    <net code="53" name="unconnected-(U11-IO37-Pad30)" class="Default">
       <node ref="U11" pin="30" pinfunction="IO37_30" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="53" name="unconnected-(U11-IO38-Pad31)" class="Default">
+    <net code="54" name="unconnected-(U11-IO38-Pad31)" class="Default">
       <node ref="U11" pin="31" pinfunction="IO38_31" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="54" name="unconnected-(U11-IO39-Pad32)" class="Default">
+    <net code="55" name="unconnected-(U11-IO39-Pad32)" class="Default">
       <node ref="U11" pin="32" pinfunction="IO39_32" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="55" name="unconnected-(U11-IO40-Pad33)" class="Default">
+    <net code="56" name="unconnected-(U11-IO40-Pad33)" class="Default">
       <node ref="U11" pin="33" pinfunction="IO40_33" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="56" name="unconnected-(U11-IO41-Pad34)" class="Default">
+    <net code="57" name="unconnected-(U11-IO41-Pad34)" class="Default">
       <node ref="U11" pin="34" pinfunction="IO41_34" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="57" name="unconnected-(U11-IO42-Pad35)" class="Default">
+    <net code="58" name="unconnected-(U11-IO42-Pad35)" class="Default">
       <node ref="U11" pin="35" pinfunction="IO42_35" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="58" name="unconnected-(U11-IO45-Pad26)" class="Default">
+    <net code="59" name="unconnected-(U11-IO45-Pad26)" class="Default">
       <node ref="U11" pin="26" pinfunction="IO45_26" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="59" name="unconnected-(U11-IO46-Pad16)" class="Default">
+    <net code="60" name="unconnected-(U11-IO46-Pad16)" class="Default">
       <node ref="U11" pin="16" pinfunction="IO46_16" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="60" name="unconnected-(U11-IO47-Pad24)" class="Default">
+    <net code="61" name="unconnected-(U11-IO47-Pad24)" class="Default">
       <node ref="U11" pin="24" pinfunction="IO47_24" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="61" name="unconnected-(U11-IO48-Pad25)" class="Default">
+    <net code="62" name="unconnected-(U11-IO48-Pad25)" class="Default">
       <node ref="U11" pin="25" pinfunction="IO48_25" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="62" name="unconnected-(U11-RXD0-Pad36)" class="Default">
+    <net code="63" name="unconnected-(U11-RXD0-Pad36)" class="Default">
       <node ref="U11" pin="36" pinfunction="RXD0_36" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="63" name="unconnected-(U11-TXD0-Pad37)" class="Default">
+    <net code="64" name="unconnected-(U11-TXD0-Pad37)" class="Default">
       <node ref="U11" pin="37" pinfunction="TXD0_37" pintype="bidirectional+no_connect"/>
+    </net>
+    <net code="65" name="unconnected-(U16-NC-Pad4)" class="Default">
+      <node ref="U16" pin="4" pinfunction="NC_4" pintype="passive+no_connect"/>
     </net>
   </nets>
 </export>

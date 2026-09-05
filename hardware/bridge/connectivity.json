@@ -3,6 +3,7 @@
   "board": "bridge",
   "sheets": {
     "01_usb_c": "USB-C sink: requires CC advertisement >=1.5A. Default-current ports DO NOT power the board. No USB PD/high-voltage request.",
+    "01a_usb_cc_supply": "Pre-limiter USB-only3.3V powers CC detector and its inverter. TUSB320LAI VDD maximum5.0V: NEVER connect it directly to USB VBUS. No SYS rail dependency.",
     "01b_usb_limit": "USB load current limit about1A, below the minimum1.5A CC advertisement. Input<=6.5V; no PD sink negotiation.",
     "02_system_power": "Bridge USB-only3.3V buck. No CAN transceiver or vehicle-control output on this board.",
     "03_reset": "MCU supervisor3.08V with130..270ms release. Communicator also has an independent PHY-domain supervisor.",
@@ -260,7 +261,7 @@
         "12": [
           "VDD",
           "power_in",
-          "USB_VBUS"
+          "USB_CC3V3"
         ]
       },
       "mpn": "TUSB320LAIRWBR",
@@ -305,7 +306,7 @@
         "1": [
           "1",
           "passive",
-          "USB_VBUS"
+          "USB_CC3V3"
         ],
         "2": [
           "2",
@@ -330,7 +331,7 @@
         "1": [
           "1",
           "passive",
-          "USB_VBUS"
+          "USB_CC3V3"
         ],
         "2": [
           "2",
@@ -375,7 +376,7 @@
         "5": [
           "VCC",
           "power_in",
-          "USB_VBUS"
+          "USB_CC3V3"
         ]
       },
       "mpn": "SN74LVC1G04DBVR",
@@ -395,7 +396,7 @@
         "1": [
           "1",
           "passive",
-          "USB_VBUS"
+          "USB_CC3V3"
         ],
         "2": [
           "2",
@@ -434,6 +435,121 @@
       "dnp": false,
       "note": "",
       "libname": "CANView_bridge_R3"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "U16",
+      "value": "TPS7A2033PDBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "IN",
+          "power_in",
+          "USB_VBUS"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "USB_VBUS"
+        ],
+        "4": [
+          "NC",
+          "passive",
+          null
+        ],
+        "5": [
+          "OUT",
+          "power_out",
+          "USB_CC3V3"
+        ]
+      },
+      "mpn": "TPS7A2033PDBVR",
+      "spec": "300mA LDO; fixed 3.3V; 1uF effective output minimum",
+      "source": "tps7a20: p4 DBV pins, input/output capacitor requirements",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U16"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "C4",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_VBUS"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C4"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "C5",
+      "value": "2.2u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-2.2u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C5"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "R4",
+      "value": "3k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-3k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": ">=1mA minimum load for LDO specified output accuracy; include in pre-attach/suspend current budget",
+      "libname": "CANView_bridge_R4"
     },
     {
       "sheet": "01b_usb_limit",
@@ -482,7 +598,7 @@
     },
     {
       "sheet": "01b_usb_limit",
-      "ref": "R4",
+      "ref": "R5",
       "value": "26.7k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -503,11 +619,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R4"
+      "libname": "CANView_bridge_R5"
     },
     {
       "sheet": "01b_usb_limit",
-      "ref": "R5",
+      "ref": "R6",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -528,11 +644,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R5"
+      "libname": "CANView_bridge_R6"
     },
     {
       "sheet": "01b_usb_limit",
-      "ref": "C4",
+      "ref": "C6",
       "value": "1u",
       "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
       "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
@@ -553,11 +669,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_C4"
+      "libname": "CANView_bridge_C6"
     },
     {
       "sheet": "01b_usb_limit",
-      "ref": "C5",
+      "ref": "C7",
       "value": "1u",
       "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
       "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
@@ -578,11 +694,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_C5"
+      "libname": "CANView_bridge_C7"
     },
     {
       "sheet": "02_system_power",
-      "ref": "R6",
+      "ref": "R7",
       "value": "0",
       "footprint": "CANView:Resistor_SMD__R_0805_2012Metric",
       "original_footprint": "Resistor_SMD:R_0805_2012Metric",
@@ -603,7 +719,7 @@
       "source": "",
       "dnp": false,
       "note": "Current>=1A zero-ohm jumper",
-      "libname": "CANView_bridge_R6"
+      "libname": "CANView_bridge_R7"
     },
     {
       "sheet": "02_system_power",
@@ -682,7 +798,7 @@
     },
     {
       "sheet": "02_system_power",
-      "ref": "R7",
+      "ref": "R8",
       "value": "249k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -703,11 +819,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R7"
+      "libname": "CANView_bridge_R8"
     },
     {
       "sheet": "02_system_power",
-      "ref": "R8",
+      "ref": "R9",
       "value": "27.4k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -728,7 +844,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R8"
+      "libname": "CANView_bridge_R9"
     },
     {
       "sheet": "02_system_power",
@@ -757,7 +873,7 @@
     },
     {
       "sheet": "02_system_power",
-      "ref": "C6",
+      "ref": "C8",
       "value": "4.7u",
       "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
       "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
@@ -778,11 +894,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_C6"
+      "libname": "CANView_bridge_C8"
     },
     {
       "sheet": "02_system_power",
-      "ref": "C7",
+      "ref": "C9",
       "value": "22u",
       "footprint": "CANView:Capacitor_SMD__C_0805_2012Metric",
       "original_footprint": "Capacitor_SMD:C_0805_2012Metric",
@@ -803,7 +919,7 @@
       "source": "",
       "dnp": false,
       "note": "Verify effective capacitance with ALL downstream bypass; no extra100uF bulk without stability analysis",
-      "libname": "CANView_bridge_C7"
+      "libname": "CANView_bridge_C9"
     },
     {
       "sheet": "02_system_power",
@@ -867,7 +983,7 @@
     },
     {
       "sheet": "03_reset",
-      "ref": "R9",
+      "ref": "R10",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -888,11 +1004,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R9"
+      "libname": "CANView_bridge_R10"
     },
     {
       "sheet": "03_reset",
-      "ref": "C8",
+      "ref": "C10",
       "value": "100n",
       "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
       "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
@@ -913,7 +1029,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_C8"
+      "libname": "CANView_bridge_C10"
     },
     {
       "sheet": "03_reset",
@@ -1162,7 +1278,7 @@
     },
     {
       "sheet": "02_esp32",
-      "ref": "C9",
+      "ref": "C11",
       "value": "100n",
       "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
       "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
@@ -1183,61 +1299,61 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_C9"
-    },
-    {
-      "sheet": "02_esp32",
-      "ref": "C10",
-      "value": "10u",
-      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
-      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
-      "pins": {
-        "1": [
-          "1",
-          "passive",
-          "3V3"
-        ],
-        "2": [
-          "2",
-          "passive",
-          "GND"
-        ]
-      },
-      "mpn": "GEN-C-0603-10u-16V-X7R",
-      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
-      "source": "",
-      "dnp": false,
-      "note": "",
-      "libname": "CANView_bridge_C10"
-    },
-    {
-      "sheet": "02_esp32",
-      "ref": "C11",
-      "value": "10u",
-      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
-      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
-      "pins": {
-        "1": [
-          "1",
-          "passive",
-          "3V3"
-        ],
-        "2": [
-          "2",
-          "passive",
-          "GND"
-        ]
-      },
-      "mpn": "GEN-C-0603-10u-16V-X7R",
-      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
-      "source": "",
-      "dnp": false,
-      "note": "",
       "libname": "CANView_bridge_C11"
     },
     {
       "sheet": "02_esp32",
-      "ref": "R10",
+      "ref": "C12",
+      "value": "10u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-10u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C12"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "C13",
+      "value": "10u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-10u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C13"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "R11",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -1258,7 +1374,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R10"
+      "libname": "CANView_bridge_R11"
     },
     {
       "sheet": "03_service",
@@ -1287,7 +1403,7 @@
     },
     {
       "sheet": "03_service",
-      "ref": "R11",
+      "ref": "R12",
       "value": "22",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -1308,11 +1424,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R11"
+      "libname": "CANView_bridge_R12"
     },
     {
       "sheet": "03_service",
-      "ref": "R12",
+      "ref": "R13",
       "value": "22",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -1333,11 +1449,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R12"
+      "libname": "CANView_bridge_R13"
     },
     {
       "sheet": "03_service",
-      "ref": "R13",
+      "ref": "R14",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -1358,7 +1474,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R13"
+      "libname": "CANView_bridge_R14"
     },
     {
       "sheet": "03_service",
@@ -1387,7 +1503,7 @@
     },
     {
       "sheet": "03_service",
-      "ref": "R14",
+      "ref": "R15",
       "value": "2.2k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -1408,7 +1524,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_bridge_R14"
+      "libname": "CANView_bridge_R15"
     },
     {
       "sheet": "03_service",

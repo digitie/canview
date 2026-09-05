@@ -31,6 +31,8 @@ capability 이름은 `sensor.discovery.v1`, `sensor.nav.v1`, `sensor.imu.v1`, `s
 
 `SENSOR_CAPABILITIES`의 feature_mask는 bit0=NAV,1=IMU,2=BARO,3=UTC,4=GNSS/INS DR이며 나머지는 거부한다. hardware_profile은0=없음,1=MTi7+호환 GNSS/PPS+BMP384,2=ESP-direct raw GNSS다. profile2는 DR bit를 올리지 않는다. 제조사 firmware version은 `(major<<24)|(minor<<16)|patch`이며 patch는16bit다. rate mask의 bit 순서는 schema `rates_hz` 배열 순서다. 지원 가능한 rate만 광고하며 default rate와 혼동하지 않는다. `max_dr_age_ms`는0=DR미지원, MTi7은45000 이하이고 peer_budget_bps는 추가 센서 encoded application bytes/s다.
 
+배열 길이 밖 rate bit와 대응 feature가 없는 rate mask는 거부한다. DR bit는 profile1·NAV bit·1~45000ms age limit을 모두 요구하며, DR 미지원이면 age limit은0이어야 한다. profile0은 feature를 광고하지 않는다. host codec의 version 인자는 정확히 `[major, minor]` 두 u8 정수이며 float·bool·추가 원소를 허용하지 않는다. 이 검사는 인증·협상 완료를 대신하지 않는다.
+
 UART `1.1`에는 `0x60 CLOCK_ANCHOR_QUERY`, `0x61 CLOCK_ANCHOR_REPLY`만 추가한다. ESP sensor telemetry 전체를 STM32로 왕복 복사하지 않는다. query payload는 `esp_boot_id:u64`, `query_id:u32`, `esp_t1_us:u64`이고 reply는 이 세 값과 `stm_boot_id:u64`, `stm_t2_us:u64`, `stm_t3_us:u64`를 반송한다. ESP는 수신 순간 `t4`를 기록한다. 기존 correlation/session 검증에 더해 boot ID와 query ID가 일치해야 한다. clock offset은 왕복 지연의 절반을 오차에 포함해 계산하고 음수 왕복 지연·boot 변경·2초 이상 지연 응답은 폐기한다.
 
 ## 좌표·시간·품질

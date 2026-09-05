@@ -4,6 +4,8 @@
 
 [Bridge KiCad PDF](../../../hardware/bridge/schematic.pdf)는 ESP32-S3-WROOM-1-N8R2와 USB-C/3.3V 전원·reset·BOOT/PAIR·LED만 둔다. N8R2=flash8MB/PSRAM2MB이며 Communicator MINI의 pad 번호를 재사용하지 않는다. USB 전원 정책은 Communicator와 같은 TUSB320LAI+TPS2553이며 **C-to-C 5V1.5A 이상 광고가 필요**하다. 5V PD 이상의 전압은 요청하지 않는다.
 
+U16 TPS7A2033은 USB_VBUS에서 직접 감지부용 USB_CC3V3를 만든다. TUSB320LAI VDD와 OUT1 pull-up/U2 inverter는 이 rail에만 연결하며 VBUS에 직접 연결하지 않는다. 전력 limiter 앞에서 기동하므로 SYS3V3에 의존하는 순환 부팅 조건이 없다. 정격·시험 조건은 [Communicator 전원 설계](communicator-circuit.md#4-usb-c와-시스템-전원)를 공유한다.
+
 ESP GPIO19/20 native USB, GPIO4 PAIR 버튼(active-low), GPIO5 LED다. GPIO0은 BOOT 버튼이다. ESP-NOW/Wi-Fi는 같은2.4GHz radio/channel을 공유한다. channel policy와 웹 quota는 기존 Bridge architecture를 따르며 센서 추가가 CAN capture/control airtime을 잠식하지 않는다. Bridge는 센서를 관찰할 수 있지만 Controller control lease나 차량 TX gate를 가질 수 없다. 이번 최소 보드에는 SD/eMMC 회로를 추가하지 않았고 기존 선택적 저장 설계와 구분한다.
 
 ## Controller 어댑터와 RTC

@@ -79,11 +79,17 @@ try {
     }
     Write-Host "Checking exported connectivity, footprint pads, BOM and ERC..."
     Invoke-Checked -Executable $kicadPython -Arguments @(
+        (Join-Path $RepositoryRoot "tools\hardware\normalize_exports.py")
+    )
+    Invoke-Checked -Executable $kicadPython -Arguments @(
         (Join-Path $RepositoryRoot "tools\hardware\validate_exports.py")
     )
     Write-Host "Checking static power and watchdog margins..."
     Invoke-Checked -Executable $kicadPython -Arguments @(
         (Join-Path $RepositoryRoot "tools\hardware\check_margins.py")
+    )
+    Invoke-Checked -Executable $kicadPython -Arguments @(
+        "-m", "unittest", "discover", "-s", (Join-Path $RepositoryRoot "tools\hardware"), "-v"
     )
 }
 finally {

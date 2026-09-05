@@ -25,7 +25,7 @@ USB-only에서도 MCU, INS와 firmware 진단은 가능하지만 CAN PHY와 외�
 | J2 | JST XH2, 1=VBAT, 2=GND. 검증된 IGN/ACC의 외부 1A 퓨즈 가지를 기본으로 한다. OBD/차량 하네스 핀 번호가 아니다. |
 | F1 | Littelfuse 0451001.MRL, 1A/125V, 실제 Nano2 6.1×2.69mm. 단락 시 교체형이며 1206으로 대체하지 않는다. 차량 tap 바로 옆 외부 퓨즈와 협조 확인. |
 | D100 | SMBJ36CA, 양방향 36V TVS, 커넥터/퓨즈 다음. 600W는 10/1000µs 정격이지 350ms load-dump 에너지 보장이 아니다. |
-| Q1/Q2 | BUK9Y12-100E, 100V LFPAK56 N-FET common-source. Q1 D=입력, Q2 D=출력, 두 S=CS. SOA/열 검증 전 대체 금지. |
+| Q1/Q2 | BUK7Y12-100E, 100V·**DC VGS ±20V** LFPAK56 N-FET common-source. Q1 D=입력, Q2 D=출력, 두 S=CS. LM74800 최대 HGATE14.5V/DGATE13V에 대해 DC 여유5.5/7V. 이전 BUK9Y12-100E의 ±10V DC 정격은 부족하므로 사용 금지. 같은 footprint라도 무검증 대체 금지. |
 | U7 LM74800 | HGATE→입력 FET, DGATE→출력 FET. A/OUT=CS, C=PROTECTED_VBAT. EP13은 FLOAT이며 GND via를 넣지 않는다. |
 | VS/CAP | raw fused→10k/0.25W/150V→VS, CS→BAS21H→VS, VS 47V zener/100nF100V, CAP–VS 100nF25V. bootstrap supply를 PCB GND로 잘못 귀환하지 않는다. |
 | CS | 1µF100V. TI 포럼의 EVM DGATE 발진 교정값을 반영했으며 오래된 15nF 예제를 그대로 복제하지 않는다. |
@@ -54,13 +54,15 @@ TUSB320LAI는 PORT=GND(UFP), ADDR=NC(GPIO), EN_N=GND이며 내부 Rd를 사용�
 
 TPS2116은 VIN1=AUTO5V, VIN2=USB_LIMITED이며 source 역류를 차단한다. PR1 분압100k/30.1k, MODE=AUTO5V로 차량 우선 운용한다. ST는 source 선택 상태이지 PGOOD가 아니다. 전환 중 finite reverse response와 SYS5V droop를 실제 케이블·부하에서 확인한다. SYS3V3 TPS629210은 249k VSET=3.3V,27.4k MODE,2.2µH/22µF 출발값이다. downstream bulk를 임의로100µF 더하지 않는다.
 
+**USB CC 감지 전원은 mux·limiter 앞의 별도 U16 TPS7A2033**이다. USB_VBUS→U16→USB_CC3V3로 TUSB320LAI VDD, OUT1 pull-up과 U2 inverter를 공급한다. TUSB320LAI 권장 VDD 상한5.0V 때문에 VBUS 직결을 금지한다. U16 입력6V 허용,3k 최소부하를 포함한 output ±1.5% 범위3.2505~3.3495V이며 SYS3V3 없이 먼저 켜진다. U3는 VBUS를 전력 입력으로 유지하고 EN만3.3V 논리로 받는다. USB pre-attach/suspend 전류·VBUS5.25/5.5V·detach 재기동을 검증한다.
+
 ## 5. CAN PHY와 TX gate
 
 TCAN1046AV DYY14의 **pin5=GND2,7=RXD2,8=STB2,11=VIO**가 맞다. 이전 pinmap의 5/7/8/11 배치는 사용 금지다. CAN1/2 TXD와 STB에 각각 PHY3V3 외부10k pull-up을 둔다. CAN FD 라인의 TVS는 ESD2CAN24-Q1, 종단60.4Ω×2+4.7nF는 차량 중간 노드에서 모두 DNP다. CMC는 회로에 필수 부품으로 추가하지 않았으며 실측 EMC 문제가 있을 때 PCB 개정으로 검토한다.
 
 MAX3055는 **검증된 ISO11898-3 저속 FT bus에만** 연결한다. CAN3의 FDCAN controller는 Classic CAN/125kbps로 운용하며 FD frame을 쓰지 않는다. STB=AUTO5V, EN 외부10k pull-down으로 reset에서 Power-On Standby다. BATT=PROTECTED_VBAT, WAKE pull-up, INH은 별도 관찰/방전 경로, ERR은 STM 필수 입력이다. RTH→CANH/RTL→CANL에 각각4.7k가 기본 FIT이며 기존 차량 네트워크의 등가 종단·노드 수를 측정해 검증한다. CANH–CANL 120Ω은 절대 사용하지 않는다. 4.7k는 전체망100Ω을 단독으로 만든다는 뜻이 아니다.
 
-MAX3055 RXD/ERR은 SN74LVC2G17의 5.5V tolerant/Ioff 입력을 거친다. 과거 저항 분압안으로 MCU 무전원 역급전 안전을 증명하지 않는다. FT TX/EN은 AUTO5V에서 동작하는 **SN74LV1T125**를 써서 output이 MAX 자체 rail을 따른다. 3.3V 별도 reservoir가 MAX pin을 VCC+0.3V 위에 오래 유지시키는 경로를 줄인다. FD TX/STB는 PHY3V3의 SN74LVC2G125로 격리한다.
+MAX3055 RXD/ERR은 SN74LVC2G17의 5.5V tolerant/Ioff 입력을 거친다. 과거 저항 분압안으로 MCU 무전원 역급전 안전을 증명하지 않는다. FT TX/EN은 AUTO5V의 **SN74AHCT1G126-Q1**(주문 MPN `CAHCT1G126DBVRQ1`)을 써서 output이 MAX 자체 rail을 따른다. U28 OE=TX_PERMIT, U29 OE=RX_ALLOWED로 **HIGH일 때만** 구동하며 pin1마다1k GND pull-down을 둔다. PHY3V3가 사라지면 Ioff 상태의 허용 논리 출력과 무관하게 OE가 LOW로 수렴하고 TXD=HIGH/EN=LOW가 된다. 기존 `/OE`를 PHY3V3에 pull-up한 FT 연결은 전원 소실 시 반대로 enable되므로 폐기했다. FD TX/STB는 PHY3V3의 SN74LVC2G125를 유지한다. AHCT 출력의 일반적 Ioff를 주장하지 않으며 MAX와 같은 AUTO5V에 묶어 별도3.3V reservoir의 역급전 경로를 줄인다.
 
 ```text
 RX_ALLOWED = AUTO_GOOD & SYS_RESET_N & PHY_RESET_N
@@ -69,6 +71,8 @@ ARM_CLEAR_N = ARM_HEALTH_N & PHY_RESET_N & physical_TX_ARM
 ARM_LATCH = DFF(D=1, CLK=STM_ARM_EDGE, asynchronous_clear=ARM_CLEAR_N)
 TX_PERMIT = ARM_LATCH & ARM_CLEAR_N & RX_ALLOWED
 TX_OE_N = !TX_PERMIT
+FT_TX_OE = TX_PERMIT  (pin1 external1k pulldown)
+FT_EN_OE = RX_ALLOWED (pin1 external1k pulldown)
 ```
 
 CAN capture용 PHY normal과 차량 TX permit은 별개다. ARM shunt가 없어도 정상 전원에서 수신할 수 있고, 세 TX buffer는 off/recessive다. physical arm 해제·전원·reset·watchdog 실패가 latch를 지운다. WDO가 회복되거나 전압이 돌아와도 **새로운 STM ARM 상승 edge 없이는 송신이 복귀하지 않는다**. CLK가 HIGH 고착되어도 재무장 edge가 생기지 않는다.
@@ -84,6 +88,7 @@ TPS3431 CWD=120pF C0G5%, nominal64.288ms, capacitor tolerance/10pF stray/IC9.5%�
 | ESP hang | STM 안전 정책/lease 만료로 TX stop | STM이 UART 장애를 health에 포함하는 FW |
 | STM hang | 외부 watchdog 후 latch clear, GPIO pull로 recessive | <100ms end-to-end 실제 측정 |
 | 자동차5V 저하 | AUTO_GOOD off, RX/TX 차단, GPS 전원 off | 빠른 dV/dt, supervisor 지연, MAX logic abs max |
+| PHY3V3만 소실, AUTO5V/MCU 정상 | FT active-high OE pull-down→TXD recessive/EN disabled | LDO short, 양 MCU 요청 HIGH/펄스 고착, 하강 지연·glitch 실측 |
 | 정상 형식의 잘못된 반복 송신 | watchdog만으로 차단 못 할 수 있음 | STM executor rate limit·local precondition |
 | gate IC 출력 short/PHY 내부 고장 | 단일 hard gate로 모든 단일고장 보장 불가 | fault injection, dominant timer, CAN bus 격리 필요성 재평가 |
 

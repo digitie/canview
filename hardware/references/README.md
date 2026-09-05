@@ -1,6 +1,6 @@
 # R1 제조사 원문 참조색인
 
-2026-09-05 기준 `pdf/`에 저장된 **PDF 54개, 총 1,709쪽**의 사용처를 연결한다. [manifest](manifest.json)의 저장 문서 54개와 실제 파일을 대조했다. [참조 입력](../../tools/hardware/references.json)은 56개 항목이며, 그중 AN5093와 MAX20040 단독 회로도는 저장되지 않았다. 최신 MAX Rev 16과 land 90-0409의 미확보 상태는 아래에서 별도로 관리한다. 이 색인은 회로·PCB 제작 승인서가 아니다.
+2026-09-05 기준 `pdf/`에 저장된 **PDF 56개, 총 1,745쪽**의 사용처를 연결한다. [manifest](manifest.json)의 저장 문서 56개와 실제 파일을 대조한다. [참조 입력](../../tools/hardware/references.json)은 58개 항목이며, 그중 AN5093와 MAX20040 단독 회로도는 저장되지 않았다. 최신 MAX Rev 16과 land 90-0409의 미확보 상태는 아래에서 별도로 관리한다. 이 색인은 회로·PCB 제작 승인서가 아니다.
 
 ## 정본과 읽는 방법
 
@@ -16,7 +16,7 @@
 
 MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 인쇄 78쪽 전원 절은 PDF 81쪽이다. 이 보정을 다른 PDF나 별도의 Xsens GNSS 응용 노트에 일괄 적용하지 않는다.
 
-## 1. 차량 입력·보호·AUTO5V — 12개
+## 1. 차량 입력·보호·AUTO5V — 13개
 
 [Communicator 회로 §2~3](../../docs/hardware/r1/communicator-circuit.md)의 출처다. 제조사 응용회로를 출발점으로 쓰되 TVS 에너지, FET SOA, 보상 루프와 기동 조건은 실제 운용점에서 별도 검증한다.
 
@@ -25,7 +25,8 @@ MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 
 | [lm7480](pdf/lm7480.pdf#page=3) / 46 | 3쪽 §6 핀, 4~9쪽 §7 정격·전기 특성, 29~32쪽 §10.3 공통 소스 응용, 35쪽 배치, 43~45쪽 DRR 도면·land·paste | LM74800과 공통 소스 FET 2개, OV 차단·VS/CAP 공급에 반영. EP는 FLOAT이며 일반 land 예시를 이유로 GND via를 넣지 않는다. 전류 제한 기능으로 해석하지 않는다. |
 | [lm7480-evm](pdf/lm7480-evm.pdf#page=4) / 15 | 4쪽 §3/Fig. 3-1 회로, 9~10쪽 §6.1 배치, 11~12쪽 BOM | 공통 소스 연결·부품 선택 참고. EVM의 CS 15nF는 그대로 채택하지 않고 아래 TI 교정 사례와 데이터시트에 따라 1µF로 반영했다. |
 | [lm7480-surge](pdf/lm7480-surge.pdf#page=7) / 13 | 4~6쪽 Design #1~2, 7쪽 Design #3 공통 소스·load dump | 공통 드레인/단일 이상 다이오드와 구분해 공통 소스 구성을 선택. 예제의 200V 표기는 R1의 surge 시험 통과 근거가 아니다. |
-| [buk9y12-100e](pdf/buk9y12-100e.pdf#page=2) / 13 | 2쪽 §5 핀, 2~4쪽 한계·SOA/Fig. 3, 5쪽 과도 열 특성, 10쪽 §11 SOT669 외형 | Q1/Q2의 100V LFPAK56, S/G/드레인 베이스 대응에 반영. RDS(on)만으로 load-dump 생존을 승인하지 않는다. |
+| [buk9y12-100e](pdf/buk9y12-100e.pdf#page=2) / 13 | 2쪽 §5 핀·§8 DC VGS ±10V, 4쪽 SOA, 10쪽 SOT669 | **교체·미채택**: LM74800의 지속 게이트 구동 정격에 부족하다. 최초 후보 감사 근거로만 보존한다. |
+| [buk7y12-100e](pdf/buk7y12-100e.pdf#page=2) / 13 | 1쪽 RDS(on), 2쪽 §5 핀·§8 **DC VGS ±20V**, 4쪽 SOA, 10쪽 SOT669 | 수정 Q1/Q2, 100V·12mΩ@10V, 기존과 같은 LFPAK56. LM 최대14.5/13V와 DC 정격을 대조했으며 pulse SOA/실측 승인은 별개다. |
 | [bas21h](pdf/bas21h.pdf#page=2) / 10 | 2쪽 §2 핀, 3~5쪽 정격·특성, 6~7쪽 §9·11 외형·납땜 land | LM74800 CS→VS bootstrap 공급의 200V 다이오드. 극성과 SOD123F를 보존한다. |
 | [bzt52h](pdf/bzt52h.pdf#page=2) / 14 | 2쪽 §5 핀, 4~10쪽 §8~10 정격·제너 특성, 11쪽 §11~12 외형·land | VS의 47V 제너 clamp에 반영. 제너 허용차·전류·손실을 포함해 검증하며 nominal 47V만으로 보호 완료를 주장하지 않는다. |
 | [littelfuse-451](pdf/littelfuse-451.pdf#page=2) / 4 | 2쪽 품목별 전기 정격·I²t, 3쪽 시간/전류·온도 곡선, 4쪽 치수·권장 패드 | 0451001.MRL 1A와 Nano2 패키지에 반영; 1206 대체 금지. **2023-09-18 구판**, 확인된 공식 2025-12-01 개정과 다르다. 외부 하네스 퓨즈와 협조 시험이 남아 있다. |
@@ -45,13 +46,13 @@ MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 
 | [murata-dfe252012](pdf/murata-dfe252012.pdf#page=1) / 1 | 1쪽 DFE252012P 규격·2.2µH 품목·치수·권장 패드 | 시스템 buck의 2.2µH 후보와 land 참조. 실제 공급 MPN의 전류·높이·유효 L 확인이 필요하다. |
 | [tps2116](pdf/tps2116.pdf#page=3) / 25 | 3쪽 핀, 4~6쪽 정격·전기 특성, 12~15쪽 §7.6/§8 우선선택·응용, 17쪽 배치 | AUTO5V 우선/USB 보조 mux와 역류 차단. ST를 PGOOD로 쓰지 않으며 전환 중 droop·유한 역류 응답을 시험한다. |
 | [tps2553](pdf/tps2553.pdf#page=13) / 33 | 3쪽 핀, 4~6쪽 정격, 13~14쪽 §8.5.1/Fig. 22 ILIM, 16~21쪽 응용, 30~32쪽 DBV 외형·land·paste | USB 약1A 및 GPS 전류 제한. RILIM 오차/최소·최대를 반영한다. current limit는 과전압 보호가 아니며 무조건 자동 재시도 회로를 복제하지 않는다. |
-| [tusb320lai](pdf/tusb320lai.pdf#page=3) / 38 | 3쪽 핀, 10쪽 모드 표, 11쪽 §7.2.2 전류 광고, 14쪽 §7.3.3 dead battery, 26~29쪽 UFP 응용·전원·배치 | PORT=GND, ADDR=NC GPIO sink와 내부 Rd. OUT1 광고에 따라 전원을 허용한다. 외부 Rd 중복·A-to-C/default-current 기동·고전압 PD 협상은 채택하지 않는다. |
-| [tps7a20](pdf/tps7a20.pdf#page=3) / 63 | 3~4쪽 패키지별 핀, 5~7쪽 정격, 27~31쪽 §7 커패시터·손실·응용/배치 | PHY/GPS 전원 도메인 및 원격 mic 3.3V/1.8V LDO에 사용. SYS3V3와 PHY3V3를 합치지 않고 dropout·열·역급전을 검증한다. |
+| [tusb320lai](pdf/tusb320lai.pdf#page=3) / 38 | 3쪽 핀, **4쪽 VDD2.7~5.0V**, 10쪽 모드 표, 11쪽 §7.2.2 전류 광고, 14쪽 §7.3.3 dead battery, 26~29쪽 UFP 응용·전원·배치 | PORT=GND, ADDR=NC GPIO sink와 내부 Rd. U16 USB전용3.3V로 감지부를 공급하며 VBUS 직결 금지. 외부 Rd 중복·default-current 기동·고전압 PD 협상은 채택하지 않는다. |
+| [tps7a20](pdf/tps7a20.pdf#page=3) / 63 | 3~4쪽 패키지별 핀, 5~7쪽 정격, 27~31쪽 §7 커패시터·손실·응용/배치 | USB CC 사전감지/PHY/GPS 및 원격 mic LDO. USB CC용은3k로최소1mA 부하를 두어6쪽 ±1.5% 조건을 맞춘다. 각 도메인을 합치지 않는다. |
 | [tlv803e](pdf/tlv803e.pdf#page=4) / 52 | 4~5쪽 DPW 포함 핀, 8~9쪽 임계·reset 시간, 17~19쪽 reset 동작, 20쪽 응용 | SYS/PHY 3.3V reset의 A30 3.08V, release 130~270ms 기준. USB 선연결 뒤 PHY 기동도 초기화하며 MCU 내부 BOR만으로 대체하지 않는다. |
 | [tps3700](pdf/tps3700.pdf#page=4) / 27 | 4쪽 핀, 6~7쪽 정확도·타이밍, 13~18쪽 분압·응용 | PROTECTED_VBAT 약8V 판정. 임계·누설·저항 오차를 포함한다. 최종 AUTO5V의 좁은 창은 별도 TPS3890이 맡는다. |
 | [tps3890](pdf/tps3890.pdf#page=5) / 27 | 3쪽 핀, 5쪽 §7.5~7.6, 12~16쪽 지연·동작·응용, 24~26쪽 DSE 외형·land·paste | AUTO5V의 1.15V 기준 supervisor와 CT 회복 지연. 하락 지연 max 미명시·작은 collapse 여유를 남은 시험 조건으로 유지한다. |
 
-## 3. CAN 물리계층·독립 TX 차단 — 11개
+## 3. CAN 물리계층·독립 TX 차단 — 12개
 
 [Communicator 회로 §5~6](../../docs/hardware/r1/communicator-circuit.md)의 근거다. 수신 허용과 차량 송신 허용은 별개이며, 데이터시트의 기능만으로 차량별 bus 종류나 고장 안전성을 확정하지 않는다.
 
@@ -63,7 +64,8 @@ MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 
 | [esd2can24](pdf/esd2can24.pdf#page=3) / 26 | 3쪽 핀, 4~6쪽 정격·용량, 12~13쪽 §7~9 응용·배치 | CAN 포트 ESD 보호와 짧은 return. ESD 정격을 차량 load-dump 전력 흡수 능력으로 해석하지 않는다. |
 | [sn74lvc2g125](pdf/sn74lvc2g125.pdf#page=4) / 30 | 4쪽 핀, 5~7쪽 정격·Ioff, 11쪽 기능, 12~14쪽 응용/OE·배치 | FD TX/STB와 GNSS 전원 도메인 격리. 상대 rail과 OE 기본 pull을 함께 설계하며 단순 버퍼 추가만으로 전원 순열 시험을 대신하지 않는다. |
 | [sn74lvc2g17](pdf/sn74lvc2g17.pdf#page=3) / 36 | 3쪽 핀, 4~5쪽 정격·입력/Ioff, 8~11쪽 기능·응용 | MAX3055 RXD/ERR 및 도메인 sense의 5V tolerant Schmitt 입력. 무전원 안전 근거 없는 단순 저항 분압안을 배제한다. |
-| [sn74lv1t125](pdf/sn74lv1t125.pdf#page=4) / 26 | 4쪽 핀, 5~6쪽 입력 허용 범위·TTL 임계, 12~13쪽 기능·전원 | FT TX/EN 출력을 MAX3055 자체 AUTO5V rail에 맞춘다. 입력 tolerance와 일반적인 출력 Ioff 보장을 혼동하지 않는다. |
+| [sn74lv1t125](pdf/sn74lv1t125.pdf#page=4) / 26 | 4쪽 핀, 5~6쪽 정격·입력 임계, 12~13쪽 기능·전원 | **교체·미채택**: 과거 FT gate 후보 감사용. 별도 PHY3V3의 active-low OE pull-up은 해당 rail 소실 시 fail-open이므로 사용 금지. |
+| [sn74ahct1g126-q1](pdf/sn74ahct1g126-q1.pdf#page=3) / 23 | 3쪽 핀, 4~5쪽 VCC3~5.5V·VIH2V·입력누설, 8쪽 active-high OE/필수 pull-down, 13쪽 주문 MPN, 20~22쪽 DBV 도면 | 수정 U28/U29, AUTO5V 공급·OE마다1k GND. 주문명 CAHCT1G126DBVRQ1을 보존한다. 출력 Ioff를 추정하지 않는다. |
 | [sn74lvc1g04](pdf/sn74lvc1g04.pdf#page=3) / 47 | 3쪽 핀, 4~6쪽 정격, 10~12쪽 진리표·응용 | TX_PERMIT→active-low OE 및 논리 극성 변환. reset/무전원 외부 pull을 생략하지 않는다. |
 | [sn74lvc1g11](pdf/sn74lvc1g11.pdf#page=3) / 37 | 3쪽 핀, 4~5쪽 정격, 9쪽 진리표, 10~12쪽 응용 | rail/reset/물리 ARM/watchdog의 hardware AND에 반영. 소프트웨어 flag 하나로 permit을 우회하지 않는다. |
 | [sn74lvc1g74](pdf/sn74lvc1g74.pdf#page=4) / 31 | 4쪽 핀(Q=5, 반전 Q=3), 6~8쪽 동작·타이밍, 10쪽 비동기 clear 진리표 | 고장 시 arm latch clear, 회복 뒤 새로운 STM 상승 edge로만 재무장. watchdog 회복에 따른 자동 TX 복귀를 배제한다. |
@@ -115,13 +117,13 @@ MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 
 
 | 저장 PDF / 전체 쪽수 | 정확한 참조 쪽·절 | 배제 사유 |
 |---|---|---|
-| [sn74lvc125a](pdf/sn74lvc125a.pdf#page=3) / 37 | 3쪽 핀, 4~6쪽 정격, 9~12쪽 tri-state/OE 응용 | 과거 4채널 TX gate 비교 근거. 현재 R1은 도메인별 SN74LVC2G125/SN74LV1T125를 사용하므로 이 문서를 현재 buffer pinmap에 적용하지 않는다. |
+| [sn74lvc125a](pdf/sn74lvc125a.pdf#page=3) / 37 | 3쪽 핀, 4~6쪽 정격, 9~12쪽 tri-state/OE 응용 | 과거 4채널 TX gate 비교 근거. 현재 R1은 SN74LVC2G125/SN74AHCT1G126-Q1이므로 이 문서를 현재 buffer pinmap에 적용하지 않는다. |
 | [sn74ahct1g125](pdf/sn74ahct1g125.pdf#page=3) / 26 | 3쪽 핀, 4~5쪽 정격·전기 특성, 8~11쪽 기능·응용 | FT TX/EN 비교 후 미채택. 명시되지 않은 Ioff/무전원 보호를 부품 계열명에서 추정하지 않는다. |
 | [tps3808](pdf/tps3808.pdf#page=6) / 39 | 6~7쪽 전기 특성, 10~13쪽 임계·히스테리시스·reset 동작, 14~15쪽 응용 | Rev N 비교본. 좁은 FT 5V 판정 창의 최악 정확도·히스테리시스 조건 때문에 미채택; 최종 AUTO5V 판정은 TPS3890을 참조한다. |
 
 ## 8. 저장되지 않은 원문과 웹 열람 근거
 
-아래 항목은 **54개 저장 PDF에 포함하지 않는다**. manifest의 `failures`는 AN5093/단독 schematic 두 항목만 담으므로, 그 배열만 보고 최신 개정·land 원문이 모두 확보됐다고 판단하면 안 된다. 이번 색인 작업에서는 새 다운로드를 시도하지 않았다.
+아래 항목은 **56개 저장 PDF에 포함하지 않는다**. manifest의 `failures`는 AN5093/단독 schematic 두 항목만 담으므로, 그 배열만 보고 최신 개정·land 원문이 모두 확보됐다고 판단하면 안 된다. 후속 적대적 리뷰 수정에서 BUK7Y12와 AHCT1G126-Q1 원문2개를 추가 확보했다.
 
 | 원문·공식 경로 | 확인 범위와 남은 제한 |
 |---|---|
@@ -138,6 +140,7 @@ MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 
 | 근거 링크 | 반영·주의 |
 |---|---|
 | [TI E2E — LM7480-Q1 DGATE Voltage unstable](https://e2e.ti.com/support/power-management-group/power-management/f/power-management-forum/1575206/lm7480-q1-dgate-voltage-unstable) | TI 답변은 EVM CS 15nF를 1µF로 교정하고 사용자는 A pin 가까이에 적용 후 개선을 보고했다. R1 CS 1µF의 근거다. 글 중 charge-pump 100nF→1µF 시도는 효과가 없었다고 보고됐으므로 CS 교정과 혼동하지 않는다. |
+| [TI E2E — TUSB320 VBUS 직접 공급 문의](https://e2e.ti.com/support/interface-group/interface/f/interface-forum/936742/tusb320-maximum-recommended-vdd-is-5v-where-the-usb-voltage-may-be-up-to-5-25v-can-the-vbus-supply-the-chip) | TI 지원자가 VDD 권장 범위 준수를 위해 외부 LDO를 권고한다. 수정 R1의 USB_CC3V3 사전 공급과 연결되며 absolute max6V를 정상 운용 상한으로 쓰지 않는다. |
 | [ST Community — PG10-NRST를 NRST로 구성하는 방법](https://community.st.com/stm32cubemx-mcus-29/how-we-should-do-to-configure-the-pg10-nrst-pin-as-nrst-we-just-choise-gpio-input-60075) | PG10/NRST 기능이 option byte와 관련됨을 확인하는 사례. R1은 NRST 기능을 보존한다. ST 답변도 RM0440 개정에 따라 절 번호가 바뀌었음을 지적하므로 옛 게시글 절 번호를 현재 RM 절로 복사하지 않는다. |
 | [ST Community — STM32G474RE PG10 MCO 사례](https://community.st.com/stm32cubemx-mcus-29/how-to-use-mco-at-pg10-nrest-pin-with-stm32g474re-init-code-from-stm32cubemx-always-works-at-pa8-pin-as-mco-function-61312) | PG10를 GPIO/MCO로 돌리면 외부 reset과 debugger의 hardware-reset 접속을 잃을 수 있다는 사용자 사례다. 해당 전환 코드를 R1에 적용하지 않는다. |
 
@@ -145,7 +148,7 @@ GNSS 하네스의 최신 제품별 접점 설명은 [Holybro 공식 UART F9P pin
 
 ## 10. 실제 읽음·검증 범위와 저작권
 
-Windows native KiCad Python 3.11.5에 `.tools/hardware-python`의 PyMuPDF 1.26.4를 로드해 54개 파일의 `%PDF`, 바이트 수, SHA-256을 manifest와 비교했고 모두 일치했다. 1,709쪽을 열어 문자 추출을 수행했다. 색인에는 목차/책갈피, 위 참조 쪽의 절·표제와 선택한 핵심 문구를 확인한 범위를 기록했다. **전체 원문 정독, 모든 표 셀·각주 대조, 모든 그림 육안 검토 또는 land 치수 overlay를 끝냈다는 뜻은 아니다.**
+Windows native KiCad Python 3.11.5에 `.tools/hardware-python`의 PyMuPDF 1.26.4를 로드해 최초54개 파일의 `%PDF`, 바이트 수, SHA-256과1,709쪽 문자 추출을 검증했다. 이후 추가 원문2개를 포함한56개/1,745쪽 재검증은 [검증 기록](../../docs/hardware/r1/verification.md)에 남긴다. 색인에는 절·표제와 선택한 핵심 문구를 확인한 범위를 기록했다. **전체 원문 정독, 모든 표 셀·각주 대조, 모든 그림 육안 검토 또는 land 치수 overlay를 끝냈다는 뜻은 아니다.**
 
 문자 추출이 비어 있는 쪽은 `sn74lvc125a` 29쪽, `sn74lvc1g04` 26쪽, `tlv803e` 42쪽, `tps3431` 27쪽, `tps7a20` 56쪽의 5쪽이다. 파일 손상으로 단정하지 않았고 이 쪽들의 OCR/도면 검증 완료도 주장하지 않는다. 제조사 package 도면·부품 변형·reflow/paste와 전원 정격 최악 조건의 최종 승인은 [제작 전 조건](../../docs/hardware/r1/verification.md)에 남긴다.
 

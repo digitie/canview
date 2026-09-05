@@ -27,7 +27,7 @@
 - vehicle harness adapter pinout과 board connector
 - MAX3055 WAKE/INH/ERR 처리
 - vehicle power와 USB VBUS 동시 인가 시 역급전 방지와 data/service 전원 정책
-- three-channel tri-state TXD gate, output pull-up, default-disable `/OE`, physical TX_ARM, rail-good와 100 ms 이하 외부 watchdog/monostable
+- three-channel tri-state TXD gate, output pull-up, FD active-low `/OE`/FT active-high `OE`의 default-disable, physical TX_ARM, rail-good와 100 ms 이하 외부 watchdog/monostable
 - hard gate sense용 free STM32 pin
 - regulator compensation/thermal, reset line capacitance, UART series resistor
 - CAN termination population variant

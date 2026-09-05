@@ -135,7 +135,7 @@
           null
         ],
         "25": [
-          "RXD44_NC",
+          "TXD43_NC",
           "passive",
           null
         ],
@@ -145,7 +145,7 @@
           null
         ],
         "27": [
-          "TXD43_NC",
+          "RXD44_NC",
           "passive",
           null
         ],

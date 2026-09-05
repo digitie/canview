@@ -42,7 +42,8 @@
   {"id":"tusb320lai", "url":"https://www.ti.com/lit/ds/symlink/tusb320lai.pdf", "use":"sink GPIO mode, OUT1 current advertisement, dead-battery Rd and pin/package"},
   {"id":"tpd2e2u06", "url":"https://www.ti.com/lit/ds/symlink/tpd2e2u06.pdf", "use":"USB/GNSS/LVDS ESD protection pins and capacitance"},
   {"id":"bourns-psmf", "url":"https://www.bourns.com/docs/product-datasheets/mfpsmf.pdf", "use":"microphone cable resettable fuse100mA, trip/temperature/voltage rating"},
-  {"id":"sn74lv1t125", "url":"https://www.ti.com/lit/ds/symlink/sn74lv1t125.pdf", "use":"FT TX/EN track own5V rail, independent tolerant input, TTL thresholds pp3,5-6"},
+  {"id":"sn74lv1t125", "url":"https://www.ti.com/lit/ds/symlink/sn74lv1t125.pdf", "use":"superseded FT buffer candidate; active-low OE cross-domain failure. Not fitted in corrected R1"},
+  {"id":"sn74ahct1g126-q1", "url":"https://www.ti.com/lit/ds/symlink/sn74ahct1g126-q1.pdf", "use":"pp3-5 pins,3..5.5V,TTL,input tolerance; p8 OE high + pulldown; p13 orderable CAHCT1G126DBVRQ1; corrected FT fail-closed buffer"},
   {"id":"sn74ahct1g125", "url":"https://www.ti.com/lit/ds/symlink/sn74ahct1g125.pdf", "use":"evaluated but not selected; no inferred Ioff guarantee"},
   {"id":"tps3808", "url":"https://www.ti.com/lit/ds/symlink/tps3808.pdf", "use":"evaluated but not selected: RevN worst-case accuracy/hysteresis unsuitable for narrow FT5V qualification"},
   {"id":"tps3890", "url":"https://www.ti.com/lit/ds/symlink/tps3890.pdf", "use":"AUTO5V supervisor pp3,5;1.15V adjustable threshold±1%; DSE footprint"},
@@ -52,7 +53,8 @@
   {"id":"smbj", "url":"https://www.vishay.com/docs/88392/smbj.pdf", "use":"SMBJ36CA standoff/clamp current/energy and SMB package"},
   {"id":"bas21h", "url":"https://assets.nexperia.com/documents/data-sheet/BAS21H.pdf", "use":"LM74800 CS to VS bootstrap diode200V, SOD123F"},
   {"id":"bzt52h", "url":"https://assets.nexperia.com/documents/data-sheet/BZT52H_SER.pdf", "use":"47V VS clamp zener limits, SOD123F"},
-  {"id":"buk9y12-100e", "url":"https://assets.nexperia.com/documents/data-sheet/BUK9Y12-100E.pdf", "use":"100V LFPAK56 reverse/OV FET pin map and SOA"},
+  {"id":"buk9y12-100e", "url":"https://assets.nexperia.com/documents/data-sheet/BUK9Y12-100E.pdf", "use":"rejected: DC VGS +/-10V is insufficient for LM74800 continuous gate drive; keep original audit evidence"},
+  {"id":"buk7y12-100e", "url":"https://assets.nexperia.com/documents/data-sheet/BUK7Y12-100E.pdf", "download_url":"https://assets.nexperia.com/documents/data-sheet/BUK7Y12-100E.pdf?download=1", "use":"pp1-2 100V,DC VGS +/-20V,pins; p4 SOA; p10 SOT669. Replaces BUK9Y12-100E without footprint enlargement"},
   {"id":"coilcraft-xal5030", "url":"https://www.coilcraft.com/getmedia/49bc46c8-4b2c-45b9-9b6c-2eaa235ea698/xal50xx.pdf", "use":"4.7uH buck-boost inductor current ratings and pad geometry"},
   {"id":"murata-dfe252012", "url":"https://www.murata.com/-/media/webrenewal/products/inductor/chip/tokoproducts/wirewoundmetalalloychiptype/m_dfe252012pd.ashx?la=en", "use":"2.2uH system buck reference, land pattern and current ratings"}
 ]

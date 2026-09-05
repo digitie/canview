@@ -23,9 +23,9 @@ J1,GEN-2x16-MALE-2.54,21,GPIO47_NC,passive,NC,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,22,RESET_NC,passive,NC,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,23,GPIO48_NC,passive,NC,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,24,PWR_NC,passive,NC,01_waveshare_header
-J1,GEN-2x16-MALE-2.54,25,RXD44_NC,passive,NC,01_waveshare_header
+J1,GEN-2x16-MALE-2.54,25,TXD43_NC,passive,NC,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,26,SCL7_NC,passive,NC,01_waveshare_header
-J1,GEN-2x16-MALE-2.54,27,TXD43_NC,passive,NC,01_waveshare_header
+J1,GEN-2x16-MALE-2.54,27,RXD44_NC,passive,NC,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,28,SDA8_NC,passive,NC,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,29,GND,passive,GND,01_waveshare_header
 J1,GEN-2x16-MALE-2.54,30,GND,passive,GND,01_waveshare_header
