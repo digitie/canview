@@ -6,6 +6,10 @@
 
 ### Added
 
+- Communicator·Bridge·Controller adapter·원격 I²S mic의 KiCad10 상세 회로·PDF·netlist·BOM·local footprint와 교차 검증기를 추가했다.
+- 차량/USB 전원 분리, brownout/watchdog 재무장 latch, 외장 GNSS·MTi7 DR·BMP384와 상세 FW 핀맵을 추가했다. 제작·차량 시험 gate는 미완료다.
+- 센서 protocol 확장 schema, host codec·golden 시험, 구독 적용 응답·재시도·예산 설계와 T-100b를 추가했다.
+- 제조사 원문 PDF·출처/개정/hash와 참조 절, 미확보 원문 및 footprint 검증 제한을 기록했다.
 - kor-travel-geo 방식의 에이전트 운영 문서 구조를 추가했다.
 - 상위 아키텍처, ADR, runbook, resume, journal 정본을 추가했다.
 - 열린 task 요약을 docs/tasks.md로 분리하고 상세 task 파일은 docs/tasks/에 유지했다.

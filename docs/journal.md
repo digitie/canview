@@ -1,5 +1,39 @@
 # CANView 작업 일지
 
+## 2026-09-05 (codex, R1 상세 회로·센서 확장)
+
+**범위**: 사용자가 명확히 선택한 가격보다 소형화 우선 기준으로 네 보드 회로·local footprint·BOM·FW 핀맵과 센서 protocol을 작성했다. 이전 작업자의 KiCad version/Windows 문서·S3 footprint 수정을 유지하고 합쳤다. `embedded-architecture`와 `embedded-documentation` 원칙에 따라 센서 owner, wire 정본, 실측 gate와 후속 task를 분리했다.
+
+**설계**: 자동차/USB-C 전원 mux, automotive-only PHY/GPS, MAX20040 adjustable5.0875V/외부 bootstrap diode, TCAN1046 DYY pin 수정, reset/rail/WD latch 차단, MAX3055 자체 rail을 따르는 TX/EN gate,24개 테스트 패드. MTi7 DR+BMP384 AUX SPI, cased GPS UART/PPS, LVDS 원격 T5848 mic, 기존 Waveshare RTC 재사용. 전원·센서 경계는 ADR-006이다.
+
+**검증**:
+
+- Windows KiCad10.0.6 `tools/hardware/export-review.ps1`: 네 보드 ERC0개, waiver0개, 총333개 BOM item(테스트 패드·DNP 포함)/1,209 named pad의 net·pad·BOM 정합성 PASS. source에서 XML/sexpr/PDF를 재생성했다.
+- `tools/hardware/check_margins.py`:5V/supervisor/OV/WD 정적 계산 통과. FB 누설 가정과 빠른 collapse 지연·ripple·SOA 미포함을 명시했다.
+- Windows Python `-m unittest discover -s tools/protocol -p test_navigation_codec.py -v`:12개 host 시험 통과. 실제 session allocator/cache·role 검사·RF/STM 통합 구현은 T-100b 후속이다.
+- 제조사 PDF54개,1,709쪽,93,272,603byte의 전체 페이지 parse·SHA-256·크기 검사 오류0. 미확보2건과 최신판/land 미확보는 별도 기록했다.
+- 회로 PDF의 diode 극성과 global label 방향을 눈으로 확인하고 preview를 실제 export에서 다시 만들었다. native exporter 순서 race는 `Start-Process -Wait`와 독립 netlist 검사로 수정했다.
+- CodeGraph의 현재 연결은 다른 프로젝트이므로 사용하지 않았다. `rg`, source/schema 참조, local link 검사와 독립 export 검사로 영향 범위를 확인했다. WSL은 검색·patch·다운로드 보조, 생성/검증/Git은 Windows executable이다.
+
+**남은 조건**: MAX20040 land90-0409 원본 overlay, 구판/미확보 원문, 구매 R/C·harness·PCB/열/loop/SOA·HIL은 미완료다. T-100은 IN_PROGRESS, T-100b는 BLOCKED를 유지한다. 실제 보드·오실로스코프·차량이 없는 상태를 시험 완료로 표시하지 않는다. 전문2인 immutable 적대적 리뷰 결과는 별도 archive에 기록한다.
+
+## 2026-09-05 (codex)
+
+**작업**: 최신 Windows EDA export와 Communicator 회로 산출물 정합성 보정
+
+**변경**:
+
+- KiCad `10.0.6`을 현재 안정 EDA baseline으로 manifest와 문서에 고정하고, `export-review.ps1`로 생성기·XML netlist·ERC JSON·PDF export를 한 번에 재현하게 했다.
+- STM32 UFQFPN48 7번 패드 표기를 공식 `PG10-NRST` 이중 기능으로 맞췄다.
+- ESP32-S3-MINI-1-N4R2에 S2 footprint를 사용하던 참조를 제거하고, Espressif 공식 S3 land pattern 기반 전용 footprint로 교체했다.
+- `09_can_ft`와 `14_can_connectors`를 생성기 호출 순서와 동일하게 분리해 11개 hierarchical sheet, BOM, pinmap, connectivity, schematic, netlist가 같은 입력에서 나오도록 갱신했다.
+
+**검증**:
+
+- Windows KiCad bundled Python과 KiCad CLI `10.0.6`으로 생성·netlist·ERC·PDF export를 실제 실행했다.
+- ERC는 23개 violation을 보고했다. 기존 power/isolated-label 및 PCB·SI·transient 미검증 gate가 남아 있어 제작·차량 연결 승인은 아니다.
+- ESP-IDF/STM32 target compile은 현재 셸에 해당 host tool이 없어 미실행으로 유지했다.
+
 ## 2026-09-05 (codex)
 
 **작업**: 최신 Windows 임베디드 개발환경과 target build bootstrap 구성

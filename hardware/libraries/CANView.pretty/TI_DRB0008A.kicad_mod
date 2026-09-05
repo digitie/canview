@@ -16,5 +16,5 @@
 (pad "" smd rect (at 0.375 -0.4375) (size 0.5700000000000001 0.665) (layers "F.Paste"))
 (pad "" smd rect (at 0.375 0.4375) (size 0.5700000000000001 0.665) (layers "F.Paste"))
 (fp_rect (start -1.95 -1.75) (end 1.95 1.75) (stroke (width .05) (type default)) (fill none) (layer "F.CrtYd"))
-(fp_circle (center -1.95 -2.05) (end -1.8 -2.05) (stroke (width .15) (type default)) (fill solid) (layer "F.SilkS"))
+(fp_circle (center -1.4 -2.05) (end -1.25 -2.05) (stroke (width .15) (type default)) (fill solid) (layer "F.SilkS"))
 )

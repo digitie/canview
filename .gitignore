@@ -25,4 +25,5 @@ hardware/**/*-backups/
 hardware/**/*.kicad_prl
 hardware/**/~*.lck
 tools/hardware/__pycache__/
+tools/protocol/__pycache__/
 evidence/private/

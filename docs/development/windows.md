@@ -20,7 +20,7 @@
 | host test | C11 compiler, CMake, CTest |
 | DBC/profile | Python validator와 생성기 |
 | static prototype | Windows Node의 `node --check` |
-| hardware | KiCad schematic/PCB/ERC/netlist/BOM CLI |
+| hardware | KiCad `10.0.6` schematic/PCB/ERC/netlist/BOM CLI |
 
 정확한 SDK 버전과 dependency digest는 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 고정한다. `tools/environment/setup-windows.ps1`는 해당 manifest와 checkout commit을 검증한다. STM32CubeG4_ROOT가 없는 환경에서는 STM32 image build를 성공으로 표시하지 않는다.
 

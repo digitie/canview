@@ -99,14 +99,27 @@ class Circuit:
         assert ref not in {x['ref'] for x in self.parts}, ref
         pins = {str(k): v for k, v in pins.items()}
         assert all(len(v) == 3 for v in pins.values()), ref
-        local_fp = footprint(fp) if not fp.startswith("CANView:") else fp
+        local_fp = footprint(fp) if fp and not fp.startswith("CANView:") else fp
+        # JST hold-downs are mechanical contacts, not extra signal terminals.
+        # Show their deliberate NC state instead of silently omitting named pads.
+        if fp and fp.startswith('Connector_JST:'):
+            model = parse((LIB / 'CANView.pretty' / (local_fp.split(':', 1)[1]+'.kicad_mod')).read_text(encoding='utf-8'))
+            if any(p[1] == 'MP' for p in children(model, 'pad')):
+                pins['MP'] = ['MECHANICAL_NC', 'passive', None]
         item = dict(sheet=sheet, ref=ref, value=value, footprint=local_fp, original_footprint=fp,
                     pins=pins, mpn=mpn or value, spec=spec, source=source, dnp=dnp, note=note)
         self.parts.append(item)
         return item
 
+    def power_flag(self, sheet, net, reason):
+        return self.add(sheet, self.automatic('#FLG'), 'PWR_FLAG', '',
+                        {'1':['pwr','power_out',net]}, spec='ERC source declaration, NOT a physical component',
+                        source=reason, note='External source or regulator output after a passive filter')
+
     def automatic(self, prefix):
         self.counts[prefix] = self.counts.get(prefix, 0) + 1
+        while prefix+str(self.counts[prefix]) in {p['ref'] for p in self.parts}:
+            self.counts[prefix] += 1
         return prefix + str(self.counts[prefix])
 
     def two(self, sheet, prefix, value, a, b, *, fp, mpn, spec, source="", dnp=False, note=""):
@@ -114,15 +127,16 @@ class Circuit:
                         {"1": ["1", "passive", a], "2": ["2", "passive", b]},
                         mpn=mpn, spec=spec, source=source, dnp=dnp, note=note)
 
-    def r(self, sheet, value, a, b, *, dnp=False, power="0.1W", voltage="50V", tolerance="1%", size="0402", note="", mpn=None):
+    def r(self, sheet, value, a, b, *, dnp=False, power="0.1W", voltage="50V", tolerance="1%", tempco="100", size="0402", note="", mpn=None):
         return self.two(sheet, "R", value, a, b, fp=f"Resistor_SMD:R_{size}_{'1005' if size=='0402' else '1608' if size=='0603' else '2012'}Metric",
                         mpn=mpn or f"GEN-R-{size}-{value}-{tolerance}",
-                        spec=f"{power}; {voltage}; ±{tolerance}; ±100ppm/K; -55..155C", dnp=dnp, note=note)
+                        spec=f"{power}; {voltage}; ±{tolerance}; ±{tempco}ppm/K; -55..155C", dnp=dnp, note=note)
 
     def c(self, sheet, value, a, b="GND", *, voltage="16V", dielectric="X7R", tolerance="10%", size="0603", dnp=False, note="", mpn=None):
-        return self.two(sheet, "C", value, a, b, fp=f"Capacitor_SMD:C_{size}_{'1005' if size=='0402' else '1608' if size=='0603' else '2012' if size=='0805' else '3216'}Metric",
+        metric={'0402':'1005','0603':'1608','0805':'2012','1206':'3216','1210':'3225'}[size]
+        return self.two(sheet, "C", value, a, b, fp=f"Capacitor_SMD:C_{size}_{metric}Metric",
                         mpn=mpn or f"GEN-C-{size}-{value}-{voltage}-{dielectric}",
-                        spec=f"{voltage}; ±{tolerance}; {dielectric}; -55..125C; verify effective capacitance under DC bias", dnp=dnp, note=note)
+                        spec=f"{voltage}; ±{tolerance}; {dielectric}; -55..{'85' if dielectric=='X5R' else '125'}C; verify effective capacitance under DC bias", dnp=dnp, note=note)
 
     def ic(self, sheet, ref, value, fp, names, nets, *, types=None, **kw):
         types = types or {}
@@ -132,10 +146,12 @@ class Circuit:
         assert set(nets) <= set(pins), (ref, set(nets)-set(pins))
         return self.add(sheet, ref, value, fp, pins, **kw)
 
-    def from_library(self, sheet, ref, value, fp, lib, name, nets, **kw):
+    def from_library(self, sheet, ref, value, fp, lib, name, nets, *, pin_name_overrides=None, **kw):
         pins = library_pins(lib, name)
         assert set(nets) <= set(pins), (ref, set(nets)-set(pins))
-        return self.add(sheet, ref, value, fp, {n: [*v, nets.get(n)] for n,v in pins.items()}, **kw)
+        overrides = {str(n): label for n, label in (pin_name_overrides or {}).items()}
+        return self.add(sheet, ref, value, fp,
+                        {n: [overrides.get(n, v[0]), v[1], nets.get(n)] for n,v in pins.items()}, **kw)
 
 
 def font(size=1.0, justify=""):
@@ -158,7 +174,16 @@ def symbol(part):
     if part['ref'].startswith('C') and is_two:
         geometry = ''.join(f'(polyline (pts (xy {x} -2.54) (xy {x} 2.54)) (stroke (width 0.254) (type default)) (fill (type none)))' for x in [-0.762,0.762])
         geometry += ''.join(f'(polyline (pts (xy {x} 0) (xy {y} 0)) (stroke (width 0.254) (type default)) (fill (type none)))' for x,y in [(-5.08,-0.762),(0.762,5.08)])
-    result = [f'(symbol {q(name)} (pin_names (offset 0.762)) (in_bom yes) (on_board yes)',
+    elif part['ref'].startswith('D') and is_two and 'SMBJ' not in part['value']:
+        # Pin1=cathode, pin2=anode for the selected two-terminal diodes/LED.
+        # Keep the polarity visible; a resistor-shaped box hides a critical fact.
+        geometry = '(polyline (pts (xy 2.54 -2.54) (xy -2.54 0) (xy 2.54 2.54) (xy 2.54 -2.54)) (stroke (width 0.254) (type default)) (fill (type none)))'
+        geometry += '(polyline (pts (xy -2.54 -2.54) (xy -2.54 2.54)) (stroke (width 0.254) (type default)) (fill (type none)))'
+        geometry += ''.join(f'(polyline (pts (xy {x} 0) (xy {y} 0)) (stroke (width 0.254) (type default)) (fill (type none)))' for x,y in [(-5.08,-2.54),(2.54,5.08)])
+    elif part['ref'].startswith('L') and is_two:
+        geometry = ''.join(f'(arc (start {x} 0) (mid {x+1.27} 1.27) (end {x+2.54} 0) (stroke (width 0.254) (type default)) (fill (type none)))' for x in [-5.08,-2.54,0,2.54])
+    physical='no' if part['ref'].startswith('#') else 'yes'
+    result = [f'(symbol {q(name)} (pin_names (offset 0.762){" (hide yes)" if is_two else ""}) (in_bom {physical}) (on_board {physical})',
               prop("Reference", part['ref'][0],0,height+5.08), prop("Value", part['value'],0,height+2.54),
               prop("Footprint",part['footprint'],0,0,True),
               f'(symbol {q(name + "_0_1")} {geometry})', f'(symbol {q(name + "_1_1")}']
@@ -185,9 +210,10 @@ def generate(circuit):
     for page, (sheet, note) in enumerate(circuit.sheets.items(), start=2):
         sid = uid(circuit.name + '/sheet/' + sheet)
         filename = sheet + '.kicad_sch'
-        sy = 35 + (page-2)%8 * 24
-        sx = 30 + (page-2)//8 * 185
-        root.append(f'(sheet (at {sx} {sy}) (size 160 17) (stroke (width 0.254) (type default)) (fill (color 0 0 0 0)) (uuid {q(sid)}) {prop("Sheetname",sheet,sx+80,sy-2)} {prop("Sheetfile",filename,sx+80,sy+20)} (instances (project {q(circuit.name)} (path {q("/"+root_id)} (page {q(page)})))))')
+        sy = 30 + (page-2)%11 * 22
+        sx = 17 + (page-2)//11 * 133
+        assert sx+125 < 410, 'root sheet overflow'
+        root.append(f'(sheet (at {sx} {sy}) (size 125 12) (stroke (width 0.254) (type default)) (fill (color 0 0 0 0)) (uuid {q(sid)}) {prop("Sheetname",sheet,sx+62.5,sy-2)} {prop("Sheetfile",filename,sx+62.5,sy+15)} (instances (project {q(circuit.name)} (path {q("/"+root_id)} (page {q(page)})))))')
         selected = [p for p in circuit.parts if p['sheet']==sheet]
         for p in selected:
             p['libname'] = 'CANView_' + circuit.name + '_' + p['ref']
@@ -221,7 +247,8 @@ def generate(circuit):
             _, coords, height = symbols[p['ref']]
             assert py + height < 274, (sheet,p['ref'],py,height,"page overflow; split sheet")
             instance = uid(circuit.name+'/'+p['ref'])
-            content.append(f'(symbol (lib_id {q(p["libname"])}) (at {px:.4f} {py:.4f} 0) (unit 1) (in_bom yes) (on_board yes) (dnp {"yes" if p["dnp"] else "no"}) (uuid {q(instance)}) ' + prop('Reference',p['ref'],px,py-height-5.08) + prop('Value',p['value'],px,py-height-2.54) + prop('Footprint',p['footprint'],px,py,True) + prop('MPN',p['mpn'],px,py,True) + prop('Specification',p['spec'],px,py,True) + prop('Source',p['source'],px,py,True) + prop('Assembly', 'DNP' if p['dnp'] else 'FIT',px,py,True) + f'(instances (project {q(circuit.name)} (path {q("/"+root_id+"/"+sid)} (reference {q(p["ref"])}) (unit 1)))))')
+            physical='no' if p['ref'].startswith('#') else 'yes'
+            content.append(f'(symbol (lib_id {q(p["libname"])}) (at {px:.4f} {py:.4f} 0) (unit 1) (in_bom {physical}) (on_board {physical}) (dnp {"yes" if p["dnp"] else "no"}) (uuid {q(instance)}) ' + prop('Reference',p['ref'],px,py-height-5.08) + prop('Value',p['value'],px,py-height-2.54) + prop('Footprint',p['footprint'],px,py,True) + prop('MPN',p['mpn'],px,py,True) + prop('Specification',p['spec'],px,py,True) + prop('Source',p['source'],px,py,True) + prop('Assembly', 'DNP' if p['dnp'] else 'FIT',px,py,True) + f'(instances (project {q(circuit.name)} (path {q("/"+root_id+"/"+sid)} (reference {q(p["ref"])}) (unit 1)))))')
             for number, (_, _, net) in p['pins'].items():
                 rx,ry,side = coords[number]
                 x,y = px+rx, py-ry
@@ -233,7 +260,7 @@ def generate(circuit):
                     content.append(f'(wire (pts (xy {x:.4f} {y:.4f}) (xy {end:.4f} {y:.4f})) (stroke (width 0) (type default)) (uuid {q(wireid)}))')
                     # Local labels on single-pin component islands would not link
                     # across hierarchy; explicit global labels are intentional.
-                    content.append(f'(global_label {q(net)} (shape bidirectional) (at {end:.4f} {y:.4f} {0 if side<0 else 180}) {font(.95, "left" if side<0 else "right")} (uuid {q(uid(wireid+"label"))}) {prop("Intersheetrefs","${INTERSHEET_REFS}",end,y,True)})')
+                    content.append(f'(global_label {q(net)} (shape bidirectional) (at {end:.4f} {y:.4f} {180 if side<0 else 0}) {font(.95, "right" if side<0 else "left")} (uuid {q(uid(wireid+"label"))}) {prop("Intersheetrefs","${INTERSHEET_REFS}",end,y,True)})')
         for p in selected:
             content = [line.replace('(lib_id ' + q(p['libname']) + ')', '(lib_id ' + q('CANView:' + p['libname']) + ')') for line in content]
         content.append(')')
@@ -247,7 +274,7 @@ def generate(circuit):
     with (base/'bom.csv').open('w',newline='',encoding='utf-8-sig') as f:
         fields=['ref','value','mpn','footprint','spec','source','dnp','sheet','note']
         writer=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore')
-        writer.writeheader();writer.writerows(circuit.parts)
+        writer.writeheader();writer.writerows(p for p in circuit.parts if not p['ref'].startswith('#'))
     with (base/'pinmap.csv').open('w',newline='',encoding='utf-8-sig') as f:
         writer=csv.writer(f);writer.writerow(['reference','mpn','pin','pin_name','electrical_type','net','sheet'])
         for p in circuit.parts:

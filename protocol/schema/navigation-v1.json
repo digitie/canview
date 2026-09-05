@@ -1,0 +1,62 @@
+{
+  "schema_revision": 1,
+  "status": "draft-host-validated-not-deployed",
+  "byte_order": "little",
+  "esp_now_min_version": [1, 4],
+  "uart_min_version": [1, 1],
+  "sensor_budget_bytes_per_second": {"per_peer": 4096, "aggregate": 8192},
+  "rates_hz": {"1": [1,2,5,10,20,25], "2": [1,5,10,20,50,100], "3": [1,2,5,10], "4": [1]},
+  "messages": {
+    "SENSOR_CAPABILITIES": {
+      "id": 112, "transport": "esp_now", "capability": "sensor.discovery.v1",
+      "fields": [["source_boot_id","u64"],["feature_mask","u32"],["hardware_profile","u16"],["reserved","u16"],["vendor_firmware_version","u32"],["nav_rate_mask","u16"],["imu_rate_mask","u16"],["baro_rate_mask","u16"],["utc_rate_mask","u16"],["max_dr_age_ms","u32"],["peer_budget_bps","u32"]],
+      "limits": {"feature_mask":[0,31],"hardware_profile":[0,2],"nav_rate_mask":[0,63],"imu_rate_mask":[0,127],"baro_rate_mask":[0,15],"utc_rate_mask":[0,1],"max_dr_age_ms":[0,45000],"peer_budget_bps":[0,4096]}
+    },
+    "NAV_STATE": {
+      "id": 113, "transport": "esp_now", "capability": "sensor.nav.v1",
+      "fields": [["source_boot_id","u64"],["sample_time_us","u64"],["validity","u32"],["latitude_e7","i32"],["longitude_e7","i32"],["altitude_msl_mm","i32"],["altitude_ellipsoid_mm","i32"],["speed_mm_s","u32"],["heading_mdeg","u32"],["horizontal_accuracy_mm","u32"],["vertical_accuracy_mm","u32"],["last_fix_age_ms","u32"],["time_uncertainty_us","u32"],["fix_type","u8"],["satellites_used","u8"],["reserved","u16"]],
+      "limits": {"validity":[0,255],"latitude_e7":[-900000000,900000000],"longitude_e7":[-1800000000,1800000000],"speed_mm_s":[0,150000],"heading_mdeg":[0,359999],"fix_type":[0,4]},
+      "validity_groups": {"1":["latitude_e7","longitude_e7"],"2":["altitude_msl_mm"],"4":["altitude_ellipsoid_mm"],"8":["speed_mm_s"],"16":["heading_mdeg"],"32":["horizontal_accuracy_mm","vertical_accuracy_mm"],"64":["last_fix_age_ms"],"128":["time_uncertainty_us"]}
+    },
+    "IMU_STATE": {
+      "id": 114, "transport": "esp_now", "capability": "sensor.imu.v1",
+      "fields": [["source_boot_id","u64"],["sample_time_us","u64"],["validity","u32"],["roll_mdeg","i32"],["pitch_mdeg","i32"],["yaw_mdeg","u32"],["accel_x_mm_s2","i32"],["accel_y_mm_s2","i32"],["accel_z_mm_s2","i32"],["gyro_x_mdeg_s","i32"],["gyro_y_mdeg_s","i32"],["gyro_z_mdeg_s","i32"],["mount_revision","u32"],["calibration_status","u8"],["reserved","u8"]],
+      "limits": {"validity":[0,7],"roll_mdeg":[-180000,180000],"pitch_mdeg":[-90000,90000],"yaw_mdeg":[0,359999],"calibration_status":[0,3]},
+      "validity_groups": {"1":["roll_mdeg","pitch_mdeg","yaw_mdeg"],"2":["accel_x_mm_s2","accel_y_mm_s2","accel_z_mm_s2"],"4":["gyro_x_mdeg_s","gyro_y_mdeg_s","gyro_z_mdeg_s"]}
+    },
+    "BARO_STATE": {
+      "id": 115, "transport": "esp_now", "capability": "sensor.baro.v1",
+      "fields": [["source_boot_id","u64"],["sample_time_us","u64"],["validity","u32"],["pressure_pa","u32"],["temperature_centi_c","i16"],["reserved","u16"],["relative_altitude_mm","i32"],["reference_pressure_pa","u32"],["reference_revision","u32"]],
+      "limits": {"validity":[0,7],"pressure_pa":[0,125000],"temperature_centi_c":[-4000,8500],"reference_pressure_pa":[0,110000]},
+      "validity_groups": {"1":["pressure_pa"],"2":["temperature_centi_c"],"4":["relative_altitude_mm","reference_pressure_pa","reference_revision"]}
+    },
+    "SENSOR_SUBSCRIBE": {
+      "id": 116, "transport": "esp_now", "capability": "sensor.discovery.v1",
+      "fields": [["request_id","u64"],["target_boot_id","u64"],["expected_revision","u32"],["operation","u8"],["sensor_kind","u8"],["rate_hz","u16"],["count_limit","u16"],["reserved","u16"]],
+      "limits": {"operation":[0,3],"sensor_kind":[0,4],"rate_hz":[0,100]}
+    },
+    "SENSOR_RESULT": {
+      "id": 117, "transport": "esp_now", "capability": "sensor.discovery.v1",
+      "fields": [["request_id","u64"],["source_boot_id","u64"],["previous_revision","u32"],["current_revision","u32"],["applied_time_us","u64"],["status","u8"],["reserved","u8"],["nav_rate_hz","u16"],["nav_count_limit","u16"],["imu_rate_hz","u16"],["imu_count_limit","u16"],["baro_rate_hz","u16"],["baro_count_limit","u16"],["utc_rate_hz","u16"],["utc_count_limit","u16"],["snapshot_sha256_128","bytes16"]],
+      "limits": {"status":[0,10]}
+    },
+    "UTC_ANCHOR": {
+      "id": 118, "transport": "esp_now", "capability": "sensor.utc.v1",
+      "fields": [["source_boot_id","u64"],["sample_time_us","u64"],["utc_unix_ms","i64"],["uncertainty_us","u32"],["source_quality","u8"],["leap_status","u8"],["reserved","u16"]],
+      "limits": {"source_quality":[0,3],"leap_status":[0,3]}
+    },
+    "SENSOR_HEALTH": {
+      "id": 119, "transport": "esp_now", "capability": "sensor.discovery.v1",
+      "fields": [["source_boot_id","u64"],["sample_time_us","u64"],["sensor_kind","u8"],["state","u8"],["reserved","u16"],["reset_count","u32"],["timeout_count","u32"],["checksum_error_count","u32"],["queue_drop_count","u32"],["last_good_age_ms","u32"],["mount_revision","u32"]],
+      "limits": {"sensor_kind":[1,4],"state":[0,5]}
+    },
+    "CLOCK_ANCHOR_QUERY": {
+      "id": 96, "transport": "uart", "capability": "clock.anchor.v1",
+      "fields": [["esp_boot_id","u64"],["query_id","u32"],["esp_t1_us","u64"]]
+    },
+    "CLOCK_ANCHOR_REPLY": {
+      "id": 97, "transport": "uart", "capability": "clock.anchor.v1",
+      "fields": [["esp_boot_id","u64"],["query_id","u32"],["esp_t1_us","u64"],["stm_boot_id","u64"],["stm_t2_us","u64"],["stm_t3_us","u64"]]
+    }
+  }
+}

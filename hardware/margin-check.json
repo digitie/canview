@@ -1,0 +1,32 @@
+{
+  "auto5v_dc_bound_v": [
+    4.976495326546905,
+    5.1989590352705415
+  ],
+  "auto5_good_falling_v": [
+    4.767581969845231,
+    4.892671950726088
+  ],
+  "auto5_good_rising_v": [
+    4.783076611247227,
+    4.933036494319579
+  ],
+  "minimum_startup_margin_v": 0.04345883222732638,
+  "maximum_positive_ripple_overshoot_budget_v": 0.051040964729458516,
+  "minimum_collapse_detection_voltage_margin_v": 0.01758196984523064,
+  "ov_cutoff_v": [
+    26.232424019329763,
+    28.067632764476322
+  ],
+  "watchdog_missing_pulse_ms": [
+    57.760358000000004,
+    71.751408
+  ],
+  "assumptions": [
+    "MAX FB1uA applied as engineering allowance; datasheet test condition is FB=VCC, not guaranteed at1.25V",
+    "10ppm/K resistors, independent extremes over100K from25C",
+    "TPS3890 falling delay18us is TYPICAL; no guaranteed maximum, fast-collapse HIL mandatory",
+    "Watchdog120pF5% + <=10pF parasitic, IC timing\u00b19.5%; heartbeat falling interval<=30ms",
+    "Bounds exclude ripple, overshoot, layout, transient SOA, capacitor DC-bias and thermal limits"
+  ]
+}

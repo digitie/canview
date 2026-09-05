@@ -11,6 +11,7 @@
 - CMake `4.4.3`
 - Ninja `1.13.2`
 - Arm GNU Toolchain `15.3.Rel1` (GCC `15.3.x`)
+- KiCad `10.0.6` (`kicad-cli`, 회로도 export/ERC)
 
 ESP-IDF와 STM32CubeG4는 manifest에 기록한 commit까지 검증한다. 버전 tag만 확인하지 않으므로 이동 tag나 잘못된 checkout을 조용히 사용하지 않는다.
 
@@ -56,5 +57,15 @@ cmake --preset debug
 cmake --build --preset debug
 Pop-Location
 ```
+
+## KiCad 회로도 산출물 재생성
+
+KiCad `10.0.6`의 bundled Python으로 회로도 원본을 재생성하고, `kicad-cli`로 XML netlist·ERC JSON·PDF를 같은 revision으로 갱신한다.
+
+```powershell
+. .\tools\hardware\export-review.ps1
+```
+
+이 스크립트는 `hardware/`의 Communicator·Bridge·Controller adapter·microphone 네 보드를 갱신하고, ERC·BOM·netlist·named-pad 정합성 및 정적 전원/WD 계산까지 검사한다. 검사 실패 시 nonzero로 종료한다. [상세 사용법과 제작 전 제한](../hardware/README.md)을 따른다. 실제 전원·PCB·HIL 승인을 뜻하지 않는다.
 
 PowerShell에서 `idf.py`를 찾지 못하면 새 세션에서 다시 dot-source하고, STM32 configure가 실패하면 `ARM_GNU_TOOLCHAIN_ROOT`와 `STM32CUBE_G4_ROOT`를 확인한다. target build가 실제로 실행되지 않은 상태를 성공으로 기록하지 않는다.

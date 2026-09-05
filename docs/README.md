@@ -54,6 +54,7 @@ AGENTS.md                     모든 작업의 규칙·금지선
 |---|---|
 | Waveshare Controller, pinmap, RTC, board peripheral | [Controller hardware](hardware/controller.md) |
 | Communicator 전원·CAN PHY·MCU pinmap·reset | [Communicator hardware](hardware/communicator.md) |
+| R1 네 보드 상세 회로·GNSS/INS·원격 수음·검증 | [R1 상세 지도](hardware/r1/README.md), [KiCad 산출물](../hardware/README.md) |
 
 제안 pinmap만으로 제작하지 않는다. 제작 정본은 승인된 KiCad schematic/netlist와 일치해야 한다.
 

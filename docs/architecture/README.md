@@ -9,6 +9,7 @@
 | 장치명·peer routing·장애 상태 | [시스템 구조](system.md) |
 | repository 목표 구조·runtime 경계·release gate | [구현 준비 기준](implementation-readiness.md) |
 | ESP-NOW·UART wire 계약 | [프로토콜 인덱스](protocols/README.md) |
+| 외부 GNSS·온보드 INS·기압·시간 | [센서 확장 계약](protocols/navigation.md), [R1 하드웨어](../hardware/r1/README.md) |
 | Controller 수신·filter·DBC decode | [Controller CAN pipeline](controller-can-pipeline.md) |
 | Diagnostic Bridge·capture·REST/WS | [Diagnostic Bridge](diagnostic-bridge.md) |
 | 4WD·DPF·audio·SPORT 기능 | [기능 설계](features.md) |

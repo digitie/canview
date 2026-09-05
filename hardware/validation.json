@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "scope": "KiCad export/pad/BOM consistency only; no PCB, transient, thermal, RF or HIL approval",
+  "boards": [
+    {
+      "board": "communicator",
+      "physical_items": 248,
+      "named_pads": 865,
+      "provisional_footprint_refs": [
+        "U8"
+      ],
+      "erc_violations": 0,
+      "errors": [],
+      "artifact_sha256": {
+        "netlist.xml": "d069cb5593c329c726b4fb7418bd3c1d5ad53a4b5724d151ee64d3af3a227bee",
+        "communicator.net": "b9a19817bcabfc7e38e7b12e97090750b1e5dc8c0bcda72e455a558460479837",
+        "schematic.pdf": "e5b272db107e1c89aff2a70239cdd8dac0a423d1336258ec819b513da3f274f9",
+        "connectivity.json": "4800651ae9974bb951c28ef27ea1fa8f7e609a62f1f3a8833eb559ce13ad825e"
+      }
+    },
+    {
+      "board": "bridge",
+      "physical_items": 39,
+      "named_pads": 160,
+      "provisional_footprint_refs": [],
+      "erc_violations": 0,
+      "errors": [],
+      "artifact_sha256": {
+        "netlist.xml": "672adf806c05fa6c5c2fb6b885c2f0904e8a74f4eb26a20be07d3a83792e6bc6",
+        "bridge.net": "ca083439e4f03c78b556b491828db5c5ce86e31dfbfe9e80f246cf7068177805",
+        "schematic.pdf": "dda524abdfd3c6a7199a59e2bd808f1dbd2c01071389fce2035b8a4c9f9a1081",
+        "connectivity.json": "ad2d0c16b5c151e842f6dac486c3212be872b6543e3f8fff504a7866aa48a951"
+      }
+    },
+    {
+      "board": "controller-adapter",
+      "physical_items": 16,
+      "named_pads": 81,
+      "provisional_footprint_refs": [],
+      "erc_violations": 0,
+      "errors": [],
+      "artifact_sha256": {
+        "netlist.xml": "f843944b7ecc0e12f49e2289217d05709b21b083f15d353d5deab06392ff8d5f",
+        "controller-adapter.net": "01e6b167df219ce8960ef747b744699c7addc2a8b03d57b6ae4466c474c98fba",
+        "schematic.pdf": "f52d68e5ea6926e17dc073939f9a86003e769872c2751728e1cfa07eafd64426",
+        "connectivity.json": "533e2b9fb4ad7a45cb49d5c1413bad22ed6c7c91fb1aa1ed828829c7811cab01"
+      }
+    },
+    {
+      "board": "microphone",
+      "physical_items": 30,
+      "named_pads": 103,
+      "provisional_footprint_refs": [],
+      "erc_violations": 0,
+      "errors": [],
+      "artifact_sha256": {
+        "netlist.xml": "b3b82c04bbbc3def1b493ddac0ca87b2d60c46569b59358bbf7de6790d99d6d5",
+        "microphone.net": "8ad1ef4024221962d38bfb9488ccd4ee92dc3ed3f2506fb76001c99f55c6b77a",
+        "schematic.pdf": "ed59ba4865abc773fb891b1da27dd7a5755de139a0901a270b0e41f7b61a2252",
+        "connectivity.json": "3dd0d2f8990c94bdb6ce71f97430db8f5572a06e2bb225e08914e67f5a04631e"
+      }
+    }
+  ]
+}

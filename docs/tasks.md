@@ -4,7 +4,7 @@
 
 열린 task의 요약은 이 문서에 두고, 완료·종료 이력은 [docs/tasks-done.md](tasks-done.md)에 둔다. 현재 진척과 다음 한 작업은 [docs/resume.md](resume.md), 작성 규약은 [docs/tasks-rule.md](tasks-rule.md), 상세 내용은 [docs/tasks/](tasks/)가 정본이다.
 
-이 directory에는 34개의 원자 작업이 있으며 각 문서는 한 PR로 완료할 수 있는 범위다. 구현 agent는 한 번에 하나의 task를 선택하고, 문서의 결정사항을 다시 설계하지 않는다. 의존 task가 완료되지 않았거나 필요한 hardware/evidence가 없으면 코드를 추측해 채우지 않고 상태를 `BLOCKED`로 유지한다.
+이 directory에는 35개의 상세 작업이 있으며, 작업이 커지면 검토 가능한 PR로 나눠 진행한다. 구현 agent는 한 번에 하나의 task를 선택하고, 문서의 결정사항을 다시 설계하지 않는다. 의존 task가 완료되지 않았거나 필요한 hardware/evidence가 없으면 코드를 추측해 채우지 않고 상태를 `BLOCKED`로 유지한다.
 
 상태 의미는 다음과 같다.
 
@@ -48,7 +48,8 @@ task를 시작할 때 문서 상단의 상태, 담당 branch, PR을 갱신한다
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-100](tasks/T-100-communicator-schematic.md) | READY | P0 | 회로도·BOM·hard TX gate·전원 상태 | 없음 |
+| [T-100](tasks/T-100-communicator-schematic.md) | IN_PROGRESS | P0 | R1 네 보드 상세 회로·BOM·netlist 생성, 제작 전 설계 gate 잔여 | 없음 |
+| [T-100b](tasks/T-100b-navigation-audio-bringup.md) | BLOCKED | P1 | GNSS/INS·기압·원격 mic·센서 구독 통합 | T-100, T-200, T-300, T-002/T-004 |
 | [T-101](tasks/T-101-hardware-bringup.md) | BLOCKED | P0 | PCB bring-up과 reset/power fault 검증 | T-100, 실물 PCB |
 | [T-102](tasks/T-102-stm32-platform.md) | BLOCKED | P0 | STM32 clock·startup·watchdog·scheduler | T-001 |
 | [T-103](tasks/T-103-stm32-fdcan-capture.md) | BLOCKED | P0 | 3채널 FDCAN capture-only 경로 | T-004, T-102, T-500 |

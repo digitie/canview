@@ -127,7 +127,7 @@ PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, bac
 
 ### 5.1 채널 수와 물리계층
 
-Communicator는 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`, 2채널 `TCAN1046AV-Q1`, 1채널 `MAX3055`로 구성한다. 상세 회로 조건과 제안 핀맵은 [Communicator hardware](communicator.md), 기계 판독용 표는 [`hardware/communicator/pinmap-proposed.csv`](../../hardware/communicator/pinmap-proposed.csv)를 따른다.
+Communicator는 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`, 2채널 `TCAN1046AV-Q1`, 1채널 `MAX3055`로 구성한다. 현행 검토 회로는 [Communicator hardware](communicator.md), 기계 판독용 표는 [R1 물리 pin/net 표](../../hardware/communicator/pinmap.csv)를 따른다. Controller 원격 마이크 addon은 [R1 상세](r1/bridge-controller-microphone.md)를 사용한다.
 
 Communicator는 최소 다음을 만족해야 한다.
 

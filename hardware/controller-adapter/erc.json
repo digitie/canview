@@ -1,0 +1,51 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-09-05T12:43:12",
+    "ignored_checks": [
+        {
+            "description": "Global label only appears once in the schematic",
+            "key": "single_global_label"
+        },
+        {
+            "description": "Four connection points are joined together",
+            "key": "four_way_junction"
+        },
+        {
+            "description": "SPICE model issue",
+            "key": "simulation_model_issue"
+        },
+        {
+            "description": "Assigned footprint doesn't match footprint filters",
+            "key": "footprint_filter"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.6",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/f677e06d-28c9-58b3-98b5-910baf3f6c85",
+            "violations": []
+        },
+        {
+            "path": "/01_waveshare_header/",
+            "uuid_path": "/f677e06d-28c9-58b3-98b5-910baf3f6c85/35bcdb3a-d2e0-5a3b-b794-71de3b75bd53",
+            "violations": []
+        },
+        {
+            "path": "/02_i2s_differential/",
+            "uuid_path": "/f677e06d-28c9-58b3-98b5-910baf3f6c85/feef010d-ef95-5e3e-bda2-25d3fd293d0f",
+            "violations": []
+        },
+        {
+            "path": "/03_mic_cable/",
+            "uuid_path": "/f677e06d-28c9-58b3-98b5-910baf3f6c85/2221c52d-ab97-5c38-8fb0-f65bac2e154d",
+            "violations": []
+        }
+    ],
+    "source": "controller-adapter.kicad_sch"
+}

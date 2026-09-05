@@ -14,11 +14,14 @@ Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 
 | Communicator ESP32 | ESP-IDF `v6.0.3` | ESP-NOW·UART image |
 | Diagnostic Bridge | ESP-IDF `v6.0.3`, built-in HTTP server | ESP-NOW observer·SoftAP·모바일 웹 image |
 | Communicator STM32 | CMake `4.4.3` + Ninja `1.13.2` + Arm GNU `15.3.Rel1`, STM32CubeG4 `v1.6.3` | CAN·safety image |
+| KiCad hardware review | KiCad `10.0.6` `kicad-cli` + bundled Python | schematic·XML netlist·ERC JSON·PDF |
 | DBC/profile 생성·검증 | Python virtual environment, `cantools`와 schema validator | Controller signal catalog, STM32 safety profile와 검증 report |
 
 Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. ESP-IDF v6의 CMake 최소 요구사항은 3.22.1이며, 이 저장소의 Windows 정본은 CMake `4.4.3`으로 올려 고정한다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
 
 정본 버전과 SDK commit은 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 둔다. Windows 초기화와 commit 검증은 [`tools/environment/setup-windows.ps1`](../../tools/environment/setup-windows.ps1)를 사용한다.
+
+하드웨어 생성물은 [`tools/hardware/export-review.ps1`](../../tools/hardware/export-review.ps1)가 KiCad `10.0.6`의 bundled Python과 `kicad-cli`를 사용해 재현한다. 이 별도 단계는 임베디드 SDK 준비와 분리되어 있어 KiCad가 없는 환경에서도 ESP-IDF·STM32 빌드 준비를 검증할 수 있다.
 
 `sdkconfig`, compiler version, STM32CubeG4 tag, DBC upstream commit을 build metadata에 넣는다. release artifact는 다음 정보를 함께 보관한다.
 
@@ -165,7 +168,7 @@ STM32_Programmer_CLI -c port=SWD `
 
 ### 5.4 clock과 peripheral 기준
 
-PF0/OSC_IN과 PF1/OSC_OUT에 STM32 지원 범위인 4–48 MHz HSE crystal을 연결한다. STM32 system clock 170 MHz, FDCAN kernel clock, USART2 4 Mbps를 정확히 만들 수 있는 clock tree를 CubeMX와 reference manual에서 검산한다. CAN FD 5/8 Mbps의 oscillator tolerance와 sample point를 계산한 뒤 crystal 값과 load capacitor를 확정한다. HSE startup 또는 clock 검증 실패 시 HSI로 차량 CAN 송신을 계속하지 않고 모든 PHY를 비활성 상태로 둔 채 watchdog reset한다.
+PF0/OSC_IN과 PF1/OSC_OUT에 HSE16MHz crystal을 연결한다. R1은 system clock160MHz, APB/USART2와 FDCAN80MHz로4Mbps를 정수 분주하는 [clock 출발값](../hardware/r1/firmware-pinmap.md)을 사용한다. CubeMX/target에서 PLL·전압 scale·flash wait와 실제 clock을 검증하기 전 설정 완료로 표시하지 않는다. CAN FD5/8Mbps의 oscillator tolerance와 sample point, crystal load/drive를 검산한다. HSE startup 또는 clock 검증 실패 시 HSI로 차량 CAN 송신을 계속하지 않고 모든 PHY를 비활성 상태로 둔 채 watchdog reset한다.
 
 USART2는 PA0 CTS, PA1 RTS, PA2 TX, PA3 RX의 AF7을 사용한다. FDCAN은 다음과 같다.
 

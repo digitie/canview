@@ -10,6 +10,54 @@
       "sha256": "564ac331d8bf38b4ae1222444b0d9cfea3a6ba29148a8be906b2e0ffe40471d8"
     },
     {
+      "id": "bas21h",
+      "url": "https://assets.nexperia.com/documents/data-sheet/BAS21H.pdf",
+      "use": "LM74800 CS to VS bootstrap diode200V, SOD123F",
+      "file": "hardware/references/pdf/bas21h.pdf",
+      "bytes": 891473,
+      "sha256": "c8c8031d5cac059851985de4a2c550b454c4d3127532d1f0e1066ce658eae5c4"
+    },
+    {
+      "id": "bmp384",
+      "url": "https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp384-ds003.pdf",
+      "use": "pinout and 100nF decoupling pp45-48; package",
+      "file": "hardware/references/pdf/bmp384.pdf",
+      "bytes": 2247183,
+      "sha256": "b117ed4c92c595d5ffc221d1673e8af01d73d71cb4e7af05f7c67bfef8dc9479"
+    },
+    {
+      "id": "bourns-psmf",
+      "url": "https://www.bourns.com/docs/product-datasheets/mfpsmf.pdf",
+      "use": "microphone cable resettable fuse100mA, trip/temperature/voltage rating",
+      "file": "hardware/references/pdf/bourns-psmf.pdf",
+      "bytes": 331375,
+      "sha256": "67c95bcd2a49d31cd2792f31973c786abf6c2274ced774e286c57193a47f7ff9"
+    },
+    {
+      "id": "buk9y12-100e",
+      "url": "https://assets.nexperia.com/documents/data-sheet/BUK9Y12-100E.pdf",
+      "use": "100V LFPAK56 reverse/OV FET pin map and SOA",
+      "file": "hardware/references/pdf/buk9y12-100e.pdf",
+      "bytes": 742143,
+      "sha256": "e60389aa5c20574ae52147b6675d20d336a9979abbc13d3358d8dd8bf5375de3"
+    },
+    {
+      "id": "bzt52h",
+      "url": "https://assets.nexperia.com/documents/data-sheet/BZT52H_SER.pdf",
+      "use": "47V VS clamp zener limits, SOD123F",
+      "file": "hardware/references/pdf/bzt52h.pdf",
+      "bytes": 336144,
+      "sha256": "a5e54de45bdf1af712c2d9fdfb0fd092804cd83b26eb66e3656b12dea0c8b592"
+    },
+    {
+      "id": "coilcraft-xal5030",
+      "url": "https://www.coilcraft.com/getmedia/49bc46c8-4b2c-45b9-9b6c-2eaa235ea698/xal50xx.pdf",
+      "use": "4.7uH buck-boost inductor current ratings and pad geometry",
+      "file": "hardware/references/pdf/coilcraft-xal5030.pdf",
+      "bytes": 256341,
+      "sha256": "398076aa6efec9860d440a00fc4c37e28d535c130e68f9362da491a75d236ce4"
+    },
+    {
       "id": "esd2can24",
       "url": "https://www.ti.com/lit/ds/symlink/esd2can24-q1.pdf",
       "use": "CAN port transient protection, pinout and capacitance",
@@ -26,6 +74,97 @@
       "sha256": "4d4b7f1c17b484c627aaa0f806566c48a6124a8e466c6d21d99210e6eacdef04"
     },
     {
+      "id": "esp32s3-wroom",
+      "url": "https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf",
+      "use": "Bridge N8R2 pins, peripheral schematic and footprint",
+      "file": "hardware/references/pdf/esp32s3-wroom.pdf",
+      "bytes": 1280501,
+      "sha256": "27d71971da07c280c6068d08c74720d1a25b8f20cf8494dc1765bdd28d40d435"
+    },
+    {
+      "id": "gct-usb4105",
+      "url": "https://gct.co/files/drawings/usb4105.pdf",
+      "use": "USB receptacle pad identities and mechanical dimensions",
+      "file": "hardware/references/pdf/gct-usb4105.pdf",
+      "bytes": 164547,
+      "sha256": "fb331fbabee8392ed2937ed757c1610cb0f174b84625147c0b580a18eea8c0e5"
+    },
+    {
+      "id": "holybro-f9p",
+      "url": "https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_H-RTK_F9P_GNSS_Spec_V1.0.pdf?v=1646987798",
+      "use": "cased F9P Helical and PPS pinout pp2-3",
+      "file": "hardware/references/pdf/holybro-f9p.pdf",
+      "bytes": 645171,
+      "sha256": "242e306a445ec232e1c6453fac0ffd9b0fcff004f9779ed5d810e5b32854e31e"
+    },
+    {
+      "id": "jst-gh",
+      "url": "https://www.jst-mfg.com/product/pdf/eng/eGH.pdf",
+      "use": "connector pin1 orientation, rated current, footprints pp2-3",
+      "file": "hardware/references/pdf/jst-gh.pdf",
+      "bytes": 146619,
+      "sha256": "b1dcb317b6b9a4fbbedd2dbf42c64c95306a252d23de8933b85fcf161240b722"
+    },
+    {
+      "id": "jst-xh",
+      "url": "https://www.jst-mfg.com/product/pdf/eng/eXH.pdf",
+      "use": "vehicle power connector3A,2.5mm; keyed harness mating",
+      "file": "hardware/references/pdf/jst-xh.pdf",
+      "bytes": 175724,
+      "sha256": "9426b136902f11900825077535e5c65032b7fbc31ffb59c5e9e1f463bb20fb90"
+    },
+    {
+      "id": "littelfuse-451",
+      "url": "https://www.littelfuse.com/assetdocs/fuse-451-and-453-datasheet?assetguid=533cd5cc-956c-4243-867f-6ab5a62f6ba1",
+      "download_url": "https://www.megastar.com/content/pdfs/451-453%20Series.pdf",
+      "use": "ARCHIVED2023-09-18,notlatest2025-12-01;pp2,4 1A fuse ratings and land",
+      "file": "hardware/references/pdf/littelfuse-451.pdf",
+      "bytes": 512218,
+      "sha256": "80da7135f5510b8e801e4c1015634e5cc9593a132c16d5b33cfed0d0900f6158"
+    },
+    {
+      "id": "lm7480",
+      "url": "https://www.ti.com/lit/ds/symlink/lm7480-q1.pdf",
+      "use": "common-source topology pp3,29-32; OV, supplies, package",
+      "file": "hardware/references/pdf/lm7480.pdf",
+      "bytes": 9773286,
+      "sha256": "38ea1e89cc677020c8a10096649fa7933d2aeff8c0cd97ca9a78c1f8f5b9b500"
+    },
+    {
+      "id": "lm7480-evm",
+      "url": "https://www.ti.com/lit/ug/slvubu4/slvubu4.pdf",
+      "use": "common-source EVM p4 schematic, pp11-12 BOM; CS capacitor later corrected by TI forum to1uF",
+      "file": "hardware/references/pdf/lm7480-evm.pdf",
+      "bytes": 1385794,
+      "sha256": "019c8f06c0124c19ff01faf859dad79adcc822b81f7181ae4efa7b131a2f81e1"
+    },
+    {
+      "id": "lm7480-surge",
+      "url": "https://www.ti.com/lit/an/slvaes2/slvaes2.pdf",
+      "use": "load dump/reverse protection application, scope of TVS protection",
+      "file": "hardware/references/pdf/lm7480-surge.pdf",
+      "bytes": 2558968,
+      "sha256": "7d5e39ef856d8d5a0579d654b381c0ee90f16417e5d96917170a41cd00f5fd01"
+    },
+    {
+      "id": "max20040",
+      "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/max20039-max20040.pdf",
+      "download_url": "https://atta.szlcsc.com/upload/public/pdf/source/20240816/11E54D3F66F8CB0476CD7D650874A4B7.pdf",
+      "use": "ARCHIVED Rev15(3/24), NOT latestRev16(4/25); pinout pp9-10, adjustable FB and loop pp14-17. Rev16 absolute max notes separately recheck",
+      "file": "hardware/references/pdf/max20040.pdf",
+      "bytes": 1475432,
+      "sha256": "b2daf874befab4f8aff4716f7030696aee484339616bd9e6dcca459d432b213b"
+    },
+    {
+      "id": "max20040-evm",
+      "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/max20040evkit.pdf",
+      "download_url": "https://www.farnell.com/datasheets/4563848.pdf",
+      "use": "Rev3(3/24) pp3-4 BOM/schematic including external bootstrap diodes",
+      "file": "hardware/references/pdf/max20040-evm.pdf",
+      "bytes": 473931,
+      "sha256": "0807e00bbf34b2ecf8fae2fb70d2585f45d3c0f8087315cefa1f14cc5966c826"
+    },
+    {
       "id": "max3055",
       "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/max3054-max3056.pdf",
       "download_url": "https://docs.ampnuts.ru/maximintegrated.com.datasheet/MAX3054-MAX3056.pdf",
@@ -33,6 +172,71 @@
       "file": "hardware/references/pdf/max3055.pdf",
       "bytes": 1582093,
       "sha256": "d0710659e5fe2293925bcbb73de85d6dfe1b1437f6676d1d8100b8f1506b37b1"
+    },
+    {
+      "id": "murata-dfe252012",
+      "url": "https://www.murata.com/-/media/webrenewal/products/inductor/chip/tokoproducts/wirewoundmetalalloychiptype/m_dfe252012pd.ashx?la=en",
+      "use": "2.2uH system buck reference, land pattern and current ratings",
+      "file": "hardware/references/pdf/murata-dfe252012.pdf",
+      "bytes": 198327,
+      "sha256": "d033ed4761a18088e00151bb21934f01f69b67741a2667c61b2797f28ca29af9"
+    },
+    {
+      "id": "pcf85063",
+      "url": "https://www.nxp.com/docs/en/data-sheet/PCF85063A.pdf",
+      "download_url": "https://files.waveshare.com/wiki/common/PCF85063A.pdf",
+      "use": "Waveshare-linked PCF85063A RTC0x51, oscillator-stop validity, backup power; board exact suffix per schematic",
+      "file": "hardware/references/pdf/pcf85063.pdf",
+      "bytes": 726288,
+      "sha256": "a09223dbb64278087ed566ba7597399ef40144da36905f6875d5aaf430f6000b"
+    },
+    {
+      "id": "pmeg4010bea",
+      "url": "https://assets.nexperia.com/documents/data-sheet/PMEG4010BEA.pdf",
+      "use": "pp1-5:40V1A Schottky bootstrap feed, pin1K/pin2A, SOD323",
+      "file": "hardware/references/pdf/pmeg4010bea.pdf",
+      "bytes": 193420,
+      "sha256": "b496ce3404b3a8f5e3782bf3b3c627b806d977846fdcb09195e235559af45a2c"
+    },
+    {
+      "id": "smbj",
+      "url": "https://www.vishay.com/docs/88392/smbj.pdf",
+      "use": "SMBJ36CA standoff/clamp current/energy and SMB package",
+      "file": "hardware/references/pdf/smbj.pdf",
+      "bytes": 129599,
+      "sha256": "1b65b57a4311128068c1dec747bbb99f6846ae932d77fcfd39904cb2d7a5cd50"
+    },
+    {
+      "id": "sn65lvds1",
+      "url": "https://www.ti.com/lit/ds/symlink/sn65lvds1.pdf",
+      "use": "differential I2S cable driver/receiver pinout, power, timing",
+      "file": "hardware/references/pdf/sn65lvds1.pdf",
+      "bytes": 1549453,
+      "sha256": "2830b1f2b732d16f46bd45a1626e1aa25b308bb4220a5f476d780deff15d4dce"
+    },
+    {
+      "id": "sn74ahct1g125",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74ahct1g125.pdf",
+      "use": "evaluated but not selected; no inferred Ioff guarantee",
+      "file": "hardware/references/pdf/sn74ahct1g125.pdf",
+      "bytes": 1253690,
+      "sha256": "dbaf49b3af33690fc7f7356afe387e7815a56b8bb73fe1e88bf794f4fb8e0d2f"
+    },
+    {
+      "id": "sn74axc1t45",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74axc1t45.pdf",
+      "use": "1.8/3.3V microphone logic translation, Ioff/VCC isolation",
+      "file": "hardware/references/pdf/sn74axc1t45.pdf",
+      "bytes": 1840072,
+      "sha256": "41e03bd8f0740ae8bbdf92309e7c82bac1359a768556cbe68de41b0273e49f12"
+    },
+    {
+      "id": "sn74lv1t125",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lv1t125.pdf",
+      "use": "FT TX/EN track own5V rail, independent tolerant input, TTL thresholds pp3,5-6",
+      "file": "hardware/references/pdf/sn74lv1t125.pdf",
+      "bytes": 1208487,
+      "sha256": "9015da94e1d20a4c3d8fd05dd18fcca62a1341e70f7ad9c9756c194a0bfae01b"
     },
     {
       "id": "sn74lvc125a",
@@ -92,6 +296,14 @@
       "sha256": "d29552cb81222a0a6604517e28f66ec523c7853aec1b9cbfb405b52fe5ceeb62"
     },
     {
+      "id": "t5848",
+      "url": "https://d17t6iyxenbwp1.cloudfront.net/s3fs-public/2026-04/ds-000479-t5848-datasheet.pdf",
+      "use": "DS-000479 Rev1.0; pp7-10,30-31,35,37,39-40; R1 I2S32kHz/64fs,1.8V,footprint",
+      "file": "hardware/references/pdf/t5848.pdf",
+      "bytes": 1224222,
+      "sha256": "07381c027573391ee312bc5581cdd0a37ccbaa8c70f2602d60b1900a5724ed6b"
+    },
+    {
       "id": "tcan1046-evm",
       "url": "https://www.ti.com/lit/ug/sllu355/sllu355.pdf",
       "use": "CAN FD termination and bypass reference",
@@ -108,6 +320,38 @@
       "sha256": "4a5ed78f3e24462929ccdcc103eec074014a3f2ff412944ee20aceebe54e24ed"
     },
     {
+      "id": "tlv803e",
+      "url": "https://www.ti.com/lit/ds/symlink/tlv803e.pdf",
+      "use": "A30 threshold3.08V, reset130..270ms, DPW pin functions",
+      "file": "hardware/references/pdf/tlv803e.pdf",
+      "bytes": 2343229,
+      "sha256": "8c0e1447e9f5edfc933912d7f30d3a11867d052b43b3ff75e45309aa461a651b"
+    },
+    {
+      "id": "tpd2e2u06",
+      "url": "https://www.ti.com/lit/ds/symlink/tpd2e2u06.pdf",
+      "use": "USB/GNSS/LVDS ESD protection pins and capacitance",
+      "file": "hardware/references/pdf/tpd2e2u06.pdf",
+      "bytes": 785929,
+      "sha256": "a133b86ea3d3c3d34667339b92d3b5e98d541d10e9775d63e7cdfa153794f4ed"
+    },
+    {
+      "id": "tps2116",
+      "url": "https://www.ti.com/lit/ds/symlink/tps2116.pdf",
+      "use": "source-priority mux, reverse detection, current and capacitor limits",
+      "file": "hardware/references/pdf/tps2116.pdf",
+      "bytes": 2924080,
+      "sha256": "5babd88afb84e2e65c9c0da23b75f85758c0c730e34102a0fb746ac9573ed1d5"
+    },
+    {
+      "id": "tps2553",
+      "url": "https://www.ti.com/lit/ds/symlink/tps2553-q1.pdf",
+      "use": "USB/GPS fault-current limiter, ILIM tolerance p13",
+      "file": "hardware/references/pdf/tps2553.pdf",
+      "bytes": 1803237,
+      "sha256": "ae020244567f34db96d4095a581b0e54d9c90284ebb7c5488c9b454c17b8c98d"
+    },
+    {
       "id": "tps3431",
       "url": "https://www.ti.com/lit/ds/symlink/tps3431.pdf",
       "use": "external watchdog timing, WDO startup behavior",
@@ -116,15 +360,89 @@
       "sha256": "99bf5dbfffe06e8f85d9a86cfb777a0151e85b4a103033bc025f4897a0bdc6f3"
     },
     {
+      "id": "tps3700",
+      "url": "https://www.ti.com/lit/ds/symlink/tps3700.pdf",
+      "use": "battery and5V rail qualification thresholds, tolerance and shutdown timing",
+      "file": "hardware/references/pdf/tps3700.pdf",
+      "bytes": 682865,
+      "sha256": "8475322a39f31bdfedcaf114c748d133e2572ff1b63d12c1c304778909431eab"
+    },
+    {
+      "id": "tps3808",
+      "url": "https://www.ti.com/lit/ds/symlink/tps3808.pdf",
+      "use": "evaluated but not selected: RevN worst-case accuracy/hysteresis unsuitable for narrow FT5V qualification",
+      "file": "hardware/references/pdf/tps3808.pdf",
+      "bytes": 2046179,
+      "sha256": "74d889c0f68af88032f1633c26381817cc03e10d9fd3b4c177a044ad3ed86eed"
+    },
+    {
+      "id": "tps3890",
+      "url": "https://www.ti.com/lit/ds/symlink/tps3890.pdf",
+      "use": "AUTO5V supervisor pp3,5;1.15V adjustable threshold±1%; DSE footprint",
+      "file": "hardware/references/pdf/tps3890.pdf",
+      "bytes": 1203677,
+      "sha256": "ee79599730e7606ba9718d9820b411020e3dcd9ff7d44572f8ee63fead15b9d0"
+    },
+    {
+      "id": "tps629210",
+      "url": "https://www.ti.com/lit/ds/symlink/tps629210.pdf",
+      "use": "pins p3, VSET/MODE pp11-13, L/C selection pp20-22",
+      "file": "hardware/references/pdf/tps629210.pdf",
+      "bytes": 4405104,
+      "sha256": "e8262c1f7cad72f16de2598af403a97ade307146091cc9abc2dea0ba9c62437c"
+    },
+    {
+      "id": "tps7a20",
+      "url": "https://www.ti.com/lit/ds/symlink/tps7a20.pdf",
+      "use": "GPS-domain 3.3V and microphone1.8V/3.3V LDO",
+      "file": "hardware/references/pdf/tps7a20.pdf",
+      "bytes": 8989368,
+      "sha256": "324fd723c0ee64d7746f6a885afbfcf10d3b5a26b5cb451931b10f3395e49757"
+    },
+    {
+      "id": "tusb320lai",
+      "url": "https://www.ti.com/lit/ds/symlink/tusb320lai.pdf",
+      "use": "sink GPIO mode, OUT1 current advertisement, dead-battery Rd and pin/package",
+      "file": "hardware/references/pdf/tusb320lai.pdf",
+      "bytes": 1280002,
+      "sha256": "96e1dcb810eaafa552a2839d33610e5568944065bbd8d5b2187a70de0542e09b"
+    },
+    {
       "id": "waveshare-controller",
       "url": "https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-3.5/ESP32-S3-Touch-LCD-3.5-Schematic.pdf",
       "use": "32-pin header, audio/camera GPIO and RTC power",
       "file": "hardware/references/pdf/waveshare-controller.pdf",
       "bytes": 1051098,
       "sha256": "1fc6459d66b420605c1e667ce47ff73adc80cdbed42501d58f0d773f4fd7cfcc"
+    },
+    {
+      "id": "we74279279",
+      "url": "https://www.we-online.com/components/products/datasheet/74279279.pdf",
+      "use": "MTi v5 VDDA filter ferrite reference p1",
+      "file": "hardware/references/pdf/we74279279.pdf",
+      "bytes": 571853,
+      "sha256": "f6fe62280e197218bbff00d3e1ed3dbe30712c352f329e53dcc9cea612fb6f15"
+    },
+    {
+      "id": "xsens-gnss",
+      "url": "https://www.xsens.com/hubfs/Automation%20and%20Mobility%20-%20Application%20Notes/Supercharge%20your%20GNSS-INS%20Receiver/Xsens%20GNSS-INS%20-%20Supercharge%20Your%20GNSS%20Receiver%20-%20MTAN001-A.pdf",
+      "use": "GNSS receiver compatibility and configuration pp16-17,20-21",
+      "file": "hardware/references/pdf/xsens-gnss.pdf",
+      "bytes": 2489680,
+      "sha256": "9db039dbd557a083047d75ec31454f5a973b5e3a3140cba307e9975f72c8e1a1"
+    },
+    {
+      "id": "xsens-mti1-current",
+      "url": "https://mtidocs.xsens.com/",
+      "download_url": "https://dzf8vqv24eqhg.cloudfront.net/userfiles/27754/35135/ckfinder/files/xsens-mti-1-series-user-manual.pdf",
+      "use": "2025-04-23 manual via official portal: printed pp15-24,38-45,78-85; PDF page=printed+3; v5 power filter, SPI, pins, land pattern",
+      "file": "hardware/references/pdf/xsens-mti1-current.pdf",
+      "bytes": 4987992,
+      "sha256": "cdfc29bc83bba06f4b93f0fdde1e57aaaa39ef2c1f454d04ed915bc6a3d1d249"
     }
   ],
   "failures": [
-    "stm32g4-hardware: The read operation timed out"
+    "stm32g4-hardware: The read operation timed out",
+    "max20040-schematic: The read operation timed out"
   ]
 }

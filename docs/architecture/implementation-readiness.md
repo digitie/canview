@@ -456,7 +456,7 @@ SPORT automation은 `DISABLED`, `MONITOR_ONLY`, `ARMED_TX`, `ENTER_PENDING`, `AC
 
 ## 11. hardware 보완 기준
 
-현재 `pinmap-proposed.csv`는 검토 자료일 뿐 제작 정본이 아니다. 회로 task는 다음을 모두 산출해야 한다.
+R1 [상세 회로](../hardware/r1/README.md)와 생성 `hardware/communicator/pinmap.csv`가 현재 검토 입력이다. 과거 `pinmap-proposed.csv`는 이력이며 구현 정본이 아니다. 회로 task는 다음을 모두 산출해야 한다.
 
 1. KiCad schematic, PCB constraints, net classes, ERC 결과
 2. 정확한 manufacturer part number와 대체품 정책을 포함한 BOM
@@ -471,9 +471,9 @@ SPORT automation은 `DISABLED`, `MONITOR_ONLY`, `ARMED_TX`, `ENTER_PENDING`, `AC
 11. HSE 값·load capacitor·FDCAN timing 계산
 12. programming/SWD/USB와 공통 reset 상호작용, vehicle rail이 켜진 상태에서 USB VBUS 역급전 방지
 
-첫 vehicle-capable revision의 전원 정책은 명시적 `ACC/KL15` 기동으로 고정하고 CAN wake는 구현하지 않는다. ACC가 없는 harness는 bench/capture-only로 제한한다. `PROTECTED_VBAT` 이후 별도 automotive input이 만든 `POWER_EN`이 MAX20040 EN을 구동하며, ACC loss는 rail decay 전에 hard TX permit을 비동기로 제거한다. OFF에서는 5 V/3.3 V가 꺼지고 LM74800 front end와 ACC input만 남으며 25 °C parked current 목표는 1 mA 이하이다. native USB는 data-only이고 target power를 공급하지 않으며 SWD VTref는 target 출력 전용이다. bench는 별도 current-limited 12 V input으로 같은 보호 경로를 사용한다.
+R1 전원 정책은 [ADR-006](../adr/006-compact-hardware-power-and-sensors.md)에 따라 **외부에서 차단되는 fused IGN/ACC 입력**이며 별도 상시 BAT+·ACC sense/CAN wake 회로는 없다. 상시 BAT+ harness를 무조건 허용하지 않는다. USB-C는 MCU service 전원을 공급하지만 CAN PHY/GPS rail과 mux로 분리된다. 차량 전압/PHY reset이 유효하지 않으면 RX/TX gate가 닫히고 회복 뒤에도 새 ARM edge가 필요하다. OFF1mA 요구는 상시전원 variant의 별도 acceptance이며 현 회로가 달성했다고 주장하지 않는다. SWD VTref는 target 출력 전용이다. bench12V는 동일 보호 입력을 사용한다.
 
-MAX20040의 `BIAS`와 PGOOD pull-up net, EN threshold/hysteresis, MAX3055 BATT/WAKE/INH를 회로도에서 정확한 package pin으로 닫는다. PROTECTED_VBAT UV comparator와 rail-good은 MAX3055 EN과 hard TX permit을 hardware로 차단하며, threshold는 MAX20040 startup/hold-up, MAX3055 VCC/BATT operating 영역과 cold-crank 목표의 worst-case 교집합으로 계산한다. firmware BOD 설정은 이 hardware 차단보다 늦게 CAN TX를 허용할 수 없다.
+MAX20040 pin4 내부VCC와外부PGOOD pull-up rail(PHY3V3), EN, MAX3055 BATT/WAKE/INH는 R1 pinmap에서 확인한다. PROTECTED_VBAT UV comparator와 실제5V supervisor가 MAX3055 EN/TXD permit을 차단한다. threshold의 정적 계산과 빠른 collapse 지연·ripple/overshoot 실제 검증을 구분하며, firmware BOD만으로 이 hardware 보호를 대체하지 않는다.
 
 차량 connector pin과 bus type을 모르면 회로도에는 `UNASSIGNED_VEHICLE_BUS_n`으로 남기고 harness adapter에서 매핑한다. 이름만 보고 C-CAN/M-CAN에 연결하지 않는다.
 
