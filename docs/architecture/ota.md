@@ -206,7 +206,9 @@ ESP 정상 앱·불변 recovery 앱·STM bootloader가 같은 policy-v1 규칙�
 
 각 target의 권위 record는 min_accepted_sequence:u64, confirmed_digest, previous_known_good_digest/sequence, board/layout/epoch, trial transaction, generation, CRC와 마지막 commit marker를 가진다. ESP는 §4 OTA journal A/B, STM은 §5 policy/journal A/B에 저장한다. 각 copy는 전체 policy와 현재 transaction snapshot을 담고 고정 인코딩 최대3072B를 CI로 제한한다. 4KiB copy 교체 중에도 다른 copy를 보존한다. image 본문/chunk log를 넣지 않는다. recovery도 정상 NVS 대신 이 규격을 읽는다.
 
-- 수신 sequence가 floor 미만이면 erase 전에 거절한다. 같으면 confirmed_digest까지 같을 때만 이미 설치됨으로 멱등 응답하며 다른 digest는 CONFLICT다. floor 초과일 때만 나머지 서명·호환성 검증 후 후보로 받는다.
+- 수신 sequence가 floor 미만이면 erase 전에 거절한다. floor와 같지만 confirmed_digest와 다르면 CONFLICT다. sequence와 digest가 모두 같을 때도 policy만 보고 이미 설치됨으로 응답하지 않는다. 정상 앱의 실제 전체 image hash·서명·board/layout·부팅 선택 metadata를 검증해 정상 부팅 가능한 설치본이 확인된 경우에만 ALREADY_INSTALLED다. recovery 앱 자체나 policy의 confirmed flag는 그 증거가 아니다.
+- 같은 sequence/digest인데 정상 앱이 손상됐거나 부팅 선택이 불가능하면 동일 정식 bundle의 REPAIR 재설치를 허용한다. 새 sequence가 없어도 복구 가능해야 한다. target allowlist·인증·전체 image 검증·PREPARED·새 사용자 activation commit·trial/confirmation은 동일하게 적용하며 floor는 올리거나 내리지 않는다. 기존 transaction의 성공 결과도 손상 여부를 생략하는 근거로 재사용하지 않는다. status가 REPAIR_REQUIRED를 보고하고 새 repair transaction을 연다. 정상본이 남아 있으면 보호하고, 정상본이 없으면 허용된 비활성/복구 수신 slot에만 기록한다. bootloader/recovery 영역을 덮어쓰지 않는다. 수리 중 단전은 동일 signed bundle 재업로드 또는 이미 승인된 repair 재개로 복원한다.
+- floor 초과 image는 나머지 서명·호환성 검증 뒤 정상 upgrade 후보로 받는다. 위 REPAIR는 정확히 같은 signed sequence/digest만 허용하는 예외이며 임의 구버전·변조 이미지 허용이 아니다.
 - 시험 앱 local health 통과 후, boot library image confirmation 이전에 CONFIRM_INTENT(candidate sequence/digest, old known-good, transaction)를 영속화한다. 실제 confirmation 뒤 floor/confirmed_digest를 갱신한다. 부팅 때 update API와 서비스 종료보다 먼저 확인된 실행 digest/boot 상태를 intent와 대조한다. 실제 확인 완료가 일치하면 floor commit을 마친 뒤 API를 연다. 아직 시험 중이면 확인 전 절차를 계속하며 실패/revert이면 이전 floor와 설정을 유지한다. 상태가 해석되지 않으면 복구 격리한다.
 - 자동 rollback은 활성 trial 실패와 그 transaction에 보존한 previous-known-good digest로만 허용한다. 옛 파일 업로드나 manifest의 rollback 표시는 예외가 아니다. 확인 완료 후 임의 과거 앱 선택도 금지한다. rollback용 이전 app/config는 trial 종료 전 지우지 않는다.
 - recovery를 포함해 두 policy copy가 모두 손상되면 floor를0으로 초기화하지 않고 RECOVERY_LOCKED로 둔다. 웹은 상태만 제공하며 Flash 쓰기·차량 송신은 금지한다. 서명·제조 이력을 대조하는 통제된 작업대 재-provisioning이 필요하다. 한 copy라도 valid이면 그 정책으로 복구한다.
@@ -324,6 +326,8 @@ OTA 시작은 stable power5초, supervisor 정상, 충분한 비활성 저장공
 | policy A/B 기록 중 단전·두 사본 손상 | 이전 valid floor 보존; 양쪽 불명확하면 RECOVERY_LOCKED, floor0 초기화 금지 |
 | 잘못된 파일·다운그레이드·다른 보드·서명·빈 용량 | erase 대상 제한, 유효 정상본/설정 보존 |
 | 앱 양쪽 invalid·정상 NVS 손상·PSRAM 불량 | 물리 버튼으로 복구 앱, CAN TX0; 숨은 초기화 의존 없음 |
+| policy 정상·normal 앱 양쪽 invalid·최신보다 높은 릴리스 없음 | 현재 정식 sequence/digest bundle로 REPAIR 허용; 실제 trial/confirmation 뒤 정상 부팅·floor 불변 |
+| 동일 버전 REPAIR 중 단전·승인 ACK 유실·과거 성공 transaction 재전송 | 손상 앱을 ALREADY_INSTALLED로 오판하지 않음; 새 repair 승인 경계·재업로드/재개·CAN 차단 유지 |
 | 잘못된 DBANK/WRP/ROM strap/J32 absent | erase 전에 거절; 무단 보호 해제/ROM 진입 없음 |
 
 단계별 결정적 cut point 전수 시험 + 무작위 시점1000회 이상을 각 hardware variant에서 수행한다. 성공률뿐 아니라 발견된 brick, reset loop, Flash ECC/NMI, CAN dominant 폭, 복구 소요와 로그를 기록한다. 0건 실패도 모든 물리 고장에 대한 수학적 보장으로 표현하지 않는다. host Boolean 검사·ERC 통과로 아날로그/Flash/HIL 시험을 대체하지 않는다.
@@ -429,3 +433,93 @@ P0·P3 발견 없음.
 | B-02 (원문2) | P2 | §7.1 per-target 영속 sequence floor·CONFIRM_INTENT·recovery 공통 정책·trial rollback digest 제한 | 정책 사본 손상/확정 경계/옛 signed bundle 시험 계약; 설계 수정 재검토 대기 |
 
 위 severity를 변경하지 않았다. 원본의 파일 행 번호는 최초 candidate 기준이다. 수정은 후속 immutable commit에서 두 reviewer가 확인하며 그 전에는 P1 closure를 선언하지 않는다.
+
+### 14.5 첫 post-fix 재검토 입력과 원본
+
+검토 commit은 `b462093`에서 UART 설명 한 줄/fragment 교정만 추가한 최종 `1da1558aa3c084b68f323d89580ac91f1fec9ba6`이다. 두 원문을 받은 뒤 아래에 보존했으며 A의 PASS와 B의 BLOCK을 합쳐 PASS로 표시하지 않는다.
+
+공통 입력 원문:
+
+```text
+OTA post-fix 독립 재검토. Immutable candidate b462093104f685829426aacd19b7659adacec9d9, initial candidate 5abeae4432f7e7a395739dac3b91bf7c0495679b, original base cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70. F:/dev/canview 현재 HEAD도 candidate이며 author commit후 clean. 원본 A/B 결과를 docs/architecture/ota.md §14.2/14.3에 수신 그대로 보존한 후 수정했다. 자신의 finding과 전체 initial→postfix delta 회귀를 검토. object-only git show candidate:path와 git diff initial candidate만 기준으로 사용하고 worktree 읽기/쓰기/재생성/commit 금지. 다른 reviewer와 연락 금지. 시작·종료 hash/시간/격리증거/검증/한계/P0~P3/각 finding closure와 merge verdict 제출.
+수정: A-01 P1: SERVICE_RUN에서 U11GPIO48 제거, U56 SN74LVC1G17 A=hard net Y=SENSE_SRC,4.7k series→SENSE·100kPD. U52/U54 hard net 유지. exported topology GPIO48 HIGH/LOW+J31제거/재삽입/새ARM 회귀 추가.
+B-01 P1: PREPARED는 metadata만. ACTIVATION_COMMITTED intent후 ESPselector/STMTESTpending, cancel경계/ACKloss/불완전intent/ESPnew→STMplan 재개 구분.
+B-02 P2: §7.1 signed sequence floor, pertargetA/Bpolicy, CONFIRM_INTENT, confirmation전후재조정,recovery공통검증,trialknown-gooddigest예외,양쪽손상RECOVERY_LOCKED.
+동시에 module현행 문서정합,boardIDs,titleR2/R1.1,라우터/기록 업데이트 포함.
+실제검증: Windows KiCad10.0.6 네보드 전체 export/검증 재실행,ERC각0,hardware9testPASS,전원marginPASS,Comm292physicalitems947pads. 문서120개/751localtargets오류0. 전체gitdiffcheck는 원본review Markdown hardbreak 7줄만후행공백이므로 그파일에만 core.whitespace=-blank-at-eol 적용, 나머지기본checkPASS. 원문 유지 예외를§13기록. BridgeCSV일시접근실패후전체재실행성공. 실물/HIL/OTA firmware미구현, targetVerifyOnly CMake부재 실패는 명시된후속gate이며 이번산출물통합승인과제작승인구분. raw보고서추가만 closurecommit에할예정.
+도구 명령git safe.directory 필요시 percommand -c safe.directory=F:/dev/canview, core.safecrlf=false. 독립 검토에 필요한 공식 원문은 읽어도 됨. reviewer 전문분야 유지, 이미 이행한 근거검사를 반복하는 대신 실제 수정/회귀를 집중하되 P1을 releasegate로 연기하지 말 것.
+```
+
+추가 입력 원문:
+
+```text
+추가 post-fix 정본은 881a11ebbfb9433855d4b65d2a215667b5940202 입니다. b462093의 모든 내용 동일, 추가 delta는 docs/architecture/protocols/communicator-uart.md:7 한 줄뿐: 구형 MINI→WROOM-N16R8 명칭 및 runtime4MbpsCRC-32/ISO-HDLC와 OTAboot115200CRC32C 구별 포인터. 이미 한 검토는 유지하고 이 한줄 delta만 추가검사하여 최종 관찰 hash/verdict는881a11e로 제출해주세요. 문서120/752targets오류0. SHA 불변 스냅샷 원칙 그대로; 공통 입력의 candidate만 이 값으로 업데이트합니다.
+최종 snapshot 1da1558aa3c084b68f323d89580ac91f1fec9ba6. 직전881a11e의 OTA 절 링크 fragment를 실제 제목 #5-stm32-부트로더와-esp-제어로 고친 1줄만 추가됐습니다. 이제 추가 규범 변경은 멈춥니다. 앞선검토 유지+이1줄 확인 후 최종hash1da1558로제출. main설계/회로/회귀는b462093그대로입니다.
+```
+
+#### Reviewer A 원본
+
+Reviewer A 재검토 판정: **PASS — 설계·회로 산출물 통합 승인**. 미해결 P0/P1/P2/P3 각 0건, 신규 finding 없음.
+
+실행 ID: `01a073db-f9f0-73a2-88b8-1fc7f3ed631d`  
+재검토 시작: `2026-09-05T23:46:38.3622554Z`  
+재검토 종료: `2026-09-05T23:51:45.4179064Z`
+
+확인한 original base: `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`  
+initial candidate: `5abeae4432f7e7a395739dac3b91bf7c0495679b`  
+최종 관찰 candidate: `1da1558aa3c084b68f323d89580ac91f1fec9ba6`
+
+시작 HEAD는 `b462093104f685829426aacd19b7659adacec9d9`, 종료 HEAD는 최종 candidate와 일치했다. 시작·종료 status 모두 clean이었다. 최초 대상과 중간 `881a11e` 및 최종 객체의 존재를 확인했다. 최종 추가 변경은 UART 문서 한 줄뿐임을 diff로 확인하여 앞선 검토를 유지했다.
+
+모든 검토 입력은 candidate `git show`와 지정 commit 간 diff였다. worktree 파일 읽기·쓰기·회로 재생성·커밋 및 다른 리뷰어 조회·연락·결과 전송은 하지 않았다.
+
+- **A-01 / 기존 P1: FIXED, CLOSED.** [ota_circuits.py:24](F:/dev/canview/tools/hardware/ota_circuits.py:24), [netlist.xml:14844](F:/dev/canview/hardware/communicator/netlist.xml:14844). `SERVICE_RUN`에서 GPIO48이 제거됐고 U52/U54는 물리 원신호를 유지한다. U56 A→Y 뒤에 4.7k와 MCU측 100k pull-down이 연결되어 기존 역구동 경로가 사라졌다. 핀·방향은 [TI Rev.Y](https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf)와 일치한다. 3.6V·저항 −1%에서도 출력 충돌 전류는 약 0.774mA다. GPIO48 HIGH/LOW 각각에서 J31 제거 시 RX/TX 차단·latch clear, 재삽입 후 TX 유지 차단, 새 ARM edge 후 재무장을 확인했다. P1을 후속 gate로 미루지 않고 회로에서 해결했다.
+- **B-01 / 기존 P1: 설계 수준 FIXED 확인.** [ota.md:233](F:/dev/canview/docs/architecture/ota.md:233)의 PREPARED는 metadata만 기록하며 activation intent commit 이후에만 TEST pending을 기록한다. 승인 이전 단전, 승인 이후 ACK 유실, cancel 직렬화와 ESP 교체 이후 STM plan 재개가 일관된다. reset·boot 회귀 관점에서 추가 결함을 발견하지 못했다.
+- **B-02 / 기존 P2: 설계 수준 FIXED 확인.** [ota.md:207](F:/dev/canview/docs/architecture/ota.md:207)의 target별 A/B policy, CONFIRM_INTENT와 실제 confirmation 재조정, trial known-good digest 예외 및 양쪽 손상 시 RECOVERY_LOCKED가 명시됐다. 확정 전 단전 때문에 버전 하한을 먼저 올려 정상 rollback을 막는 순서는 없다.
+
+최종 객체의 XML 연결을 시험 입력으로 사용하여 hardware 9개 회귀시험을 재실행했고 모두 PASS였다. 4보드 JSON/XML/pinmap/BOM 대조 오류 0건, 저장 artifact SHA-256 16개 불일치 0건이다. Communicator는 292부품·947핀이다. 비실장 전원 표시 `#FLG`는 물리 핀 집계에서 제외했다. 부품 번호 재배정을 정규화한 연결 delta는 GPIO48 이동과 U56·C·저항 2개 추가뿐이었다. reset/NRST·J32·N16R8 예약 핀·Controller 복구 핀의 회귀는 없었다. 최종 UART fragment도 실제 제목과 일치하며, 문서 한 파일의 hard-break 예외를 적용한 diff 검사도 통과했다.
+
+한계: ERC 각 0건은 저장 보고서 확인이며 재생성하지 않았다. 전체 링크 120문서/752target·전원 margin은 작성자 결과이고 이번에 재실행하지 않았다. GPIO 시험은 정적·순차 논리 검증이다. OTA firmware·target build·PCB·실물/HIL 및 제작·차량 송신 승인은 포함하지 않는다. 명시된 후속 gate 미실행을 결함이나 P1 유예로 계산하지 않았다.
+
+#### Reviewer B 원본
+
+Reviewer B post-fix 판정: **BLOCK**  
+미해결: P0 0건 / P1 1건 / P2 0건 / P3 0건.
+
+실행 ID: `01a073db-fa86-7823-9450-388dfb900276`  
+재검토 시작: `2026-09-05T23:46:40.3099448Z`  
+재검토 종료: `2026-09-05T23:50:54.9890657Z`
+
+확인한 불변 해시:
+
+- Original base: `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`
+- Initial: `5abeae4432f7e7a395739dac3b91bf7c0495679b`
+- Post-fix: `b462093104f685829426aacd19b7659adacec9d9`
+- 중간: `881a11ebbfb9433855d4b65d2a215667b5940202`
+- **최종 candidate/종료 HEAD: `1da1558aa3c084b68f323d89580ac91f1fec9ba6`**
+
+시작 HEAD는 b462093, 종료 HEAD는 최종 candidate이며 양쪽 status에 변경 파일은 없었다. global ignore 접근 권한 경고는 있었다. 지정 commit의 `show`와 commit 간 `diff`만 읽었고 worktree 파일 읽기·쓰기·재생성·커밋 및 다른 reviewer 연락은 하지 않았다. 추가 두 커밋은 UART 문서 7행 설명과 링크 수정뿐임을 확인했다.
+
+기존 finding closure:
+
+- **B-01/P1 CLOSED — 설계 수정 확인.** [ota.md:241](F:/dev/canview/docs/architecture/ota.md:241)의 승인 plan commit 이전에는 selector/TEST pending을 변경하지 않는다. PREPARED 재부팅 대기, cancel 직렬화, torn intent, ACK 유실 및 ESP 교체 후 STM plan 재개가 일관된다.
+- **B-02/P2 CLOSED — 기존 영속 기준 누락 해소.** [ota.md:205](F:/dev/canview/docs/architecture/ota.md:205)에 signed sequence, per-target A/B policy, CONFIRM_INTENT 재조정, recovery 공통 검증과 손상 시 잠금이 정의됐다. 다만 새 수신 규칙에서 아래 회귀를 발견했다.
+- **A-01/P1 — 회귀검토상 정적 회로 수정 확인.** SERVICE_RUN에 MCU 출력 핀이 없고 U56 입력·U52/U54만 연결된다. GPIO48은 버퍼 출력 뒤 별도 sense net이다. 새 순차 회귀도 통과했다.
+
+**[B-03 / P1] 동일 정식 이미지로 손상된 앱을 복구할 수 없음**
+
+위치: 최종 candidate [ota.md:209](F:/dev/canview/docs/architecture/ota.md:209), 관련 13–14·205·326행.
+
+209행은 `sequence == floor`이고 digest가 같으면 무조건 “이미 설치됨”으로 응답하며, **floor 초과만 후보로 받는다**. 이 규칙은 recovery에도 적용된다.
+
+실패 시나리오: policy의 `(floor=N, confirmed_digest=H)`와 복구 앱은 정상이고 Flash도 다시 기록할 수 있지만 정상 앱 슬롯들이 invalid인 상태다. 사용자가 마지막 정식 bundle `(N,H)`를 재업로드하면 실제 슬롯 검증 없이 이미 설치됐다고 처리하여 복구 기록을 진행하지 못한다. 이전 버전은 floor 아래라 거절되므로 더 높은 릴리스가 없으면 약속한 휴대폰 복구 경로가 막힌다. 이는 펌웨어 실행 재현이 아닌 명시된 수신 규칙의 반례다.
+
+수정: 동일 sequence/digest의 멱등 성공은 실제 유효·부팅 가능한 설치본 확인을 조건으로 해야 한다. 설치본 손상 시에는 동일한 승인 digest의 재설치를 허용하고, 인증·설치 승인·전체 검증·시험 부팅을 거치되 floor를 낮추지 않아야 한다. “policy 정상 + 앱 양쪽 invalid + 현재 정식 bundle 재업로드”를 수용 조건에 추가해야 한다.
+
+검증: 객체 기반 hardware 9시험 PASS, 세 보드 JSON/XML/BOM/pinmap 일치, Comm 292부품/947핀 확인. 저장 산출물 해시 16개 일치, 저장 ERC 4보드 각 0건, 변경 Python 6파일 구문 PASS. U56 핀 방향은 [TI Rev.Y](https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf)와 일치한다. OTA 원문 hard-break 예외와 나머지 기본 diff-check도 통과했다. 최종 UART 링크는 실제 §5 제목과 일치한다.
+
+한계: ERC·전원 margin 재생성, 전체 752링크, target/HIL은 재실행하지 않았다. 명시된 후속 gate 미실행을 finding으로 계산하지 않았다. **B-03 규칙 수정 전 산출물 통합은 BLOCK이며, 제작·차량 사용 승인은 별도다.**
+
+### 14.6 B-03 수정과 두 번째 재검토
+
+B-03 원 severity는 P1이다. §7.1의 동일 sequence/digest 성공에 실제 부팅 가능한 정상 설치본 검증 조건을 추가하고, 손상/부팅 선택 불가 시 동일 승인 digest의 REPAIR 경로를 허용했다. 인증·PREPARED·사용자 activation commit·전체 검증·trial/confirmation을 그대로 적용하고 floor는 유지한다. §12에 정상 policy+앱 양쪽 invalid+현재 정식 bundle 재업로드 및 수리 중 단전/ACK 유실 시험을 추가했다. 회로/실행 코드는 이번 수정에서 바꾸지 않는다. 새 immutable commit에서 두 원 reviewer 재확인 전 B-03은 OPEN이다.
