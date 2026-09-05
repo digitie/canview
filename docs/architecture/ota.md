@@ -523,3 +523,89 @@ Reviewer B post-fix 판정: **BLOCK**
 ### 14.6 B-03 수정과 두 번째 재검토
 
 B-03 원 severity는 P1이다. §7.1의 동일 sequence/digest 성공에 실제 부팅 가능한 정상 설치본 검증 조건을 추가하고, 손상/부팅 선택 불가 시 동일 승인 digest의 REPAIR 경로를 허용했다. 인증·PREPARED·사용자 activation commit·전체 검증·trial/confirmation을 그대로 적용하고 floor는 유지한다. §12에 정상 policy+앱 양쪽 invalid+현재 정식 bundle 재업로드 및 수리 중 단전/ACK 유실 시험을 추가했다. 회로/실행 코드는 이번 수정에서 바꾸지 않는다. 새 immutable commit에서 두 원 reviewer 재확인 전 B-03은 OPEN이다.
+
+### 14.7 두 번째 post-fix 입력과 원본
+
+공통 입력 원문:
+
+```text
+두 번째 post-fix object-only 재검토. Candidate 1fe50e500a83c7f56f50112597dd5b4fa8fb25a3, 직전1da1558aa3c084b68f323d89580ac91f1fec9ba6. 최초base/분야/독립규칙그대로. 이전 두 원문을 docs/architecture/ota.md §14.5에 받은그대로보존. A PASS, B BLOCK(B-03P1) 모두기록.
+이번규범delta는 ota.md §7.1 1bullet→3bullet와 §12 수용표2행뿐이며 나머지는리뷰원문/입력/disposition. 회로/SDK/실행코드 불변. B-03: seq==floor/digest==confirmed 여도 실제정상앱fullhash/signature/board/layout/bootmetadata로 부팅가능설치본일때만 ALREADY_INSTALLED. 손상/boot선택불가시 동일signed seq/digest REPAIR 허용, 새transaction·인증·prepare·freshactivationcommit·trial/confirmation·floor불변. 과거transaction 성공cache도현재손상판정을생략못함. policy정상+앱둘invalid+높은릴리스없음,repair단전/ACKloss수용시험추가.
+이미 검증한 하드웨어를 새로 전부 검토할필요는 없지만 Git diff로실제그대로인지확인. B-03 closure와전체normdelta회귀에집중하고 새확정finding있으면제출. 양쪽모두최종candidate hash·시작종료시간·격리·검증범위·원findingclosure·PASS/BLOCK/CONDITIONAL 원문제출. 실제OTA펌웨어미구현범위 유지. 문서120/759localtargets오류0, 원문hardbreak예외diffcheckPASS. 최종 원문 저장 이외에는 추가수정중지.
+```
+
+#### Reviewer A 원본
+
+Reviewer A 두 번째 post-fix 판정: **PASS — 설계·회로 산출물 통합 승인**. 신규 finding 없음. 이번 검토 범위의 미해결 P0/P1/P2/P3 각 0건.
+
+실행 ID: `01a073db-f9f0-73a2-88b8-1fc7f3ed631d`  
+시작: `2026-09-05T23:54:41.7127457Z`  
+종료: `2026-09-05T23:55:57.5722092Z`
+
+원본 base: `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`  
+직전 검토본: `1da1558aa3c084b68f323d89580ac91f1fec9ba6`  
+최종 candidate: `1fe50e500a83c7f56f50112597dd5b4fa8fb25a3`
+
+시작·종료 모두 위 객체들의 존재를 확인했다. HEAD는 candidate와 일치했고 status는 양쪽 모두 clean이었다. 검토 파일은 candidate `git show`와 직전→candidate diff로만 읽었다. worktree 파일 읽기·쓰기·재생성·커밋 및 다른 리뷰어 조회·연락·결과 전송은 하지 않았다.
+
+**B-03 / 기존 P1: 설계 수준 FIXED, CLOSED.** 근거는 candidate [ota.md:209](F:/dev/canview/docs/architecture/ota.md:209)와 수용 조건 329·330행이다.
+
+기존에는 policy의 sequence/digest 일치만으로 성공 처리하여, 정상 앱이 모두 손상되고 더 높은 릴리스도 없으면 현재 정식 이미지로 복구할 수 없었다. 수정본은 실제 정상 이미지의 전체 hash·서명·board/layout·부팅 선택 metadata를 검사한 경우에만 `ALREADY_INSTALLED`를 허용한다. recovery 실행이나 저장된 confirmed flag만으로 정상 설치를 추정하지 않는다.
+
+손상·부팅 선택 불가 상태에서는 정확히 같은 signed sequence/digest의 `REPAIR`를 허용한다. 새 transaction, 인증, 전체 이미지 검증, PREPARED, 새 사용자 activation commit과 trial/confirmation을 요구하므로 과거 설치 승인을 재사용하지 않는다. floor 미만 거절과 동일 sequence의 다른 digest 거절도 유지된다. 과거 성공 transaction 재전송으로 현재 손상 판정을 생략하는 경로 역시 명시적으로 차단했다.
+
+단전 회귀 관점에서도 남은 정상본·bootloader·recovery 영역 보호, 승인 전 재업로드와 승인 후 repair 재개, floor 불변 계약이 기존 §8·9의 승인·확정 순서와 일치한다. 앱 양쪽 invalid이고 높은 릴리스가 없는 경우와 repair 중 단전·ACK 유실을 수용표에 추가했다. 현재 범위에서 P1을 후속 gate로 미룬 것이 아니라 잘못된 복구 정책을 수정한 것으로 판정한다.
+
+A-01의 하드웨어 closure와 B-01/B-02에 대한 앞선 설계 검토 판정은 유지한다. Git diff상 변경 파일은 OTA 문서 하나뿐이며, 규범 변경은 §7.1의 1개 bullet→3개 bullet 및 §12의 2행이다. 나머지는 리뷰 기록이다. `hardware`, `tools`, `firmware`, `AGENTS.md` 비교는 차이 없이 종료 코드 0이었다.
+
+검증은 전체 규범 delta와 관련 승인·rollback·복구 계약의 정적 검토, 코드·회로 불변 확인, hard-break 예외를 적용한 diff 검사까지 수행했다. 앞선 hardware 9개 PASS와 객체 산출물 검증 근거는 유지하며 이번에 재실행하지 않았다. 문서 120개/759 local target 검사는 작성자 결과다.
+
+실제 OTA firmware·target build·전원 차단 HIL은 검증하지 않았다. 이번 PASS는 문서·회로 산출물 통합 판정이며 제작·실물 복구 성능·차량 송신 승인을 포함하지 않는다.
+
+#### Reviewer B 원본
+
+Reviewer B 두 번째 post-fix 판정: **PASS — 설계·산출물 통합 승인**  
+미해결 finding: P0 0건 / P1 0건 / P2 0건 / P3 0건.
+
+실행 ID: `01a073db-fa86-7823-9450-388dfb900276`  
+시작: `2026-09-05T23:54:42.7266775Z`  
+종료: `2026-09-05T23:55:58.1640262Z`
+
+시작·종료 모두 다음 commit 객체의 존재와 해시를 확인했다.
+
+- Original base: `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`
+- 직전 candidate: `1da1558aa3c084b68f323d89580ac91f1fec9ba6`
+- **최종 candidate: `1fe50e500a83c7f56f50112597dd5b4fa8fb25a3`**
+
+양쪽 HEAD는 최종 candidate였으며 status에 변경 파일은 없었다. global ignore 접근 권한 경고는 있었다. 검토는 지정 commit의 `git show`와 직전→최종 `git diff`만 사용했다. worktree 파일 읽기·쓰기·재생성·커밋 및 다른 reviewer 연락은 하지 않았다.
+
+**B-03/P1 CLOSED — 동일 정식 이미지 복구 계약 확인.**
+
+위치: 최종 candidate [ota.md:209](F:/dev/canview/docs/architecture/ota.md:209), 관련 210–214·329–330행.
+
+이제 동일 sequence/digest의 `ALREADY_INSTALLED`는 정상 앱의 실제 전체 hash·서명·board/layout·부팅 선택 metadata를 검증한 경우에만 가능하다. policy의 confirmed 기록이나 recovery 앱 실행만으로 설치 성공을 추정하지 않는다.
+
+앱 손상 또는 부팅 선택 불가 시 동일 정식 bundle을 새 REPAIR transaction으로 받으며, 인증·전체 검증·PREPARED·새 activation commit·trial/confirmation을 요구한다. floor는 유지되고 과거 transaction 성공 cache도 현재 손상 검사를 생략하지 못한다. 따라서 이전 반례인 “policy 정상, 정상 앱 둘 다 invalid, 더 높은 릴리스 없음”에 동일 배포 파일로 복구하는 경로가 생겼다. 해당 조건과 repair 단전·ACK 유실 시험도 수용표에 추가됐다.
+
+규범 변경 회귀 검토에서도 하한 미만 거절, 같은 sequence의 다른 digest 거절, 승인 전 설치 금지, 정상본 보호, bootloader/recovery 쓰기 금지 및 policy 양쪽 손상 시 잠금이 유지된다. 새로운 확정 결함은 발견하지 못했다.
+
+기존 **B-01/P1·B-02/P2 CLOSED를 유지**한다. A-01의 앞선 정적 회로 수정 확인도 유지한다. 이번 closure는 설계 계약에 대한 판정이다.
+
+검증: 전체 diff의 변경 파일은 OTA MD 하나뿐이다. 규범 변경은 §7.1의 1개 bullet을 3개로 교체한 부분과 §12 수용표 2행이며, 나머지는 리뷰 기록 추가다. OTA MD 제외 diff는 exit 0으로 회로·SDK·실행 코드 불변을 확인했다. 문서의 원문 hard-break 예외를 적용한 diff-check도 exit 0이었다.
+
+한계: 불변 하드웨어의 기존 9시험·산출물 검증은 반복하지 않았다. 전체 문서 120개/759개 링크 검증도 이번 실행에서는 재실행하지 않았다. 실제 OTA firmware·target build·PCB·HIL 검증을 수행하거나 통과로 표시하지 않았다. 명시된 후속 gate 미실행은 finding으로 집계하지 않았으며, **이번 PASS는 제작·차량 사용 승인을 포함하지 않는다.**
+
+### 14.8 최종 통합 판정과 남은 gate
+
+최종 규범·회로 검토 commit은 `1fe50e500a83c7f56f50112597dd5b4fa8fb25a3`이며 전문 reviewer A/B 모두 **PASS**다. 위 절의 OPEN/대기/BLOCK은 해당 시점의 역사 기록이고 아래 표가 이번 리뷰 실행의 최종 disposition이다.
+
+| Finding | 원 severity | 최종 상태 | 원 reviewer 확인 |
+|---|---|---|---|
+| A-01 GPIO48 역구동 | P1 | FIXED/CLOSED | A 첫 post-fix에서 회로/실제 netlist·9회귀로 확인, 최종 유지 |
+| B-01 승인 전 설치 | P1 | FIXED/CLOSED | B 첫 post-fix에서 승인 commit 경계 확인, 최종 유지 |
+| B-02 영속 버전 기준 누락 | P2 | FIXED/CLOSED | B 첫 post-fix에서 policy 계약 확인, B-03 회귀도 후속 수정 |
+| B-03 동일 정식 이미지 복구 차단 | P1 | FIXED/CLOSED | A/B 모두 최종 commit의 REPAIR 계약·수용 조건 확인 |
+
+미해결 finding은0개다. **설계·회로 산출물 통합 PASS이며 제작·펌웨어 OTA 동작·차량 송신 승인이 아니다.** KiCad10.0.6 전체 export/4보드 ERC0/정합성·전원 margin·hardware9시험 PASS, 기존 navigation protocol16시험 PASS, 최종 규범 commit의16개 artifact SHA-256 불일치0을 확인했다. 생성된 Communicator 인터록 PDF31쪽을 렌더링해 label/연결/배치를 시각 확인했다. 원본 Markdown hard-break 공백만 예외로 둔 Git 검사와 문서 링크 검사를 수행했다.
+
+남은 gate는 ESP/STM 부트로더·OTA 웹/manager·서명 provisioning 실제 구현, CMake/SDK target build, N16R8 메모리·열/PCB/전원 차단 HIL, 기존 U8 provisional footprint 검증이다. 외장 NOR는 추가하지 않았다. 회로 생성 입력·산출물·핀맵·SDK 설정·문서를 함께 되돌리는 별도 revert로 설계 변경을 복원할 수 있다. 이번 작업은 실제 장치 flash나 차량 CAN 송신을 수행하지 않았다. 이후 closure commit에는 원본·disposition 기록만 포함하고 동일 리뷰를 재귀적으로 다시 시작하지 않는다.
