@@ -4,7 +4,7 @@
 
 ## 포함 범위
 
-- [kicad/communicator.kicad_sch](kicad/communicator.kicad_sch): 전원/USB, STM32/ESP32, CAN PHY/gate, MTi7/BMP384, GPS,24개 테스트 패드의27개 상세 sheet와 root
+- [kicad/communicator.kicad_sch](kicad/communicator.kicad_sch): 전원/USB, STM32/ESP32, CAN PHY/gate, MTi7/BMP384, GPS, 24개 테스트 패드의 28개 상세 sheet와 root
 - `bom.csv`: MPN·footprint·source·DNP·sheet가 포함된 검토용 BOM
 - [netlist.xml](netlist.xml), [communicator.net](communicator.net): KiCad가 실제 내보낸 XML/sexpr netlist
 - `pinmap.csv`: KiCad symbol pin과 net을 펼친 기계 판독 표
