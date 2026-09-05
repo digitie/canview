@@ -1,6 +1,10 @@
 # Local firmware build output
 firmware/**/build/
 build/
+firmware/**/sdkconfig
+firmware/**/sdkconfig.old
+firmware/**/managed_components/
+firmware/**/.idf_tools/
 
 # Local editor/tool state
 .vscode/

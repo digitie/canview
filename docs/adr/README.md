@@ -18,3 +18,4 @@ CANView의 구조적 결정은 파일당 하나의 ADR로 둔다. 파일명은 N
 | [ADR-002](002-documentation-and-task-structure.md) | 문서·task·ADR·runbook 정본 구조 | superseded by ADR-004 |
 | [ADR-003](003-windows-development-and-ephemeral-worktrees.md) | Windows 개발환경과 일회성 worktree | accepted |
 | [ADR-004](004-layered-documentation-and-review-archive.md) | 계층형 문서 정보구조와 누적 독립 리뷰 아카이브 | accepted |
+| [ADR-005](005-latest-windows-embedded-toolchain.md) | 최신 Windows 임베디드 toolchain baseline | accepted |

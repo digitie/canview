@@ -173,13 +173,13 @@ production에서는 기본 PMK, LMK 없는 평문 unicast, 자동 보안 downgra
 
 ### 7.1 Controller 권장 ESP-IDF 환경
 
-Waveshare 공식 ESP-IDF 문서는 이 보드에 `ESP-IDF V5.5.0` 이상을 요구하고, 예제 화면은 `V5.5.2`에서 작성돼 있다. 새 프로젝트는 ESP-IDF 5.5.x 이상을 기준으로 고정한다.
+Waveshare 공식 ESP-IDF 문서는 이 보드에 `ESP-IDF V5.5.0` 이상을 요구한다. 새 프로젝트의 최신 안정 baseline은 `ESP-IDF v6.0.3`으로 고정하되, Waveshare example/BSP의 IDF 6 호환 여부는 실제 board bring-up gate에서 확인한다.
 
 권장 도구는 다음과 같다.
 
 - Visual Studio Code
 - Espressif `ESP-IDF` VS Code extension 2.0 이상
-- ESP-IDF 5.5.x 이상
+- ESP-IDF `v6.0.3` (`esp32s3`)
 - `git`
 - USB Type-C 데이터 케이블과 보드의 USB serial/JTAG 포트
 - Python 기반 보조 도구가 필요한 경우 가상환경
@@ -256,5 +256,5 @@ SCC/LKAS와 같은 운전자 보조 신호는 우선 읽기 전용으로 표시�
 - [Waveshare ESP32-S3-Touch-LCD-3.5 예제 저장소](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/tree/283ec84c566c096f8c30493b93dcd4b0bb608de7)
 - [Waveshare 회로도 PDF](https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-3.5/ESP32-S3-Touch-LCD-3.5-Schematic.pdf)
 - [Espressif ESP32-S3 TWAI 문서](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/twai.html)
-- [Espressif ESP-IDF 5.5.2 ESP-NOW 문서](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-reference/network/esp_now.html)
+- [Espressif ESP-IDF 6.0.3 ESP-NOW 문서](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-reference/network/esp_now.html)
 - [commaai/opendbc 고정 commit](https://github.com/commaai/opendbc/tree/3e92d112129507debe45364891954db70238997a)

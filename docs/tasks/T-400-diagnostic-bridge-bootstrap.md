@@ -12,7 +12,7 @@
 
 ## 고정 target
 
-- ESP-IDF 5.5.2, 8 MB Flash, 2 MB PSRAM
+- ESP-IDF 6.0.3, 8 MB Flash, 2 MB PSRAM
 - `WIFI_MODE_APSTA`; STA는 ESP-NOW, AP는 휴대폰 한 대
 - external infrastructure AP credential와 NAPT 없음
 - ESP-NOW와 SoftAP는 같은 고정 KR channel

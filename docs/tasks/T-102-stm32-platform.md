@@ -51,12 +51,16 @@ firmware/communicator/stm32/tests/*
 
 ## 검증 명령
 
-```bash
+```powershell
+. .\tools\environment\setup-windows.ps1
+Push-Location firmware/communicator/stm32
 cmake --preset debug
 cmake --build --preset debug
 arm-none-eabi-size build/debug/canview-communicator-stm32.elf
-ctest --preset host-debug -R stm32-platform --output-on-failure
+Pop-Location
 ```
+
+host `ctest`는 별도의 T-001 root test preset이 추가된 뒤 저장소 루트에서 수행한다.
 
 ## evidence
 

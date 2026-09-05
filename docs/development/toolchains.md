@@ -2,19 +2,23 @@
 
 이 문서는 [Windows 개발환경](windows.md) 아래에서 장치별 SDK, compiler, build 산출물을 구체화한다. branch·worktree·review 절차는 [agent workflow](../runbooks/agent-workflow.md)를 따른다.
 
+아래 PowerShell 명령은 모두 저장소 정본 경로 `F:/dev/canview`에서 실행한다.
+
 ## 1. 공통 원칙
 
 Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 저장소에서 관리하지만 firmware image와 target 설정은 분리한다.
 
 | 대상 | 기준 framework/toolchain | 산출물 |
 |---|---|---|
-| Controller | ESP-IDF `v5.5.2`, LVGL `8.4.x`, Waveshare BSP/example | Controller Flash image |
-| Communicator ESP32 | ESP-IDF `v5.5.2` | ESP-NOW·UART image |
-| Diagnostic Bridge | ESP-IDF `v5.5.2`, built-in HTTP server | ESP-NOW observer·SoftAP·모바일 웹 image |
-| Communicator STM32 | CMake + Ninja + GNU Arm Embedded, STM32CubeG4 | CAN·safety image |
+| Controller | ESP-IDF `v6.0.3`, LVGL `8.4.x`, Waveshare BSP/example | Controller Flash image |
+| Communicator ESP32 | ESP-IDF `v6.0.3` | ESP-NOW·UART image |
+| Diagnostic Bridge | ESP-IDF `v6.0.3`, built-in HTTP server | ESP-NOW observer·SoftAP·모바일 웹 image |
+| Communicator STM32 | CMake `4.4.3` + Ninja `1.13.2` + Arm GNU `15.3.Rel1`, STM32CubeG4 `v1.6.3` | CAN·safety image |
 | DBC/profile 생성·검증 | Python virtual environment, `cantools`와 schema validator | Controller signal catalog, STM32 safety profile와 검증 report |
 
-Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
+Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. ESP-IDF v6의 CMake 최소 요구사항은 3.22.1이며, 이 저장소의 Windows 정본은 CMake `4.4.3`으로 올려 고정한다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
+
+정본 버전과 SDK commit은 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 둔다. Windows 초기화와 commit 검증은 [`tools/environment/setup-windows.ps1`](../../tools/environment/setup-windows.ps1)를 사용한다.
 
 `sdkconfig`, compiler version, STM32CubeG4 tag, DBC upstream commit을 build metadata에 넣는다. release artifact는 다음 정보를 함께 보관한다.
 
@@ -30,25 +34,21 @@ Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline�
 
 Controller는 Waveshare `ESP32-S3-Touch-LCD-3.5`다. 보드에는 ESP32-S3R8, 16 MB external Flash, 8 MB PSRAM, ST7796 LCD, FT6336 touch, AXP2101 PMIC, QMI8658 IMU, PCF85063 RTC, ES8311 audio codec가 있다. 세부 핀은 [하드웨어 및 개발환경](../hardware/controller.md)을 따른다.
 
-Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구하고 예제는 5.5.2 기준이므로 baseline을 `v5.5.2`로 고정한다. LVGL UI는 이 저장소의 [`../ui/lvgl/`](../../ui/lvgl/)를 보드 BSP의 display/touch driver 위에 연결한다.
+Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구한다. 최신 안정 baseline은 `v6.0.3`으로 선택했으며, 공식 example/BSP의 IDF 6 호환 여부는 실제 board bring-up에서 별도 확인한다. LVGL UI는 이 저장소의 [`../ui/lvgl/`](../../ui/lvgl/)를 보드 BSP의 display/touch driver 위에 연결한다.
 
 ### 2.2 설치와 빌드
 
-```bash
-git clone --recursive --branch v5.5.2 https://github.com/espressif/esp-idf.git
-cd esp-idf
-./install.sh esp32s3
-. ./export.sh
+```powershell
+. .\tools\environment\setup-windows.ps1
 ```
 
 Controller project가 추가된 뒤의 표준 명령은 다음과 같다.
 
-```bash
-cd firmware/controller
-idf.py set-target esp32s3
-idf.py menuconfig
-idf.py build
-idf.py -p /dev/ttyACM0 flash monitor
+```powershell
+idf.py -C firmware/controller set-target esp32s3
+idf.py -C firmware/controller menuconfig
+idf.py -C firmware/controller build
+idf.py -C firmware/controller -p COMx flash monitor
 ```
 
 필수 설정은 실제 보드용 16 MB Flash, octal PSRAM, 240 MHz CPU, LVGL 8.4, ESP-NOW station mode다. Waveshare example의 `sdkconfig`를 출발점으로 삼되 새 IDF에서 생성한 설정 diff를 review한다. 생산 image에는 secure boot, flash encryption, NVS encryption을 별도 provisioning 절차와 함께 적용한다.
@@ -105,7 +105,7 @@ idf.py -p /dev/ttyACM2 flash monitor
 
 필수 configuration 기준은 다음과 같다.
 
-- ESP-IDF `v5.5.2`, target `esp32s3`
+- ESP-IDF `v6.0.3`, target `esp32s3`
 - Flash 8 MB Quad SPI, PSRAM 2 MB Quad SPI
 - `WIFI_MODE_APSTA`: STA는 ESP-NOW 전용, SoftAP는 휴대폰 한 대
 - external STA credential과 NAPT 기능 제외
@@ -128,8 +128,9 @@ idf.py -p /dev/ttyACM2 flash monitor
 
 권장 구성은 다음과 같다.
 
-- CMake 3.22 이상
-- Ninja
+- CMake `4.4.3`
+- Ninja `1.13.2`
+- Arm GNU Toolchain `15.3.Rel1` (`arm-none-eabi-gcc` 15.3.x)
 - `arm-none-eabi-gcc`, `arm-none-eabi-g++`, `arm-none-eabi-gdb`, `arm-none-eabi-objcopy`, `arm-none-eabi-size`
 - STM32CubeG4 `v1.6.3`
 - STM32CubeProgrammer와 ST-LINK GDB server
@@ -142,15 +143,13 @@ STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공
 
 [`../firmware/communicator/stm32/`](../../firmware/communicator/stm32/)의 CMake project는 STM32CubeG4를 repository 밖 dependency로 참조한다. vendor package를 이 저장소에 무분별하게 복사하지 않는다.
 
-```bash
-git clone --recursive --depth 1 --branch v1.6.3 \
-  https://github.com/STMicroelectronics/STM32CubeG4.git /opt/STM32CubeG4
-
-export STM32CUBE_G4_ROOT=/opt/STM32CubeG4
-cd firmware/communicator/stm32
+```powershell
+. .\tools\environment\setup-windows.ps1
+Push-Location firmware/communicator/stm32
 cmake --preset debug
 cmake --build --preset debug
 arm-none-eabi-size build/debug/canview-communicator-stm32.elf
+Pop-Location
 ```
 
 Flash 예시는 다음과 같다. 실제 probe serial과 reset 방식은 개발 PC 설정에 맞춘다.
@@ -233,8 +232,8 @@ DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32�
 - [Waveshare example repository](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/)
 - [Espressif ESP-IDF 시작하기](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/get-started/index.html)
 - [Espressif ESP-NOW API](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/network/esp_now.html)
-- [ESP-IDF 5.5.2 HTTP server](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-reference/protocols/esp_http_server.html)
-- [ESP-IDF 5.5.2 Wi-Fi APSTA](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-guides/wifi.html)
+- [ESP-IDF 6.0.3 HTTP server](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-reference/protocols/esp_http_server.html)
+- [ESP-IDF 6.0.3 Wi-Fi APSTA](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-guides/wifi.html)
 - [ESP32-S3-WROOM-1/1U datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf)
 - [Espressif UART API](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/peripherals/uart.html)
 - [ST STM32CubeCLT](https://www.st.com/en/development-tools/stm32cubeclt.html)

@@ -1161,14 +1161,14 @@ Controller fallback에서 heap low watermark, UI render deadline miss 또는 ESP
 
 ## 25. 공식 근거
 
-- [ESP-IDF 5.5.2 ESP-NOW](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-reference/network/esp_now.html): v1/v2 payload, CCMP, PMK/LMK, peer와 channel, MAC callback와 app ACK 제약
-- [ESP-IDF 5.5.2 Wi-Fi driver](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-guides/wifi.html): APSTA와 station home channel 우선순위
+- [ESP-IDF 6.0.3 ESP-NOW](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-reference/network/esp_now.html): v1/v2 payload, CCMP, PMK/LMK, peer와 channel, MAC callback와 app ACK 제약
+- [ESP-IDF 6.0.3 Wi-Fi driver](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-guides/wifi.html): APSTA와 station home channel 우선순위
 - [Espressif ESP-NOW FAQ](https://docs.espressif.com/projects/esp-faq/en/latest/application-solution/esp-now.html): Wi-Fi 동시 사용 시 동일 channel, 실제 throughput과 peer 수 주의
-- [ESP-IDF 5.5.2 HTTP server](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-reference/protocols/esp_http_server.html): WebSocket, pre-handshake 인증, REST, file serving, captive portal
-- [ESP-IDF captive portal example](https://github.com/espressif/esp-idf/tree/v5.5.2/examples/protocols/http_server/captive_portal)
-- [ESP-IDF RESTful server example](https://github.com/espressif/esp-idf/tree/v5.5.2/examples/protocols/http_server/restful_server)
+- [ESP-IDF 6.0.3 HTTP server](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-reference/protocols/esp_http_server.html): WebSocket, pre-handshake 인증, REST, file serving, captive portal
+- [ESP-IDF 6.0.3 captive portal example](https://github.com/espressif/esp-idf/tree/v6.0.3/examples/protocols/http_server/captive_portal)
+- [ESP-IDF 6.0.3 RESTful server example](https://github.com/espressif/esp-idf/tree/v6.0.3/examples/protocols/http_server/restful_server)
 - [ESP32-S3-WROOM-1/1U datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf): Flash·PSRAM·온도 variant
-- [ESP-IDF 5.5 security enablement](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/security/security-features-enablement-workflows.html): Secure Boot, Flash/NVS encryption 생산 적용
+- [ESP-IDF 6.0.3 security enablement](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/security/security-features-enablement-workflows.html): Secure Boot, Flash/NVS encryption 생산 적용
 
 ## 26. 관련 문서
 

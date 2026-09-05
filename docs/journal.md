@@ -2,6 +2,29 @@
 
 ## 2026-09-05 (codex)
 
+**작업**: 최신 Windows 임베디드 개발환경과 target build bootstrap 구성
+
+**결정**:
+
+- ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`, CMake `4.4.3`, Ninja `1.13.2`, Arm GNU Toolchain `15.3.Rel1`을 manifest에 고정했다.
+- ESP-IDF `v6.0.3` commit `06e31f0c9ac86f713a1b10d252e7396ac8a1552a`, STM32CubeG4 `v1.6.3` commit `64d78dd7042d277a31878178284e17882af51690`을 기록했다.
+- 버전 선택과 upgrade 규칙을 [ADR-005](adr/005-latest-windows-embedded-toolchain.md)에 기록했다.
+
+**변경**:
+
+- `tools/environment/setup-windows.ps1`가 Windows host tool version, SDK checkout commit, ESP-IDF export와 핵심 SDK 파일을 검증한다.
+- `firmware/controller/`와 `firmware/communicator/esp32/`에 독립 ESP-IDF project, `main`, public `canview_protocol` component, `sdkconfig.defaults`, partition table을 추가했다.
+- STM32 CMake minimum/preset/toolchain에서 CMake 4.4, Ninja, Arm GCC 15.3.x를 검증하고 memory usage report를 출력하도록 했다.
+- `canview_can`의 private protocol include path를 public `REQUIRES canview_protocol` 경계로 바꿨다.
+
+**검증**:
+
+- `git diff --check` 통과.
+- 현재 실행 셸에는 CMake, Ninja, Arm GNU compiler, ESP-IDF와 STM32CubeG4 checkout이 없어 실제 target configure/build는 미실행이다. 따라서 T-200/T-300/T-102 acceptance는 완료로 표시하지 않는다.
+- Windows에서 실행할 전체 준비 명령은 [tools README](../tools/README.md)와 [장치별 toolchain](development/toolchains.md)에 기록했다.
+
+## 2026-09-05 (codex)
+
 **작업**: 문서 정보구조 재정립과 실행별 독립 적대적 리뷰 gate 도입
 
 **변경**:

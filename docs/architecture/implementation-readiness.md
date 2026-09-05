@@ -13,7 +13,7 @@
 | 순수 C 자동화 알고리즘·수신 필터·DBC bit decoder | host 시험 가능 | 제한된 구현과 단위시험이 존재함 |
 | Controller LVGL 화면 구조 | 정적 통합 준비 | 화면 계층은 있으나 BSP·thread-safe model adapter가 없음 |
 | Communicator STM32 | reset-safe scaffold만 준비 | clock, DMA UART, FDCAN, watchdog, 안전 profile과 command executor가 없음 |
-| Controller·Communicator ESP32 | 구현 전 | ESP-IDF top-level project와 transport task가 없음 |
+| Controller·Communicator ESP32 | bootstrap 준비 | ESP-IDF top-level project·기본 component·partition은 있으나 BSP와 transport task가 없음 |
 | Diagnostic Bridge | prototype 설계만 존재 | firmware, REST/WS backend, capture storage가 없음 |
 | ESP-NOW·UART wire | 구현 차단 | 메시지 번호와 일부 구조만 있고 모든 payload ABI·codec·golden vector가 없음 |
 | 2017 Tucson TL 신호 | 후보 단계 | 저장 DBC의 대상 차량 적합성을 입증한 capture가 없음 |
@@ -87,7 +87,10 @@ tools/
 ├─ generate_protocol.py
 ├─ generate_vehicle_profile.py
 ├─ generate_ui_tokens.py
-└─ validate_cvtrace.py
+├─ toolchain-versions.json
+├─ validate_cvtrace.py
+└─ environment/
+   └─ setup-windows.ps1
 vehicle-profiles/tucson-tl-2017/
 ├─ profile.yaml
 ├─ evidence/
@@ -97,11 +100,11 @@ vehicle-profiles/tucson-tl-2017/
    ├─ stm32_safety_profile.c
    └─ profile-report.md
 firmware/
-├─ controller/                        # complete ESP-IDF app
+├─ controller/                        # ESP-IDF app scaffold → BSP/UI
 ├─ communicator/
-│  ├─ esp32/                          # complete ESP-IDF app
+│  ├─ esp32/                          # ESP-IDF bridge scaffold → transport
 │  └─ stm32/                          # CMake firmware
-└─ diagnostic-bridge/                 # complete ESP-IDF app
+└─ diagnostic-bridge/                 # future ESP-IDF app
 tests/
 ├─ host/
 ├─ protocol/

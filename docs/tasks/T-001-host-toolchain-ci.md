@@ -13,7 +13,8 @@
 ## 결정사항
 
 - Windows PowerShell과 Windows native toolchain을 local 재현성의 기준 환경으로 사용한다.
-- 필수 CI는 `windows-latest`에서 CMake `>=3.22`, Ninja, MSVC 또는 Windows LLVM, Python `3.12`를 실행한다. Linux GCC/Clang job은 cross-platform portability와 sanitizer를 위한 별도 matrix로 유지하되 Windows 기준을 대체하지 않는다.
+- 필수 CI는 `windows-latest`에서 manifest의 CMake `4.4.3`, Ninja `1.13.2`, MSVC 또는 Windows LLVM, Python `3.12`를 실행한다. Linux GCC/Clang job은 cross-platform portability와 sanitizer를 위한 별도 matrix로 유지하되 Windows 기준을 대체하지 않는다.
+- target job은 Arm GNU Toolchain `15.3.Rel1`, ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`의 source commit을 검증한다. SDK가 없는 host job을 target build 성공으로 집계하지 않는다.
 - ESP-IDF와 GNU Arm build는 별도 container/job으로 두고 host job과 섞지 않는다.
 - Python dependency는 hash가 고정된 lock file을 사용한다.
 - ESP-IDF component lock, Waveshare example commit, STM32CubeG4 commit과 archive digest도 불변값으로 기록한다. 이동하는 branch/tag만 pin으로 인정하지 않는다.
@@ -31,7 +32,7 @@
 
 ## 범위 밖
 
-- ESP-IDF application 구현
+- ESP-IDF application 기능 구현과 실제 board bring-up (별도 T-200/T-300)
 - STM32 vendor source vendoring
 - 차량 capture나 hardware-in-loop 실행
 

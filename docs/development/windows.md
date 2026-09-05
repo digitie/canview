@@ -14,15 +14,15 @@
 
 | 대상 | 기준 |
 |------|------|
-| Controller | ESP-IDF, LVGL, Waveshare BSP |
-| Communicator ESP32 | ESP-IDF, target esp32s3, N4R2 4 MB Flash/2 MB PSRAM |
-| Communicator STM32 | CMake + Ninja + GNU Arm Embedded + 고정 STM32CubeG4 |
+| Controller | ESP-IDF `v6.0.3`, LVGL, Waveshare BSP |
+| Communicator ESP32 | ESP-IDF `v6.0.3`, target esp32s3, N4R2 4 MB Flash/2 MB PSRAM |
+| Communicator STM32 | CMake `4.4.3` + Ninja `1.13.2` + Arm GNU `15.3.Rel1` + 고정 STM32CubeG4 `v1.6.3` |
 | host test | C11 compiler, CMake, CTest |
 | DBC/profile | Python validator와 생성기 |
 | static prototype | Windows Node의 `node --check` |
 | hardware | KiCad schematic/PCB/ERC/netlist/BOM CLI |
 
-정확한 SDK 버전과 dependency digest는 T-001에서 고정한다. STM32CubeG4_ROOT가 없는 환경에서는 STM32 image build를 성공으로 표시하지 않는다.
+정확한 SDK 버전과 dependency digest는 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 고정한다. `tools/environment/setup-windows.ps1`는 해당 manifest와 checkout commit을 검증한다. STM32CubeG4_ROOT가 없는 환경에서는 STM32 image build를 성공으로 표시하지 않는다.
 
 ## 3. 필요 시 생성하는 임시 worktree
 

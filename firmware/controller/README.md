@@ -1,8 +1,9 @@
 # Controller firmware
 
-Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF project가 들어갈 위치다.
+Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF application이다. 현재는 IDF build와 public protocol/component 경계를 검증하는 안전한 bootstrap 단계다.
 
-- 기준 ESP-IDF: `v5.5.2`
+- 기준 ESP-IDF: `v6.0.3` (`esp32s3`)
+- Flash/PSRAM: 16 MB / 8 MB Octal PSRAM
 - UI: [`../../ui/lvgl/`](../../ui/lvgl/)
 - hardware/pinmap: [Controller hardware](../../docs/hardware/controller.md)
 - 개발환경: [장치별 toolchain](../../docs/development/toolchains.md)
@@ -24,4 +25,17 @@ Primary Controller는 read-only 장치가 아니며, 활성 차량 profile에서
 
 통합 수치와 실패 처리는 [자동 제어 로직](../../docs/architecture/automation.md)을 따른다.
 
-Waveshare BSP와 실제 보드 bring-up 설정을 고정하기 전에는 placeholder project를 양산 firmware로 사용하지 않는다.
+## Windows build
+
+저장소 루트에서 ESP-IDF와 공통 toolchain을 먼저 준비한다.
+
+```powershell
+. .\tools\environment\setup-windows.ps1
+idf.py -C firmware/controller set-target esp32s3
+idf.py -C firmware/controller build
+idf.py -C firmware/controller size-components
+```
+
+`set-target`이 생성하는 `sdkconfig`와 `build/`는 로컬 산출물이며 Git에 커밋하지 않는다. `sdkconfig.defaults`와 `partitions.csv`가 이 프로젝트의 기본 target 설정이며 NVS encryption key partition도 예약한다. 현재 bootstrap은 단일 factory image다. OTA A/B는 실제 UI image 크기와 secure provisioning을 측정한 뒤 별도 partition 설계로 추가한다.
+
+현재 `app_main()`은 filter store 초기화와 protocol version log만 수행한다. Waveshare BSP, LVGL task, RTC/audio, UART/ESP-NOW transport와 실제 보드 bring-up은 후속 task에서 추가하며 그 전에는 양산 firmware로 사용하지 않는다.

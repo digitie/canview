@@ -20,7 +20,7 @@
 
 ## 2. 전제와 ESP-NOW 제약
 
-Espressif ESP-IDF 5.5.2 문서 기준으로 ESP-NOW v1의 최대 payload는 250 byte, v2는 1,470 byte다. v2 장치는 v1 frame을 받을 수 있지만, v1 장치는 250 byte를 넘는 v2 frame을 truncate하거나 버릴 수 있다. CANView v1은 구현·버전 혼합과 진단 도구의 단순성을 위해 header와 payload를 합쳐 **240 byte**로 제한한다.
+Espressif ESP-IDF 6.0.3 문서 기준으로 ESP-NOW v1의 최대 payload는 250 byte, v2는 1,470 byte다. v2 장치는 v1 frame을 받을 수 있지만, v1 장치는 250 byte를 넘는 v2 frame을 truncate하거나 버릴 수 있다. CANView v1은 구현·버전 혼합과 진단 도구의 단순성을 위해 header와 payload를 합쳐 **240 byte**로 제한한다.
 
 ESP-NOW는 CCMP를 사용하며 PMK와 peer별 LMK 길이는 각각 16 byte다. PMK를 설정하지 않으면 기본 PMK가 사용되고 LMK가 없으면 unicast frame도 암호화되지 않는다. multicast/broadcast 암호화는 지원되지 않는다. CANView production 모드는 기본 PMK와 평문 unicast를 금지한다.
 
@@ -30,8 +30,8 @@ peer channel은 로컬 Wi-Fi channel과 같아야 한다. `channel=0`은 현재 
 
 공식 근거:
 
-- [ESP-IDF 5.5.2 ESP-NOW](https://docs.espressif.com/projects/esp-idf/en/v5.5.2/esp32s3/api-reference/network/esp_now.html)
-- [ESP-IDF ESP-NOW 예제](https://github.com/espressif/esp-idf/tree/v5.5.2/examples/wifi/espnow)
+- [ESP-IDF 6.0.3 ESP-NOW](https://docs.espressif.com/projects/esp-idf/en/v6.0.3/esp32s3/api-reference/network/esp_now.html)
+- [ESP-IDF 6.0.3 ESP-NOW 예제](https://github.com/espressif/esp-idf/tree/v6.0.3/examples/wifi/espnow)
 
 ## 3. 시스템 역할과 신뢰 경계
 
