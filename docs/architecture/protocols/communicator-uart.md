@@ -4,7 +4,7 @@
 
 ## 1. 목적과 경계
 
-이 프로토콜은 한 Communicator PCB 안의 `ESP32-S3-WROOM-1-N16R8`와 `STM32G474CEU6`를 연결하는 정상 앱의 runtime 계약이다. Controller와 Communicator 사이의 ESP-NOW wire protocol과는 별도다. 부트로더의115200 8N1/CRC32C 복구 UART는 [OTA 설계](../ota.md#5-stm32-내부-이중-슬롯과-보호-부트로더)를 따르며 아래4Mbps/CRC-32/ISO-HDLC와 혼용하지 않는다.
+이 프로토콜은 한 Communicator PCB 안의 `ESP32-S3-WROOM-1-N16R8`와 `STM32G474CEU6`를 연결하는 정상 앱의 runtime 계약이다. Controller와 Communicator 사이의 ESP-NOW wire protocol과는 별도다. 부트로더의115200 8N1/CRC32C 복구 UART는 [OTA 설계](../ota.md#5-stm32-부트로더와-esp-제어)를 따르며 아래4Mbps/CRC-32/ISO-HDLC와 혼용하지 않는다.
 
 - ESP32는 무선 link, pairing, Controller session, configuration, raw telemetry bridge를 담당한다.
 - STM32는 세 FDCAN, timestamp, bus 상태, 안전 신호, 차량 TX 최종 허용을 담당한다.
