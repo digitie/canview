@@ -65,7 +65,7 @@ MTi 사용자 매뉴얼만은 **PDF 쪽 = 인쇄 쪽 + 3**이다. 예를 들어 
 | [sn74lvc2g125](pdf/sn74lvc2g125.pdf#page=4) / 30 | 4쪽 핀, 5~7쪽 정격·Ioff, 11쪽 기능, 12~14쪽 응용/OE·배치 | FD TX/STB와 GNSS 전원 도메인 격리. 상대 rail과 OE 기본 pull을 함께 설계하며 단순 버퍼 추가만으로 전원 순열 시험을 대신하지 않는다. |
 | [sn74lvc2g17](pdf/sn74lvc2g17.pdf#page=3) / 36 | 3쪽 핀, 4~5쪽 정격·입력/Ioff, 8~11쪽 기능·응용 | MAX3055 RXD/ERR 및 도메인 sense의 5V tolerant Schmitt 입력. 무전원 안전 근거 없는 단순 저항 분압안을 배제한다. |
 | [sn74lv1t125](pdf/sn74lv1t125.pdf#page=4) / 26 | 4쪽 핀, 5~6쪽 정격·입력 임계, 12~13쪽 기능·전원 | **교체·미채택**: 과거 FT gate 후보 감사용. 별도 PHY3V3의 active-low OE pull-up은 해당 rail 소실 시 fail-open이므로 사용 금지. |
-| [sn74ahct1g126-q1](pdf/sn74ahct1g126-q1.pdf#page=3) / 23 | 3쪽 핀, 4~5쪽 VCC3~5.5V·VIH2V·입력누설, 8쪽 active-high OE/필수 pull-down, 13쪽 주문 MPN, 20~22쪽 DBV 도면 | 수정 U28/U29, AUTO5V 공급·OE마다1k GND. 주문명 CAHCT1G126DBVRQ1을 보존한다. 출력 Ioff를 추정하지 않는다. |
+| [sn74ahct1g126-q1](pdf/sn74ahct1g126-q1.pdf#page=3) / 23 | 3쪽 핀, 4~5쪽 VCC3~5.5V·VIH2V·입력누설, 8쪽 active-high OE/필수 pull-down, 13쪽 주문 MPN, **17~19쪽 DBV** 도면(20~22쪽은 DCK) | 수정 U28/U29, AUTO5V 공급·OE마다1k GND. 주문명 CAHCT1G126DBVRQ1을 보존한다. 출력 Ioff를 추정하지 않는다. |
 | [sn74lvc1g04](pdf/sn74lvc1g04.pdf#page=3) / 47 | 3쪽 핀, 4~6쪽 정격, 10~12쪽 진리표·응용 | TX_PERMIT→active-low OE 및 논리 극성 변환. reset/무전원 외부 pull을 생략하지 않는다. |
 | [sn74lvc1g11](pdf/sn74lvc1g11.pdf#page=3) / 37 | 3쪽 핀, 4~5쪽 정격, 9쪽 진리표, 10~12쪽 응용 | rail/reset/물리 ARM/watchdog의 hardware AND에 반영. 소프트웨어 flag 하나로 permit을 우회하지 않는다. |
 | [sn74lvc1g74](pdf/sn74lvc1g74.pdf#page=4) / 31 | 4쪽 핀(Q=5, 반전 Q=3), 6~8쪽 동작·타이밍, 10쪽 비동기 clear 진리표 | 고장 시 arm latch clear, 회복 뒤 새로운 STM 상승 edge로만 재무장. watchdog 회복에 따른 자동 TX 복귀를 배제한다. |
