@@ -4351,7 +4351,7 @@
         "25": [
           "IO48",
           "bidirectional",
-          "SERVICE_RUN"
+          "SERVICE_RUN_SENSE"
         ],
         "26": [
           "IO45",
@@ -8528,7 +8528,122 @@
     },
     {
       "sheet": "22_ota_interlock",
+      "ref": "U56",
+      "value": "SN74LVC1G17DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "A",
+          "input",
+          "SERVICE_RUN"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "SERVICE_RUN_SENSE_SRC"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G17DBVR",
+      "spec": "One-way interlock sense. MCU output faults cannot drive A. 4.7k series limits contention to <0.8mA at3.6V",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf: RevY pp3,5,10; DBV pin2 A,4 Y; Schmitt input; Ioff",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U56"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "C83",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C83"
+    },
+    {
+      "sheet": "22_ota_interlock",
       "ref": "R88",
+      "value": "4.7k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SERVICE_RUN_SENSE_SRC"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "SERVICE_RUN_SENSE"
+        ]
+      },
+      "mpn": "GEN-R-0402-4.7k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R88"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "R89",
+      "value": "100k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SERVICE_RUN_SENSE"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-100k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R89"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "R90",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -8549,7 +8664,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_R88"
+      "libname": "CANView_communicator_R90"
     },
     {
       "sheet": "22_ota_interlock",
@@ -8598,7 +8713,7 @@
     },
     {
       "sheet": "22_ota_interlock",
-      "ref": "C83",
+      "ref": "C84",
       "value": "100n",
       "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
       "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
@@ -8619,7 +8734,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_C83"
+      "libname": "CANView_communicator_C84"
     },
     {
       "sheet": "22_ota_interlock",
@@ -8668,7 +8783,7 @@
     },
     {
       "sheet": "22_ota_interlock",
-      "ref": "C84",
+      "ref": "C85",
       "value": "100n",
       "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
       "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
@@ -8689,11 +8804,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_C84"
+      "libname": "CANView_communicator_C85"
     },
     {
       "sheet": "22_ota_interlock",
-      "ref": "R89",
+      "ref": "R91",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -8714,11 +8829,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_R89"
+      "libname": "CANView_communicator_R91"
     },
     {
       "sheet": "23_ota_recovery",
-      "ref": "R90",
+      "ref": "R92",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -8739,7 +8854,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_R90"
+      "libname": "CANView_communicator_R92"
     },
     {
       "sheet": "23_ota_recovery",
@@ -8768,7 +8883,7 @@
     },
     {
       "sheet": "23_ota_recovery",
-      "ref": "R91",
+      "ref": "R93",
       "value": "10k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -8789,7 +8904,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_R91"
+      "libname": "CANView_communicator_R93"
     },
     {
       "sheet": "23_ota_recovery",
@@ -8833,7 +8948,7 @@
     },
     {
       "sheet": "23_ota_recovery",
-      "ref": "C85",
+      "ref": "C86",
       "value": "100n",
       "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
       "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
@@ -8854,7 +8969,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_C85"
+      "libname": "CANView_communicator_C86"
     },
     {
       "sheet": "23_ota_recovery",
@@ -8903,7 +9018,7 @@
     },
     {
       "sheet": "23_ota_recovery",
-      "ref": "C86",
+      "ref": "C87",
       "value": "100n",
       "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
       "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
@@ -8924,11 +9039,11 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_C86"
+      "libname": "CANView_communicator_C87"
     },
     {
       "sheet": "23_ota_recovery",
-      "ref": "R92",
+      "ref": "R94",
       "value": "1k",
       "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
       "original_footprint": "Resistor_SMD:R_0402_1005Metric",
@@ -8949,7 +9064,7 @@
       "source": "",
       "dnp": false,
       "note": "",
-      "libname": "CANView_communicator_R92"
+      "libname": "CANView_communicator_R94"
     },
     {
       "sheet": "23_ota_recovery",

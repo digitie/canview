@@ -9,7 +9,7 @@ CANView의 기본 운행 경로는 Controller와 Communicator 두 장치로 구�
 | 정식 명칭 | 하드웨어 | 핵심 책임 |
 |---|---|---|
 | **Controller** | Waveshare `ESP32-S3-Touch-LCD-3.5` | 운전자 UI, 터치 입력, 상태 표시, ESP-NOW 명령 요청 |
-| **Communicator** | `ESP32-S3-MINI-1-N4R2` + `STM32G474CEU6` + `TCAN1046AV-Q1` + `MAX3055` | 차량 CAN 3채널 raw 수집·송신, 안전 정책, ESP-NOW 연결 |
+| **Communicator** | `ESP32-S3-WROOM-1-N16R8` + `STM32G474CEU6` + `TCAN1046AV-Q1` + `MAX3055` | 차량 CAN 3채널 raw 수집·송신, 안전 정책, ESP-NOW 연결 |
 | **Diagnostic Bridge** | 별도 ESP32-S3, prototype 권장 `ESP32-S3-WROOM-1-N8R2` | ESP-NOW read-only observer, capture·후보 저장, 휴대폰 SoftAP·웹 UI |
 
 `display`, `screen`, `gateway`는 일반 설명이나 외부 문서의 고유 용어가 아닌 이상 장치명으로 사용하지 않는다. 프로토콜 role 값은 `PRIMARY_CONTROLLER`, `READ_ONLY_CONTROLLER`, `COMMUNICATOR`, `DIAGNOSTIC_BRIDGE`로 정의한다. Diagnostic Bridge를 Controller나 Communicator라고 부르지 않는다.
@@ -29,7 +29,7 @@ CANView의 기본 운행 경로는 Controller와 Communicator 두 장치로 구�
                                      ▼
                                   Communicator
 ┌─────────────────────────────────────────────────────────────────────┐
-│ ESP32-S3-MINI-1-N4R2                                                │
+│ ESP32-S3-WROOM-1-N16R8                                              │
 │ ESP-NOW · pairing · session · raw telemetry queue · configuration   │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ UART 4,000,000 baud, 8-N-1

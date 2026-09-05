@@ -1,5 +1,13 @@
 # CANView 작업 일지
 
+## 2026-09-06 (codex, 독립 OTA·N16R8 회로)
+
+사용자의 N16R8 선택에 따라 WROOM-1-N16R8, 내부 bundle staging, 외장 SPI NOR 미실장을 채택했다. reset/BOOT0·복구 버튼·물리 CAN 차단을 실제 생성 입력과 KiCad 산출물에 반영했다. embedded-architecture/documentation 스킬을 적용해 플랫폼 경계와 전원 차단 수용 조건을 분리했다. 사용자 단일 MD 요청을 우선해 설계와 두 전문 리뷰어 원문·disposition·재검토를 [OTA 문서](architecture/ota.md)에 누적한다.
+
+- 최초 리뷰 P1 두 건(인터록 GPIO 역구동, 승인 전 PREPARED 자동 설치), P2 한 건(영속 downgrade 정책 부재)을 회로/테스트/설계에서 수정했다. 최종 closure는 OTA 문서의 동일 immutable post-fix 재검토가 정본이다.
+- KiCad10.0.6 전체 재생성:4보드 ERC0, 정합성·전원 margin·hardware9시험 PASS. CSV 접근 일시 실패 후 전체 재실행 성공.
+- ESP target VerifyOnly는 CMake 부재로 실패. OTA target 구현·PCB·전원 차단 HIL·제작 및 차량 송신 승인은 미완료다.
+
 ## 2026-09-05 (codex, R1 독립 리뷰 수정)
 
 동일 immutable `06bb51c72180f9c040db3ccf0b223a823c570409`를 전문 reviewer2명이 object-only 방식으로 검토했다. 두 원문을 상호 공개 전에 보존했다. P1 세 건(게이트 DC VGS 정격, PHY rail 소실 시 FT fail-open, USB CC 제어기 VDD 범위)을 BUK7Y12·active-high AHCT126·USB전용3.3V로 수정했다. B의 capability/UNAUTHORIZED payload/헤더 이름과 양쪽의 CRLF 해시 finding도 반영했다.

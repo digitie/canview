@@ -4,18 +4,18 @@
   "boards": [
     {
       "board": "communicator",
-      "physical_items": 288,
-      "named_pads": 936,
+      "physical_items": 292,
+      "named_pads": 947,
       "provisional_footprint_refs": [
         "U8"
       ],
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "fb999456e29f0495144e154449af541fea8f52e4cf1073113059481c0331774c",
-        "communicator.net": "03065fce96eaabdfa3fcb7ac27a071e90a152d243b7df2bee0603b55a9e60732",
-        "schematic.pdf": "26e2e1561afee3e72a66b5011f69401fe235badace427e3b9ff92adb98093a0c",
-        "connectivity.json": "6c60062e6e1258484e2a36773e9a11f74eead57abd968e6501ad29787240346c"
+        "netlist.xml": "0fb38e485e2336de78f3a6d65ee53984293bc8bc9dcad6edbd95041c5e8b15fa",
+        "communicator.net": "eab80b384169b7e7d42f458c03caa8221c12da711ad2c5b3b900ee90655b85bb",
+        "schematic.pdf": "c1f53651d34fe41b973358d72c2fadcebcece628cf265c5a0871defbc07b3df5",
+        "connectivity.json": "29fa58456397829e0267101d7eb72ce2c70892d7a024344aae1520fe3e6e150a"
       }
     },
     {
@@ -26,9 +26,9 @@
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "c848eb7f6b59281ac905f2521acbe5b5c70159b7356754c4e3083cc25482e717",
-        "bridge.net": "295b7b436aaf362900f1363ffeee6554e3beb4cd7088235a8bc0f206f3337428",
-        "schematic.pdf": "1f81bb10d07ec6e58886bfd0c84339935d59848fd9bafe8852a514f78c6a853a",
+        "netlist.xml": "01f379486dc62211b36d9ea86bee49b86e1926282130d1b26daa927f8f2a9f4a",
+        "bridge.net": "8a7be8a019e083db213660a631293f52d337c455b5b79fda3ec16166adc3e6da",
+        "schematic.pdf": "e079f295e0695bd2e7e4b2c96bd8ea0bceea410b108921e8560a7a9094f97f5c",
         "connectivity.json": "e0aab3cf3b2bb879256d0d94995ce78db4b7f846b0f2ecb8c887bca371a9c222"
       }
     },
@@ -40,9 +40,9 @@
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "a00231d0a8e7a64fbfdbbb5c0b9bb3e89d174c8e67d270b3e093b399e93b2516",
-        "controller-adapter.net": "a732af5b367fc13960a614616bf403fe3bb373ac015ed776e99f24f41287ca67",
-        "schematic.pdf": "a8ecf77c771e78f659f3d118ce9e18e473b4a054a3ec9a4a3bc743742be9f401",
+        "netlist.xml": "37b3b2ced791b354fbe301a9a80c28a8b296acda740eb91f22d28bc3d44e0b39",
+        "controller-adapter.net": "918f0a611ed24b7c96956e82b0c8e1803b85053bbd76a65498c2ed719991dd16",
+        "schematic.pdf": "3c8fbfcc73956b40f83c458f02aa84cbedf1a105065a2b0f3de234ea499e8c5e",
         "connectivity.json": "2c6143c8842e85c501e376cec9e9185a63bdbcb618fcdfd95ed1c5147a472fc6"
       }
     },
@@ -54,9 +54,9 @@
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "98a63a4748d1e53fbeb59e9220e7e0036fe281c4d2e06a0af6f11aad2384f2f5",
-        "microphone.net": "11bc38033ab2dfe8635b2559b5b4ec8069c5199ab1af95e690b82e9ab2d0bf43",
-        "schematic.pdf": "d1d52ca2dfe9edfde58d305d0a8fadf407a3488f99e85d253c7ac3393328b800",
+        "netlist.xml": "d55050ce725625ef366bb2709b27eb8fc073ec865b8773313d7ba52a2769ea8a",
+        "microphone.net": "1b89e8e7a1eaffd575ac567e81054b87c0d38b081761e5176c5a27d3ed0804ff",
+        "schematic.pdf": "06f5ad0bc4ca8bbe97e3231867fce4ed30b7660319b433ec37745ab4f3261f3c",
         "connectivity.json": "77a9863e1386ad100f331051b7573620edd70b4f923c35d11a78fd3cbca8168a"
       }
     }

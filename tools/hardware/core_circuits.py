@@ -38,7 +38,7 @@ def esp32(c, bridge=False):
     if not bridge:
         nets.update({'2':'3V3','27':'ESP_BOOT_N','3':'ESP_RESET_N','13':'USB_DM','14':'USB_DP'})
         nets.update({'39':'STM_RESET_CMD_N','38':'STM_BOOT0_REQ','7':'ESP_RUN_OK',
-                     '12':'RECOVERY_BUTTON_N','17':'STM_RECOVERY_N','25':'SERVICE_RUN'})
+                     '12':'RECOVERY_BUTTON_N','17':'STM_RECOVERY_N','25':'SERVICE_RUN_SENSE'})
         nets.update({'8':'ESP_RTS_SRC','9':'STM_RTS','10':'ESP_TX_SRC','11':'STM_TX',
                      '4':'GPS_TX_SELECT','5':'GPS_RX_TAP','6':'GPS_PPS',
                      '18':'IMU_SCLK','19':'IMU_MOSI',

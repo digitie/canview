@@ -2,14 +2,14 @@
 <export version="E">
   <design>
     <source>F:\dev\canview\hardware\communicator\kicad\communicator.kicad_sch</source>
-    <date>2026-09-06T08:07:13</date>
+    <date>2026-09-06T08:36:30</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
         <title>CANView / communicator</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>communicator.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -26,8 +26,8 @@
       <title_block>
         <title>CANView / 00_vehicle_input</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>00_vehicle_input.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -44,8 +44,8 @@
       <title_block>
         <title>CANView / 00b_reverse_ov</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>00b_reverse_ov.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -62,8 +62,8 @@
       <title_block>
         <title>CANView / 00c_auto_5v</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>00c_auto_5v.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -80,8 +80,8 @@
       <title_block>
         <title>CANView / 01_usb_c</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>01_usb_c.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -98,8 +98,8 @@
       <title_block>
         <title>CANView / 01a_usb_cc_supply</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>01a_usb_cc_supply.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -116,8 +116,8 @@
       <title_block>
         <title>CANView / 01b_usb_limit</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>01b_usb_limit.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -134,8 +134,8 @@
       <title_block>
         <title>CANView / 02_system_power</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>02_system_power.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -152,8 +152,8 @@
       <title_block>
         <title>CANView / 03_reset</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>03_reset.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -170,8 +170,8 @@
       <title_block>
         <title>CANView / 03b_phy_power</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>03b_phy_power.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -188,8 +188,8 @@
       <title_block>
         <title>CANView / 03c_auto_qualification</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>03c_auto_qualification.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -206,8 +206,8 @@
       <title_block>
         <title>CANView / 19_gps_power</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>19_gps_power.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -224,8 +224,8 @@
       <title_block>
         <title>CANView / 04_stm32</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>04_stm32.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -242,8 +242,8 @@
       <title_block>
         <title>CANView / 05_debug_clock_uart</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>05_debug_clock_uart.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -260,8 +260,8 @@
       <title_block>
         <title>CANView / 06_esp32</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>06_esp32.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -278,8 +278,8 @@
       <title_block>
         <title>CANView / 07_esp_service</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>07_esp_service.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -296,8 +296,8 @@
       <title_block>
         <title>CANView / 08_can_fd</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>08_can_fd.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -314,8 +314,8 @@
       <title_block>
         <title>CANView / 09_can_ft</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>09_can_ft.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -332,8 +332,8 @@
       <title_block>
         <title>CANView / 10_tx_gate</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>10_tx_gate.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -350,8 +350,8 @@
       <title_block>
         <title>CANView / 11_phy_modes</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>11_phy_modes.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -368,8 +368,8 @@
       <title_block>
         <title>CANView / 12_watchdog_latch</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>12_watchdog_latch.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -386,8 +386,8 @@
       <title_block>
         <title>CANView / 12b_latch_clear</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>12b_latch_clear.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -404,8 +404,8 @@
       <title_block>
         <title>CANView / 13_arm_switch</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>13_arm_switch.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -422,8 +422,8 @@
       <title_block>
         <title>CANView / 14_can_connectors</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>14_can_connectors.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -440,8 +440,8 @@
       <title_block>
         <title>CANView / 15_gnss_ins</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>15_gnss_ins.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -458,8 +458,8 @@
       <title_block>
         <title>CANView / 16_barometer</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>16_barometer.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -476,8 +476,8 @@
       <title_block>
         <title>CANView / 17_gps_ports</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>17_gps_ports.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -494,8 +494,8 @@
       <title_block>
         <title>CANView / 18_gps_protection</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>18_gps_protection.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -512,8 +512,8 @@
       <title_block>
         <title>CANView / 20_test_points</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>20_test_points.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -530,8 +530,8 @@
       <title_block>
         <title>CANView / 21_ota_reset</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>21_ota_reset.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -548,8 +548,8 @@
       <title_block>
         <title>CANView / 22_ota_interlock</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>22_ota_interlock.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -566,8 +566,8 @@
       <title_block>
         <title>CANView / 23_ota_recovery</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>23_ota_recovery.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -584,8 +584,8 @@
       <title_block>
         <title>CANView / 24_ota_test_points</title>
         <company>digitie/canview</company>
-        <rev>R1 REVIEW</rev>
-        <date>2026-09-05</date>
+        <rev>R2 N16R8 REVIEW</rev>
+        <date>2026-09-06</date>
         <source>24_ota_test_points.kicad_sch</source>
         <comment number="1" value="SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"/>
         <comment number="2" value=""/>
@@ -8881,6 +8881,36 @@
         </unit>
       </units>
     </comp>
+    <comp ref="C85">
+      <value>100n</value>
+      <footprint>CANView:Capacitor_SMD__C_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-C-0402-100n-16V-X7R</field>
+        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_communicator_C85" description=""/>
+      <property name="MPN" value="GEN-C-0402-100n-16V-X7R"/>
+      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="22_ota_interlock"/>
+      <property name="Sheetfile" value="22_ota_interlock.kicad_sch"/>
+      <sheetpath names="/22_ota_interlock/" tstamps="/188bbe36-1bba-5e1e-a50d-7eb3b159f51f/"/>
+      <tstamps>9992be0f-1e00-5b7a-a353-3cc7ceb6c793</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
     <comp ref="J31">
       <value>RUN link / REMOVE FOR OTA</value>
       <footprint>CANView:Connector_PinHeader_1.27mm__PinHeader_1x02_P1.27mm_Vertical</footprint>
@@ -8942,10 +8972,10 @@
       </units>
     </comp>
     <comp ref="R88">
-      <value>10k</value>
+      <value>4.7k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
-        <field name="MPN">GEN-R-0402-10k-1%</field>
+        <field name="MPN">GEN-R-0402-4.7k-1%</field>
         <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
         <field name="Source"/>
         <field name="Assembly">FIT</field>
@@ -8954,7 +8984,7 @@
         <field name="Description"/>
       </fields>
       <libsource lib="CANView" part="CANView_communicator_R88" description=""/>
-      <property name="MPN" value="GEN-R-0402-10k-1%"/>
+      <property name="MPN" value="GEN-R-0402-4.7k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
@@ -8972,6 +9002,36 @@
       </units>
     </comp>
     <comp ref="R89">
+      <value>100k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-100k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_communicator_R89" description=""/>
+      <property name="MPN" value="GEN-R-0402-100k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="22_ota_interlock"/>
+      <property name="Sheetfile" value="22_ota_interlock.kicad_sch"/>
+      <sheetpath names="/22_ota_interlock/" tstamps="/188bbe36-1bba-5e1e-a50d-7eb3b159f51f/"/>
+      <tstamps>ceae8a2c-9939-51f5-b36c-dc7be9b26edd</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R90">
       <value>10k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -8983,7 +9043,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_communicator_R89" description=""/>
+      <libsource lib="CANView" part="CANView_communicator_R90" description=""/>
       <property name="MPN" value="GEN-R-0402-10k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -8991,7 +9051,37 @@
       <property name="Sheetname" value="22_ota_interlock"/>
       <property name="Sheetfile" value="22_ota_interlock.kicad_sch"/>
       <sheetpath names="/22_ota_interlock/" tstamps="/188bbe36-1bba-5e1e-a50d-7eb3b159f51f/"/>
-      <tstamps>ceae8a2c-9939-51f5-b36c-dc7be9b26edd</tstamps>
+      <tstamps>28c2a036-2c11-5341-a1ed-e52af8139aba</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R91">
+      <value>10k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-10k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_communicator_R91" description=""/>
+      <property name="MPN" value="GEN-R-0402-10k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="22_ota_interlock"/>
+      <property name="Sheetfile" value="22_ota_interlock.kicad_sch"/>
+      <sheetpath names="/22_ota_interlock/" tstamps="/188bbe36-1bba-5e1e-a50d-7eb3b159f51f/"/>
+      <tstamps>35ff116a-459a-5e49-b385-3c85791bceba</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -9069,32 +9159,35 @@
         </unit>
       </units>
     </comp>
-    <comp ref="C85">
-      <value>100n</value>
-      <footprint>CANView:Capacitor_SMD__C_0402_1005Metric</footprint>
+    <comp ref="U56">
+      <value>SN74LVC1G17DBVR</value>
+      <footprint>CANView:Package_TO_SOT_SMD__SOT-23-5</footprint>
       <fields>
-        <field name="MPN">GEN-C-0402-100n-16V-X7R</field>
-        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
-        <field name="Source"/>
+        <field name="MPN">SN74LVC1G17DBVR</field>
+        <field name="Specification">One-way interlock sense. MCU output faults cannot drive A. 4.7k series limits contention to &lt;0.8mA at3.6V</field>
+        <field name="Source">https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf: RevY pp3,5,10; DBV pin2 A,4 Y; Schmitt input; Ioff</field>
         <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Capacitor_SMD__C_0402_1005Metric</field>
+        <field name="Footprint">CANView:Package_TO_SOT_SMD__SOT-23-5</field>
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_communicator_C85" description=""/>
-      <property name="MPN" value="GEN-C-0402-100n-16V-X7R"/>
-      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
-      <property name="Source" value=""/>
+      <libsource lib="CANView" part="CANView_communicator_U56" description=""/>
+      <property name="MPN" value="SN74LVC1G17DBVR"/>
+      <property name="Specification" value="One-way interlock sense. MCU output faults cannot drive A. 4.7k series limits contention to &lt;0.8mA at3.6V"/>
+      <property name="Source" value="https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf: RevY pp3,5,10; DBV pin2 A,4 Y; Schmitt input; Ioff"/>
       <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="23_ota_recovery"/>
-      <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
-      <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
-      <tstamps>9992be0f-1e00-5b7a-a353-3cc7ceb6c793</tstamps>
+      <property name="Sheetname" value="22_ota_interlock"/>
+      <property name="Sheetfile" value="22_ota_interlock.kicad_sch"/>
+      <sheetpath names="/22_ota_interlock/" tstamps="/188bbe36-1bba-5e1e-a50d-7eb3b159f51f/"/>
+      <tstamps>dd98ffa6-661e-51dd-95ca-dce6247cb299</tstamps>
       <units>
         <unit name="A">
           <pins>
             <pin num="1"/>
             <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
           </pins>
         </unit>
       </units>
@@ -9120,6 +9213,36 @@
       <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
       <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
       <tstamps>0f2db420-b284-523f-91b8-a02e9e098b2d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C87">
+      <value>100n</value>
+      <footprint>CANView:Capacitor_SMD__C_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-C-0402-100n-16V-X7R</field>
+        <field name="Specification">16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_communicator_C87" description=""/>
+      <property name="MPN" value="GEN-C-0402-100n-16V-X7R"/>
+      <property name="Specification" value="16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="23_ota_recovery"/>
+      <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
+      <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
+      <tstamps>f513d54e-b52f-5829-aa72-5f0a813ae1bc</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -9159,67 +9282,67 @@
         </unit>
       </units>
     </comp>
-    <comp ref="R90">
-      <value>10k</value>
-      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
-      <fields>
-        <field name="MPN">GEN-R-0402-10k-1%</field>
-        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
-        <field name="Source"/>
-        <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="CANView" part="CANView_communicator_R90" description=""/>
-      <property name="MPN" value="GEN-R-0402-10k-1%"/>
-      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
-      <property name="Source" value=""/>
-      <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="23_ota_recovery"/>
-      <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
-      <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
-      <tstamps>28c2a036-2c11-5341-a1ed-e52af8139aba</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
-    <comp ref="R91">
-      <value>10k</value>
-      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
-      <fields>
-        <field name="MPN">GEN-R-0402-10k-1%</field>
-        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
-        <field name="Source"/>
-        <field name="Assembly">FIT</field>
-        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
-        <field name="Datasheet"/>
-        <field name="Description"/>
-      </fields>
-      <libsource lib="CANView" part="CANView_communicator_R91" description=""/>
-      <property name="MPN" value="GEN-R-0402-10k-1%"/>
-      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
-      <property name="Source" value=""/>
-      <property name="Assembly" value="FIT"/>
-      <property name="Sheetname" value="23_ota_recovery"/>
-      <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
-      <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
-      <tstamps>35ff116a-459a-5e49-b385-3c85791bceba</tstamps>
-      <units>
-        <unit name="A">
-          <pins>
-            <pin num="1"/>
-            <pin num="2"/>
-          </pins>
-        </unit>
-      </units>
-    </comp>
     <comp ref="R92">
+      <value>10k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-10k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_communicator_R92" description=""/>
+      <property name="MPN" value="GEN-R-0402-10k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="23_ota_recovery"/>
+      <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
+      <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
+      <tstamps>bfa2e6ec-a318-5656-9528-3469099353eb</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R93">
+      <value>10k</value>
+      <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
+      <fields>
+        <field name="MPN">GEN-R-0402-10k-1%</field>
+        <field name="Specification">0.1W; 50V; ±1%; ±100ppm/K; -55..155C</field>
+        <field name="Source"/>
+        <field name="Assembly">FIT</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="CANView" part="CANView_communicator_R93" description=""/>
+      <property name="MPN" value="GEN-R-0402-10k-1%"/>
+      <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
+      <property name="Source" value=""/>
+      <property name="Assembly" value="FIT"/>
+      <property name="Sheetname" value="23_ota_recovery"/>
+      <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
+      <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
+      <tstamps>1f7781e3-f2c2-5fef-8928-486f073658b9</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R94">
       <value>1k</value>
       <footprint>CANView:Resistor_SMD__R_0402_1005Metric</footprint>
       <fields>
@@ -9231,7 +9354,7 @@
         <field name="Datasheet"/>
         <field name="Description"/>
       </fields>
-      <libsource lib="CANView" part="CANView_communicator_R92" description=""/>
+      <libsource lib="CANView" part="CANView_communicator_R94" description=""/>
       <property name="MPN" value="GEN-R-0402-1k-1%"/>
       <property name="Specification" value="0.1W; 50V; ±1%; ±100ppm/K; -55..155C"/>
       <property name="Source" value=""/>
@@ -9239,7 +9362,7 @@
       <property name="Sheetname" value="23_ota_recovery"/>
       <property name="Sheetfile" value="23_ota_recovery.kicad_sch"/>
       <sheetpath names="/23_ota_recovery/" tstamps="/7281999b-b58f-5dad-b3a0-258f593284c0/"/>
-      <tstamps>bfa2e6ec-a318-5656-9528-3469099353eb</tstamps>
+      <tstamps>9150f7fa-709d-54d5-aa34-b3c92ecfff84</tstamps>
       <units>
         <unit name="A">
           <pins>
@@ -10702,6 +10825,19 @@
       </pins>
     </libpart>
     <libpart lib="CANView" part="CANView_communicator_C86">
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">100n</field>
+        <field name="Footprint">CANView:Capacitor_SMD__C_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_communicator_C87">
       <fields>
         <field name="Reference">C</field>
         <field name="Value">100n</field>
@@ -12256,7 +12392,7 @@
     <libpart lib="CANView" part="CANView_communicator_R88">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">10k</field>
+        <field name="Value">4.7k</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -12269,7 +12405,7 @@
     <libpart lib="CANView" part="CANView_communicator_R89">
       <fields>
         <field name="Reference">R</field>
-        <field name="Value">10k</field>
+        <field name="Value">100k</field>
         <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
         <field name="Datasheet"/>
         <field name="Description"/>
@@ -12319,6 +12455,32 @@
       </pins>
     </libpart>
     <libpart lib="CANView" part="CANView_communicator_R92">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">10k</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_communicator_R93">
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">10k</field>
+        <field name="Footprint">CANView:Resistor_SMD__R_0402_1005Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+        <pin num="2" name="2" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="CANView" part="CANView_communicator_R94">
       <fields>
         <field name="Reference">R</field>
         <field name="Value">1k</field>
@@ -13610,6 +13772,22 @@
         <pin num="6" name="C" type="input"/>
       </pins>
     </libpart>
+    <libpart lib="CANView" part="CANView_communicator_U56">
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">SN74LVC1G17DBVR</field>
+        <field name="Footprint">CANView:Package_TO_SOT_SMD__SOT-23-5</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <pins>
+        <pin num="1" name="NC" type="passive"/>
+        <pin num="2" name="A" type="input"/>
+        <pin num="3" name="GND" type="power_in"/>
+        <pin num="4" name="Y" type="output"/>
+        <pin num="5" name="VCC" type="power_in"/>
+      </pins>
+    </libpart>
     <libpart lib="CANView" part="CANView_communicator_U6">
       <fields>
         <field name="Reference">U</field>
@@ -13741,8 +13919,9 @@
       <node ref="C80" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C81" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C82" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="C85" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C83" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C86" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C87" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="FB1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="J10" pin="1" pinfunction="VTref_OUT_1" pintype="passive"/>
       <node ref="J31" pin="1" pinfunction="3V3_1" pintype="passive"/>
@@ -13766,7 +13945,7 @@
       <node ref="R84" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="R85" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="R86" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="R90" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R92" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP5" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U10" pin="1" pinfunction="VBAT_1" pintype="power_in"/>
       <node ref="U10" pin="23" pinfunction="VDD_23" pintype="power_in"/>
@@ -13787,6 +13966,7 @@
       <node ref="U54" pin="5" pinfunction="VCC_5" pintype="power_in"/>
       <node ref="U55" pin="5" pinfunction="VCC_5" pintype="power_in"/>
       <node ref="U55" pin="6" pinfunction="C_6" pintype="input"/>
+      <node ref="U56" pin="5" pinfunction="VCC_5" pintype="power_in"/>
       <node ref="U6" pin="5" pinfunction="VDD_5" pintype="power_in"/>
     </net>
     <net code="2" name="ARM_CLEAR_N" class="Default">
@@ -14124,7 +14304,7 @@
       <node ref="U11" pin="8" pinfunction="IO15_8" pintype="bidirectional"/>
     </net>
     <net code="60" name="ESP_RUN_OK" class="Default">
-      <node ref="R88" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R90" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP32" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U11" pin="7" pinfunction="IO7_7" pintype="bidirectional"/>
       <node ref="U53" pin="3" pinfunction="B_3" pintype="input"/>
@@ -14269,6 +14449,7 @@
       <node ref="C84" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C85" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="C86" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="C87" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="D1" pin="3" pinfunction="GND_3" pintype="passive"/>
       <node ref="D100" pin="2" pinfunction="IO2_2" pintype="passive"/>
       <node ref="D2" pin="3" pinfunction="GND_3" pintype="passive"/>
@@ -14319,10 +14500,11 @@
       <node ref="R81" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R82" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R87" pin="2" pinfunction="2_2" pintype="passive"/>
-      <node ref="R88" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R89" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R9" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R90" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R91" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R93" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW2" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW3" pin="2" pinfunction="2_2" pintype="passive"/>
@@ -14386,6 +14568,7 @@
       <node ref="U53" pin="2" pinfunction="GND_2" pintype="power_in"/>
       <node ref="U54" pin="3" pinfunction="GND_3" pintype="power_in"/>
       <node ref="U55" pin="2" pinfunction="GND_2" pintype="power_in"/>
+      <node ref="U56" pin="3" pinfunction="GND_3" pintype="power_in"/>
       <node ref="U6" pin="3" pinfunction="PAD_3" pintype="passive"/>
       <node ref="U6" pin="4" pinfunction="GND_4" pintype="power_in"/>
       <node ref="U7" pin="7" pinfunction="GND_7" pintype="power_in"/>
@@ -14562,8 +14745,8 @@
       <node ref="C66" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C67" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C68" pin="1" pinfunction="1_1" pintype="passive"/>
-      <node ref="C83" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C84" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="C85" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="J30" pin="1" pinfunction="PHY3V3_1" pintype="passive"/>
       <node ref="R22" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="R23" pin="1" pinfunction="1_1" pintype="passive"/>
@@ -14627,20 +14810,20 @@
       <node ref="U8" pin="17" pinfunction="EN_17" pintype="passive"/>
     </net>
     <net code="106" name="RECOVERY_BUTTON_N" class="Default">
-      <node ref="R90" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R92" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="SW3" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="12" pinfunction="IO8_12" pintype="bidirectional"/>
     </net>
     <net code="107" name="ROM_BOOT_ALLOWED" class="Default">
-      <node ref="R92" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R94" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U55" pin="4" pinfunction="Y_4" pintype="output"/>
     </net>
     <net code="108" name="ROM_BOOT_LINK" class="Default">
       <node ref="J32" pin="1" pinfunction="ROM_BOOT_LINK_1" pintype="passive"/>
-      <node ref="R92" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R94" pin="2" pinfunction="2_2" pintype="passive"/>
     </net>
     <net code="109" name="RUN_ALLOWED" class="Default">
-      <node ref="R89" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="R91" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP33" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U31" pin="3" pinfunction="B_3" pintype="input"/>
       <node ref="U36" pin="3" pinfunction="B_3" pintype="input"/>
@@ -14662,43 +14845,52 @@
       <node ref="J31" pin="2" pinfunction="SERVICE_RUN_2" pintype="passive"/>
       <node ref="R87" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP31" pin="1" pinfunction="PROBE_1" pintype="passive"/>
-      <node ref="U11" pin="25" pinfunction="IO48_25" pintype="bidirectional"/>
       <node ref="U52" pin="6" pinfunction="C_6" pintype="input"/>
       <node ref="U54" pin="2" pinfunction="A_2" pintype="input"/>
+      <node ref="U56" pin="2" pinfunction="A_2" pintype="input"/>
     </net>
-    <net code="113" name="STB1_REQ" class="Default">
+    <net code="113" name="SERVICE_RUN_SENSE" class="Default">
+      <node ref="R88" pin="2" pinfunction="2_2" pintype="passive"/>
+      <node ref="R89" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U11" pin="25" pinfunction="IO48_25" pintype="bidirectional"/>
+    </net>
+    <net code="114" name="SERVICE_RUN_SENSE_SRC" class="Default">
+      <node ref="R88" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U56" pin="4" pinfunction="Y_4" pintype="output"/>
+    </net>
+    <net code="115" name="STB1_REQ" class="Default">
       <node ref="R41" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U10" pin="12" pinfunction="PA4_12" pintype="bidirectional"/>
       <node ref="U26" pin="2" pinfunction="1A_2" pintype="input"/>
     </net>
-    <net code="114" name="STB2_REQ" class="Default">
+    <net code="116" name="STB2_REQ" class="Default">
       <node ref="R42" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U10" pin="13" pinfunction="PA5_13" pintype="bidirectional"/>
       <node ref="U26" pin="5" pinfunction="2A_5" pintype="input"/>
     </net>
-    <net code="115" name="STM_ARM_EDGE" class="Default">
+    <net code="117" name="STM_ARM_EDGE" class="Default">
       <node ref="R36" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U10" pin="15" pinfunction="PA7_15" pintype="bidirectional"/>
       <node ref="U32" pin="1" pinfunction="CLK_1" pintype="input"/>
     </net>
-    <net code="116" name="STM_BOOT0_REQ" class="Default">
-      <node ref="R91" pin="1" pinfunction="1_1" pintype="passive"/>
+    <net code="118" name="STM_BOOT0_REQ" class="Default">
+      <node ref="R93" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U11" pin="38" pinfunction="IO2_38" pintype="bidirectional"/>
       <node ref="U55" pin="1" pinfunction="A_1" pintype="input"/>
     </net>
-    <net code="117" name="STM_RECOVERY_N" class="Default">
+    <net code="119" name="STM_RECOVERY_N" class="Default">
       <node ref="R86" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="TP29" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U10" pin="47" pinfunction="PB9_47" pintype="bidirectional"/>
       <node ref="U11" pin="17" pinfunction="IO9_17" pintype="bidirectional"/>
     </net>
-    <net code="118" name="STM_RESET_CMD_N" class="Default">
+    <net code="120" name="STM_RESET_CMD_N" class="Default">
       <node ref="R85" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="TP28" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U11" pin="39" pinfunction="IO1_39" pintype="bidirectional"/>
       <node ref="U50" pin="2" pinfunction="A_2" pintype="input"/>
     </net>
-    <net code="119" name="STM_RESET_N" class="Default">
+    <net code="121" name="STM_RESET_N" class="Default">
       <node ref="J10" pin="10" pinfunction="NRST_10" pintype="passive"/>
       <node ref="R84" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="TP27" pin="1" pinfunction="PROBE_1" pintype="passive"/>
@@ -14707,35 +14899,35 @@
       <node ref="U50" pin="4" pinfunction="Y_4" pintype="open_collector"/>
       <node ref="U52" pin="3" pinfunction="B_3" pintype="input"/>
     </net>
-    <net code="120" name="STM_RTS" class="Default">
+    <net code="122" name="STM_RTS" class="Default">
       <node ref="R46" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R49" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="9" pinfunction="IO16_9" pintype="bidirectional"/>
     </net>
-    <net code="121" name="STM_RTS_SRC" class="Default">
+    <net code="123" name="STM_RTS_SRC" class="Default">
       <node ref="R46" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP23" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U10" pin="9" pinfunction="PA1_9" pintype="bidirectional"/>
     </net>
-    <net code="122" name="STM_TX" class="Default">
+    <net code="124" name="STM_TX" class="Default">
       <node ref="R45" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="R51" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="11" pinfunction="IO18_11" pintype="bidirectional"/>
     </net>
-    <net code="123" name="STM_TX_SRC" class="Default">
+    <net code="125" name="STM_TX_SRC" class="Default">
       <node ref="R45" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP21" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U10" pin="10" pinfunction="PA2_10" pintype="bidirectional"/>
     </net>
-    <net code="124" name="SWCLK" class="Default">
+    <net code="126" name="SWCLK" class="Default">
       <node ref="J10" pin="4" pinfunction="SWCLK_4" pintype="passive"/>
       <node ref="U10" pin="37" pinfunction="PA14_37" pintype="bidirectional"/>
     </net>
-    <net code="125" name="SWDIO" class="Default">
+    <net code="127" name="SWDIO" class="Default">
       <node ref="J10" pin="2" pinfunction="SWDIO_2" pintype="passive"/>
       <node ref="U10" pin="36" pinfunction="PA13_36" pintype="bidirectional"/>
     </net>
-    <net code="126" name="SYS5V" class="Default">
+    <net code="128" name="SYS5V" class="Default">
       <node ref="C23" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP4" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U4" pin="2" pinfunction="VOUT_2" pintype="power_out"/>
@@ -14743,26 +14935,26 @@
       <node ref="U5" pin="6" pinfunction="VIN_6" pintype="power_in"/>
       <node ref="U5" pin="7" pinfunction="EN_7" pintype="input"/>
     </net>
-    <net code="127" name="SYS_MODE" class="Default">
+    <net code="129" name="SYS_MODE" class="Default">
       <node ref="R20" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="8" pinfunction="MODE_8" pintype="passive"/>
     </net>
-    <net code="128" name="SYS_SW" class="Default">
+    <net code="130" name="SYS_SW" class="Default">
       <node ref="L2" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="4" pinfunction="SW_4" pintype="output"/>
     </net>
-    <net code="129" name="TX_ARM" class="Default">
+    <net code="131" name="TX_ARM" class="Default">
       <node ref="J30" pin="2" pinfunction="TX_ARM_2" pintype="passive"/>
       <node ref="R71" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U37" pin="6" pinfunction="C_6" pintype="input"/>
     </net>
-    <net code="130" name="TX_OE_N" class="Default">
+    <net code="132" name="TX_OE_N" class="Default">
       <node ref="R68" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U24" pin="1" pinfunction="1OE_N_1" pintype="input"/>
       <node ref="U24" pin="7" pinfunction="2OE_N_7" pintype="input"/>
       <node ref="U34" pin="4" pinfunction="Y_4" pintype="output"/>
     </net>
-    <net code="131" name="TX_PERMIT" class="Default">
+    <net code="133" name="TX_PERMIT" class="Default">
       <node ref="R66" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP11" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U28" pin="1" pinfunction="OE_1" pintype="input"/>
@@ -14770,7 +14962,7 @@
       <node ref="U34" pin="2" pinfunction="A_2" pintype="input"/>
       <node ref="U35" pin="1" pinfunction="1A_1" pintype="input"/>
     </net>
-    <net code="132" name="USB_CC3V3" class="Default">
+    <net code="134" name="USB_CC3V3" class="Default">
       <node ref="C15" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C16" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C18" pin="1" pinfunction="1_1" pintype="passive"/>
@@ -14780,56 +14972,56 @@
       <node ref="U16" pin="5" pinfunction="OUT_5" pintype="power_out"/>
       <node ref="U2" pin="5" pinfunction="VCC_5" pintype="power_in"/>
     </net>
-    <net code="133" name="USB_DEFAULT_N" class="Default">
+    <net code="135" name="USB_DEFAULT_N" class="Default">
       <node ref="R11" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U1" pin="7" pinfunction="OUT1_7" pintype="open_collector"/>
       <node ref="U2" pin="2" pinfunction="A_2" pintype="input"/>
     </net>
-    <net code="134" name="USB_DM" class="Default">
+    <net code="136" name="USB_DM" class="Default">
       <node ref="R54" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="13" pinfunction="USB_D-_13" pintype="bidirectional"/>
     </net>
-    <net code="135" name="USB_DM_CONN" class="Default">
+    <net code="137" name="USB_DM_CONN" class="Default">
       <node ref="D1" pin="2" pinfunction="IO2_2" pintype="passive"/>
       <node ref="J1" pin="A7" pinfunction="A7_A7" pintype="passive"/>
       <node ref="J1" pin="B7" pinfunction="B7_B7" pintype="passive"/>
       <node ref="R54" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="136" name="USB_DP" class="Default">
+    <net code="138" name="USB_DP" class="Default">
       <node ref="R55" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="14" pinfunction="USB_D+_14" pintype="bidirectional"/>
     </net>
-    <net code="137" name="USB_DP_CONN" class="Default">
+    <net code="139" name="USB_DP_CONN" class="Default">
       <node ref="D1" pin="1" pinfunction="IO1_1" pintype="passive"/>
       <node ref="J1" pin="A6" pinfunction="A6_A6" pintype="passive"/>
       <node ref="J1" pin="B6" pinfunction="B6_B6" pintype="passive"/>
       <node ref="R55" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="138" name="USB_FAULT_N" class="Default">
+    <net code="140" name="USB_FAULT_N" class="Default">
       <node ref="R15" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U3" pin="4" pinfunction="FAULT_N_4" pintype="open_collector"/>
     </net>
-    <net code="139" name="USB_ILIM" class="Default">
+    <net code="141" name="USB_ILIM" class="Default">
       <node ref="R14" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U3" pin="5" pinfunction="ILIM_5" pintype="passive"/>
     </net>
-    <net code="140" name="USB_LIMITED" class="Default">
+    <net code="142" name="USB_LIMITED" class="Default">
       <node ref="C20" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C22" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U3" pin="6" pinfunction="OUT_6" pintype="power_out"/>
       <node ref="U4" pin="6" pinfunction="VIN2_6" pintype="power_in"/>
     </net>
-    <net code="141" name="USB_POWER_ALLOWED" class="Default">
+    <net code="143" name="USB_POWER_ALLOWED" class="Default">
       <node ref="R12" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U2" pin="4" pinfunction="Y_4" pintype="output"/>
       <node ref="U3" pin="3" pinfunction="EN_3" pintype="input"/>
     </net>
-    <net code="142" name="USB_SERVICE_SENSE" class="Default">
+    <net code="144" name="USB_SERVICE_SENSE" class="Default">
       <node ref="R18" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U11" pin="31" pinfunction="IO38_31" pintype="bidirectional"/>
       <node ref="U4" pin="8" pinfunction="ST_8" pintype="open_collector"/>
     </net>
-    <net code="143" name="USB_VBUS" class="Default">
+    <net code="145" name="USB_VBUS" class="Default">
       <node ref="C14" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C17" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C19" pin="1" pinfunction="1_1" pintype="passive"/>
@@ -14843,268 +15035,271 @@
       <node ref="U16" pin="3" pinfunction="EN_3" pintype="input"/>
       <node ref="U3" pin="1" pinfunction="IN_1" pintype="power_in"/>
     </net>
-    <net code="144" name="VBAT_FUSED" class="Default">
+    <net code="146" name="VBAT_FUSED" class="Default">
       <node ref="C1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="D100" pin="1" pinfunction="IO1_1" pintype="passive"/>
       <node ref="F1" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="Q1" pin="5" pinfunction="D_5" pintype="passive"/>
       <node ref="R1" pin="1" pinfunction="1_1" pintype="passive"/>
     </net>
-    <net code="145" name="VBAT_IN" class="Default">
+    <net code="147" name="VBAT_IN" class="Default">
       <node ref="F1" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="J2" pin="1" pinfunction="VBAT_1" pintype="power_out"/>
     </net>
-    <net code="146" name="VBUS_DET" class="Default">
+    <net code="148" name="VBUS_DET" class="Default">
       <node ref="R10" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U1" pin="4" pinfunction="VBUS_DET_4" pintype="input"/>
     </net>
-    <net code="147" name="VDDA" class="Default">
+    <net code="149" name="VDDA" class="Default">
       <node ref="C41" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="C42" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="R34" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U10" pin="20" pinfunction="VREF+_20" pintype="input"/>
       <node ref="U10" pin="21" pinfunction="VDDA_21" pintype="power_in"/>
     </net>
-    <net code="148" name="VSET_3V3" class="Default">
+    <net code="150" name="VSET_3V3" class="Default">
       <node ref="R19" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U5" pin="1" pinfunction="FB_VSET_1" pintype="passive"/>
     </net>
-    <net code="149" name="WDT_C" class="Default">
+    <net code="151" name="WDT_C" class="Default">
       <node ref="C62" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="U30" pin="2" pinfunction="CWD_2" pintype="passive"/>
     </net>
-    <net code="150" name="WD_OK_N" class="Default">
+    <net code="152" name="WD_OK_N" class="Default">
       <node ref="R70" pin="2" pinfunction="2_2" pintype="passive"/>
       <node ref="U30" pin="7" pinfunction="WDO_N_7" pintype="open_collector"/>
       <node ref="U31" pin="1" pinfunction="A_1" pintype="input"/>
     </net>
-    <net code="151" name="WD_PULSE" class="Default">
+    <net code="153" name="WD_PULSE" class="Default">
       <node ref="R37" pin="1" pinfunction="1_1" pintype="passive"/>
       <node ref="TP10" pin="1" pinfunction="PROBE_1" pintype="passive"/>
       <node ref="U10" pin="17" pinfunction="PB0_17" pintype="bidirectional"/>
       <node ref="U30" pin="6" pinfunction="WDI_6" pintype="input"/>
     </net>
-    <net code="152" name="unconnected-(J1-PadA8)" class="Default">
+    <net code="154" name="unconnected-(J1-PadA8)" class="Default">
       <node ref="J1" pin="A8" pinfunction="A8_A8" pintype="passive+no_connect"/>
     </net>
-    <net code="153" name="unconnected-(J1-PadB8)" class="Default">
+    <net code="155" name="unconnected-(J1-PadB8)" class="Default">
       <node ref="J1" pin="B8" pinfunction="B8_B8" pintype="passive+no_connect"/>
     </net>
-    <net code="154" name="unconnected-(J10-KEY_NC-Pad7)" class="Default">
+    <net code="156" name="unconnected-(J10-KEY_NC-Pad7)" class="Default">
       <node ref="J10" pin="7" pinfunction="KEY_NC_7" pintype="passive+no_connect"/>
     </net>
-    <net code="155" name="unconnected-(J10-NC-Pad8)" class="Default">
+    <net code="157" name="unconnected-(J10-NC-Pad8)" class="Default">
       <node ref="J10" pin="8" pinfunction="NC_8" pintype="passive+no_connect"/>
     </net>
-    <net code="156" name="unconnected-(J10-SWO_NC-Pad6)" class="Default">
+    <net code="158" name="unconnected-(J10-SWO_NC-Pad6)" class="Default">
       <node ref="J10" pin="6" pinfunction="SWO_NC_6" pintype="passive+no_connect"/>
     </net>
-    <net code="157" name="unconnected-(J20-MECHANICAL_NC-PadMP)" class="Default">
+    <net code="159" name="unconnected-(J20-MECHANICAL_NC-PadMP)" class="Default">
       <node ref="J20" pin="MP" pinfunction="MECHANICAL_NC_MP" pintype="passive+no_connect"/>
     </net>
-    <net code="158" name="unconnected-(J40-3V3_NC-Pad8)" class="Default">
+    <net code="160" name="unconnected-(J40-3V3_NC-Pad8)" class="Default">
       <node ref="J40" pin="8" pinfunction="3V3_NC_8" pintype="passive+no_connect"/>
     </net>
-    <net code="159" name="unconnected-(J40-BUZZ_NC-Pad9)" class="Default">
+    <net code="161" name="unconnected-(J40-BUZZ_NC-Pad9)" class="Default">
       <node ref="J40" pin="9" pinfunction="BUZZ_NC_9" pintype="passive+no_connect"/>
     </net>
-    <net code="160" name="unconnected-(J40-LED_NC-Pad7)" class="Default">
+    <net code="162" name="unconnected-(J40-LED_NC-Pad7)" class="Default">
       <node ref="J40" pin="7" pinfunction="LED_NC_7" pintype="passive+no_connect"/>
     </net>
-    <net code="161" name="unconnected-(J40-MECHANICAL_NC-PadMP)" class="Default">
+    <net code="163" name="unconnected-(J40-MECHANICAL_NC-PadMP)" class="Default">
       <node ref="J40" pin="MP" pinfunction="MECHANICAL_NC_MP" pintype="passive+no_connect"/>
     </net>
-    <net code="162" name="unconnected-(J40-SCL_NC-Pad4)" class="Default">
+    <net code="164" name="unconnected-(J40-SCL_NC-Pad4)" class="Default">
       <node ref="J40" pin="4" pinfunction="SCL_NC_4" pintype="passive+no_connect"/>
     </net>
-    <net code="163" name="unconnected-(J40-SDA_NC-Pad5)" class="Default">
+    <net code="165" name="unconnected-(J40-SDA_NC-Pad5)" class="Default">
       <node ref="J40" pin="5" pinfunction="SDA_NC_5" pintype="passive+no_connect"/>
     </net>
-    <net code="164" name="unconnected-(J40-SW_NC-Pad6)" class="Default">
+    <net code="166" name="unconnected-(J40-SW_NC-Pad6)" class="Default">
       <node ref="J40" pin="6" pinfunction="SW_NC_6" pintype="passive+no_connect"/>
     </net>
-    <net code="165" name="unconnected-(J41-5V_NC-Pad1)" class="Default">
+    <net code="167" name="unconnected-(J41-5V_NC-Pad1)" class="Default">
       <node ref="J41" pin="1" pinfunction="5V_NC_1" pintype="passive+no_connect"/>
     </net>
-    <net code="166" name="unconnected-(J41-MECHANICAL_NC-PadMP)" class="Default">
+    <net code="168" name="unconnected-(J41-MECHANICAL_NC-PadMP)" class="Default">
       <node ref="J41" pin="MP" pinfunction="MECHANICAL_NC_MP" pintype="passive+no_connect"/>
     </net>
-    <net code="167" name="unconnected-(J41-NC-Pad4)" class="Default">
+    <net code="169" name="unconnected-(J41-NC-Pad4)" class="Default">
       <node ref="J41" pin="4" pinfunction="NC_4" pintype="passive+no_connect"/>
     </net>
-    <net code="168" name="unconnected-(J41-RX2_NC-Pad2)" class="Default">
+    <net code="170" name="unconnected-(J41-RX2_NC-Pad2)" class="Default">
       <node ref="J41" pin="2" pinfunction="RX2_NC_2" pintype="passive+no_connect"/>
     </net>
-    <net code="169" name="unconnected-(J41-TX2_NC-Pad3)" class="Default">
+    <net code="171" name="unconnected-(J41-TX2_NC-Pad3)" class="Default">
       <node ref="J41" pin="3" pinfunction="TX2_NC_3" pintype="passive+no_connect"/>
     </net>
-    <net code="170" name="unconnected-(U1-ADDR-Pad5)" class="Default">
+    <net code="172" name="unconnected-(U1-ADDR-Pad5)" class="Default">
       <node ref="U1" pin="5" pinfunction="ADDR_5" pintype="input+no_connect"/>
     </net>
-    <net code="171" name="unconnected-(U1-ID-Pad9)" class="Default">
+    <net code="173" name="unconnected-(U1-ID-Pad9)" class="Default">
       <node ref="U1" pin="9" pinfunction="ID_9" pintype="open_collector+no_connect"/>
     </net>
-    <net code="172" name="unconnected-(U1-OUT2-Pad8)" class="Default">
+    <net code="174" name="unconnected-(U1-OUT2-Pad8)" class="Default">
       <node ref="U1" pin="8" pinfunction="OUT2_8" pintype="open_collector+no_connect"/>
     </net>
-    <net code="173" name="unconnected-(U1-OUT3-Pad6)" class="Default">
+    <net code="175" name="unconnected-(U1-OUT3-Pad6)" class="Default">
       <node ref="U1" pin="6" pinfunction="OUT3_6" pintype="open_collector+no_connect"/>
     </net>
-    <net code="174" name="unconnected-(U2-NC-Pad1)" class="Default">
+    <net code="176" name="unconnected-(U2-NC-Pad1)" class="Default">
       <node ref="U2" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
     </net>
-    <net code="175" name="unconnected-(U5-PG-Pad2)" class="Default">
+    <net code="177" name="unconnected-(U5-PG-Pad2)" class="Default">
       <node ref="U5" pin="2" pinfunction="PG_2" pintype="open_collector+no_connect"/>
     </net>
-    <net code="176" name="unconnected-(U7-RTN_FLOAT-Pad13)" class="Default">
+    <net code="178" name="unconnected-(U7-RTN_FLOAT-Pad13)" class="Default">
       <node ref="U7" pin="13" pinfunction="RTN_FLOAT_13" pintype="passive+no_connect"/>
     </net>
-    <net code="177" name="unconnected-(U8-NC-Pad18)" class="Default">
+    <net code="179" name="unconnected-(U8-NC-Pad18)" class="Default">
       <node ref="U8" pin="18" pinfunction="NC_18" pintype="passive+no_connect"/>
     </net>
-    <net code="178" name="unconnected-(U9-NC-Pad4)" class="Default">
+    <net code="180" name="unconnected-(U9-NC-Pad4)" class="Default">
       <node ref="U9" pin="4" pinfunction="NC_4" pintype="passive+no_connect"/>
     </net>
-    <net code="179" name="unconnected-(U10-PA9-Pad31)" class="Default">
+    <net code="181" name="unconnected-(U10-PA9-Pad31)" class="Default">
       <node ref="U10" pin="31" pinfunction="PA9_31" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="180" name="unconnected-(U10-PA10-Pad32)" class="Default">
+    <net code="182" name="unconnected-(U10-PA10-Pad32)" class="Default">
       <node ref="U10" pin="32" pinfunction="PA10_32" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="181" name="unconnected-(U10-PB3-Pad41)" class="Default">
+    <net code="183" name="unconnected-(U10-PB3-Pad41)" class="Default">
       <node ref="U10" pin="41" pinfunction="PB3_41" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="182" name="unconnected-(U10-PB4-Pad42)" class="Default">
+    <net code="184" name="unconnected-(U10-PB4-Pad42)" class="Default">
       <node ref="U10" pin="42" pinfunction="PB4_42" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="183" name="unconnected-(U10-PB5-Pad43)" class="Default">
+    <net code="185" name="unconnected-(U10-PB5-Pad43)" class="Default">
       <node ref="U10" pin="43" pinfunction="PB5_43" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="184" name="unconnected-(U10-PB6-Pad44)" class="Default">
+    <net code="186" name="unconnected-(U10-PB6-Pad44)" class="Default">
       <node ref="U10" pin="44" pinfunction="PB6_44" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="185" name="unconnected-(U10-PB7-Pad45)" class="Default">
+    <net code="187" name="unconnected-(U10-PB7-Pad45)" class="Default">
       <node ref="U10" pin="45" pinfunction="PB7_45" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="186" name="unconnected-(U10-PB10-Pad22)" class="Default">
+    <net code="188" name="unconnected-(U10-PB10-Pad22)" class="Default">
       <node ref="U10" pin="22" pinfunction="PB10_22" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="187" name="unconnected-(U10-PB11-Pad24)" class="Default">
+    <net code="189" name="unconnected-(U10-PB11-Pad24)" class="Default">
       <node ref="U10" pin="24" pinfunction="PB11_24" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="188" name="unconnected-(U10-PB15-Pad28)" class="Default">
+    <net code="190" name="unconnected-(U10-PB15-Pad28)" class="Default">
       <node ref="U10" pin="28" pinfunction="PB15_28" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="189" name="unconnected-(U10-PC4-Pad16)" class="Default">
+    <net code="191" name="unconnected-(U10-PC4-Pad16)" class="Default">
       <node ref="U10" pin="16" pinfunction="PC4_16" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="190" name="unconnected-(U10-PC6-Pad29)" class="Default">
+    <net code="192" name="unconnected-(U10-PC6-Pad29)" class="Default">
       <node ref="U10" pin="29" pinfunction="PC6_29" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="191" name="unconnected-(U10-PC10-Pad39)" class="Default">
+    <net code="193" name="unconnected-(U10-PC10-Pad39)" class="Default">
       <node ref="U10" pin="39" pinfunction="PC10_39" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="192" name="unconnected-(U10-PC11-Pad40)" class="Default">
+    <net code="194" name="unconnected-(U10-PC11-Pad40)" class="Default">
       <node ref="U10" pin="40" pinfunction="PC11_40" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="193" name="unconnected-(U10-PC13-Pad2)" class="Default">
+    <net code="195" name="unconnected-(U10-PC13-Pad2)" class="Default">
       <node ref="U10" pin="2" pinfunction="PC13_2" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="194" name="unconnected-(U10-PC14-Pad3)" class="Default">
+    <net code="196" name="unconnected-(U10-PC14-Pad3)" class="Default">
       <node ref="U10" pin="3" pinfunction="PC14_3" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="195" name="unconnected-(U10-PC15-Pad4)" class="Default">
+    <net code="197" name="unconnected-(U10-PC15-Pad4)" class="Default">
       <node ref="U10" pin="4" pinfunction="PC15_4" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="196" name="unconnected-(U11-IO3-Pad15)" class="Default">
+    <net code="198" name="unconnected-(U11-IO3-Pad15)" class="Default">
       <node ref="U11" pin="15" pinfunction="IO3_15" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="197" name="unconnected-(U11-IO35-Pad28)" class="Default">
+    <net code="199" name="unconnected-(U11-IO35-Pad28)" class="Default">
       <node ref="U11" pin="28" pinfunction="IO35_28" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="198" name="unconnected-(U11-IO36-Pad29)" class="Default">
+    <net code="200" name="unconnected-(U11-IO36-Pad29)" class="Default">
       <node ref="U11" pin="29" pinfunction="IO36_29" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="199" name="unconnected-(U11-IO37-Pad30)" class="Default">
+    <net code="201" name="unconnected-(U11-IO37-Pad30)" class="Default">
       <node ref="U11" pin="30" pinfunction="IO37_30" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="200" name="unconnected-(U11-IO39-Pad32)" class="Default">
+    <net code="202" name="unconnected-(U11-IO39-Pad32)" class="Default">
       <node ref="U11" pin="32" pinfunction="IO39_32" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="201" name="unconnected-(U11-IO40-Pad33)" class="Default">
+    <net code="203" name="unconnected-(U11-IO40-Pad33)" class="Default">
       <node ref="U11" pin="33" pinfunction="IO40_33" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="202" name="unconnected-(U11-IO41-Pad34)" class="Default">
+    <net code="204" name="unconnected-(U11-IO41-Pad34)" class="Default">
       <node ref="U11" pin="34" pinfunction="IO41_34" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="203" name="unconnected-(U11-IO42-Pad35)" class="Default">
+    <net code="205" name="unconnected-(U11-IO42-Pad35)" class="Default">
       <node ref="U11" pin="35" pinfunction="IO42_35" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="204" name="unconnected-(U11-IO45-Pad26)" class="Default">
+    <net code="206" name="unconnected-(U11-IO45-Pad26)" class="Default">
       <node ref="U11" pin="26" pinfunction="IO45_26" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="205" name="unconnected-(U11-IO46-Pad16)" class="Default">
+    <net code="207" name="unconnected-(U11-IO46-Pad16)" class="Default">
       <node ref="U11" pin="16" pinfunction="IO46_16" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="206" name="unconnected-(U11-RXD0-Pad36)" class="Default">
+    <net code="208" name="unconnected-(U11-RXD0-Pad36)" class="Default">
       <node ref="U11" pin="36" pinfunction="RXD0_36" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="207" name="unconnected-(U11-TXD0-Pad37)" class="Default">
+    <net code="209" name="unconnected-(U11-TXD0-Pad37)" class="Default">
       <node ref="U11" pin="37" pinfunction="TXD0_37" pintype="bidirectional+no_connect"/>
     </net>
-    <net code="208" name="unconnected-(U13-OUTB-Pad6)" class="Default">
+    <net code="210" name="unconnected-(U13-OUTB-Pad6)" class="Default">
       <node ref="U13" pin="6" pinfunction="OUTB_6" pintype="open_collector+no_connect"/>
     </net>
-    <net code="209" name="unconnected-(U16-NC-Pad4)" class="Default">
+    <net code="211" name="unconnected-(U16-NC-Pad4)" class="Default">
       <node ref="U16" pin="4" pinfunction="NC_4" pintype="passive+no_connect"/>
     </net>
-    <net code="210" name="unconnected-(U27-NC-Pad1)" class="Default">
+    <net code="212" name="unconnected-(U27-NC-Pad1)" class="Default">
       <node ref="U27" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
     </net>
-    <net code="211" name="unconnected-(U30-ENOUT-Pad8)" class="Default">
+    <net code="213" name="unconnected-(U30-ENOUT-Pad8)" class="Default">
       <node ref="U30" pin="8" pinfunction="ENOUT_8" pintype="open_collector+no_connect"/>
     </net>
-    <net code="212" name="unconnected-(U32-Q_N-Pad3)" class="Default">
+    <net code="214" name="unconnected-(U32-Q_N-Pad3)" class="Default">
       <node ref="U32" pin="3" pinfunction="Q_N_3" pintype="output+no_connect"/>
     </net>
-    <net code="213" name="unconnected-(U34-NC-Pad1)" class="Default">
+    <net code="215" name="unconnected-(U34-NC-Pad1)" class="Default">
       <node ref="U34" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
     </net>
-    <net code="214" name="unconnected-(U40-DE_RTS-Pad21)" class="Default">
+    <net code="216" name="unconnected-(U40-DE_RTS-Pad21)" class="Default">
       <node ref="U40" pin="21" pinfunction="DE_RTS_21" pintype="output+no_connect"/>
     </net>
-    <net code="215" name="unconnected-(U40-DNC-Pad2)" class="Default">
+    <net code="217" name="unconnected-(U40-DNC-Pad2)" class="Default">
       <node ref="U40" pin="2" pinfunction="DNC_2" pintype="passive+no_connect"/>
     </net>
-    <net code="216" name="unconnected-(U40-DNC-Pad3)" class="Default">
+    <net code="218" name="unconnected-(U40-DNC-Pad3)" class="Default">
       <node ref="U40" pin="3" pinfunction="DNC_3" pintype="passive+no_connect"/>
     </net>
-    <net code="217" name="unconnected-(U40-RESERVED-Pad17)" class="Default">
+    <net code="219" name="unconnected-(U40-RESERVED-Pad17)" class="Default">
       <node ref="U40" pin="17" pinfunction="RESERVED_17" pintype="passive+no_connect"/>
     </net>
-    <net code="218" name="unconnected-(U40-SYNC_IN-Pad16)" class="Default">
+    <net code="220" name="unconnected-(U40-SYNC_IN-Pad16)" class="Default">
       <node ref="U40" pin="16" pinfunction="SYNC_IN_16" pintype="input+no_connect"/>
     </net>
-    <net code="219" name="unconnected-(U40-UART_RX-Pad23)" class="Default">
+    <net code="221" name="unconnected-(U40-UART_RX-Pad23)" class="Default">
       <node ref="U40" pin="23" pinfunction="UART_RX_23" pintype="input+no_connect"/>
     </net>
-    <net code="220" name="unconnected-(U40-UART_TX-Pad24)" class="Default">
+    <net code="222" name="unconnected-(U40-UART_TX-Pad24)" class="Default">
       <node ref="U40" pin="24" pinfunction="UART_TX_24" pintype="output+no_connect"/>
     </net>
-    <net code="221" name="unconnected-(U41-INT-Pad7)" class="Default">
+    <net code="223" name="unconnected-(U41-INT-Pad7)" class="Default">
       <node ref="U41" pin="7" pinfunction="INT_7" pintype="output+no_connect"/>
     </net>
-    <net code="222" name="unconnected-(U42-NC-Pad4)" class="Default">
+    <net code="224" name="unconnected-(U42-NC-Pad4)" class="Default">
       <node ref="U42" pin="4" pinfunction="NC_4" pintype="passive+no_connect"/>
     </net>
-    <net code="223" name="unconnected-(U43-2Y-Pad3)" class="Default">
+    <net code="225" name="unconnected-(U43-2Y-Pad3)" class="Default">
       <node ref="U43" pin="3" pinfunction="2Y_3" pintype="tri_state+no_connect"/>
     </net>
-    <net code="224" name="unconnected-(U50-NC-Pad1)" class="Default">
+    <net code="226" name="unconnected-(U50-NC-Pad1)" class="Default">
       <node ref="U50" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
     </net>
-    <net code="225" name="unconnected-(U54-NC-Pad1)" class="Default">
+    <net code="227" name="unconnected-(U54-NC-Pad1)" class="Default">
       <node ref="U54" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
+    </net>
+    <net code="228" name="unconnected-(U56-NC-Pad1)" class="Default">
+      <node ref="U56" pin="1" pinfunction="NC_1" pintype="passive+no_connect"/>
     </net>
   </nets>
 </export>

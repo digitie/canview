@@ -20,6 +20,15 @@ def communicator(c):
          ['3V3','SERVICE_RUN'],{'1':'3V3','2':'SERVICE_RUN'},
          spec='Accessible removable shunt; absent=service; fit only for normal operation; independent of TX_ARM J30')
     c.r(s,'10k','SERVICE_RUN','GND')
+    # No output-capable MCU pad may drive the physical interlock net.
+    c.ic(s,'U56','SN74LVC1G17DBVR',SOT5,['NC','A','GND','Y','VCC'],
+         {'2':'SERVICE_RUN','3':'GND','4':'SERVICE_RUN_SENSE_SRC','5':'3V3'},
+         types={'2':'input','3':'power_in','4':'output','5':'power_in'},
+         source='https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf: RevY pp3,5,10; DBV pin2 A,4 Y; Schmitt input; Ioff',
+         spec='One-way interlock sense. MCU output faults cannot drive A. 4.7k series limits contention to <0.8mA at3.6V')
+    c.c(s,'100n','3V3',size='0402')
+    c.r(s,'4.7k','SERVICE_RUN_SENSE_SRC','SERVICE_RUN_SENSE')
+    c.r(s,'100k','SERVICE_RUN_SENSE','GND')
     c.r(s,'10k','ESP_RUN_OK','GND')
     gate3(c,s,'U52','ESP_RESET_N','STM_RESET_N','SERVICE_RUN','MCU_HEALTH_N')
     gate3(c,s,'U53','MCU_HEALTH_N','ESP_RUN_OK','PHY_RESET_N','RUN_ALLOWED')

@@ -1,4 +1,4 @@
-(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "1d6f40c7-2a71-5522-8068-9da4e5588192") (paper "A3") (title_block (title "CANView / 07_esp_service") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
+(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "1d6f40c7-2a71-5522-8068-9da4e5588192") (paper "A3") (title_block (title "CANView / 07_esp_service") (date "2026-09-06") (rev "R2 N16R8 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
 (lib_symbols (symbol "CANView:CANView_communicator_SW2" (pin_names (offset 0.762) (hide yes)) (in_bom yes) (on_board yes)
 (property "Reference" "S" (at 0.0000 7.6200 0)  (effects (font (size 1.0 1.0)) ))
 (property "Value" "BOOT" (at 0.0000 5.0800 0)  (effects (font (size 1.0 1.0)) ))

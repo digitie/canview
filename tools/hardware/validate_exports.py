@@ -76,6 +76,8 @@ def validate_board(board):
             ('U11','38'):'STM_BOOT0_REQ', ('U11','17'):'STM_RECOVERY_N', ('U10','47'):'STM_RECOVERY_N',
             ('U6','2'):'GLOBAL_RESET_N', ('U17','2'):'GLOBAL_RESET_N', ('U50','4'):'STM_RESET_N',
             ('U36','3'):'RUN_ALLOWED', ('U31','3'):'RUN_ALLOWED',
+            ('U11','25'):'SERVICE_RUN_SENSE', ('U56','2'):'SERVICE_RUN',
+            ('U56','4'):'SERVICE_RUN_SENSE_SRC', ('U52','6'):'SERVICE_RUN', ('U54','2'):'SERVICE_RUN',
             ('U20','5'):'GND', ('U20','7'):'CAN2_RX_PHY', ('U20','8'):'CAN2_STB', ('U20','11'):'PHY3V3',
             ('U24','8'):'PHY3V3', ('U28','5'):'AUTO5V', ('U29','5'):'AUTO5V',
             ('U28','1'):'TX_PERMIT', ('U29','1'):'RX_ALLOWED',

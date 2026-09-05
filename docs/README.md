@@ -43,6 +43,7 @@ AGENTS.md                     모든 작업의 규칙·금지선
 | 장치명·데이터 흐름·권한 | [system](architecture/system.md) |
 | 구현 경계·gate·목표 구조 | [implementation readiness](architecture/implementation-readiness.md) |
 | ESP-NOW·UART 계약 | [protocol index](architecture/protocols/README.md) |
+| 독립 OTA·전원 차단 복구·N16R8 회로 | [OTA 설계 및 리뷰](architecture/ota.md) |
 | Controller 수신·DBC pipeline | [controller CAN pipeline](architecture/controller-can-pipeline.md) |
 | Diagnostic Bridge·모바일 웹 | [diagnostic bridge](architecture/diagnostic-bridge.md) |
 | 4WD·DPF·audio·SPORT 기능 | [features](architecture/features.md) |

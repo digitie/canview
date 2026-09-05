@@ -10,6 +10,6 @@
 | 수치 여유·land pattern·PCB/HIL 미완료 | [검증 조건](r1/verification.md) |
 | 제조사 원본과 적용 페이지 | [reference evidence](../../hardware/references/README.md) |
 
-주요 변경은 USB-C 전원 허용과 차량 전용 PHY rail 분리, 독립 PHY reset, 재무장이 필요한 watchdog latch, TCAN1046AV의 정확한5/7/8/11번 pin 교정이다. Controller는 Waveshare 보드를 유지하며 Communicator는 MINI-1-N4R2, Bridge는 WROOM-1-N8R2다.
+주요 변경은 USB-C 전원 허용과 차량 전용 PHY rail 분리, 독립 PHY reset, 재무장이 필요한 watchdog latch, TCAN1046AV의 정확한5/7/8/11번 pin 교정이다. [OTA 변경](../architecture/ota.md)으로 Communicator는 WROOM-1-N16R8과 MCU별 reset·서비스 인터록을 사용한다. Controller는 Waveshare, Bridge는 WROOM-1-N8R2를 유지한다.
 
 과거 block diagram/pin proposal은 [이력](history/communicator-pre-r1.md)에 보존했다. 현재 회로를 코딩할 때 이력을 선제적으로 읽지 않는다. 기존 `pinmap-proposed.csv`도 이력 자료이며 현행 FW 입력으로 사용하지 않는다.

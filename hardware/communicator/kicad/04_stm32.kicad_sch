@@ -1,4 +1,4 @@
-(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "a80c4ddd-89d3-5435-820a-a7c19e5f3e09") (paper "A3") (title_block (title "CANView / 04_stm32") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
+(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "a80c4ddd-89d3-5435-820a-a7c19e5f3e09") (paper "A3") (title_block (title "CANView / 04_stm32") (date "2026-09-06") (rev "R2 N16R8 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
 (lib_symbols (symbol "CANView:CANView_communicator_U10" (pin_names (offset 0.762)) (in_bom yes) (on_board yes)
 (property "Reference" "U" (at 0.0000 71.1200 0)  (effects (font (size 1.0 1.0)) ))
 (property "Value" "STM32G474CEU6" (at 0.0000 68.5800 0)  (effects (font (size 1.0 1.0)) ))

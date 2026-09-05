@@ -1,4 +1,4 @@
-(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "05c5ecae-a476-58ca-9b2e-ba90eced48e2") (paper "A3") (title_block (title "CANView / 04_ota_recovery") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
+(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "05c5ecae-a476-58ca-9b2e-ba90eced48e2") (paper "A3") (title_block (title "CANView / 04_ota_recovery") (date "2026-09-06") (rev "R1.1 OTA REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
 (lib_symbols (symbol "CANView:CANView_controller-adapter_R2" (pin_names (offset 0.762) (hide yes)) (in_bom yes) (on_board yes)
 (property "Reference" "R" (at 0.0000 7.6200 0)  (effects (font (size 1.0 1.0)) ))
 (property "Value" "10k" (at 0.0000 5.0800 0)  (effects (font (size 1.0 1.0)) ))

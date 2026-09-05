@@ -54,7 +54,7 @@ FDCAN80MHz의 bench 출발값은500kbps: prescaler10,seg1=13,seg2=2,SJW2(16TQ,87
 | 정상 동작 허용 | 7/7 | ESP_RUN_OK external10k PD, OTA에서는 LOW |
 | ESP 복구 버튼 | 8/12 | RECOVERY_BUTTON_N, external10k PU |
 | STM custom 복구 요청 | 9/17 | STM PB9/47에 open-drain LOW |
-| 서비스 인터록 | 48/25 | J31 없으면 LOW, 전체 PHY 차단 |
+| 서비스 인터록 감지 | 48/25 | SERVICE_RUN_SENSE; U56 단방향 buffer +4.7k 뒤. J31 원신호와 MCU 출력 분리 |
 
 module pad2=3V3, pad1/40/41=GND다. GPIO35/36/37(pad28/29/30)은 R8 Octal PSRAM용이며 NC로 남긴다. Flash16MiB/PSRAM8MiB, ECC 사용 시 가용7.5MiB다. 상세 reset·Flash·OTA 계약은 [OTA 설계](../../architecture/ota.md)를 따른다.
 

@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "F:\\dev\\canview\\hardware\\bridge\\kicad\\bridge.kicad_sch")
-		(date "2026-09-06T08:07:20")
+		(date "2026-09-06T08:36:35")
 		(tool "Eeschema 10.0.6")
 		(sheet
 			(number "1")

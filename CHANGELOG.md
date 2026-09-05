@@ -6,6 +6,9 @@
 
 ### Added
 
+- Bridge 없이 가능한 장치별 브라우저 OTA, STM 내부 이중 슬롯 복구와 설치 승인·버전 정책을 단일 [설계·리뷰 문서](docs/architecture/ota.md)에 추가했다. OTA 펌웨어 구현은 후속 단계다.
+- Communicator N16R8/Octal PSRAM ECC 설정, ESP·STM reset 분리, 물리 서비스 인터록과 역구동 차단 buffer, Controller 복구 버튼 회로를 반영했다.
+
 - Communicator·Bridge·Controller adapter·원격 I²S mic의 KiCad10 상세 회로·PDF·netlist·BOM·local footprint와 교차 검증기를 추가했다.
 - 차량/USB 전원 분리, brownout/watchdog 재무장 latch, 외장 GNSS·MTi7 DR·BMP384와 상세 FW 핀맵을 추가했다. 제작·차량 시험 gate는 미완료다.
 - 센서 protocol 확장 schema, host codec·golden 시험, 구독 적용 응답·재시도·예산 설계와 T-100b를 추가했다.

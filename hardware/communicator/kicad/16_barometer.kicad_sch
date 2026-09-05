@@ -1,4 +1,4 @@
-(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "31be4a7b-ceab-5de6-81f7-ffdfc5b3844d") (paper "A3") (title_block (title "CANView / 16_barometer") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
+(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "31be4a7b-ceab-5de6-81f7-ffdfc5b3844d") (paper "A3") (title_block (title "CANView / 16_barometer") (date "2026-09-06") (rev "R2 N16R8 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
 (lib_symbols (symbol "CANView:CANView_communicator_U41" (pin_names (offset 0.762)) (in_bom yes) (on_board yes)
 (property "Reference" "U" (at 0.0000 20.3200 0)  (effects (font (size 1.0 1.0)) ))
 (property "Value" "BMP384" (at 0.0000 17.7800 0)  (effects (font (size 1.0 1.0)) ))

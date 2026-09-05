@@ -26,7 +26,7 @@
 다음 사항은 이 감사에서 확정한다.
 
 1. 장치명은 `Controller`, `Communicator`, `Diagnostic Bridge`다.
-2. Communicator의 두 MCU는 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`다.
+2. Communicator의 두 MCU는 `ESP32-S3-WROOM-1-N16R8`와 `STM32G474CEU6`다. [OTA 설계](ota.md)의 독립 reset·서비스 인터록·복구 계약을 따른다.
 3. Communicator 내부 링크는 4 Mbps, 8-N-1, RTS/CTS, COBS, CRC-32/ISO-HDLC를 쓰는 독립 UART protocol `1.0`이다.
 4. 첫 통합 ESP-NOW 구현은 현재 `1.2` header에 Diagnostic Bridge 메시지를 합친 protocol `1.3`이다. `1.2`와 `1.3`을 동시에 구현하지 않는다.
 5. 무선 일반 frame 상한은 240 byte다. CAN FD payload는 v1.3에 억지로 넣지 않고 별도 미래 record type으로 남긴다.

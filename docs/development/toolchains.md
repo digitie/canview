@@ -70,7 +70,7 @@ idf.py -C firmware/controller -p COMx flash monitor
 
 ### 3.1 target 설정
 
-Communicator의 무선 MCU는 `ESP32-S3-MINI-1-N4R2`다. build target은 `esp32s3`, Flash는 4 MB Quad SPI, PSRAM은 2 MB Quad SPI로 설정한다. Controller의 16 MB/8 MB 설정을 복사하면 partition과 PSRAM mode가 틀리므로 별도 `sdkconfig.defaults`를 유지한다.
+Communicator의 무선 MCU는 `ESP32-S3-WROOM-1-N16R8`다. build target은 `esp32s3`, Flash16MiB Quad SPI, PSRAM8MiB Octal SPI/80MHz/ECC로 설정한다. ECC 가용 용량은7.5MiB다. Controller와 Flash 크기가 같아도 GPIO·OTA 배치·역할이 다르므로 별도 `sdkconfig.defaults`를 유지한다. [OTA 설계](../architecture/ota.md)를 따른다.
 
 ```powershell
 idf.py -C firmware/communicator/esp32 set-target esp32s3
@@ -81,8 +81,8 @@ idf.py -C firmware/communicator/esp32 -p COMx flash monitor
 
 초기 configuration 기준은 다음과 같다.
 
-- Flash size: 4 MB
-- PSRAM: 2 MB Quad SPI, `GPIO26` 외부 사용 금지
+- Flash size:16MiB
+- PSRAM:8MiB Octal SPI,80MHz/ECC; GPIO35/36/37 외부 사용 금지
 - UART1: 4,000,000 baud, 8-N-1, RTS/CTS
 - UART pins: TX `GPIO17`, RX `GPIO18`, RTS `GPIO15`, CTS `GPIO16`
 - USB Serial/JTAG: `GPIO19/20` 유지

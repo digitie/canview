@@ -53,6 +53,39 @@ class SafetyContractTests(unittest.TestCase):
                 self.assertFalse(state['RX_ALLOWED'])
                 self.assertFalse(state['ARM_HEALTH_N'])
 
+    def test_service_interlock_rejects_gpio_backdrive_and_stale_arm(self):
+        p=parts('communicator')
+        self.assertEqual(p['U56']['mpn'],'SN74LVC1G17DBVR')
+        self.assertEqual([net(p['U56'],i) for i in [2,3,4,5]],
+                         ['SERVICE_RUN','GND','SERVICE_RUN_SENSE_SRC','3V3'])
+        self.assertEqual(p['U56']['pins']['2'][1],'input')
+        self.assertEqual(p['U56']['pins']['4'][1],'output')
+        self.assertEqual(net(p['U11'],25),'SERVICE_RUN_SENSE')
+        self.assertEqual(net(p['U54'],2),'SERVICE_RUN')
+        self.assertEqual(net(p['J31'],2),'SERVICE_RUN')
+        self.assertTrue(self.resistor_exists(p,'4.7k','SERVICE_RUN_SENSE_SRC','SERVICE_RUN_SENSE'))
+        self.assertTrue(self.resistor_exists(p,'100k','SERVICE_RUN_SENSE','GND'))
+        self.assertTrue(self.resistor_exists(p,'10k','SERVICE_RUN','GND'))
+        for ref in ['U10','U11']:
+            self.assertNotIn('SERVICE_RUN',[pin[2] for pin in p[ref]['pins'].values()])
+        # Exported topology plus sequential fault model: GPIO48 stuck either way.
+        # U56 has no reverse logic path. Series R limits GPIO/Y contention.
+        for gpio_fault in [False,True]:
+            q=False
+            for shunt,arm_edge in [(True,True),(False,False),(True,False),(True,True)]:
+                state=dict.fromkeys(['ESP_RESET_N','STM_RESET_N','ESP_RUN_OK','PHY_RESET_N',
+                                     'AUTO_GOOD','WD_OK_N','TX_ARM','PHY3V3'],True)
+                state[net(p['J31'],2)]=shunt
+                state[net(p['U11'],25)]=gpio_fault
+                for ref in ['U52','U53','U36','U31','U37']:
+                    state[net(p[ref],4)]=all(state[net(p[ref],i)] for i in [1,3,6])
+                clear_n=state[net(p['U32'],6)]
+                q=False if not clear_n else (state[net(p['U32'],2)] if arm_edge else q)
+                state[net(p['U32'],5)]=q
+                state[net(p['U33'],4)]=all(state[net(p['U33'],i)] for i in [1,3,6])
+                self.assertEqual(state['TX_PERMIT'],shunt and arm_edge)
+                if not shunt:self.assertFalse(state['RX_ALLOWED'])
+
     def test_n16r8_memory_pins_and_recovery_buttons(self):
         p=parts('communicator')
         self.assertEqual(p['U11']['mpn'],'ESP32-S3-WROOM-1-N16R8')

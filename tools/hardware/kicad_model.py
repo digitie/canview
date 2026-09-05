@@ -84,8 +84,10 @@ def footprint(source):
 
 
 class Circuit:
-    def __init__(self, name):
+    def __init__(self, name, revision='R1 REVIEW', date='2026-09-05'):
         self.name = name
+        self.revision = revision
+        self.date = date
         self.sheets = {}
         self.parts = []
         self.counts = {}
@@ -204,7 +206,7 @@ def generate(circuit):
     dest = base / 'kicad'
     dest.mkdir(parents=True, exist_ok=True)
     root_id = uid(circuit.name)
-    common = f'(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "{{uuid}}") (paper "A3") (title_block (title "CANView / {{title}}") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))'
+    common = f'(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "{{uuid}}") (paper "A3") (title_block (title "CANView / {{title}}") (date {q(circuit.date)}) (rev {q(circuit.revision)}) (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))'
     root = [common.format(uuid=root_id,title=circuit.name), '(lib_symbols)']
     definitions = []
     for page, (sheet, note) in enumerate(circuit.sheets.items(), start=2):

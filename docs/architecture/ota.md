@@ -44,7 +44,7 @@
 3. 휴대폰을 `CANView-<role>-<short-id>` AP에 연결하고 기기 라벨/화면의 고유 암호를 입력한다. 인터넷 없음 안내에서 연결을 유지한다. 브라우저에서 `http://192.168.4.1`을 연다. QR/captive portal/mDNS는 편의 기능이며 이 고정 주소 경로도 동작해야 한다.
 4. 공식 배포처에서 미리 받은 `.cvota` 파일을 선택한다. 파일 선택창, 진행률, 현재/대상 버전, 업데이트 결과만 노출한다. 별도 코드 입력이나 콘솔은 필요 없다.
 5. 파일 검증 후 사용자가 설치를 누른다. 화면은 `전송 중 → 검증 중 → 설치 중 → 재시작 중 → 완료/이전 버전 복원`을 구분한다. 전송 100%를 설치 성공으로 표시하지 않는다.
-6. 재접속하면 장치에서 읽은 결과를 표시한다. 휴대폰이 잠자기/화면 닫기/통신 끊김 상태여도 이미 검증·준비 완료된 교체는 장치가 수행한다. 전송이 미완성이면 기존 앱을 보존하고 재업로드를 요청한다.
+6. 재접속하면 장치에서 읽은 결과를 표시한다. 휴대폰이 잠자기/화면 닫기/통신 끊김 상태여도 사용자 설치 승인까지 영속 commit된 교체는 장치가 수행한다. 전송이 미완성이면 기존 앱을 보존하고 재업로드를 요청한다. PREPARED만으로는 재부팅 뒤에도 설치하지 않고 승인 대기한다.
 7. Communicator는 완료 후 J31을 다시 연결하고 서비스 모드를 종료한다. 새 handshake·local safety check·새 control lease 없이 CAN TX를 자동 재개하지 않는다. 실패한 업데이트를 같은 부팅에서 무한 자동 재시도하지 않는다.
 
 STA + HTTPS 다운로드는 선택적 후속 기능이다. AP 기본 경로는 인터넷·DNS·RTC·Controller·Bridge에 의존하지 않는다. 휴대폰 hotspot 자체에 연결한 장치에 그 휴대폰이 항상 접속할 수 있다고 가정하지 않는다. BLE는 초기 설정에만 선택적으로 검토하며 Web Bluetooth 지원 차이 때문에 필수 업데이트 경로로 삼지 않는다. ESP-NOW로 펌웨어 전체를 중계하는 기능은 v1 범위에서 제외한다. 업데이트 중에는 해당 장치의 ESP-NOW raw/capture를 중지해 단일 radio의 channel 충돌을 피한다.
@@ -116,7 +116,7 @@ MCUboot header는512B를 기준으로 linker vector 위치 `0x08010200`을 사�
 1. ESP는 `ESP_RUN_OK=0`을 유지하고 J31 제거를 확인한다. UART runtime queue와 control lease를 종료한다.
 2. `STM_RECOVERY_N`을 LOW로 당기고 `STM_RESET_CMD_N`을 최소10ms LOW → HIGH로 해제한다. PB9 recovery 요청은 부트로더 HELLO를 받을 때까지 유지한다. BOOT0는 LOW다.
 3. STM 부트로더는 CAN peripheral·ARM_EDGE를 활성화하지 않는다. UART2를115200 8N1, flow control 없이 시작한다. 검증된 프레임 단위 stop-and-wait로 수신하고, 완전한 flash operation 뒤 ACK한다. 일반 앱의4Mbps/RTS/CTS 상태를 이어받지 않는다.
-4. 서명과 board ID를 검증한 manifest를 먼저 받아 secondary만 지운다. chunk 완료·read-back·전체 hash·image signature 검사 후에만 TEST pending 상태를 기록한다.
+4. 서명과 board ID를 검증한 manifest를 먼저 받아 secondary만 지운다. read-back·전체 hash·image signature 검증 후 PREPARED metadata만 기록한다. TEST pending은 기록하지 않는다. ACTIVATE_TEST 수신 후 transaction/package/target digest에 결합한 activation intent를 write/read-back/commit하고 그 뒤에만 TEST pending을 기록한다.
 5. 재부팅 후 부트로더가 swap을 마치고 후보 앱을 실행한다. 단전 시 swap 기록에 따라 계속 진행한다. 후보 앱은 자체 검사와 ESP 관리 프로토콜 호환성 확인 뒤 확정한다. 실패/hang/reset은 revert한다.
 6. pending TEST 상태가 없고 유효 primary가 있으면 그것을 부팅한다. 복구 요청 또는 유효 앱 부재이면 서명된 파일을 기다린다. 손상된 journal에서 임의 주소로 jump하거나 bootloader를 자동 erase하지 않는다.
 
@@ -132,7 +132,9 @@ BOOT0는 주 OTA 경로가 아니라 부트로더 최초 설치/물리 서비스
 
 ## 6. 실제 회로 변경과 핀 계약
 
-회로 정본은 [ota_circuits.py](../../tools/hardware/ota_circuits.py), 연결된 기존 core/power/sensor 생성 입력이다. 추가 부품은 U17 TLV803EA30DPWR, U50 SN74LVC1G07DBVR, U52/U53/U55 SN74LVC1G11DCKR, U54 SN74LVC1G04DBVR, J31/J32 및 pull/decoupling/복구 버튼이다. [TI open-drain buffer](https://www.ti.com/lit/ds/symlink/sn74lvc1g07.pdf)의 DBV pin2=A, pin4=Y(open-drain)를 사용한다. Push-pull 출력으로 NRST를 HIGH 구동하지 않는다.
+회로 정본은 [ota_circuits.py](../../tools/hardware/ota_circuits.py), 연결된 기존 core/power/sensor 생성 입력이다. 추가 부품은 U17 TLV803EA30DPWR, U50 SN74LVC1G07DBVR, U52/U53/U55 SN74LVC1G11DCKR, U54 SN74LVC1G04DBVR, U56 SN74LVC1G17DBVR, J31/J32 및 pull/decoupling/복구 버튼이다. [TI open-drain buffer](https://www.ti.com/lit/ds/symlink/sn74lvc1g07.pdf)의 DBV pin2=A, pin4=Y(open-drain)를 사용한다. Push-pull 출력으로 NRST를 HIGH 구동하지 않는다.
+
+구형 MINI 회로와 구분해 Communicator 회로 title revision을 `R2 N16R8 REVIEW`, Controller 어댑터를 `R1.1 OTA REVIEW`로 갱신한다. OTA board ID는 `comm-r2-n16r8`, `controller-waveshare35-adapter-r1_1`, `bridge-r1-n8r2`, layout ID는 각 역할에 `ota-layout-v1`을 결합한다. 제조 provisioning과 bootloader가 역할별 상수를 보존하며 파일 입력값으로 바꾸지 않는다. 구형 `comm-r1-mini-n4r2`에는 새 파티션이나 핀맵을 적용하지 않는다. `docs/hardware/r1/`은 상세 설계 묶음의 기존 경로이며 회로 revision 식별자로 사용하지 않는다.
 
 ### 6.1 Reset 분리
 
@@ -145,7 +147,7 @@ U6(ESP)와 U17(STM)은 같은3V3를 각각 감시하고 MR만 `GLOBAL_RESET_N`�
 | 정상 동작 허용 | GPIO7 /7 | U53 입력 | 외부10k PD; OTA/boot/recovery에서는0 |
 | ESP 복구 버튼 | GPIO8 /12 | 해당 없음 | 외부10k PU; 버튼=LOW |
 | STM custom 복구 요청 | GPIO9 /17 | PB9 /47 | 외부10k PU; ESP open-drain LOW=요청 |
-| 서비스 인터록 감지 | GPIO48 /25 | J31/U52 | 외부10k PD; J31 없으면0 |
+| 서비스 인터록 감지 | GPIO48 /25 | U56 Y →4.7k →SERVICE_RUN_SENSE | MCU측100k PD; J31 원신호와 MCU 출력 분리 |
 | ESP reset | CHIP_PU /3 | U6 출력 | `ESP_RESET_N` |
 | STM reset | 해당 없음 | PG10-NRST /7, SWD J10/10 | `STM_RESET_N` |
 
@@ -153,7 +155,7 @@ U6(ESP)와 U17(STM)은 같은3V3를 각각 감시하고 MR만 `GLOBAL_RESET_N`�
 
 ### 6.2 CAN 하드웨어 차단
 
-`SERVICE_RUN`은 J31에 shunt가 있을 때만1이다. J30 `TX_ARM`은 별개로 기존 차량 TX 허용용이다. J31 제거 시 RX mode까지 차단해 모든 PHY가 안전한 기본 상태로 수렴한다. ESP가 GPIO7을 잘못 HIGH로 유지해도 J31 제거는 하드웨어적으로 유효하다.
+`SERVICE_RUN`은 J31 물리 신호이며10k pull-down으로 shunt 부재 시0이다. U52/U54는 이 원신호를 읽고 MCU에는 직접 연결하지 않는다. U56 SN74LVC1G17의 A(pin2)→Y(pin4) 단방향 경로와4.7k 직렬 뒤 SERVICE_RUN_SENSE만 GPIO48에 전달한다. MCU측100k PD, U56의100n decoupling을 둔다. GPIO48의 잘못된 HIGH/LOW 출력은 원신호를 구동하지 못하고 충돌 전류는3.6V/4.7k≈0.77mA 이하다. J30 TX_ARM은 별개다. J31 제거 시 GPIO7/GPIO48 상태와 무관하게 RX/TX와 ARM latch를 차단한다. 정상 부품의 GPIO 출력 고장 모델이며 U56 내부 단락까지 포함한 모든 단일 부품 고장 보장은 아니다. [TI buffer pin/truth table](https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf)
 
 ```text
 MCU_HEALTH_N = ESP_RESET_N & STM_RESET_N & SERVICE_RUN
@@ -182,8 +184,8 @@ Bridge는 기존 GPIO4 PAIR와 RESET을 재사용하므로 OTA용 추가 IC가 �
 |---|---|
 | `format_version`, `package_id` | version1,128bit ID; 지원하지 않는 버전 거절 |
 | `role`, `board_revision`, `layout_id` | 대상 장치·회로·파티션 일치; 사용자 입력으로 override 금지 |
-| `release`, `security_epoch`, `key_id` | 역할별 허용 서명키·보안 세대; 임의 최신 문자열 비교 금지 |
-| `images[]` | enum target, byte length, SHA-256, firmware version, image signature |
+| `release`, `security_epoch`, `key_id` | release는 표시용; 제조 고정 epoch와 역할별 서명키 대조 |
+| `images[]` | enum target, byte length, SHA-256, firmware version, signed release_sequence:u64, image signature |
 | `compatibility` | ESP/STM/peer의 지원 ABI 범위와 허용 조합 목록 |
 | `config_schema` | 읽을 수 있는 schema 범위와 새 snapshot schema |
 | `requires` | 최소 bootloader/recovery ABI, hardware capabilities |
@@ -198,6 +200,19 @@ ESP는 production Secure Boot V2 + Flash Encryption, STM은 부트로더 내 공
 
 AP는 장치별 강한 WPA2 암호, 물리적으로 연10분 세션,1개 관리 client를 기본으로 한다. HTTP 로컬 경로는 공용 인터넷에 노출하지 않는다. 업데이트 요청은 로그인 세션·난수 CSRF token·Origin/Host allowlist·Content-Type·request size 검사를 거친다. CORS를 열지 않고 STA에서 수신 업데이트 포트는 기본 닫는다. 상태/log 내 token/키/VIN/좌표/capture를 노출하지 않는다. 타임아웃은 monotonic clock으로 재며 RTC 시간이 틀려도 오프라인 서명 검증이 가능하다. 온라인 HTTPS 인증서 검증을 RTC 문제 때문에 끄지는 않는다.
 
+### 7.1 영속 버전 하한과 복원 예외
+
+ESP 정상 앱·불변 recovery 앱·STM bootloader가 같은 policy-v1 규칙을 사용한다. 문자열 버전 비교를 금지하고 signed release_sequence를 image와 manifest에서 대조한다. STM protected TLV에도 동일 값을 넣는다. security_epoch는 최초 제조 상수와 일치해야 하며 OTA로 변경하지 않는다.
+
+각 target의 권위 record는 min_accepted_sequence:u64, confirmed_digest, previous_known_good_digest/sequence, board/layout/epoch, trial transaction, generation, CRC와 마지막 commit marker를 가진다. ESP는 §4 OTA journal A/B, STM은 §5 policy/journal A/B에 저장한다. 각 copy는 전체 policy와 현재 transaction snapshot을 담고 고정 인코딩 최대3072B를 CI로 제한한다. 4KiB copy 교체 중에도 다른 copy를 보존한다. image 본문/chunk log를 넣지 않는다. recovery도 정상 NVS 대신 이 규격을 읽는다.
+
+- 수신 sequence가 floor 미만이면 erase 전에 거절한다. 같으면 confirmed_digest까지 같을 때만 이미 설치됨으로 멱등 응답하며 다른 digest는 CONFLICT다. floor 초과일 때만 나머지 서명·호환성 검증 후 후보로 받는다.
+- 시험 앱 local health 통과 후, boot library image confirmation 이전에 CONFIRM_INTENT(candidate sequence/digest, old known-good, transaction)를 영속화한다. 실제 confirmation 뒤 floor/confirmed_digest를 갱신한다. 부팅 때 update API와 서비스 종료보다 먼저 확인된 실행 digest/boot 상태를 intent와 대조한다. 실제 확인 완료가 일치하면 floor commit을 마친 뒤 API를 연다. 아직 시험 중이면 확인 전 절차를 계속하며 실패/revert이면 이전 floor와 설정을 유지한다. 상태가 해석되지 않으면 복구 격리한다.
+- 자동 rollback은 활성 trial 실패와 그 transaction에 보존한 previous-known-good digest로만 허용한다. 옛 파일 업로드나 manifest의 rollback 표시는 예외가 아니다. 확인 완료 후 임의 과거 앱 선택도 금지한다. rollback용 이전 app/config는 trial 종료 전 지우지 않는다.
+- recovery를 포함해 두 policy copy가 모두 손상되면 floor를0으로 초기화하지 않고 RECOVERY_LOCKED로 둔다. 웹은 상태만 제공하며 Flash 쓰기·차량 송신은 금지한다. 서명·제조 이력을 대조하는 통제된 작업대 재-provisioning이 필요하다. 한 copy라도 valid이면 그 정책으로 복구한다.
+
+정상 OTA 입력과 전원 차단에 대한 소프트웨어 정책이며, 공격자가 Flash 전체를 임의 변경하는 물리 공격에 대한 hardware monotonic counter 보장은 아니다.
+
 ## 8. 응답 확인·멱등성·전송 중단
 
 브라우저 HTTP200, Wi-Fi 전송 성공, UART ACK, 이미지 검증, 재부팅 성공, 최종 확정은 서로 다른 상태다. 상태 API에는 `device_id`, `boot_id`, `transaction_id`, `package_hash`, `target`, `phase`, `bytes_verified`, `running_version`, `confirmed_version`, `result`, `error_code`를 포함한다. 웹은 서버의 이 값으로 진행률을 복원한다.
@@ -207,26 +222,35 @@ AP는 장치별 강한 WPA2 암호, 물리적으로 연10분 세션,1개 관리 
 | `GET /api/ota/v1/status` | 역할/설치 상태/직전 결과 | 민감 정보 제외한 현재 장치 상태 |
 | `POST /api/ota/v1/transactions` | signed manifest 검증·exclusive session 생성 | target/전원/서비스/공간 검사 후 `READY` |
 | `PUT /api/ota/v1/transactions/{id}/images/{target}` | 순서대로 chunk 수신 | offset·chunk hash 확인, Flash write/read-back 완료 |
-| `POST .../{id}/prepare` | 전체 이미지/호환성 검증 | 각 대상이 실제로 `PREPARED` |
-| `POST .../{id}/activate` | 시험 부팅 승인 | `ACCEPTED`만 반환; 성공 표시는 후속 STATUS |
-| `POST .../{id}/cancel` | 준비 전/후 취소 | swap/부팅 전환 시작 뒤에는 `TOO_LATE`, 강제 erase 금지 |
+| `POST .../{id}/prepare` | 전체 이미지/호환성 검증 | verified metadata만 영속화한 PREPARED; boot selector/TEST pending 변경 없음 |
+| `POST .../{id}/activate` | 시험 부팅 승인 | 인증된 승인 intent의 write/read-back/commit 후 ACCEPTED; 성공은 후속 STATUS |
+| `POST .../{id}/cancel` | 설치 승인 전 취소 | ACTIVATION_COMMITTED 전만 허용; 이후 TOO_LATE, swap 시작 여부와 무관 |
 
 전체 HTTP retry는 같은 idempotency key·transaction·package hash로 수행한다. 같은 요청의 재전송은 저장된 결과를 돌려주며 다른 payload를 같은 ID로 보내면 `CONFLICT`다. 진행 중 다른 업데이트는 `BUSY`다. 인증·CRC·schema·hash 오류는 자동 재시도하지 않는다. Communicator의 HTTP WRITE는 먼저 내부 staging에 기록하고 PREPARE는 bundle 검증 완료를 뜻한다. 이후 각 MCU에 쓰는 PREPARE/시험 부팅 결과는 target별 phase로 구분한다. Controller/Bridge는 직접 비활성 앱 slot에 받는다.
 
 STM custom recovery UART 프레임은 COBS + `0x00` delimiter, little-endian 정수, CRC32C다. header는 `magic:u16, version:u8, type:u8, transaction_id:16B, request_id:u32, offset:u32, payload_len:u16, status:u16`, payload≤512B, CRC4B이며 COBS 포함 frame 상한576B다. magic/version/type을 먼저 검사하고 allocation 없이 정적 버퍼로 처리한다. CRC polynomial/초기값/reflection/xor-out, 모든 enum·golden vector는 구현 때 schema 정본에 고정한다.
 
-명령은 `HELLO, BEGIN, WRITE, STATUS, PREPARE, ACTIVATE_TEST, CANCEL`만 둔다. HELLO에는 MCU identity, board/layout/bootloader ABI, 현재/후보 digest, reset cause, swap state가 있다. ACK는 request/transaction/offset/length/digest를 echo한다. WRITE ACK는 해당 Flash 기록을 read-back한 뒤 보낸다. 유효한 동일 chunk 중복은 재기록하지 않고 ACK한다. 앞선 offset에 다른 데이터, hole, 초과 length는 거절한다. `PREPARED`는 전체 서명 검증·pending intent 영속화 뒤에만 응답한다.
+명령은 `HELLO, BEGIN, WRITE, STATUS, PREPARE, ACTIVATE_TEST, CANCEL`만 둔다. HELLO에는 MCU identity, board/layout/bootloader ABI, 현재/후보 digest, reset cause, swap state가 있다. ACK는 request/transaction/offset/length/digest를 echo한다. WRITE ACK는 해당 Flash 기록을 read-back한 뒤 보낸다. 유효한 동일 chunk 중복은 재기록하지 않고 ACK한다. 앞선 offset에 다른 데이터, hole, 초과 length는 거절한다. PREPARED는 서명 검증 결과·후보 digest만 영속화한다. ACTIVATE_TEST는 해당 후보의 activation intent를 먼저 commit하고 MCUboot TEST pending을 그 뒤 기록한다. 재부팅 시 valid activation intent와 검증된 후보가 모두 있어야 미완료 pending 기록을 완성한다. PREPARED만 있으면 primary를 유지한다. 새 pending이 있으나 intent가 없거나 손상됐으면 추정 설치하지 않고 복구 격리한다. 이미 진행 중인 swap/revert는 MCUboot 자체 journal 규칙을 따른다.
 
 UART response timeout 기본2초, 같은 요청 최대3회 retry, erase/prepare는 `IN_PROGRESS`와 최대30초 deadline을 사용한다. 이 시간은 G4 worst-case flash와 서명 실행 측정 후 줄이거나 늘린다. ESP가 timeout만 보고 이미 실행 중인 erase/swap을 중복 시작하지 않으며 STATUS로 판정한다. ACTIVATE_TEST 뒤 ACK가 유실되면 재부팅 후 boot_id와 실제 image digest를 조회한다. 최종 `CONFIRMED`는 STM 자신이 기록하고 자기 부팅에서 보고해야 한다.
 
-전송 재개는 v1에서 단순하게 제한한다. **같은 부팅·같은 transaction 안에서만 chunk retry를 보장**한다. 전원 차단/ESP·STM reset으로 boot_id가 달라지면 미완료 blob은 처음부터 다시 보낸다. 미완료 secondary/비활성 ESP slot만 지우므로 기존 정상 앱은 유지된다. PREPARED 이후에는 브라우저 연결과 무관하게 local pending state에서 설치/rollback을 이어간다. 앱 교체 중간 복구를 사용자가 다시 전송해야 하는 다운로드 재개와 혼동하지 않는다.
+전송 재개는 v1에서 단순하게 제한한다. **같은 부팅·같은 transaction 안에서만 chunk retry를 보장**한다. 전원 차단/ESP·STM reset으로 boot_id가 달라지면 미완료 blob은 처음부터 다시 보낸다. 미완료 secondary/비활성 ESP slot만 지우므로 기존 정상 앱은 유지된다. PREPARED는 재부팅 뒤에도 승인 대기다. ACTIVATION_COMMITTED 이후에만 브라우저 없이 승인된 plan의 설치/rollback을 이어간다. 앱 교체 중간 복구를 사용자가 다시 전송해야 하는 다운로드 재개와 혼동하지 않는다.
+
+### 8.1 승인 commit 경계
+
+PREPARED는 verified metadata/cache가 있다는 뜻일 뿐 설치 권한이 아니다. boot selector나 STM TEST pending을 미리 기록하지 않는다. 인증된 activate 요청은 현재 PREPARED의 transaction/package/ordered target digests에 결합한 immutable plan과 ACTIVATION_COMMITTED marker를 write/read-back/commit한 뒤 ACCEPTED를 보낸다. 그 다음에만 ESP boot selector 또는 STM ACTIVATE_TEST를 변경한다.
+
+commit 전 단전이면 torn intent는 무효이며 기존 앱 + PREPARED_WAIT다. commit 뒤 ACK가 유실되면 STATUS가 ACTIVATION_COMMITTED 또는 더 진행된 실제 상태를 반환한다. 동일 activate retry는 저장된 결과만 돌려주고 다른 plan은 CONFLICT다. cancel/activate는 단일 writer가 직렬화하며 먼저 영속 commit된 전이가 이긴다. CANCELLED 뒤 activate는 거절하고 activation commit 뒤 cancel은 TOO_LATE다. reboot/timeout을 사용자 승인 대신 사용하지 않는다.
 
 ## 9. 상태기계와 두 MCU의 호환성
 
 ```text
-IDLE -> SERVICE_LOCKED -> RECEIVING -> VERIFYING -> PREPARED
+IDLE -> SERVICE_LOCKED -> RECEIVING -> VERIFYING -> PREPARED_WAIT
+     -> [사용자 ACTIVATE 영속 commit] -> ACTIVATION_COMMITTED
      -> TRIAL_BOOT -> LOCAL_HEALTH_OK -> CONFIRMED -> SERVICE_EXIT
 RECEIVING/VERIFYING 중 reset: 기존 앱, 부분 image 폐기 또는 재업로드
+activation commit 전 단전: 기존 앱, 승인 대기, 취소 가능
+activation commit 후 단전/ACK 유실: 승인 plan 재검증 후 계속, 취소 TOO_LATE
 TRIAL_BOOT 중 reset/실패: 이전 앱으로 ROLLBACK
 swap 중 reset: MCUboot journal에 따라 swap/revert 재개
 유효 앱 부재/상태 해석 불가: RECOVERY_WAIT, CAN 계속 차단
@@ -236,7 +260,7 @@ swap 중 reset: MCUboot journal에 따라 swap/revert 재개
 
 ESP/STM 사이에는 진정한 원자적 동시 commit이 없다. 이를 숨기는 `두 MCU 모두 완료` 플래그 하나를 두지 않는다. 릴리스는 `(ESP_old,STM_old)`, `(ESP_new,STM_old)`, `(ESP_old,STM_new)`, `(ESP_new,STM_new)`와 각각의 recovery ABI를 모두 검사한다. 모든 조합이 관리·복구 통신을 지원해야 한 번의 bundle로 허용한다. 새 기능은 capability가 교집합인 동안만 동작한다.
 
-기본 순서는 전체 bundle 내부 staging 검증 → ESP의 새 호환 앱 설치·자체 확정 → staging 재검증 → STM 설치·시험 부팅·확정이다. 준비가 끝났다면 휴대폰 없이 계속 진행한다. STM 정상본은 MCUboot secondary에 보존한다. 어느 단계에서든 전원이 꺼지면 실행 중 조합을 HELLO에서 재평가한다. 전체 bundle 완료는 두 MCU의 확인된 실제 digest가 manifest와 일치할 때만 기록한다. 이미 확정된 다른 MCU를 임의로 rollback 표시해 원자성을 흉내 내지 않는다. staging이 손상되면 현재 호환 조합을 보존하고 파일 재선택을 요청한다.
+기본 순서는 전체 bundle 내부 staging 검증 → PREPARED_WAIT → 사용자 승인과 plan 영속 commit → ESP의 새 호환 앱 설치·자체 확정 → staging 재검증 → STM 설치·시험 부팅·확정이다. 승인 commit 후만 휴대폰 없이 계속 진행한다. immutable plan은 transaction/package/ordered target digests에 결합하며 ESP 교체 후에도 동일하게 읽는다. STM ACTIVATE_TEST도 이 plan의 승인 범위 안에서만 수행한다. 재부팅을 승인으로 추정하지 않는다. STM 정상본은 MCUboot secondary에 보존한다. 어느 단계에서든 전원이 꺼지면 실행 중 조합을 HELLO에서 재평가한다. 전체 bundle 완료는 두 MCU의 확인된 실제 digest가 manifest와 일치할 때만 기록한다. 이미 확정된 다른 MCU를 임의로 rollback 표시해 원자성을 흉내 내지 않는다. staging이 손상되면 현재 호환 조합을 보존하고 파일 재선택을 요청한다.
 
 네 조합이 호환되지 않는 변경은 먼저 구버전/신버전을 모두 이해하는 중간 호환 릴리스를 설치하는 단계적 migration을 배포한다. 최소 recovery ABI를 넘는 패키지는 설치 전에 거절하고 유선 서비스 필요로 표시한다. Controller/Bridge의 구버전 부재를 이유로 Communicator 자신의 복구를 막지 않는다. 차량 제어 profile/권한은 firmware 호환성과 별도 검증하며 OTA 완료가 VEHICLE_TX 승인으로 이어지지 않는다.
 
@@ -251,7 +275,7 @@ config는 기존 앱이 읽는 snapshot을 보존하고 후보 앱용 snapshot�
 | 질문 | 판정 |
 |---|---|
 | OTA 도중 단전에서 정상본 보존에 필수인가 | 아니다. ESP 비활성 slot과 STM primary/secondary가 담당 |
-| 휴대폰 연결이 끊겨도 설치할 수 있는가 | PREPARED 이후는 가능; 미완료 다운로드는 재업로드 |
+| 휴대폰 연결이 끊겨도 설치할 수 있는가 | ACTIVATION_COMMITTED 이후 가능; PREPARED는 승인 대기, 미완료는 재업로드 |
 | 외장의 추가 가치 | 여러 버전의 signed bundle/STM 정상본을 장기 보관, 재업로드 없는 복구 |
 | ESP 내부4MiB 앱 슬롯을 늘리는가 | 아니다. 추가 SPI NOR를 boot-mapped app slot처럼 사용할 수 없음 |
 | 추가 위험 | 부품·면적·SPI/전원 검증 부담; 유일한 복구본으로 의존하면 추가 고장점 |
@@ -292,9 +316,12 @@ OTA 시작은 stable power5초, supervisor 정상, 충분한 비활성 저장공
 | STM 매2KiB erase,8B write, swap status/confirm 전후 차단 | swap/revert 재개 또는 명시 recovery; bootloader 보존 |
 | ESP/STM 한쪽만 reset, 두 쪽 reset, SWD reset | ESP가 STM reset으로 죽지 않음; CAN latch clear |
 | 후보 panic/hang/IWDG, UART 무응답/CTS 고정 | 미확정 후보 rollback; old/new digest로 실제 상태 판정 |
-| J31 제거/재삽입, GPIO7 HIGH 고착, STM ARM 지속 | J31 제거 시 모든 PHY 차단; 재삽입 시 stale latch 재사용 없음 |
+| J31 제거/재삽입, GPIO7 HIGH·GPIO48 HIGH/LOW 고착, STM ARM 지속 | buffer 역구동 차단; J31 제거 시 PHY 차단; 재삽입 시 새 ARM 없이 TX 없음 |
 | AUTO5V/PHY3V3/3V3 독립 하강·USB/차량 hot-plug | 역급전/잘못된 PHY enable/dominant pulse 제한을 실제 측정 |
-| 휴대폰 잠금/브라우저 종료/AP channel 변경 | 미완료는 재업로드, 준비 완료는 local 설치, 성공 오표시 없음 |
+| 휴대폰 잠금/브라우저 종료/AP channel 변경 | 미완료는 재업로드, PREPARED는 승인 대기, 승인 commit 후만 local 설치 |
+| activation commit 직전/직후 단전·ACK 유실·중복 activate/cancel | commit 전 boot 변경0·취소 가능; 이후 동일 plan만 계속·TOO_LATE; torn record는 승인 아님 |
+| 확정 직전/직후와 floor 갱신 사이 단전·구버전 recovery | confirmed digest와 CONFIRM_INTENT 재조정; 정책 적용 전 update API 닫힘; 구 signed bundle 거절 |
+| policy A/B 기록 중 단전·두 사본 손상 | 이전 valid floor 보존; 양쪽 불명확하면 RECOVERY_LOCKED, floor0 초기화 금지 |
 | 잘못된 파일·다운그레이드·다른 보드·서명·빈 용량 | erase 대상 제한, 유효 정상본/설정 보존 |
 | 앱 양쪽 invalid·정상 NVS 손상·PSRAM 불량 | 물리 버튼으로 복구 앱, CAN TX0; 숨은 초기화 의존 없음 |
 | 잘못된 DBANK/WRP/ROM strap/J32 absent | erase 전에 거절; 무단 보호 해제/ROM 진입 없음 |
@@ -314,7 +341,7 @@ python tools\validate_document_links.py
 git diff --check
 ```
 
-2026-09-06 실제 실행: KiCad10.0.6 전체 재생성·4보드 ERC 각0개, component/physical pad/BOM/netlist 정합성 PASS, 기존 전원 margin 계산 PASS, hardware 회귀8개 PASS, 문서 링크120개 문서/737개 target 오류0개, `git diff --check` 통과다. Communicator는288개 physical item/936개 named pad, Controller 어댑터는19개/87개다. 128개 Boolean 입력 조합은 정적 service/reset 차단만 검증하며 전압 하강 타이밍을 입증하지 않는다.
+2026-09-06 실제 실행: KiCad10.0.6 전체 재생성·4보드 ERC 각0개, component/physical pad/BOM/netlist 정합성 PASS, 기존 전원 margin 계산 PASS, hardware 회귀9개 PASS다. Communicator는292개 physical item/947개 named pad, Controller 어댑터는19개/87개다. 128개 Boolean 입력 조합과 GPIO48 HIGH/LOW 고착·J31 제거/재삽입 순서 시험은 정적 논리 검증이며 아날로그 타이밍을 입증하지 않는다. 생성 중 Bridge BOM 접근이 한 번 실패했고 전체 재실행에서 정상 종료했다. 원본 리뷰의 Markdown hard-break 후행 공백은 보존하므로 이 파일만 `git -c core.whitespace=-blank-at-eol diff --check`로 검사하고 나머지 파일은 기본 whitespace 검사한다. 문서 링크와 immutable hash의 최종 결과는 §14에 누적한다.
 
 `setup-windows.ps1 -VerifyOnly`는 PATH에 `cmake`가 없어 실패했다. 따라서 N16R8 defaults는 공식 SDK Kconfig와 대조했으나 target build·실물 메모리 검사는 미실행이다. firmware OTA/HIL도 미실행이며 이 문서와 회로를 OTA 완제품으로 표시하지 않는다. 기존 MAX20040 U8 footprint의 `PROVISIONAL` 및 전원/HIL gate도 유지한다.
 
@@ -323,3 +350,82 @@ git diff --check
 원본 요청은 Bridge 없는3장치 독립 OTA, 범용 브라우저 업데이트, ESP가 STM을 관리하는 회로, 전원 차단 우선 설계, 단일 MD와 실제 회로 변경이다. 사용자 추가 요청에 따라 외장 NOR 필요성을 별도 전문 검토한 결과를 §10에 반영했다.
 
 전문 리뷰어 A는 reset/전원/PHY/Flash 고장 복구를, B는 update protocol/서명/버전 조합/저장공간과 사용자 복구 경로를 독립적으로 공격한다. 동일 immutable commit을 object-only로 읽게 하고 원본 결과·severity·수정·재검증을 이 절에 누적한다. 리뷰 결과를 기록하기 전까지 최종 판정은 대기다.
+
+
+### 14.1 최초 리뷰 기준선과 입력
+
+Review ID: `OTA-2026-09-06-01`. Base `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`, candidate `5abeae4432f7e7a395739dac3b91bf7c0495679b`. 시작 UTC `2026-09-05T23:16:31Z`. 두 reviewer는 같은 commit을 object-only로 읽었다. 해당 방식은 이동하는 worktree 파일을 읽지 않으므로 작성자의 후속 수정으로 worktree가 dirty여도 기준선은 바뀌지 않는다. 두 결과 모두 확정·수신한 뒤 아래에 원문을 보존했다.
+
+공통 전달 입력 원문:
+
+```text
+CANView OTA + N16R8 회로 독립 적대적 리뷰. Base cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70, candidate 5abeae4432f7e7a395739dac3b91bf7c0495679b. F:/dev/canview Windows PowerShell. Read-only COMMIT OBJECT-ONLY: 모든 검토 파일은 git -c safe.directory=F:/dev/canview -C F:/dev/canview show <candidate>:<path> 및 diff base candidate로 읽고 plain worktree를 기준선으로 읽지 말것. 시작/끝 hash존재·git status 확인. 사용자요구: Bridge 없이 Controller/Communicator 자체 휴대폰browser OTA, Comm ESP가STM FW 관리, 전원차단우선, OTA회로직접변경, 상세설계+리뷰한MD. 최신지정 Communicator ESP32-S3-WROOM-1-N16R8 (Flash16MiB,PSRAM8MiB/ECC7.5MiB), 외장NOR없음. 범위: docs/architecture/ota.md, tools/hardware/{ota,core,power,sensor}_circuits.py, build_schematics.py, test_safety_contracts.py, validate_exports.py, firmware/communicator/esp32/sdkconfig.defaults, hardware/{communicator,controller-adapter,bridge}/{connectivity.json,pinmap.csv,bom.csv,netlist.xml}, 관련R1doc변경. 펌웨어OTA구현/PCB실장/HIL은 범위밖이며 명시된후속gate의미실행자체를 발견으로부풀리지말고 설계의실제결함을찾을것. 작성자검증 KiCad10.0.6 ERC4보드0, 8unitPASS,link737 0,error; target VerifyOnly는cmake없어서실패. 공식source검증 허용. AGENTS필요최소와embeddedarchitecture/documentation skill 필요한것읽기. peer reviewer찾기/연락/내용공유금지. 파일수정·커밋금지. 최종은 한국어로 정확한review execution ID/시작종료ISOtimestamp/확인hash/검증/한계/각P0-P3 finding(위치근거실패시나리오수정)/merge verdict BLOCK CONDITIONAL PASS, 총1200~2200자권장. 실제소스내오류면간결하게증거. 결과원문그대로 단일OTA MD에포함하므로파일새작성하지말것.
+```
+
+역할 추가 입력: A는 hardware/reset/CAN/boot reliability, B는 OTA protocol/security/distributed-state 관점으로 검토하도록 지정했다. 각 실행 ID와 시작 UTC를 후속 입력으로 전달했다. 원문에 있는 파일 line은 최초 candidate 기준이다.
+
+### 14.2 Reviewer A 원본
+
+Reviewer A 판정: **BLOCK**. P0 0건 / P1 1건 / P2 0건 / P3 0건.
+
+실행 ID: `01a073db-f9f0-73a2-88b8-1fc7f3ed631d`  
+시작: `2026-09-05T23:16:31Z`  
+종료: `2026-09-05T23:22:47.4739035Z`
+
+확인한 base: `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`  
+확인한 candidate: `5abeae4432f7e7a395739dac3b91bf7c0495679b`
+
+시작·종료 모두 두 commit 객체의 존재를 확인했다. `git status --porcelain=v1`은 시작 0건, 종료 수정 64건이었다. 본 리뷰는 파일 생성·수정·커밋을 하지 않았으며, 진행 중 발생한 worktree 변경 내용은 읽지 않았다. 검토 파일은 지정한 `git show candidate:path`와 base→candidate diff로만 읽었다. 상대 리뷰어 조회·연락·결과 공유도 없었다.
+
+**[A-01 / P1] GPIO48이 J31 물리 인터록을 우회할 수 있음**
+
+위치: candidate의 [core_circuits.py:41](F:/dev/canview/tools/hardware/core_circuits.py:41), [ota_circuits.py:20](F:/dev/canview/tools/hardware/ota_circuits.py:20), [netlist.xml:14661](F:/dev/canview/hardware/communicator/netlist.xml:14661).
+
+근거: 실제 `SERVICE_RUN` net에는 J31/2, R87 10k pull-down, U11/25(GPIO48), U52/6, U54/2가 직접 연결된다. GPIO48은 출력 가능한 핀이며 감지 방향을 강제하는 버퍼가 없다.
+
+실패 시나리오: 정상적으로 CAN이 armed된 상태에서 GPIO48 하나가 잘못된 초기화·레지스터 오류로 HIGH 출력이 된다. 이후 J31을 제거해도 GPIO가 10k에 약 0.33mA를 공급하며 `SERVICE_RUN=1`을 유지한다. 나머지 정상 조건에서는 `ARM_CLEAR_N=1`이 유지되어 기존 latch가 지워지지 않고 `TX_PERMIT=1`도 유지된다. 따라서 문서 §6.2의 “shunt가 있을 때만1”, “제거 시 모든 PHY 차단” 계약이 성립하지 않는다. 새 ARM edge조차 필요 없는 차단 실패다.
+
+수정: J31의 하드웨어 net과 ESP 감지 net을 분리하고, MCU 쪽 출력이 인터록에 역으로 전달되지 않는 단방향 버퍼를 추가한다. GPIO48 HIGH/LOW 출력 고장을 넣어 J31 제거 시 latch clear와 RX/TX 차단을 검사해야 한다. GPIO를 input으로 설정한다는 소프트웨어 계약만으로는 해결되지 않는다.
+
+검증: candidate 객체를 메모리에 로드해 기존 회귀시험 8개를 재실행했으며 모두 PASS였다. 3보드 350부품·1,194핀의 JSON/XML/pinmap/BOM 대조 오류는 0건, 저장된 산출물 해시 불일치는 0건, `diff --check`도 통과했다. 위 고장 조건에서는 실제 연결에서 추출한 논리식으로 `TX_PERMIT=1`을 재현했다. 기존 Boolean 시험은 `SERVICE_RUN`을 독립 입력으로 가정하므로 이 우회를 검출하지 못한다.
+
+reset 출력 분리와 U50 open-drain 연결은 [TI 사양](https://www.ti.com/lit/ds/symlink/sn74lvc1g07.pdf)에 부합했다. N16R8의 예약 GPIO35/36/37 NC 및 메모리 사양도 [Espressif 원문](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf)과 일치했다. PG10-NRST, J32, Controller 복구 핀, watchdog 재무장, STM offset swap/ECC 복구 계약에서는 추가 확정 결함을 찾지 못했다.
+
+한계: ERC 4보드 0건은 저장 보고서 확인이며 재생성하지 않았다. 링크 737건과 target VerifyOnly는 재실행하지 않았다. 공식 RM0440 본문 접근은 실패했다. 실물 전기 측정·OTA 구현·PCB·HIL은 범위 밖이며 미실행 자체를 finding으로 계산하지 않았다. **A-01 회로 수정과 재검증 전 merge는 BLOCK이다.**
+
+### 14.3 Reviewer B 원본
+
+Reviewer B — merge verdict: **BLOCK**
+
+실행 ID: `01a073db-fa86-7823-9450-388dfb900276`  
+시작: `2026-09-05T23:16:31Z`  
+종료: `2026-09-05T23:23:49.5707994Z`
+
+시작·종료 모두 다음 commit 객체의 존재와 해시를 확인했다.
+
+- Base: `cffa3373e2f9f63291f8e89ebeddaa13dfe0fb70`
+- Candidate: `5abeae4432f7e7a395739dac3b91bf7c0495679b`
+
+검토 자료는 지정 `git show candidate:path`와 `diff base candidate`로만 읽었다. 시작 status에는 변경 파일이 없었고 종료에는 OTA 문서·회로 산출물 등 수정 파일이 나타났다. 본 리뷰는 파일 작성·수정·커밋을 하지 않았으며, 종료 시 변경 내용도 기준선으로 읽지 않았다. 두 status 모두 global ignore 접근 권한 경고가 있었다. 다른 리뷰어 조회·연락·결과 공유는 하지 않았다.
+
+1. **[P1] PREPARED가 설치 승인 없이 재부팅 후 실행된다.** 위치: candidate [ota.md:222](F:/dev/canview/docs/architecture/ota.md:222), 관련 119·210–218·239행. API는 `prepare`와 시험 부팅을 승인하는 `activate`를 분리하지만, 본문은 PREPARED부터 연결 없이 설치를 계속하도록 규정한다. STM도 이미지 검증 후 TEST pending을 기록한다. 따라서 `prepare` 성공 직후, 사용자가 설치를 누르기 전에 단전되면 재부팅 경로가 승인되지 않은 설치를 시작한다. 준비 후 취소 가능하다는 계약과도 충돌한다. MCUboot의 pending TEST는 다음 부팅에서 swap을 유발하는 상태다. [공식 설계](https://docs.mcuboot.com/design.html#image-swapping)  
+   수정: `PREPARED`와 `ACTIVATION_COMMITTED`를 분리하고, 승인 intent를 내구 기록한 뒤에만 ESP boot selection/STM TEST pending을 변경해야 한다. 승인 전 재부팅은 대기·취소 가능 상태로 복원하고, 승인 기록 전후 단전 및 activate ACK 유실의 결과를 명시해야 한다.
+
+2. **[P2] 서명된 구버전 재전송을 막을 영속 버전 기준이 없다.** 위치: candidate [ota.md:195](F:/dev/canview/docs/architecture/ota.md:195), 관련 185·243행. 일반 웹 downgrade를 manifest 정책으로 제한한다고 하지만, 비교할 최소 `release/security_epoch`의 저장 위치·갱신 시점·복구 앱의 적용 규칙이 없다. journal에는 generation·phase·hash만 명시되어 있다. 과거 정상 서명 bundle은 서명 검증에 계속 성공하므로, 새 버전 확정 후 재부팅하거나 불변 복구 앱에서 그 bundle을 올렸을 때의 거절 판정을 이 설계로 결정할 수 없다. 의도한 소프트웨어 downgrade 제한의 구현 계약 결함이다.  
+   수정: 역할별 버전 하한과 비교 순서, 확정 이후의 원자적 갱신, 정상/복구 앱 공통 검증을 정의하고 자동 rollback은 저장된 이전 정상 digest로 제한해야 한다. 정책 기록 손상 시 처리와 재전송 시험도 명시해야 한다.
+
+P0·P3 발견 없음.
+
+검증: candidate 소스를 메모리에서 실행하고 데이터 접근을 commit 객체로 연결해 안전 회귀 8개 PASS. 세 보드 connectivity/XML/BOM/pinmap 정합성, Python 7파일 구문, Flash 구간 경계, staging 예산, `diff --check` PASS. staging은 명시된 최대 이미지·manifest 합계 대비 컨테이너 오버헤드 전 323,584B 여유다. 저장된 산출물 해시 16개 일치 및 4보드 ERC 보고서 각 0건을 확인했다. test/antirollback 배타성도 [공식 Kconfig](https://github.com/espressif/esp-idf/blob/v6.0.3/components/bootloader/Kconfig.projbuild)와 일치한다.
+
+한계: ERC 재생성·링크 737개·target VerifyOnly는 재실행하지 않았다. 작성자 제공 cmake 부재 실패와 OTA 구현·PCB·HIL 후속 gate 미실행은 발견으로 집계하지 않았다. embedded-architecture/documentation 기준은 상태 전이·영속 기록·복구 계약 검토에 적용했다. 위 설계 결함을 수정한 commit 재검토가 필요하다.
+
+### 14.4 수정과 재검토 대상
+
+| ID | 원 severity | 조치 | 재검증/재확인 |
+|---|---|---|---|
+| A-01 | P1 | U56 단방향 buffer,4.7k 직렬·100k PD로 SERVICE_RUN_SENSE 분리; 원신호는 U52/U54 전용 | 9개 hardware 회귀 중 GPIO48 HIGH/LOW 고장·J31 제거/재삽입 순서; 원 reviewer 재검토 대기 |
+| B-01 (원문1) | P1 | §5·8·9에서 PREPARED와 ACTIVATION_COMMITTED 분리; TEST pending은 승인 commit 뒤, cancel/ACK 유실 경계 명시 | §12 결정적 단전 시험 계약 추가; OTA 실행 코드는 아직 없으며 설계 수정 재검토 대기 |
+| B-02 (원문2) | P2 | §7.1 per-target 영속 sequence floor·CONFIRM_INTENT·recovery 공통 정책·trial rollback digest 제한 | 정책 사본 손상/확정 경계/옛 signed bundle 시험 계약; 설계 수정 재검토 대기 |
+
+위 severity를 변경하지 않았다. 원본의 파일 행 번호는 최초 candidate 기준이다. 수정은 후속 immutable commit에서 두 reviewer가 확인하며 그 전에는 P1 closure를 선언하지 않는다.

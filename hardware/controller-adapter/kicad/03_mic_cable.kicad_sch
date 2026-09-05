@@ -1,4 +1,4 @@
-(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "96c2309d-328a-5b50-b6ed-da8574997c17") (paper "A3") (title_block (title "CANView / 03_mic_cable") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
+(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "96c2309d-328a-5b50-b6ed-da8574997c17") (paper "A3") (title_block (title "CANView / 03_mic_cable") (date "2026-09-06") (rev "R1.1 OTA REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
 (lib_symbols (symbol "CANView:CANView_controller-adapter_J2" (pin_names (offset 0.762)) (in_bom yes) (on_board yes)
 (property "Reference" "J" (at 0.0000 20.3200 0)  (effects (font (size 1.0 1.0)) ))
 (property "Value" "REMOTE MIC / NOT ETHERNET" (at 0.0000 17.7800 0)  (effects (font (size 1.0 1.0)) ))

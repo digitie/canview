@@ -9,7 +9,7 @@ import ota_circuits
 
 def main():
     custom_footprints.create()
-    c=Circuit('communicator')
+    c=Circuit('communicator', revision='R2 N16R8 REVIEW', date='2026-09-06')
     power_circuits.vehicle_front(c)
     power_circuits.auto_converter(c)
     power_circuits.usb_input(c)
@@ -37,7 +37,7 @@ def main():
     core_circuits.esp32(b,True)
     symbols.extend(generate(b))
     print(f'{b.name}: {len(b.parts)} components, {len(b.sheets)} sheets')
-    h=Circuit('controller-adapter')
+    h=Circuit('controller-adapter', revision='R1.1 OTA REVIEW', date='2026-09-06')
     sensor_circuits.microphone_host(h)
     ota_circuits.controller(h)
     h.power_flag('03_mic_cable','MIC5V','Waveshare5V output through cable fuse')

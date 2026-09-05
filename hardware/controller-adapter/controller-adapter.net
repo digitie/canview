@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "F:\\dev\\canview\\hardware\\controller-adapter\\kicad\\controller-adapter.kicad_sch")
-		(date "2026-09-06T08:07:23")
+		(date "2026-09-06T08:36:38")
 		(tool "Eeschema 10.0.6")
 		(sheet
 			(number "1")
@@ -11,8 +11,8 @@
 			(title_block
 				(title "CANView / controller-adapter")
 				(company "digitie/canview")
-				(rev "R1 REVIEW")
-				(date "2026-09-05")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
 				(source "controller-adapter.kicad_sch")
 				(comment
 					(number "1")
@@ -59,8 +59,8 @@
 			(title_block
 				(title "CANView / 01_waveshare_header")
 				(company "digitie/canview")
-				(rev "R1 REVIEW")
-				(date "2026-09-05")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
 				(source "01_waveshare_header.kicad_sch")
 				(comment
 					(number "1")
@@ -107,8 +107,8 @@
 			(title_block
 				(title "CANView / 02_i2s_differential")
 				(company "digitie/canview")
-				(rev "R1 REVIEW")
-				(date "2026-09-05")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
 				(source "02_i2s_differential.kicad_sch")
 				(comment
 					(number "1")
@@ -155,8 +155,8 @@
 			(title_block
 				(title "CANView / 03_mic_cable")
 				(company "digitie/canview")
-				(rev "R1 REVIEW")
-				(date "2026-09-05")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
 				(source "03_mic_cable.kicad_sch")
 				(comment
 					(number "1")
@@ -203,8 +203,8 @@
 			(title_block
 				(title "CANView / 04_ota_recovery")
 				(company "digitie/canview")
-				(rev "R1 REVIEW")
-				(date "2026-09-05")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
 				(source "04_ota_recovery.kicad_sch")
 				(comment
 					(number "1")

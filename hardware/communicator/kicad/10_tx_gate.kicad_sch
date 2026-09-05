@@ -1,4 +1,4 @@
-(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "1e4ae3b7-50e8-506a-8840-c5bb00924d61") (paper "A3") (title_block (title "CANView / 10_tx_gate") (date "2026-09-05") (rev "R1 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
+(kicad_sch (version 20250114) (generator "eeschema") (generator_version "10.0") (uuid "1e4ae3b7-50e8-506a-8840-c5bb00924d61") (paper "A3") (title_block (title "CANView / 10_tx_gate") (date "2026-09-06") (rev "R2 N16R8 REVIEW") (company "digitie/canview") (comment 1 "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open"))
 (lib_symbols (symbol "CANView:CANView_communicator_U24" (pin_names (offset 0.762)) (in_bom yes) (on_board yes)
 (property "Reference" "U" (at 0.0000 17.7800 0)  (effects (font (size 1.0 1.0)) ))
 (property "Value" "SN74LVC2G125DCUR" (at 0.0000 15.2400 0)  (effects (font (size 1.0 1.0)) ))

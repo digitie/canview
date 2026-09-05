@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-06 | 독립 OTA·N16R8 회로 | `5abeae4` 및 post-fix, reset/CAN 인터록·Flash·OTA 계약 | 하드웨어 복구 / OTA 보안·상태기계 | 사용자 단일 MD 요청에 따른 예외: [설계 내 원문·수정·재검토](../architecture/ota.md#14-독립-적대적-리뷰-기록) |
 | 2026-09-05 | R1 상세 회로·센서 protocol | `c1c15b5`, 네 보드 KiCad·전원/CAN gate·GNSS/INS·mic·host codec | 전원·CAN·reset / 센서·pin/land·protocol·생성물 | [report](adversarial/2026-09-05-r1-hardware-navigation.md), 원 finding 전부 FIXED·검토본 통합 PASS·제작 승인 아님 |
 | 2026-09-05 | 최신 toolchain bootstrap post-fix | `cb7aae9`, recursive SDK submodule 검증과 최종 bootstrap | embedded safety·target build / reproducibility·integration | [report](adversarial/2026-09-05-latest-toolchain-bootstrap-post-fix.md) |
 | 2026-09-05 | 최신 toolchain bootstrap | `bfdd2c2`, target 환경·SDK pin·ESP-IDF/STM32 CMake | embedded safety·target build / protocol·재현성·문서 | [report](adversarial/2026-09-05-latest-toolchain-bootstrap.md) |

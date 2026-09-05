@@ -9,6 +9,7 @@
 | 장치명·peer routing·장애 상태 | [시스템 구조](system.md) |
 | repository 목표 구조·runtime 경계·release gate | [구현 준비 기준](implementation-readiness.md) |
 | ESP-NOW·UART wire 계약 | [프로토콜 인덱스](protocols/README.md) |
+| 독립 OTA·부트 복구·N16R8 회로 변경 | [OTA 설계와 적대적 리뷰](ota.md) |
 | 외부 GNSS·온보드 INS·기압·시간 | [센서 확장 계약](protocols/navigation.md), [R1 하드웨어](../hardware/r1/README.md) |
 | Controller 수신·filter·DBC decode | [Controller CAN pipeline](controller-can-pipeline.md) |
 | Diagnostic Bridge·capture·REST/WS | [Diagnostic Bridge](diagnostic-bridge.md) |
@@ -26,7 +27,7 @@ CANView는 2017 Tucson TL 2.0 디젤 4WD BlueLink를 1차 대상으로 하는 �
 | 장치 | 하드웨어 | 주 책임 |
 |------|----------|---------|
 | Controller | Waveshare ESP32-S3-Touch-LCD-3.5 | LVGL 운전자 UI, 터치, Controller-local 설정, ESP-NOW 명령 요청 |
-| Communicator | ESP32-S3-MINI-1-N4R2 + STM32G474CEU6 + 3 CAN PHY | CAN 수집, timestamp, 안전 상태, 검증된 제한 송신 |
+| Communicator | ESP32-S3-WROOM-1-N16R8 + STM32G474CEU6 + 3 CAN PHY | CAN 수집, timestamp, 안전 상태, 검증된 제한 송신 |
 | Diagnostic Bridge | 별도 ESP32-S3 | read-only CAN 관찰, capture, signal lab, 휴대폰용 SoftAP 웹 |
 
 ## 2. 데이터 흐름
@@ -43,7 +44,7 @@ CANView는 2017 Tucson TL 2.0 디젤 4WD BlueLink를 1차 대상으로 하는 �
       └─ UART 4 Mbps, RTS/CTS
           │
           ▼
-    Communicator ESP32-S3-MINI-1-N4R2
+    Communicator ESP32-S3-WROOM-1-N16R8
       ├─ ESP-NOW secure session
       ├─ peer별 filter / quota / retry
       └─ Controller·Diagnostic Bridge routing
