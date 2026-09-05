@@ -2,7 +2,7 @@
 
 ## Bridge
 
-[Bridge KiCad PDF](../../../hardware/bridge/schematic.pdf)는 ESP32-S3-WROOM-1-N8R2와 USB-C/3.3V 전원·reset·BOOT/PAIR·LED만 둔다. N8R2=flash8MB/PSRAM2MB이며 Communicator MINI의 pad 번호를 재사용하지 않는다. USB 전원 정책은 Communicator와 같은 TUSB320LAI+TPS2553이며 **C-to-C 5V1.5A 이상 광고가 필요**하다. 5V PD 이상의 전압은 요청하지 않는다.
+[Bridge KiCad PDF](../../../hardware/bridge/schematic.pdf)는 ESP32-S3-WROOM-1-N8R2와 USB-C/3.3V 전원·reset·BOOT/PAIR·LED만 둔다. N8R2=flash8MB/PSRAM2MB이며 Communicator는 OTA 변경으로 N16R8이다. 두 보드는 GPIO 할당과 메모리 설정이 다르다. USB 전원 정책은 Communicator와 같은 TUSB320LAI+TPS2553이며 **C-to-C 5V1.5A 이상 광고가 필요**하다. 5V PD 이상의 전압은 요청하지 않는다.
 
 U16 TPS7A2033은 USB_VBUS에서 직접 감지부용 USB_CC3V3를 만든다. TUSB320LAI VDD와 OUT1 pull-up/U2 inverter는 이 rail에만 연결하며 VBUS에 직접 연결하지 않는다. 전력 limiter 앞에서 기동하므로 SYS3V3에 의존하는 순환 부팅 조건이 없다. 정격·시험 조건은 [Communicator 전원 설계](communicator-circuit.md#4-usb-c와-시스템-전원)를 공유한다.
 
@@ -19,6 +19,8 @@ Waveshare 공식 schematic의 J8은 **2×16 2.54mm SMT 암소켓**이며 공식 
 |7 / GPIO38|MIC_BCLK|ESP I²S1 master BCLK|
 |9 / GPIO39|MIC_WS|ESP I²S1 WS|
 |11 / GPIO40|MIC_SD|ESP I²S1 data input|
+|13 / GPIO41|RECOVERY_BUTTON_N|OTA 복구 버튼, camera 미연결 variant|
+|22 / RESET|HOST_RESET_N|복구 진입용 sink-only reset 버튼|
 |31/32|3V3|host LVDS endpoint 전원|
 
 기존 Waveshare **PCF85063 계열 I²C RTC0x51**를 재사용한다. 추가 RTC는 실장하지 않는다. 공식 자료는 PCF85063A 원문을 연결하므로 구매 board marking/schematic suffix를 함께 확인한다. 기존 GPIO7/8 I²C 소유 task에서 RTC register를 읽고 oscillator-stop flag/날짜 범위를 검증한다. RTC 읽기 성공만으로 시간이 정확하다고 판정하지 않는다. backup battery 유무·전압·전원 차단 후 유지 시간을 시험하고 RTC에 충전 전압을 임의 주입하지 않는다.

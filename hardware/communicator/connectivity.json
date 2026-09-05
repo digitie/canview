@@ -15,8 +15,8 @@
     "19_gps_power": "GPS automotive-only switched supply. Fault-current limit independent of ESP. Never enable in USB-only service.",
     "04_stm32": "STM32G474CEU6 / UFQFPN48. Pin 7 is the PG10-NRST dual-function reset pad. HSE 16MHz. USART2 4Mbps RTS/CTS. SWD only; USB pins are CAN1.",
     "05_debug_clock_uart": "16MHz crystal CL18pF: 27pF + estimated 4.5pF parasitic; tune after PCB. SWD VTref is OUTPUT ONLY.",
-    "06_esp32": "ESP32-S3-MINI-1. Keep antenna clearance. USB native serial/JTAG. PSRAM pins reserved.",
-    "07_esp_service": "BOOT button for ROM download. Reset supervisor is shared on Communicator. Keep GPIO0 released for normal boot.",
+    "06_esp32": "ESP32-S3-WROOM-1. Keep antenna clearance. USB native serial/JTAG. PSRAM pins reserved.",
+    "07_esp_service": "BOOT GPIO0 selects ROM download, not recovery app. Independent reset outputs on Communicator. Bridge PAIR GPIO4 held at reset selects signed recovery.",
     "08_can_fd": "TCAN1046AV: actual pin11=VIO, pin5=GND2, pin7=RXD2, pin8=STB2. CAN PHY power is vehicle-only.",
     "09_can_ft": "MAX3055 only for verified ISO11898-3 125kbps bus. RTH/RTL 4.7k distributed termination; no CANH-CANL 120ohm.",
     "10_tx_gate": "Independent TX gate: no permit => tri-state TXD + PHY rail pull-ups. Ioff input buffers prevent USB-only backpower.",
@@ -29,7 +29,11 @@
     "16_barometer": "BMP384 barometric aiding belongs to MTi AUX SPI. Require MTi firmware >=1.18. ESP obtains pressure through MTi output.",
     "17_gps_ports": "Holybro F9P Helical SKU12018: main UART1 GH10 + UART2 PPS GH6. Receiver pin2=RX, pin3=TX. PPS is secondary pin5.",
     "18_gps_protection": "Ioff buffers isolate external GPS TX/PPS during local power-off. GPS is disabled in USB service mode.",
-    "20_test_points": "1mm probe pads: no fitted connector required. Scope grounds first; never connect earth-referenced probes to an unknown vehicle ground."
+    "20_test_points": "1mm probe pads: no fitted connector required. Scope grounds first; never connect earth-referenced probes to an unknown vehicle ground.",
+    "21_ota_reset": "Separate reset outputs: U6 ESP, U17 STM. Common manual MR resets both; STM SWD/internal reset never resets ESP updater.",
+    "22_ota_interlock": "Remove SERVICE_RUN shunt for OTA. Open/missing shunt disables all PHY modes even if firmware requests RUN. Refitting never restores the cleared ARM latch.",
+    "23_ota_recovery": "RECOVERY GPIO8 held at reset selects signed ESP test app. PB9 LOW requests authenticated STM bootloader with BOOT0 LOW. J32 normally OPEN restricts ROM to physical service.",
+    "24_ota_test_points": "Probe independent reset, recovery request, service interlock and BOOT0 during fault injection."
   },
   "components": [
     {
@@ -2197,12 +2201,12 @@
         "1": [
           "RESET_N",
           "open_collector",
-          "SYS_RESET_N"
+          "ESP_RESET_N"
         ],
         "2": [
           "MR_N",
           "input",
-          "3V3"
+          "GLOBAL_RESET_N"
         ],
         "3": [
           "PAD",
@@ -2242,7 +2246,7 @@
         "2": [
           "2",
           "passive",
-          "SYS_RESET_N"
+          "ESP_RESET_N"
         ]
       },
       "mpn": "GEN-R-0402-10k-1%",
@@ -2287,7 +2291,7 @@
         "1": [
           "1",
           "passive",
-          "SYS_RESET_N"
+          "GLOBAL_RESET_N"
         ],
         "2": [
           "2",
@@ -2296,7 +2300,7 @@
         ]
       },
       "mpn": "TL3342F160QG",
-      "spec": "Momentary normally-open; shared MCU reset",
+      "spec": "Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs",
       "source": "",
       "dnp": false,
       "note": "",
@@ -2927,7 +2931,7 @@
         "6": [
           "C",
           "input",
-          "SYS_RESET_N"
+          "RUN_ALLOWED"
         ]
       },
       "mpn": "SN74LVC1G11DCKR",
@@ -3197,7 +3201,7 @@
         "7": [
           "PG10-NRST",
           "bidirectional",
-          "SYS_RESET_N"
+          "STM_RESET_N"
         ],
         "8": [
           "PA0",
@@ -3397,7 +3401,7 @@
         "47": [
           "PB9",
           "bidirectional",
-          null
+          "STM_RECOVERY_N"
         ],
         "48": [
           "VDD",
@@ -4007,7 +4011,7 @@
         "10": [
           "NRST",
           "passive",
-          "SYS_RESET_N"
+          "STM_RESET_N"
         ]
       },
       "mpn": "SWD 2x5 1.27mm",
@@ -4220,9 +4224,9 @@
     {
       "sheet": "06_esp32",
       "ref": "U11",
-      "value": "ESP32-S3-MINI-1-N4R2",
-      "footprint": "CANView:ESP32-S3-MINI-1",
-      "original_footprint": "CANView:ESP32-S3-MINI-1",
+      "value": "ESP32-S3-WROOM-1-N16R8",
+      "footprint": "CANView:RF_Module__ESP32-S3-WROOM-1",
+      "original_footprint": "RF_Module:ESP32-S3-WROOM-1",
       "pins": {
         "1": [
           "GND",
@@ -4230,329 +4234,209 @@
           "GND"
         ],
         "2": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "3": [
           "3V3",
           "power_in",
           "3V3"
         ],
+        "3": [
+          "EN",
+          "input",
+          "ESP_RESET_N"
+        ],
         "4": [
-          "IO0",
-          "bidirectional",
-          "ESP_BOOT_N"
-        ],
-        "5": [
-          "IO1",
-          "bidirectional",
-          null
-        ],
-        "6": [
-          "IO2",
-          "bidirectional",
-          null
-        ],
-        "7": [
-          "IO3",
-          "bidirectional",
-          null
-        ],
-        "8": [
           "IO4",
           "bidirectional",
           "GPS_TX_SELECT"
         ],
-        "9": [
+        "5": [
           "IO5",
           "bidirectional",
           "GPS_RX_TAP"
         ],
-        "10": [
+        "6": [
           "IO6",
           "bidirectional",
           "GPS_PPS"
         ],
-        "11": [
+        "7": [
           "IO7",
           "bidirectional",
-          null
+          "ESP_RUN_OK"
         ],
-        "12": [
-          "IO8",
-          "bidirectional",
-          null
-        ],
-        "13": [
-          "IO9",
-          "bidirectional",
-          null
-        ],
-        "14": [
-          "IO10",
-          "bidirectional",
-          "IMU_SCLK"
-        ],
-        "15": [
-          "IO11",
-          "bidirectional",
-          "IMU_MOSI"
-        ],
-        "16": [
-          "IO12",
-          "bidirectional",
-          "IMU_MISO"
-        ],
-        "17": [
-          "IO13",
-          "bidirectional",
-          "IMU_CS_N"
-        ],
-        "18": [
-          "IO14",
-          "bidirectional",
-          "IMU_DRDY"
-        ],
-        "19": [
+        "8": [
           "IO15",
           "bidirectional",
           "ESP_RTS_SRC"
         ],
-        "20": [
+        "9": [
           "IO16",
           "bidirectional",
           "STM_RTS"
         ],
-        "21": [
+        "10": [
           "IO17",
           "bidirectional",
           "ESP_TX_SRC"
         ],
-        "22": [
+        "11": [
           "IO18",
           "bidirectional",
           "STM_TX"
         ],
-        "23": [
+        "12": [
+          "IO8",
+          "bidirectional",
+          "RECOVERY_BUTTON_N"
+        ],
+        "13": [
           "USB_D-",
           "bidirectional",
           "USB_DM"
         ],
-        "24": [
+        "14": [
           "USB_D+",
           "bidirectional",
           "USB_DP"
         ],
-        "25": [
-          "IO21",
-          "bidirectional",
-          "IMU_RESET_N"
-        ],
-        "26": [
-          "IO26",
+        "15": [
+          "IO3",
           "bidirectional",
           null
         ],
-        "27": [
-          "IO47",
-          "bidirectional",
-          "GPS_PWR_REQ"
-        ],
-        "28": [
-          "IO33",
-          "bidirectional",
-          "USB_SERVICE_SENSE"
-        ],
-        "29": [
-          "IO34",
-          "bidirectional",
-          null
-        ],
-        "30": [
-          "IO48",
-          "bidirectional",
-          null
-        ],
-        "31": [
-          "IO35",
-          "bidirectional",
-          null
-        ],
-        "32": [
-          "IO36",
-          "bidirectional",
-          null
-        ],
-        "33": [
-          "IO37",
-          "bidirectional",
-          null
-        ],
-        "34": [
-          "IO38",
-          "bidirectional",
-          null
-        ],
-        "35": [
-          "IO39",
-          "bidirectional",
-          null
-        ],
-        "36": [
-          "IO40",
-          "bidirectional",
-          null
-        ],
-        "37": [
-          "IO41",
-          "bidirectional",
-          null
-        ],
-        "38": [
-          "IO42",
-          "bidirectional",
-          null
-        ],
-        "39": [
-          "TXD0",
-          "bidirectional",
-          null
-        ],
-        "40": [
-          "RXD0",
-          "bidirectional",
-          null
-        ],
-        "41": [
-          "IO45",
-          "bidirectional",
-          null
-        ],
-        "42": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "43": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "44": [
+        "16": [
           "IO46",
           "bidirectional",
           null
         ],
-        "45": [
-          "EN",
-          "input",
-          "SYS_RESET_N"
+        "17": [
+          "IO9",
+          "bidirectional",
+          "STM_RECOVERY_N"
         ],
-        "46": [
+        "18": [
+          "IO10",
+          "bidirectional",
+          "IMU_SCLK"
+        ],
+        "19": [
+          "IO11",
+          "bidirectional",
+          "IMU_MOSI"
+        ],
+        "20": [
+          "IO12",
+          "bidirectional",
+          "IMU_MISO"
+        ],
+        "21": [
+          "IO13",
+          "bidirectional",
+          "IMU_CS_N"
+        ],
+        "22": [
+          "IO14",
+          "bidirectional",
+          "IMU_DRDY"
+        ],
+        "23": [
+          "IO21",
+          "bidirectional",
+          "IMU_RESET_N"
+        ],
+        "24": [
+          "IO47",
+          "bidirectional",
+          "GPS_PWR_REQ"
+        ],
+        "25": [
+          "IO48",
+          "bidirectional",
+          "SERVICE_RUN"
+        ],
+        "26": [
+          "IO45",
+          "bidirectional",
+          null
+        ],
+        "27": [
+          "IO0",
+          "bidirectional",
+          "ESP_BOOT_N"
+        ],
+        "28": [
+          "IO35",
+          "bidirectional",
+          null
+        ],
+        "29": [
+          "IO36",
+          "bidirectional",
+          null
+        ],
+        "30": [
+          "IO37",
+          "bidirectional",
+          null
+        ],
+        "31": [
+          "IO38",
+          "bidirectional",
+          "USB_SERVICE_SENSE"
+        ],
+        "32": [
+          "IO39",
+          "bidirectional",
+          null
+        ],
+        "33": [
+          "IO40",
+          "bidirectional",
+          null
+        ],
+        "34": [
+          "IO41",
+          "bidirectional",
+          null
+        ],
+        "35": [
+          "IO42",
+          "bidirectional",
+          null
+        ],
+        "36": [
+          "RXD0",
+          "bidirectional",
+          null
+        ],
+        "37": [
+          "TXD0",
+          "bidirectional",
+          null
+        ],
+        "38": [
+          "IO2",
+          "bidirectional",
+          "STM_BOOT0_REQ"
+        ],
+        "39": [
+          "IO1",
+          "bidirectional",
+          "STM_RESET_CMD_N"
+        ],
+        "40": [
           "GND",
           "passive",
           "GND"
         ],
-        "47": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "48": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "49": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "50": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "51": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "52": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "53": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "54": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "55": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "56": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "57": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "58": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "59": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "60": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "61": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "62": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "63": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "64": [
-          "GND",
-          "passive",
-          "GND"
-        ],
-        "65": [
+        "41": [
           "GND",
           "passive",
           "GND"
         ]
       },
-      "mpn": "ESP32-S3-MINI-1-N4R2",
-      "spec": "4MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C",
-      "source": "esp32s3-mini",
+      "mpn": "ESP32-S3-WROOM-1-N16R8",
+      "spec": "16MiB Quad flash + 8MiB Octal PSRAM; 3.0..3.6V; -40..65C base, up to85C with PSRAM ECC; ECC usable7.5MiB; validate complete board thermal range",
+      "source": "esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note",
       "dnp": false,
       "note": "",
       "libname": "CANView_communicator_U11"
@@ -5827,7 +5711,7 @@
         "3": [
           "B",
           "input",
-          "SYS_RESET_N"
+          "RUN_ALLOWED"
         ],
         "4": [
           "Y",
@@ -6122,7 +6006,7 @@
         "3": [
           "B",
           "input",
-          "SYS_RESET_N"
+          "RUN_ALLOWED"
         ],
         "4": [
           "Y",
@@ -7985,14 +7869,14 @@
     {
       "sheet": "20_test_points",
       "ref": "TP8",
-      "value": "SYS_RESET_N",
+      "value": "ESP_RESET_N",
       "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
       "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
       "pins": {
         "1": [
           "PROBE",
           "passive",
-          "SYS_RESET_N"
+          "ESP_RESET_N"
         ]
       },
       "mpn": "PCB-PAD-1MM",
@@ -8361,6 +8245,916 @@
       "dnp": false,
       "note": "External source or regulator output after a passive filter",
       "libname": "CANView_communicator_#FLG6"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "R83",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GLOBAL_RESET_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R83"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "U17",
+      "value": "TLV803EA30DPWR",
+      "footprint": "CANView:Package_SON__Texas_X2SON-5_0.8x0.8mm_P0.48mm",
+      "original_footprint": "Package_SON:Texas_X2SON-5_0.8x0.8mm_P0.48mm",
+      "pins": {
+        "1": [
+          "RESET_N",
+          "open_collector",
+          "STM_RESET_N"
+        ],
+        "2": [
+          "MR_N",
+          "input",
+          "GLOBAL_RESET_N"
+        ],
+        "3": [
+          "PAD",
+          "passive",
+          "GND"
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "VDD",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "TLV803EA30DPWR",
+      "spec": "3.08V threshold;130..270ms release delay; active-low open-drain",
+      "source": "tlv803e:pp4-5,9; DPW pin3 PAD may be grounded",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U17"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "R84",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_RESET_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R84"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "C81",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C81"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "U50",
+      "value": "SN74LVC1G07DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "A",
+          "input",
+          "STM_RESET_CMD_N"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "Y",
+          "open_collector",
+          "STM_RESET_N"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G07DBVR",
+      "spec": "Non-inverting open-drain reset buffer; Ioff; GPIO1 LOW asserts STM reset, HIGH releases",
+      "source": "https://www.ti.com/lit/ds/symlink/sn74lvc1g07.pdf: RevAG pp3,6,9; DBV pin2 A,4 open-drain Y",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U50"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "C82",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C82"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "R85",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_RESET_CMD_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R85"
+    },
+    {
+      "sheet": "21_ota_reset",
+      "ref": "R86",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_RECOVERY_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R86"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "J31",
+      "value": "RUN link / REMOVE FOR OTA",
+      "footprint": "CANView:Connector_PinHeader_1.27mm__PinHeader_1x02_P1.27mm_Vertical",
+      "original_footprint": "Connector_PinHeader_1.27mm:PinHeader_1x02_P1.27mm_Vertical",
+      "pins": {
+        "1": [
+          "3V3",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "SERVICE_RUN",
+          "passive",
+          "SERVICE_RUN"
+        ]
+      },
+      "mpn": "RUN link / REMOVE FOR OTA",
+      "spec": "Accessible removable shunt; absent=service; fit only for normal operation; independent of TX_ARM J30",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_J31"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "R87",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SERVICE_RUN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R87"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "R88",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "ESP_RUN_OK"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R88"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "U52",
+      "value": "SN74LVC1G11DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "A",
+          "input",
+          "ESP_RESET_N"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "B",
+          "input",
+          "STM_RESET_N"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "MCU_HEALTH_N"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ],
+        "6": [
+          "C",
+          "input",
+          "SERVICE_RUN"
+        ]
+      },
+      "mpn": "SN74LVC1G11DCKR",
+      "spec": "3-input AND; Ioff support",
+      "source": "sn74lvc1g11: DCK pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U52"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "C83",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C83"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "U53",
+      "value": "SN74LVC1G11DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "A",
+          "input",
+          "MCU_HEALTH_N"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "B",
+          "input",
+          "ESP_RUN_OK"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "RUN_ALLOWED"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ],
+        "6": [
+          "C",
+          "input",
+          "PHY_RESET_N"
+        ]
+      },
+      "mpn": "SN74LVC1G11DCKR",
+      "spec": "3-input AND; Ioff support",
+      "source": "sn74lvc1g11: DCK pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U53"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "C84",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C84"
+    },
+    {
+      "sheet": "22_ota_interlock",
+      "ref": "R89",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "RUN_ALLOWED"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R89"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "R90",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R90"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "SW3",
+      "value": "RECOVERY",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Normally open; hold >=5s across reset; not ESP GPIO0",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_SW3"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "R91",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "STM_BOOT0_REQ"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R91"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "U54",
+      "value": "SN74LVC1G04DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "A",
+          "input",
+          "SERVICE_RUN"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "SERVICE_ACTIVE"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G04DBVR",
+      "spec": "Ioff support",
+      "source": "sn74lvc1g04: DBV pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U54"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "C85",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C85"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "U55",
+      "value": "SN74LVC1G11DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "A",
+          "input",
+          "STM_BOOT0_REQ"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "B",
+          "input",
+          "SERVICE_ACTIVE"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "ROM_BOOT_ALLOWED"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "6": [
+          "C",
+          "input",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G11DCKR",
+      "spec": "3-input AND; Ioff support",
+      "source": "sn74lvc1g11: DCK pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U55"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "C86",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C86"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "R92",
+      "value": "1k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "ROM_BOOT_ALLOWED"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ROM_BOOT_LINK"
+        ]
+      },
+      "mpn": "GEN-R-0402-1k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R92"
+    },
+    {
+      "sheet": "23_ota_recovery",
+      "ref": "J32",
+      "value": "ROM_BOOT authorization / OPEN",
+      "footprint": "CANView:Connector_PinHeader_1.27mm__PinHeader_1x02_P1.27mm_Vertical",
+      "original_footprint": "Connector_PinHeader_1.27mm:PinHeader_1x02_P1.27mm_Vertical",
+      "pins": {
+        "1": [
+          "ROM_BOOT_LINK",
+          "passive",
+          "ROM_BOOT_LINK"
+        ],
+        "2": [
+          "BOOT0",
+          "passive",
+          "BOOT0"
+        ]
+      },
+      "mpn": "ROM_BOOT authorization / OPEN",
+      "spec": "Shunt normally absent; factory/physical recovery only; never populated for ordinary OTA; STM BOOT0 has10k pulldown",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_J32"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP25",
+      "value": "GLOBAL_RESET_N",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "GLOBAL_RESET_N"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP25"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP26",
+      "value": "ESP_RESET_N",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "ESP_RESET_N"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP26"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP27",
+      "value": "STM_RESET_N",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "STM_RESET_N"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP27"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP28",
+      "value": "STM_RESET_CMD_N",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "STM_RESET_CMD_N"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP28"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP29",
+      "value": "STM_RECOVERY_N",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "STM_RECOVERY_N"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP29"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP30",
+      "value": "BOOT0",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "BOOT0"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP30"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP31",
+      "value": "SERVICE_RUN",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "SERVICE_RUN"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP31"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP32",
+      "value": "ESP_RUN_OK",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "ESP_RUN_OK"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP32"
+    },
+    {
+      "sheet": "24_ota_test_points",
+      "ref": "TP33",
+      "value": "RUN_ALLOWED",
+      "footprint": "CANView:TestPoint__TestPoint_Pad_D1.0mm",
+      "original_footprint": "TestPoint:TestPoint_Pad_D1.0mm",
+      "pins": {
+        "1": [
+          "PROBE",
+          "passive",
+          "RUN_ALLOWED"
+        ]
+      },
+      "mpn": "PCB-PAD-1MM",
+      "spec": "Bare1mm probe pad; no purchased component",
+      "source": "PCB fabrication feature",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_TP33"
     }
   ]
 }

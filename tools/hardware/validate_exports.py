@@ -71,6 +71,11 @@ def validate_board(board):
     if board == 'communicator':
         # Independent regression oracle for historically confused physical pins.
         expected = {
+            ('U11','2'):'3V3', ('U11','3'):'ESP_RESET_N', ('U10','7'):'STM_RESET_N',
+            ('U11','31'):'USB_SERVICE_SENSE', ('U11','39'):'STM_RESET_CMD_N',
+            ('U11','38'):'STM_BOOT0_REQ', ('U11','17'):'STM_RECOVERY_N', ('U10','47'):'STM_RECOVERY_N',
+            ('U6','2'):'GLOBAL_RESET_N', ('U17','2'):'GLOBAL_RESET_N', ('U50','4'):'STM_RESET_N',
+            ('U36','3'):'RUN_ALLOWED', ('U31','3'):'RUN_ALLOWED',
             ('U20','5'):'GND', ('U20','7'):'CAN2_RX_PHY', ('U20','8'):'CAN2_STB', ('U20','11'):'PHY3V3',
             ('U24','8'):'PHY3V3', ('U28','5'):'AUTO5V', ('U29','5'):'AUTO5V',
             ('U28','1'):'TX_PERMIT', ('U29','1'):'RX_ALLOWED',
@@ -80,6 +85,9 @@ def validate_board(board):
         }
         for key, net in expected.items(): check(pins.get(key) == net, f'independent safety pin regression {key}: expected {net}, got {pins.get(key)}')
         check(parts['U7']['pins']['13'][2] is None, 'LM74800 exposed pad must float')
+        check(parts['U11']['mpn']=='ESP32-S3-WROOM-1-N16R8', 'Communicator module must be N16R8')
+        for pad in ['28','29','30']:
+            check(parts['U11']['pins'][pad][2] is None, f'R8 PSRAM reserved pad {pad} must be NC')
     if board == 'bridge':
         check(pins.get(('D3','1')) == 'GND' and pins.get(('D3','2')) == 'LED_A', 'LED pad1=K / pad2=A regression')
     hashes = {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [base/'netlist.xml',base/f'{board}.net',base/'schematic.pdf',base/'connectivity.json']}

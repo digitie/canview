@@ -15,7 +15,7 @@
 
 ## 회로 범위
 
-- Communicator: STM32G474CEU6, ESP32-S3-MINI-1-N4R2, TCAN1046AV-Q1, MAX3055, 차량/USB-C 전원, 독립 TX 차단, 외부 GNSS, MTi-7, BMP384.
+- Communicator: STM32G474CEU6, ESP32-S3-WROOM-1-N16R8, TCAN1046AV-Q1, MAX3055, 차량/USB-C 전원, 독립 TX 차단, 외부 GNSS, MTi-7, BMP384. [OTA 변경](../../architecture/ota.md)으로 MCU별 reset과 서비스 인터록을 분리했다.
 - Bridge: ESP32-S3-WROOM-1-N8R2, USB-C 전원·native USB·BOOT/RESET/PAIR. 이번 최소 보드에는 SD를 실장하지 않는다. 차량 CAN PHY나 제어 출력이 없다.
 - Controller 어댑터: 기존 Waveshare 회로를 복제하지 않고 확장 헤더, LVDS 변환, 마이크 케이블 보호만 추가한다. 기존 I²C RTC를 재사용한다.
 - 마이크: 별도 작은 보드의 1.8V T5848과 LVDS/레벨 변환. 소음을 측정하되 원음 저장·전송은 기본 꺼짐이다.

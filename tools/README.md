@@ -47,7 +47,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 idf.py -C firmware/controller set-target esp32s3
 idf.py -C firmware/controller build
 
-# Communicator ESP32: ESP32-S3-MINI-1-N4R2, 4 MB Flash / 2 MB PSRAM
+# Communicator ESP32: ESP32-S3-WROOM-1-N16R8, 16 MB Flash / 8 MB Octal PSRAM (ECC)
 idf.py -C firmware/communicator/esp32 set-target esp32s3
 idf.py -C firmware/communicator/esp32 build
 

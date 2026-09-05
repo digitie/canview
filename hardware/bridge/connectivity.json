@@ -8,7 +8,7 @@
     "02_system_power": "Bridge USB-only3.3V buck. No CAN transceiver or vehicle-control output on this board.",
     "03_reset": "MCU supervisor3.08V with130..270ms release. Communicator also has an independent PHY-domain supervisor.",
     "02_esp32": "ESP32-S3-WROOM-1. Keep antenna clearance. USB native serial/JTAG. PSRAM pins reserved.",
-    "03_service": "BOOT button for ROM download. Reset supervisor is shared on Communicator. Keep GPIO0 released for normal boot."
+    "03_service": "BOOT GPIO0 selects ROM download, not recovery app. Independent reset outputs on Communicator. Bridge PAIR GPIO4 held at reset selects signed recovery."
   },
   "components": [
     {
@@ -1050,7 +1050,7 @@
         ]
       },
       "mpn": "TL3342F160QG",
-      "spec": "Momentary normally-open; shared MCU reset",
+      "spec": "Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs",
       "source": "",
       "dnp": false,
       "note": "",
@@ -1270,8 +1270,8 @@
         ]
       },
       "mpn": "ESP32-S3-WROOM-1-N8R2",
-      "spec": "8MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C",
-      "source": "esp32s3-wroom",
+      "spec": "8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C",
+      "source": "esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note",
       "dnp": false,
       "note": "",
       "libname": "CANView_bridge_U11"

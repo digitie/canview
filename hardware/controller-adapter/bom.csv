@@ -15,3 +15,6 @@ C6,1u,GEN-C-0603-1u-16V-X7R,CANView:Capacitor_SMD__C_0603_1608Metric,16V; ±10%;
 D1,TPD2E2U06DCKR,TPD2E2U06DCKR,CANView:Package_TO_SOT_SMD__SOT-323_SC-70,"5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection","tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",False,03_mic_cable,
 D2,TPD2E2U06DCKR,TPD2E2U06DCKR,CANView:Package_TO_SOT_SMD__SOT-323_SC-70,"5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection","tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",False,03_mic_cable,
 D3,TPD2E2U06DCKR,TPD2E2U06DCKR,CANView:Package_TO_SOT_SMD__SOT-323_SC-70,"5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection","tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",False,03_mic_cable,
+R2,10k,GEN-R-0402-10k-1%,CANView:Resistor_SMD__R_0402_1005Metric,0.1W; 50V; ±1%; ±100ppm/K; -55..155C,,False,04_ota_recovery,
+SW1,RECOVERY,TL3342F160QG,CANView:Button_Switch_SMD__SW_SPST_TL3342,Normally-open momentary; host reset is sink-only; hold recovery5s across reset,,False,04_ota_recovery,
+SW2,HOST_RESET,TL3342F160QG,CANView:Button_Switch_SMD__SW_SPST_TL3342,Normally-open momentary; host reset is sink-only; hold recovery5s across reset,,False,04_ota_recovery,

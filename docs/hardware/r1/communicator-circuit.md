@@ -46,7 +46,7 @@ U8 `MAX20040BATPA/VY+`의 2.2MHz buck-boost를 사용한다. FB를 VCC에 연결
 - U14 CT10nF는 약10.7ms nominal의 **회복 지연**이다. 전압 하락 감지는 별도 propagation delay이며 10ms를 기다린다는 뜻이 아니다.
 - [수치 검산](../../../hardware/margin-check.json)의 DC engineering bound는 약4.976~5.199V, 판정 fall 약4.768~4.893V, rise 약4.783~4.933V다. 남는 positive ripple/overshoot 예산은 약51mV뿐이다. 공급 collapse 최소 전압 여유 약18mV와 TPS3890 하락 지연의 max 미명시 때문에 **빠른 collapse 시험은 필수 미완료 gate**다. 전 범위 보장을 얻었다고 표시하지 않는다.
 
-PHY3V3는 AUTO5V의 TPS7A2033에서만 생성한다. SYS3V3와 PHY3V3에 각각 TLV803EA30DPWR를 두어 USB 선연결 후 차량 전원 도착 때에도 PHY latch가 초기화된다. supervisor는 3.08V nominal, release130~270ms다. ESP CHIP_PU와 STM PG10-NRST는 SYS_RESET_N을 공유한다. STM 내부 BOR/IWDG는 이 외부 보호를 대체하지 않는다.
+PHY3V3는 AUTO5V의 TPS7A2033에서만 생성한다. PHY supervisor U12와 SYS3V3의 독립 ESP/STM supervisor U6/U17은3.08V nominal, release130~270ms다. OTA 변경으로 ESP_RESET_N과 STM_RESET_N을 분리하고 공통 수동 reset은 두 MR 입력만 당긴다. 상세 추가 회로는 [OTA 설계](../../architecture/ota.md#6-실제-회로-변경과-핀-계약)를 따른다. STM 내부 BOR/IWDG는 외부 보호를 대체하지 않는다.
 
 ## 4. USB-C와 시스템 전원
 
@@ -65,8 +65,10 @@ MAX3055는 **검증된 ISO11898-3 저속 FT bus에만** 연결한다. CAN3의 FD
 MAX3055 RXD/ERR은 SN74LVC2G17의 5.5V tolerant/Ioff 입력을 거친다. 과거 저항 분압안으로 MCU 무전원 역급전 안전을 증명하지 않는다. FT TX/EN은 AUTO5V의 **SN74AHCT1G126-Q1**(주문 MPN `CAHCT1G126DBVRQ1`)을 써서 output이 MAX 자체 rail을 따른다. U28 OE=TX_PERMIT, U29 OE=RX_ALLOWED로 **HIGH일 때만** 구동하며 pin1마다1k GND pull-down을 둔다. PHY3V3가 사라지면 Ioff 상태의 허용 논리 출력과 무관하게 OE가 LOW로 수렴하고 TXD=HIGH/EN=LOW가 된다. 기존 `/OE`를 PHY3V3에 pull-up한 FT 연결은 전원 소실 시 반대로 enable되므로 폐기했다. FD TX/STB는 PHY3V3의 SN74LVC2G125를 유지한다. AHCT 출력의 일반적 Ioff를 주장하지 않으며 MAX와 같은 AUTO5V에 묶어 별도3.3V reservoir의 역급전 경로를 줄인다.
 
 ```text
-RX_ALLOWED = AUTO_GOOD & SYS_RESET_N & PHY_RESET_N
-ARM_HEALTH_N = WD_OK_N & SYS_RESET_N & AUTO_GOOD
+MCU_HEALTH_N = ESP_RESET_N & STM_RESET_N & SERVICE_RUN
+RUN_ALLOWED = MCU_HEALTH_N & ESP_RUN_OK & PHY_RESET_N
+RX_ALLOWED = AUTO_GOOD & RUN_ALLOWED & PHY_RESET_N
+ARM_HEALTH_N = WD_OK_N & RUN_ALLOWED & AUTO_GOOD
 ARM_CLEAR_N = ARM_HEALTH_N & PHY_RESET_N & physical_TX_ARM
 ARM_LATCH = DFF(D=1, CLK=STM_ARM_EDGE, asynchronous_clear=ARM_CLEAR_N)
 TX_PERMIT = ARM_LATCH & ARM_CLEAR_N & RX_ALLOWED

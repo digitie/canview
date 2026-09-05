@@ -4,7 +4,8 @@
   "sheets": {
     "01_waveshare_header": "Controller adapter ONLY: use onboard RTC0x51. Camera disabled/disconnected. GPIO38=BCLK,39=WS,40=I2S1 DIN.",
     "02_i2s_differential": "32kHz / 64fs / 2.048MHz BCLK; two32-bit slots, 24-bit I2S words. Raw I2S is not routed down the long cable.",
-    "03_mic_cable": "Four twisted pairs; no RJ45 to avoid Ethernet/PoE misconnection. Power switch/current limit protects host header."
+    "03_mic_cable": "Four twisted pairs; no RJ45 to avoid Ethernet/PoE misconnection. Power switch/current limit protects host header.",
+    "04_ota_recovery": "Camera must be disconnected. Header pin13 GPIO41 selects recovery; pin22 RESET resets host. GPIO38..40 microphone remains independent; onboard BOOT GPIO0 is ROM only."
   },
   "components": [
     {
@@ -75,9 +76,9 @@
           null
         ],
         "13": [
-          "GPIO41_NC",
+          "GPIO41",
           "passive",
-          null
+          "RECOVERY_BUTTON_N"
         ],
         "14": [
           "GPIO9_NC",
@@ -120,9 +121,9 @@
           null
         ],
         "22": [
-          "RESET_NC",
+          "RESET",
           "passive",
-          null
+          "HOST_RESET_N"
         ],
         "23": [
           "GPIO48_NC",
@@ -651,6 +652,81 @@
       "dnp": false,
       "note": "",
       "libname": "CANView_controller-adapter_D3"
+    },
+    {
+      "sheet": "04_ota_recovery",
+      "ref": "R2",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_R2"
+    },
+    {
+      "sheet": "04_ota_recovery",
+      "ref": "SW1",
+      "value": "RECOVERY",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Normally-open momentary; host reset is sink-only; hold recovery5s across reset",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_SW1"
+    },
+    {
+      "sheet": "04_ota_recovery",
+      "ref": "SW2",
+      "value": "HOST_RESET",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HOST_RESET_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Normally-open momentary; host reset is sink-only; hold recovery5s across reset",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_SW2"
     },
     {
       "sheet": "03_mic_cable",

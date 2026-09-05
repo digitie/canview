@@ -4,6 +4,7 @@ import core_circuits
 import custom_footprints
 import sensor_circuits
 import power_circuits
+import ota_circuits
 
 
 def main():
@@ -22,11 +23,12 @@ def main():
     core_circuits.can_ports(c)
     sensor_circuits.navigation(c)
     s=c.sheet('20_test_points','1mm probe pads: no fitted connector required. Scope grounds first; never connect earth-referenced probes to an unknown vehicle ground.')
-    for net in ['GND','PROTECTED_VBAT','AUTO5V','SYS5V','3V3','PHY3V3','AUTO_GOOD','SYS_RESET_N','PHY_RESET_N','WD_PULSE','TX_PERMIT','CAN1_TXD','CAN2_TXD','CAN3_TXD','CAN3_EN','CAN1_STB','CAN2_STB','CAN1_RX','CAN2_RX','CAN3_RX','STM_TX_SRC','ESP_TX','STM_RTS_SRC','ESP_RTS']:
+    for net in ['GND','PROTECTED_VBAT','AUTO5V','SYS5V','3V3','PHY3V3','AUTO_GOOD','ESP_RESET_N','PHY_RESET_N','WD_PULSE','TX_PERMIT','CAN1_TXD','CAN2_TXD','CAN3_TXD','CAN3_EN','CAN1_STB','CAN2_STB','CAN1_RX','CAN2_RX','CAN3_RX','STM_TX_SRC','ESP_TX','STM_RTS_SRC','ESP_RTS']:
         c.ic(s,c.automatic('TP'),net,'TestPoint:TestPoint_Pad_D1.0mm', ['PROBE'], {'1':net},
              mpn='PCB-PAD-1MM',spec='Bare1mm probe pad; no purchased component; accessible with insulated probe',source='PCB fabrication feature')
     c.power_flag('04_stm32','VDDA','3V3 through0ohm analog supply link')
     c.power_flag('15_gnss_ins','IMU_VDDA','3V3 through ferrite74279279')
+    ota_circuits.communicator(c)
     symbols=generate(c)
     print(f'{c.name}: {len(c.parts)} components, {len(c.sheets)} sheets')
     b=Circuit('bridge')
@@ -37,6 +39,7 @@ def main():
     print(f'{b.name}: {len(b.parts)} components, {len(b.sheets)} sheets')
     h=Circuit('controller-adapter')
     sensor_circuits.microphone_host(h)
+    ota_circuits.controller(h)
     h.power_flag('03_mic_cable','MIC5V','Waveshare5V output through cable fuse')
     symbols.extend(generate(h))
     print(f'{h.name}: {len(h.parts)} components, {len(h.sheets)} sheets')

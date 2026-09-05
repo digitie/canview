@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "F:\\dev\\canview\\hardware\\bridge\\kicad\\bridge.kicad_sch")
-		(date "2026-09-05T13:09:16")
+		(date "2026-09-06T08:07:20")
 		(tool "Eeschema 10.0.6")
 		(sheet
 			(number "1")
@@ -2577,7 +2577,7 @@
 				(field
 					(name "MPN") "TL3342F160QG")
 				(field
-					(name "Specification") "Momentary normally-open; shared MCU reset")
+					(name "Specification") "Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs")
 				(field
 					(name "Source")
 				)
@@ -2603,7 +2603,7 @@
 			)
 			(property
 				(name "Specification")
-				(value "Momentary normally-open; shared MCU reset")
+				(value "Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs")
 			)
 			(property
 				(name "Source")
@@ -3011,9 +3011,9 @@
 				(field
 					(name "MPN") "ESP32-S3-WROOM-1-N8R2")
 				(field
-					(name "Specification") "8MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C")
+					(name "Specification") "8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C")
 				(field
-					(name "Source") "esp32s3-wroom")
+					(name "Source") "esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note")
 				(field
 					(name "Assembly") "FIT")
 				(field
@@ -3036,11 +3036,11 @@
 			)
 			(property
 				(name "Specification")
-				(value "8MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C")
+				(value "8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C")
 			)
 			(property
 				(name "Source")
-				(value "esp32s3-wroom")
+				(value "esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note")
 			)
 			(property
 				(name "Assembly")

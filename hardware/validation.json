@@ -4,18 +4,18 @@
   "boards": [
     {
       "board": "communicator",
-      "physical_items": 254,
-      "named_pads": 880,
+      "physical_items": 288,
+      "named_pads": 936,
       "provisional_footprint_refs": [
         "U8"
       ],
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "28792f9b9b38ed51ca8dc21d37b3c458aa72e22728ca1de9deb8f71e18a0f1a9",
-        "communicator.net": "8ac7eff06685ff9a4b444d919c6ce9c0f1371bcc5173b57d156e30491464056c",
-        "schematic.pdf": "1d3fc485d5053b8c3db4d6e402aa300d89755432add5dab3803dd9b720fd5aa3",
-        "connectivity.json": "4707d1b6be2be0bf493a7954b25973fe7544a0a48c029e2e99184e9605a61797"
+        "netlist.xml": "fb999456e29f0495144e154449af541fea8f52e4cf1073113059481c0331774c",
+        "communicator.net": "03065fce96eaabdfa3fcb7ac27a071e90a152d243b7df2bee0603b55a9e60732",
+        "schematic.pdf": "26e2e1561afee3e72a66b5011f69401fe235badace427e3b9ff92adb98093a0c",
+        "connectivity.json": "6c60062e6e1258484e2a36773e9a11f74eead57abd968e6501ad29787240346c"
       }
     },
     {
@@ -26,24 +26,24 @@
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "ce6c9c9047b40ec6cc295402152f1b710377e1a7b9cb80354c4bbf3a9648f012",
-        "bridge.net": "1712f89c65e8c8c468fe604035681b12f8a198efae3a3516abdd145c6c316176",
-        "schematic.pdf": "9bb999e0eaf73322c6fdd1ca3bc72f591f9371073a87f582c446c8972b6fe1b1",
-        "connectivity.json": "6d0c41f65cf6e77a91dd86e7630b217b936938b181bc7bb664717596824bda70"
+        "netlist.xml": "c848eb7f6b59281ac905f2521acbe5b5c70159b7356754c4e3083cc25482e717",
+        "bridge.net": "295b7b436aaf362900f1363ffeee6554e3beb4cd7088235a8bc0f206f3337428",
+        "schematic.pdf": "1f81bb10d07ec6e58886bfd0c84339935d59848fd9bafe8852a514f78c6a853a",
+        "connectivity.json": "e0aab3cf3b2bb879256d0d94995ce78db4b7f846b0f2ecb8c887bca371a9c222"
       }
     },
     {
       "board": "controller-adapter",
-      "physical_items": 16,
-      "named_pads": 81,
+      "physical_items": 19,
+      "named_pads": 87,
       "provisional_footprint_refs": [],
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "4e3da985502f589b21a8aff2e72ecf0a830fa13adccaa562a2075b1b22aa9332",
-        "controller-adapter.net": "378cf17c82a177574a0a496f07deadd208e64f69b639e7ecae65a5d8d96eea5a",
-        "schematic.pdf": "5a8e193140d293e009ce35c89328bd7fce8c7edaef7d54e854de4048cfa6241c",
-        "connectivity.json": "af534ad31346aa8e25a7e6f27e9bfa9adeff446726682413d83e2127f456c5bc"
+        "netlist.xml": "a00231d0a8e7a64fbfdbbb5c0b9bb3e89d174c8e67d270b3e093b399e93b2516",
+        "controller-adapter.net": "a732af5b367fc13960a614616bf403fe3bb373ac015ed776e99f24f41287ca67",
+        "schematic.pdf": "a8ecf77c771e78f659f3d118ce9e18e473b4a054a3ec9a4a3bc743742be9f401",
+        "connectivity.json": "2c6143c8842e85c501e376cec9e9185a63bdbcb618fcdfd95ed1c5147a472fc6"
       }
     },
     {
@@ -54,9 +54,9 @@
       "erc_violations": 0,
       "errors": [],
       "artifact_sha256": {
-        "netlist.xml": "da111332d93cdb4efe44671f9cf7676326d7084b79754a5235480500e735fa83",
-        "microphone.net": "057d5816c3437a417877b9c233da327cf56c1ae3b60326a6392d5b4e1fc64ce3",
-        "schematic.pdf": "a29546eb86a05791a20f600c63a3f163675fa0ac9bbcd0ce2de3645b0f608efd",
+        "netlist.xml": "98a63a4748d1e53fbeb59e9220e7e0036fe281c4d2e06a0af6f11aad2384f2f5",
+        "microphone.net": "11bc38033ab2dfe8635b2559b5b4ec8069c5199ab1af95e690b82e9ab2d0bf43",
+        "schematic.pdf": "d1d52ca2dfe9edfde58d305d0a8fadf407a3488f99e85d253c7ac3393328b800",
         "connectivity.json": "77a9863e1386ad100f331051b7573620edd70b4f923c35d11a78fd3cbca8168a"
       }
     }

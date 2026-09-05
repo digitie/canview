@@ -90,7 +90,7 @@
 (wire (pts (xy 228.6000 55.8800) (xy 220.9800 55.8800)) (stroke (width 0) (type default)) (uuid "36564f80-cbef-577e-98cb-da27a46ee7d1"))
 (global_label "GND" (shape bidirectional) (at 220.9800 55.8800 180) (effects (font (size 0.95 0.95)) (justify right)) (uuid "bb77c7a1-298d-5201-811e-59c70028688c") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 220.9800 55.8800 0) (hide yes) (effects (font (size 1.0 1.0)) )))
 (wire (pts (xy 228.6000 60.9600) (xy 220.9800 60.9600)) (stroke (width 0) (type default)) (uuid "77410fce-dee4-594c-81aa-550922c1dae1"))
-(global_label "SYS_RESET_N" (shape bidirectional) (at 220.9800 60.9600 180) (effects (font (size 0.95 0.95)) (justify right)) (uuid "7735a084-c1d6-5bcf-a558-581a963760f1") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 220.9800 60.9600 0) (hide yes) (effects (font (size 1.0 1.0)) )))
+(global_label "RUN_ALLOWED" (shape bidirectional) (at 220.9800 60.9600 180) (effects (font (size 0.95 0.95)) (justify right)) (uuid "7735a084-c1d6-5bcf-a558-581a963760f1") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 220.9800 60.9600 0) (hide yes) (effects (font (size 1.0 1.0)) )))
 (wire (pts (xy 279.4000 50.8000) (xy 287.0200 50.8000)) (stroke (width 0) (type default)) (uuid "21cd25e4-546e-58a9-bc61-c678371e6560"))
 (global_label "RX_ALLOWED" (shape bidirectional) (at 287.0200 50.8000 0) (effects (font (size 0.95 0.95)) (justify left)) (uuid "610302fa-0fc6-54c4-a197-3f8532b9a766") (property "Intersheetrefs" "${INTERSHEET_REFS}" (at 287.0200 50.8000 0) (hide yes) (effects (font (size 1.0 1.0)) )))
 (wire (pts (xy 279.4000 55.8800) (xy 287.0200 55.8800)) (stroke (width 0) (type default)) (uuid "cdab4cbd-7d8b-5582-acd7-2c3342f124f2"))

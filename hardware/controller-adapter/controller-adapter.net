@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "F:\\dev\\canview\\hardware\\controller-adapter\\kicad\\controller-adapter.kicad_sch")
-		(date "2026-09-05T13:09:21")
+		(date "2026-09-06T08:07:23")
 		(tool "Eeschema 10.0.6")
 		(sheet
 			(number "1")
@@ -158,6 +158,54 @@
 				(rev "R1 REVIEW")
 				(date "2026-09-05")
 				(source "03_mic_cable.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "5")
+			(name "/04_ota_recovery/")
+			(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			(title_block
+				(title "CANView / 04_ota_recovery")
+				(company "digitie/canview")
+				(rev "R1 REVIEW")
+				(date "2026-09-05")
+				(source "04_ota_recovery.kicad_sch")
 				(comment
 					(number "1")
 					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
@@ -1472,6 +1520,219 @@
 				)
 			)
 		)
+		(comp
+			(ref "R2")
+			(value "10k")
+			(footprint "CANView:Resistor_SMD__R_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-R-0402-10k-1%")
+				(field
+					(name "Specification") "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_R2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-R-0402-10k-1%")
+			)
+			(property
+				(name "Specification")
+				(value "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "04_ota_recovery")
+			)
+			(property
+				(name "Sheetfile")
+				(value "04_ota_recovery.kicad_sch")
+			)
+			(sheetpath
+				(names "/04_ota_recovery/")
+				(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			)
+			(tstamps "46dff09d-7065-5ec3-bfa7-2d0755b6d9b6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW1")
+			(value "RECOVERY")
+			(footprint "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+			(fields
+				(field
+					(name "MPN") "TL3342F160QG")
+				(field
+					(name "Specification") "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_SW1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TL3342F160QG")
+			)
+			(property
+				(name "Specification")
+				(value "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "04_ota_recovery")
+			)
+			(property
+				(name "Sheetfile")
+				(value "04_ota_recovery.kicad_sch")
+			)
+			(sheetpath
+				(names "/04_ota_recovery/")
+				(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			)
+			(tstamps "8fe069a1-452f-5d02-a18f-020af11e0042")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW2")
+			(value "HOST_RESET")
+			(footprint "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+			(fields
+				(field
+					(name "MPN") "TL3342F160QG")
+				(field
+					(name "Specification") "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_SW2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TL3342F160QG")
+			)
+			(property
+				(name "Specification")
+				(value "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "04_ota_recovery")
+			)
+			(property
+				(name "Sheetfile")
+				(value "04_ota_recovery.kicad_sch")
+			)
+			(sheetpath
+				(names "/04_ota_recovery/")
+				(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			)
+			(tstamps "e0295dcc-ca16-5dc0-ab2f-2c0d1b5b68fc")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
 	)
 	(groups)
 	(variants)
@@ -1871,7 +2132,7 @@
 				)
 				(pin
 					(num "13")
-					(name "GPIO41_NC")
+					(name "GPIO41")
 					(type "passive")
 				)
 				(pin
@@ -1916,7 +2177,7 @@
 				)
 				(pin
 					(num "22")
-					(name "RESET_NC")
+					(name "RESET")
 					(type "passive")
 				)
 				(pin
@@ -2046,6 +2307,96 @@
 					(name "Value") "100")
 				(field
 					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_R2")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "10k")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_SW1")
+			(fields
+				(field
+					(name "Reference") "S")
+				(field
+					(name "Value") "RECOVERY")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_SW2")
+			(fields
+				(field
+					(name "Reference") "S")
+				(field
+					(name "Value") "HOST_RESET")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
 				(field
 					(name "Datasheet")
 				)
@@ -2247,6 +2598,12 @@
 				(ref "J1")
 				(pin "32")
 				(pinfunction "3V3_IN_32")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "1")
+				(pinfunction "1_1")
 				(pintype "passive")
 			)
 			(node
@@ -2461,6 +2818,18 @@
 				(pintype "passive")
 			)
 			(node
+				(ref "SW1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
 				(ref "U1")
 				(pin "2")
 				(pinfunction "GND_2")
@@ -2504,6 +2873,23 @@
 		)
 		(net
 			(code "8")
+			(name "HOST_RESET_N")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "22")
+				(pinfunction "RESET_22")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "9")
 			(name "MIC5V")
 			(class "Default")
 			(node
@@ -2526,7 +2912,7 @@
 			)
 		)
 		(net
-			(code "9")
+			(code "10")
 			(name "MIC_BCLK")
 			(class "Default")
 			(node
@@ -2543,7 +2929,7 @@
 			)
 		)
 		(net
-			(code "10")
+			(code "11")
 			(name "MIC_SD")
 			(class "Default")
 			(node
@@ -2560,7 +2946,7 @@
 			)
 		)
 		(net
-			(code "11")
+			(code "12")
 			(name "MIC_WS")
 			(class "Default")
 			(node
@@ -2577,7 +2963,30 @@
 			)
 		)
 		(net
-			(code "12")
+			(code "13")
+			(name "RECOVERY_BUTTON_N")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "13")
+				(pinfunction "GPIO41_13")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "14")
 			(name "WS_N")
 			(class "Default")
 			(node
@@ -2600,7 +3009,7 @@
 			)
 		)
 		(net
-			(code "13")
+			(code "15")
 			(name "WS_P")
 			(class "Default")
 			(node
@@ -2623,7 +3032,7 @@
 			)
 		)
 		(net
-			(code "14")
+			(code "16")
 			(name "unconnected-(J1-BAT_NC-Pad1)")
 			(class "Default")
 			(node
@@ -2634,7 +3043,7 @@
 			)
 		)
 		(net
-			(code "15")
+			(code "17")
 			(name "unconnected-(J1-BOOT_NC-Pad20)")
 			(class "Default")
 			(node
@@ -2645,7 +3054,7 @@
 			)
 		)
 		(net
-			(code "16")
+			(code "18")
 			(name "unconnected-(J1-GPIO9_NC-Pad14)")
 			(class "Default")
 			(node
@@ -2656,7 +3065,7 @@
 			)
 		)
 		(net
-			(code "17")
+			(code "19")
 			(name "unconnected-(J1-GPIO10_NC-Pad12)")
 			(class "Default")
 			(node
@@ -2667,7 +3076,7 @@
 			)
 		)
 		(net
-			(code "18")
+			(code "20")
 			(name "unconnected-(J1-GPIO11_NC-Pad10)")
 			(class "Default")
 			(node
@@ -2678,7 +3087,7 @@
 			)
 		)
 		(net
-			(code "19")
+			(code "21")
 			(name "unconnected-(J1-GPIO17_NC-Pad16)")
 			(class "Default")
 			(node
@@ -2689,7 +3098,7 @@
 			)
 		)
 		(net
-			(code "20")
+			(code "22")
 			(name "unconnected-(J1-GPIO18_NC-Pad18)")
 			(class "Default")
 			(node
@@ -2700,7 +3109,7 @@
 			)
 		)
 		(net
-			(code "21")
+			(code "23")
 			(name "unconnected-(J1-GPIO21_NC-Pad5)")
 			(class "Default")
 			(node
@@ -2711,18 +3120,7 @@
 			)
 		)
 		(net
-			(code "22")
-			(name "unconnected-(J1-GPIO41_NC-Pad13)")
-			(class "Default")
-			(node
-				(ref "J1")
-				(pin "13")
-				(pinfunction "GPIO41_NC_13")
-				(pintype "passive+no_connect")
-			)
-		)
-		(net
-			(code "23")
+			(code "24")
 			(name "unconnected-(J1-GPIO42_NC-Pad15)")
 			(class "Default")
 			(node
@@ -2733,7 +3131,7 @@
 			)
 		)
 		(net
-			(code "24")
+			(code "25")
 			(name "unconnected-(J1-GPIO45_NC-Pad17)")
 			(class "Default")
 			(node
@@ -2744,7 +3142,7 @@
 			)
 		)
 		(net
-			(code "25")
+			(code "26")
 			(name "unconnected-(J1-GPIO46_NC-Pad19)")
 			(class "Default")
 			(node
@@ -2755,7 +3153,7 @@
 			)
 		)
 		(net
-			(code "26")
+			(code "27")
 			(name "unconnected-(J1-GPIO47_NC-Pad21)")
 			(class "Default")
 			(node
@@ -2766,7 +3164,7 @@
 			)
 		)
 		(net
-			(code "27")
+			(code "28")
 			(name "unconnected-(J1-GPIO48_NC-Pad23)")
 			(class "Default")
 			(node
@@ -2777,24 +3175,13 @@
 			)
 		)
 		(net
-			(code "28")
+			(code "29")
 			(name "unconnected-(J1-PWR_NC-Pad24)")
 			(class "Default")
 			(node
 				(ref "J1")
 				(pin "24")
 				(pinfunction "PWR_NC_24")
-				(pintype "passive+no_connect")
-			)
-		)
-		(net
-			(code "29")
-			(name "unconnected-(J1-RESET_NC-Pad22)")
-			(class "Default")
-			(node
-				(ref "J1")
-				(pin "22")
-				(pinfunction "RESET_NC_22")
 				(pintype "passive+no_connect")
 			)
 		)

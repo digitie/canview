@@ -2,7 +2,7 @@
 <export version="E">
   <design>
     <source>F:\dev\canview\hardware\bridge\kicad\bridge.kicad_sch</source>
-    <date>2026-09-05T13:09:15</date>
+    <date>2026-09-06T08:07:19</date>
     <tool>Eeschema 10.0.6</tool>
     <sheet number="1" name="/" tstamps="/">
       <title_block>
@@ -1068,7 +1068,7 @@
       <footprint>CANView:Button_Switch_SMD__SW_SPST_TL3342</footprint>
       <fields>
         <field name="MPN">TL3342F160QG</field>
-        <field name="Specification">Momentary normally-open; shared MCU reset</field>
+        <field name="Specification">Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs</field>
         <field name="Source"/>
         <field name="Assembly">FIT</field>
         <field name="Footprint">CANView:Button_Switch_SMD__SW_SPST_TL3342</field>
@@ -1077,7 +1077,7 @@
       </fields>
       <libsource lib="CANView" part="CANView_bridge_SW1" description=""/>
       <property name="MPN" value="TL3342F160QG"/>
-      <property name="Specification" value="Momentary normally-open; shared MCU reset"/>
+      <property name="Specification" value="Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs"/>
       <property name="Source" value=""/>
       <property name="Assembly" value="FIT"/>
       <property name="Sheetname" value="03_reset"/>
@@ -1251,8 +1251,8 @@
       <footprint>CANView:RF_Module__ESP32-S3-WROOM-1</footprint>
       <fields>
         <field name="MPN">ESP32-S3-WROOM-1-N8R2</field>
-        <field name="Specification">8MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C</field>
-        <field name="Source">esp32s3-wroom</field>
+        <field name="Specification">8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C</field>
+        <field name="Source">esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note</field>
         <field name="Assembly">FIT</field>
         <field name="Footprint">CANView:RF_Module__ESP32-S3-WROOM-1</field>
         <field name="Datasheet"/>
@@ -1260,8 +1260,8 @@
       </fields>
       <libsource lib="CANView" part="CANView_bridge_U11" description=""/>
       <property name="MPN" value="ESP32-S3-WROOM-1-N8R2"/>
-      <property name="Specification" value="8MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C"/>
-      <property name="Source" value="esp32s3-wroom"/>
+      <property name="Specification" value="8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C"/>
+      <property name="Source" value="esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note"/>
       <property name="Assembly" value="FIT"/>
       <property name="Sheetname" value="02_esp32"/>
       <property name="Sheetfile" value="02_esp32.kicad_sch"/>

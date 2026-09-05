@@ -17,6 +17,53 @@ def net(part,pin):
 
 
 class SafetyContractTests(unittest.TestCase):
+    def test_ota_reset_domains_and_boot0_authorization(self):
+        p=parts('communicator')
+        self.assertEqual(net(p['U11'],3),'ESP_RESET_N')
+        self.assertEqual(net(p['U10'],7),'STM_RESET_N')
+        self.assertEqual(net(p['J10'],10),'STM_RESET_N')
+        self.assertEqual(net(p['U6'],1),'ESP_RESET_N')
+        self.assertEqual(net(p['U17'],1),'STM_RESET_N')
+        self.assertEqual(net(p['U6'],2),net(p['U17'],2))
+        self.assertEqual(net(p['U6'],2),'GLOBAL_RESET_N')
+        self.assertEqual(p['U50']['pins']['4'][1],'open_collector')
+        self.assertEqual(net(p['U50'],4),'STM_RESET_N')
+        self.assertEqual([net(p['U55'],i) for i in [1,3,6,4]],
+                         ['STM_BOOT0_REQ','SERVICE_ACTIVE','3V3','ROM_BOOT_ALLOWED'])
+        self.assertTrue(self.resistor_exists(p,'10k','BOOT0','GND'))
+        self.assertEqual(net(p['J32'],2),'BOOT0')
+
+    def test_ota_gate_uses_both_resets_and_physical_service(self):
+        p=parts('communicator')
+        self.assertEqual([net(p['U52'],i) for i in [1,3,6,4]],
+                         ['ESP_RESET_N','STM_RESET_N','SERVICE_RUN','MCU_HEALTH_N'])
+        self.assertEqual([net(p['U53'],i) for i in [1,3,6,4]],
+                         ['MCU_HEALTH_N','ESP_RUN_OK','PHY_RESET_N','RUN_ALLOWED'])
+        self.assertEqual(net(p['U36'],3),'RUN_ALLOWED')
+        self.assertEqual(net(p['U31'],3),'RUN_ALLOWED')
+        for signal in ['SERVICE_RUN','ESP_RUN_OK','RUN_ALLOWED']:
+            self.assertTrue(self.resistor_exists(p,'10k',signal,'GND'))
+        # Exhaustively evaluate exported AND gates; this is not analog HIL.
+        for bits in itertools.product([False,True],repeat=7):
+            state=dict(zip(['ESP_RESET_N','STM_RESET_N','SERVICE_RUN','ESP_RUN_OK',
+                            'PHY_RESET_N','AUTO_GOOD','WD_OK_N'],bits))
+            for ref in ['U52','U53','U36','U31']:
+                state[net(p[ref],4)]=all(state[net(p[ref],i)] for i in [1,3,6])
+            if not all(state[n] for n in ['ESP_RESET_N','STM_RESET_N','SERVICE_RUN','ESP_RUN_OK','PHY_RESET_N']):
+                self.assertFalse(state['RX_ALLOWED'])
+                self.assertFalse(state['ARM_HEALTH_N'])
+
+    def test_n16r8_memory_pins_and_recovery_buttons(self):
+        p=parts('communicator')
+        self.assertEqual(p['U11']['mpn'],'ESP32-S3-WROOM-1-N16R8')
+        for pad in [28,29,30]:self.assertIsNone(net(p['U11'],pad))
+        self.assertEqual(net(p['U11'],31),'USB_SERVICE_SENSE')
+        self.assertEqual(net(p['U11'],12),'RECOVERY_BUTTON_N')
+        self.assertEqual(net(parts('bridge')['U11'],4),'PAIR_BUTTON_N')
+        header=parts('controller-adapter')['J1']
+        self.assertEqual(net(header,13),'RECOVERY_BUTTON_N')
+        self.assertEqual(net(header,22),'HOST_RESET_N')
+
     def resistor_exists(self,components,value,a,b):
         return any(p['ref'].startswith('R') and p['value']==value and
                    {net(p,1),net(p,2)}=={a,b} and not p['dnp'] for p in components.values())

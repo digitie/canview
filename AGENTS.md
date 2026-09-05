@@ -7,7 +7,7 @@ canview는 현대·기아·제네시스 차량의 CAN 데이터를 수집·표�
 | 장치 | 기준 하드웨어 | 책임 |
 |---|---|---|
 | Controller | Waveshare ESP32-S3-Touch-LCD-3.5 | 운전자 UI, 설정, 검증된 의미 명령 요청 |
-| Communicator | ESP32-S3-MINI-1-N4R2 + STM32G474CEU6 + 3 CAN PHY | CAN 수집, ESP-NOW/UART 전달, 최종 차량 송신 안전 판정 |
+| Communicator | ESP32-S3-WROOM-1-N16R8 + STM32G474CEU6 + 3 CAN PHY | CAN 수집, ESP-NOW/UART 전달, 최종 차량 송신 안전 판정 |
 | Diagnostic Bridge | 별도 ESP32-S3 | read-only 관찰, capture, Signal Lab, 휴대폰 웹 |
 
 1차 대상은 2017 Tucson TL 2.0 디젤 4WD BlueLink다. 공개 DBC와 실제 차량 evidence를 구분하며, DBC에 존재한다는 이유만으로 신호나 제어 기능을 확정하지 않는다.

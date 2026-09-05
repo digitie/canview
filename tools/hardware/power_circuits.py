@@ -6,9 +6,9 @@ SOT6='Package_TO_SOT_SMD:SOT-23-6'
 SOT583='Package_TO_SOT_SMD:SOT-583-8'
 
 
-def supervisor(c,s,ref,rail,out):
+def supervisor(c,s,ref,rail,out,mr=None):
     c.ic(s,ref,'TLV803EA30DPWR','Package_SON:Texas_X2SON-5_0.8x0.8mm_P0.48mm',
-         ['RESET_N','MR_N','PAD','GND','VDD'],{'1':out,'2':rail,'3':'GND','4':'GND','5':rail},
+         ['RESET_N','MR_N','PAD','GND','VDD'],{'1':out,'2':mr or rail,'3':'GND','4':'GND','5':rail},
          types={'1':'open_collector','2':'input','3':'passive','4':'power_in','5':'power_in'},
          source='tlv803e:pp4-5,9; DPW pin3 PAD may be grounded',spec='3.08V threshold;130..270ms release delay; active-low open-drain')
     c.r(s,'10k',rail,out);c.c(s,'100n',rail,size='0402')
@@ -70,8 +70,9 @@ def system_supply(c,vehicle):
     c.c(s,'4.7u','SYS5V',voltage='16V');c.c(s,'22u','3V3',voltage='10V',size='0805',note='Verify effective capacitance with ALL downstream bypass; no extra100uF bulk without stability analysis')
     c.power_flag(s,'3V3','TPS629210 SW through output inductor')
     s=c.sheet('03_reset','MCU supervisor3.08V with130..270ms release. Communicator also has an independent PHY-domain supervisor.')
-    supervisor(c,s,'U6','3V3','SYS_RESET_N')
-    c.two(s,'SW','RESET','SYS_RESET_N','GND',fp='Button_Switch_SMD:SW_SPST_TL3342',mpn='TL3342F160QG',spec='Momentary normally-open; shared MCU reset')
+    supervisor(c,s,'U6','3V3','ESP_RESET_N' if vehicle else 'SYS_RESET_N',
+               'GLOBAL_RESET_N' if vehicle else None)
+    c.two(s,'SW','RESET','GLOBAL_RESET_N' if vehicle else 'SYS_RESET_N','GND',fp='Button_Switch_SMD:SW_SPST_TL3342',mpn='TL3342F160QG',spec='Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs')
 
 
 def vehicle_front(c):
@@ -139,7 +140,7 @@ def rail_qualification(c):
     c.c(s,'10n','AUTO5_DELAY',dielectric='C0G',tolerance='5%');c.c(s,'100n','PHY3V3',size='0402');c.r(s,'10k','PHY3V3','AUTO5_GOOD')
     gate3(c,s,'U15','BATT_GOOD','AUTO5_GOOD','AUTO_PGOOD','AUTO_GOOD')
     s=c.sheet('19_gps_power','GPS automotive-only switched supply. Fault-current limit independent of ESP. Never enable in USB-only service.')
-    gate3(c,s,'U45','GPS_PWR_REQ','AUTO_GOOD','SYS_RESET_N','GPS_PWR_EN')
+    gate3(c,s,'U45','GPS_PWR_REQ','AUTO_GOOD','RUN_ALLOWED','GPS_PWR_EN')
     c.r(s,'100k','GPS_PWR_REQ','GND')
     limit_switch(c,s,'U46','AUTO5V','GPS5V','GPS_PWR_EN','61.9k','GPS')
     c.r(s,'4.7k','GPS5V','GND',note='Discharge switched receiver supply after shutdown')

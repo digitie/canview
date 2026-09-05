@@ -8,7 +8,7 @@ VSS8 = 'Package_SO:VSSOP-8_2.3x2mm_P0.5mm'
 
 def stm32(c):
     s = c.sheet('04_stm32', 'STM32G474CEU6 / UFQFPN48. Pin 7 is the PG10-NRST dual-function reset pad. HSE 16MHz. USART2 4Mbps RTS/CTS. SWD only; USB pins are CAN1.')
-    nets = {str(n):v for n,v in {1:'3V3',5:'HSE_IN',6:'HSE_OUT',7:'SYS_RESET_N',8:'ESP_RTS',9:'STM_RTS_SRC',10:'STM_TX_SRC',11:'ESP_TX',12:'STB1_REQ',13:'STB2_REQ',14:'FT_EN_REQ',15:'STM_ARM_EDGE',17:'WD_PULSE',18:'GATE_SENSE',19:'AUTO_GOOD_MCU',20:'VDDA',21:'VDDA',23:'3V3',25:'CAN2_RX',26:'CAN2_TX_REQ',27:'FT_ERR_N',30:'CAN3_RX',33:'CAN1_RX',34:'CAN1_TX_REQ',35:'3V3',36:'SWDIO',37:'SWCLK',38:'CAN3_TX_REQ',46:'BOOT0',48:'3V3',49:'GND'}.items()}
+    nets = {str(n):v for n,v in {1:'3V3',5:'HSE_IN',6:'HSE_OUT',7:'STM_RESET_N',8:'ESP_RTS',9:'STM_RTS_SRC',10:'STM_TX_SRC',11:'ESP_TX',12:'STB1_REQ',13:'STB2_REQ',14:'FT_EN_REQ',15:'STM_ARM_EDGE',17:'WD_PULSE',18:'GATE_SENSE',19:'AUTO_GOOD_MCU',20:'VDDA',21:'VDDA',23:'3V3',25:'CAN2_RX',26:'CAN2_TX_REQ',27:'FT_ERR_N',30:'CAN3_RX',33:'CAN1_RX',34:'CAN1_TX_REQ',35:'3V3',36:'SWDIO',37:'SWCLK',38:'CAN3_TX_REQ',46:'BOOT0',47:'STM_RECOVERY_N',48:'3V3',49:'GND'}.items()}
     c.from_library(s,'U10','STM32G474CEU6','Package_DFN_QFN:QFN-48-1EP_7x7mm_P0.5mm_EP5.6x5.6mm','MCU_ST_STM32G4','STM32G474CEUx',nets,pin_name_overrides={'7':'PG10-NRST'},source='stm32g474: UFQFPN48 pinout, AF9/AF11/AF7; pin 7 PG10-NRST reset function; stm32g4-hardware')
     for _ in range(3): c.c(s,'100n','3V3',size='0402',note='One per VDD pin: 23,35,48; shortest return to EP49')
     c.c(s,'4.7u','3V3');c.c(s,'100n','3V3',size='0402',note='VBAT pin1')
@@ -23,35 +23,39 @@ def stm32(c):
     c.r(s,'0','HSE_OUT','HSE_DRV',note='HSE drive-limiting series R footprint; measure crystal drive and startup margin before release')
     for net in ['HSE_IN','HSE_DRV']: c.c(s,'27p',net,voltage='50V',dielectric='C0G',tolerance='5%',size='0402')
     c.ic(s,'J10','SWD 2x5 1.27mm','Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical',
-         ['VTref_OUT','SWDIO','GND','SWCLK','GND','SWO_NC','KEY_NC','NC','GND','NRST'],{'1':'3V3','2':'SWDIO','3':'GND','4':'SWCLK','5':'GND','9':'GND','10':'SYS_RESET_N'},spec='Unshrouded header; matching keyed adapter or controlled pin1 orientation required; VTref sense only',note='Use pin1 marking; SWO not routed; do not power from debugger')
+         ['VTref_OUT','SWDIO','GND','SWCLK','GND','SWO_NC','KEY_NC','NC','GND','NRST'],{'1':'3V3','2':'SWDIO','3':'GND','4':'SWCLK','5':'GND','9':'GND','10':'STM_RESET_N'},spec='Unshrouded header; matching keyed adapter or controlled pin1 orientation required; VTref sense only',note='Use pin1 marking; SWO not routed; do not power from debugger')
     for src,dst in [('STM_TX_SRC','STM_TX'),('STM_RTS_SRC','STM_RTS'),('ESP_TX_SRC','ESP_TX'),('ESP_RTS_SRC','ESP_RTS')]: c.r(s,'33',src,dst, note='Place next to the named transmitter')
     for n in ['STM_RTS','ESP_RTS']:c.r(s,'10k','3V3',n)
     for n in ['STM_TX','ESP_TX']:c.r(s,'47k','3V3',n)
 
 
 def esp32(c, bridge=False):
-    module='ESP32-S3-WROOM-1' if bridge else 'ESP32-S3-MINI-1'
+    module='ESP32-S3-WROOM-1'
     s = c.sheet('06_esp32' if not bridge else '02_esp32', module + '. Keep antenna clearance. USB native serial/JTAG. PSRAM pins reserved.')
     from kicad_model import library_pins
     pins=library_pins('RF_Module',module)
     nets={n:'GND' for n,(name,t) in pins.items() if name=='GND'}
     if not bridge:
-        nets.update({'3':'3V3','4':'ESP_BOOT_N','45':'SYS_RESET_N','23':'USB_DM','24':'USB_DP'})
-        nets.update({'19':'ESP_RTS_SRC','20':'STM_RTS','21':'ESP_TX_SRC','22':'STM_TX',
-                     '8':'GPS_TX_SELECT','9':'GPS_RX_TAP','10':'GPS_PPS',
-                     '14':'IMU_SCLK','15':'IMU_MOSI',
-                     '16':'IMU_MISO','17':'IMU_CS_N','18':'IMU_DRDY','25':'IMU_RESET_N',
-                     '27':'GPS_PWR_REQ','28':'USB_SERVICE_SENSE'})
+        nets.update({'2':'3V3','27':'ESP_BOOT_N','3':'ESP_RESET_N','13':'USB_DM','14':'USB_DP'})
+        nets.update({'39':'STM_RESET_CMD_N','38':'STM_BOOT0_REQ','7':'ESP_RUN_OK',
+                     '12':'RECOVERY_BUTTON_N','17':'STM_RECOVERY_N','25':'SERVICE_RUN'})
+        nets.update({'8':'ESP_RTS_SRC','9':'STM_RTS','10':'ESP_TX_SRC','11':'STM_TX',
+                     '4':'GPS_TX_SELECT','5':'GPS_RX_TAP','6':'GPS_PPS',
+                     '18':'IMU_SCLK','19':'IMU_MOSI',
+                     '20':'IMU_MISO','21':'IMU_CS_N','22':'IMU_DRDY','23':'IMU_RESET_N',
+                     '24':'GPS_PWR_REQ','31':'USB_SERVICE_SENSE'})
+        # R8 Octal PSRAM owns GPIO35/36/37 (pads28/29/30): MUST remain NC.
+        # Old MINI GPIO33 mux sense is moved to exposed WROOM GPIO38/pad31.
     else:
         nets.update({'2':'3V3','3':'SYS_RESET_N','27':'ESP_BOOT_N','13':'USB_DM','14':'USB_DP',
                      '4':'PAIR_BUTTON_N','5':'STATUS_LED'})
-    c.from_library(s,'U11',module+('-N8R2' if bridge else '-N4R2'),
-                   'RF_Module:ESP32-S3-WROOM-1' if bridge else 'CANView:ESP32-S3-MINI-1',
-                   'RF_Module',module,nets,source='esp32s3-wroom' if bridge else 'esp32s3-mini',
-                   spec=('8MB' if bridge else '4MB')+' flash + 2MB PSRAM; 3.0..3.6V; -40..85C')
+    c.from_library(s,'U11',module+('-N8R2' if bridge else '-N16R8'),
+                   'RF_Module:ESP32-S3-WROOM-1',
+                   'RF_Module',module,nets,source='esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note',
+                   spec='8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C' if bridge else '16MiB Quad flash + 8MiB Octal PSRAM; 3.0..3.6V; -40..65C base, up to85C with PSRAM ECC; ECC usable7.5MiB; validate complete board thermal range')
     for val in ['100n','10u','10u']:c.c(s,val,'3V3')
     c.r(s,'10k','3V3','ESP_BOOT_N')
-    s=c.sheet('07_esp_service' if not bridge else '03_service', 'BOOT button for ROM download. Reset supervisor is shared on Communicator. Keep GPIO0 released for normal boot.')
+    s=c.sheet('07_esp_service' if not bridge else '03_service', 'BOOT GPIO0 selects ROM download, not recovery app. Independent reset outputs on Communicator. Bridge PAIR GPIO4 held at reset selects signed recovery.')
     c.two(s,'SW','BOOT','ESP_BOOT_N','GND',fp='Button_Switch_SMD:SW_SPST_TL3342',mpn='TL3342F160QG',spec='Momentary normally open; logic signal only')
     c.r(s,'22','USB_DM_CONN','USB_DM');c.r(s,'22','USB_DP_CONN','USB_DP')
     if bridge:
@@ -117,7 +121,7 @@ def tx_gate(c):
     # STB requests retain existing PA4/PA5 active-high-standby semantics.
     s=c.sheet('11_phy_modes','RX mode is independent of TX permit. On invalid automotive power all PHY enables return to hardware standby.')
     c.ic(s,'U26','SN74LVC2G125DCUR',VSS8,names,{'1':'FT_RX_OE_N','2':'STB1_REQ','3':'CAN2_STB','4':'GND','5':'STB2_REQ','6':'CAN1_STB','7':'FT_RX_OE_N','8':'PHY3V3'},types=types,source='sn74lvc2g125',spec='Ioff inputs; pulls on PHY side enforce standby')
-    gate3(c,s,'U36','AUTO_GOOD','SYS_RESET_N','PHY_RESET_N','RX_ALLOWED')
+    gate3(c,s,'U36','AUTO_GOOD','RUN_ALLOWED','PHY_RESET_N','RX_ALLOWED')
     inv(c,s,'U27','RX_ALLOWED','FT_RX_OE_N')
     c.c(s,'100n','PHY3V3',size='0402')
     s=c.sheet('12_watchdog_latch','120pF gives64.288ms nominal watchdog; budget<72ms with5% C and10pF stray. WDO recovery CANNOT re-arm TX; new ARM edge required.')
@@ -126,7 +130,7 @@ def tx_gate(c):
          {'1':'PHY3V3','2':'WDT_C','3':'PHY3V3','4':'GND','5':'PHY3V3','6':'WD_PULSE','7':'WD_OK_N','9':'GND'},
          types={'1':'power_in','2':'passive','3':'input','4':'power_in','5':'input','6':'input','7':'open_collector','8':'open_collector','9':'power_in'},source='tps3431: pp3,6,9-11',spec='External missing-pulse watchdog; falling-edge WDI; firmware scheduler heartbeat, never autonomous timer')
     c.c(s,'120p','WDT_C',dielectric='C0G',tolerance='5%',size='0402');c.c(s,'100n','PHY3V3',size='0402');c.r(s,'10k','PHY3V3','WD_OK_N')
-    gate3(c,s,'U31','WD_OK_N','SYS_RESET_N','AUTO_GOOD','ARM_HEALTH_N')
+    gate3(c,s,'U31','WD_OK_N','RUN_ALLOWED','AUTO_GOOD','ARM_HEALTH_N')
     s=c.sheet('12b_latch_clear','PHY-domain POR and physical disarm both CLEAR the latch, including USB-first automotive hot-plug. No stale Q reuse.')
     gate3(c,s,'U37','ARM_HEALTH_N','PHY_RESET_N','TX_ARM','ARM_CLEAR_N')
     c.ic(s,'U32','SN74LVC1G74DCUR',VSS8,['CLK','D','Q_N','GND','Q','CLR_N','PRE_N','VCC'],{'1':'STM_ARM_EDGE','2':'PHY3V3','5':'ARM_LATCH','4':'GND','6':'ARM_CLEAR_N','7':'PHY3V3','8':'PHY3V3'},types={'1':'input','2':'input','3':'output','4':'power_in','5':'output','6':'input','7':'input','8':'power_in'},source='sn74lvc1g74: p4 pin functions (Q=5, inverted Q=3) and asynchronous clear truth table',spec='Latched disarm after watchdog or power failure; no automatic re-arm')
@@ -141,11 +145,11 @@ def tx_gate(c):
     c.c(s,'100n','3V3',size='0402')
 
 
-def gate3(c,s,ref,a,b,d,out):
-    c.ic(s,ref,'SN74LVC1G11DCKR',SC6,['A','GND','B','Y','VCC','C'],{'1':a,'2':'GND','3':b,'4':out,'5':'PHY3V3','6':d},types={'1':'input','2':'power_in','3':'input','4':'output','5':'power_in','6':'input'},source='sn74lvc1g11: DCK pin functions',spec='3-input AND; Ioff support')
-    c.c(s,'100n','PHY3V3',size='0402')
+def gate3(c,s,ref,a,b,d,out,rail='PHY3V3'):
+    c.ic(s,ref,'SN74LVC1G11DCKR',SC6,['A','GND','B','Y','VCC','C'],{'1':a,'2':'GND','3':b,'4':out,'5':rail,'6':d},types={'1':'input','2':'power_in','3':'input','4':'output','5':'power_in','6':'input'},source='sn74lvc1g11: DCK pin functions',spec='3-input AND; Ioff support')
+    c.c(s,'100n',rail,size='0402')
 
 
-def inv(c,s,ref,inp,out):
-    c.ic(s,ref,'SN74LVC1G04DBVR',SOT5,['NC','A','GND','Y','VCC'],{'2':inp,'3':'GND','4':out,'5':'PHY3V3'},types={'2':'input','3':'power_in','4':'output','5':'power_in'},source='sn74lvc1g04: DBV pin functions',spec='Ioff support')
-    c.c(s,'100n','PHY3V3',size='0402')
+def inv(c,s,ref,inp,out,rail='PHY3V3'):
+    c.ic(s,ref,'SN74LVC1G04DBVR',SOT5,['NC','A','GND','Y','VCC'],{'2':inp,'3':'GND','4':out,'5':rail},types={'2':'input','3':'power_in','4':'output','5':'power_in'},source='sn74lvc1g04: DBV pin functions',spec='Ioff support')
+    c.c(s,'100n',rail,size='0402')

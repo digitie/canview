@@ -1,7 +1,7 @@
 {
     "$schema": "https://schemas.kicad.org/erc.v1.json",
     "coordinate_units": "mm",
-    "date": "2026-09-05T13:09:13",
+    "date": "2026-09-06T08:07:17",
     "ignored_checks": [
         {
             "description": "Global label only appears once in the schematic",
@@ -169,6 +169,26 @@
         {
             "path": "/20_test_points/",
             "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/4f63211f-ed62-58cf-b954-befba3d75c4e",
+            "violations": []
+        },
+        {
+            "path": "/21_ota_reset/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/b47c9a04-f8e4-5b31-8ad2-78bb8bcc58b9",
+            "violations": []
+        },
+        {
+            "path": "/22_ota_interlock/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/188bbe36-1bba-5e1e-a50d-7eb3b159f51f",
+            "violations": []
+        },
+        {
+            "path": "/23_ota_recovery/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/7281999b-b58f-5dad-b3a0-258f593284c0",
+            "violations": []
+        },
+        {
+            "path": "/24_ota_test_points/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/a846c043-6622-5c1a-abd8-392984d27f50",
             "violations": []
         }
     ],
