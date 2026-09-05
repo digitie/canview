@@ -1,0 +1,3198 @@
+{
+  "revision": "R1-review",
+  "board": "communicator",
+  "sheets": {
+    "04_stm32": "STM32G474CEU6 / UFQFPN48. HSE 16MHz. USART2 4Mbps RTS/CTS. SWD only; USB pins are CAN1.",
+    "05_debug_clock_uart": "16MHz crystal CL18pF: 27pF + estimated 4.5pF parasitic; tune after PCB. SWD VTref is OUTPUT ONLY.",
+    "06_esp32": "ESP32-S3-MINI-1-N4R2. GPIO26 reserved for PSRAM. Keep antenna clearance. USB native serial/JTAG.",
+    "07_esp_service": "BOOT button for ROM download. Reset supervisor is shared on Communicator. Keep GPIO0 released for normal boot.",
+    "08_can_fd": "TCAN1046AV: actual pin11=VIO, pin5=GND2, pin7=RXD2, pin8=STB2. CAN PHY power is vehicle-only.",
+    "09_can_ft": "MAX3055 only for verified ISO11898-3 125kbps bus. RTH/RTL 4.7k distributed termination; no CANH-CANL 120ohm.",
+    "10_tx_gate": "Independent TX gate: no permit => tri-state TXD + PHY rail pull-ups. Ioff input buffers prevent USB-only backpower.",
+    "11_phy_modes": "RX mode is independent of TX permit. On invalid automotive power all PHY enables return to hardware standby.",
+    "12_watchdog_latch": "50ms watchdog clears ARM latch asynchronously. WDO recovery alone CANNOT re-enable TX. ARM edge must be renewed.",
+    "13_arm_switch": "Physical arm link is OPEN by default. Software cannot bypass the link. Gate sense is buffered into MCU power domain."
+  },
+  "components": [
+    {
+      "sheet": "04_stm32",
+      "ref": "U10",
+      "value": "STM32G474CEU6",
+      "footprint": "CANView:Package_DFN_QFN__QFN-48-1EP_7x7mm_P0.5mm_EP5.6x5.6mm",
+      "original_footprint": "Package_DFN_QFN:QFN-48-1EP_7x7mm_P0.5mm_EP5.6x5.6mm",
+      "pins": {
+        "1": [
+          "VBAT",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "PC13",
+          "bidirectional",
+          null
+        ],
+        "3": [
+          "PC14",
+          "bidirectional",
+          null
+        ],
+        "4": [
+          "PC15",
+          "bidirectional",
+          null
+        ],
+        "5": [
+          "PF0",
+          "bidirectional",
+          "HSE_IN"
+        ],
+        "6": [
+          "PF1",
+          "bidirectional",
+          "HSE_OUT"
+        ],
+        "7": [
+          "PG10",
+          "bidirectional",
+          "SYS_RESET_N"
+        ],
+        "8": [
+          "PA0",
+          "bidirectional",
+          "ESP_RTS"
+        ],
+        "9": [
+          "PA1",
+          "bidirectional",
+          "STM_RTS_SRC"
+        ],
+        "10": [
+          "PA2",
+          "bidirectional",
+          "STM_TX_SRC"
+        ],
+        "11": [
+          "PA3",
+          "bidirectional",
+          "ESP_TX"
+        ],
+        "12": [
+          "PA4",
+          "bidirectional",
+          "STB1_REQ"
+        ],
+        "13": [
+          "PA5",
+          "bidirectional",
+          "STB2_REQ"
+        ],
+        "14": [
+          "PA6",
+          "bidirectional",
+          "FT_EN_REQ"
+        ],
+        "15": [
+          "PA7",
+          "bidirectional",
+          "STM_ARM_EDGE"
+        ],
+        "16": [
+          "PC4",
+          "bidirectional",
+          null
+        ],
+        "17": [
+          "PB0",
+          "bidirectional",
+          "WD_PULSE"
+        ],
+        "18": [
+          "PB1",
+          "bidirectional",
+          "GATE_SENSE"
+        ],
+        "19": [
+          "PB2",
+          "bidirectional",
+          "AUTO_GOOD_MCU"
+        ],
+        "20": [
+          "VREF+",
+          "input",
+          "VDDA"
+        ],
+        "21": [
+          "VDDA",
+          "power_in",
+          "VDDA"
+        ],
+        "22": [
+          "PB10",
+          "bidirectional",
+          null
+        ],
+        "23": [
+          "VDD",
+          "power_in",
+          "3V3"
+        ],
+        "24": [
+          "PB11",
+          "bidirectional",
+          null
+        ],
+        "25": [
+          "PB12",
+          "bidirectional",
+          "CAN2_RX"
+        ],
+        "26": [
+          "PB13",
+          "bidirectional",
+          "CAN2_TX_REQ"
+        ],
+        "27": [
+          "PB14",
+          "bidirectional",
+          "FT_ERR_N"
+        ],
+        "28": [
+          "PB15",
+          "bidirectional",
+          null
+        ],
+        "29": [
+          "PC6",
+          "bidirectional",
+          null
+        ],
+        "30": [
+          "PA8",
+          "bidirectional",
+          "CAN3_RX"
+        ],
+        "31": [
+          "PA9",
+          "bidirectional",
+          null
+        ],
+        "32": [
+          "PA10",
+          "bidirectional",
+          null
+        ],
+        "33": [
+          "PA11",
+          "bidirectional",
+          "CAN1_RX"
+        ],
+        "34": [
+          "PA12",
+          "bidirectional",
+          "CAN1_TX_REQ"
+        ],
+        "35": [
+          "VDD",
+          "power_in",
+          "3V3"
+        ],
+        "36": [
+          "PA13",
+          "bidirectional",
+          "SWDIO"
+        ],
+        "37": [
+          "PA14",
+          "bidirectional",
+          "SWCLK"
+        ],
+        "38": [
+          "PA15",
+          "bidirectional",
+          "CAN3_TX_REQ"
+        ],
+        "39": [
+          "PC10",
+          "bidirectional",
+          null
+        ],
+        "40": [
+          "PC11",
+          "bidirectional",
+          null
+        ],
+        "41": [
+          "PB3",
+          "bidirectional",
+          null
+        ],
+        "42": [
+          "PB4",
+          "bidirectional",
+          null
+        ],
+        "43": [
+          "PB5",
+          "bidirectional",
+          null
+        ],
+        "44": [
+          "PB6",
+          "bidirectional",
+          null
+        ],
+        "45": [
+          "PB7",
+          "bidirectional",
+          null
+        ],
+        "46": [
+          "PB8",
+          "bidirectional",
+          "BOOT0"
+        ],
+        "47": [
+          "PB9",
+          "bidirectional",
+          null
+        ],
+        "48": [
+          "VDD",
+          "power_in",
+          "3V3"
+        ],
+        "49": [
+          "VSS",
+          "power_in",
+          "GND"
+        ]
+      },
+      "mpn": "STM32G474CEU6",
+      "spec": "See manufacturer datasheet",
+      "source": "stm32g474: UFQFPN48 pinout, AF9/AF11/AF7; stm32g4-hardware",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U10"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C1",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "One per VDD pin: 23,35,48; shortest return to EP49",
+      "libname": "CANView_communicator_C1"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C2",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "One per VDD pin: 23,35,48; shortest return to EP49",
+      "libname": "CANView_communicator_C2"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C3",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "One per VDD pin: 23,35,48; shortest return to EP49",
+      "libname": "CANView_communicator_C3"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C4",
+      "value": "4.7u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-4.7u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C4"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C5",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "VBAT pin1",
+      "libname": "CANView_communicator_C5"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R1",
+      "value": "0",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "VDDA"
+        ]
+      },
+      "mpn": "GEN-R-0402-0-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Do not substitute unmodelled high-Q ferrite",
+      "libname": "CANView_communicator_R1"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C6",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "VDDA"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C6"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "C7",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "VDDA"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C7"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R2",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "BOOT0"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R2"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R3",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "STM_ARM_EDGE"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R3"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R4",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "WD_PULSE"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R4"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R5",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN1_TX_REQ"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R5"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R6",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN2_TX_REQ"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R6"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R7",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN3_TX_REQ"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R7"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R8",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STB1_REQ"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R8"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R9",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STB2_REQ"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R9"
+    },
+    {
+      "sheet": "04_stm32",
+      "ref": "R10",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "FT_EN_REQ"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R10"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "Y1",
+      "value": "ABM8-16.000MHZ-B2-T",
+      "footprint": "CANView:Crystal__Crystal_SMD_3225-4Pin_3.2x2.5mm",
+      "original_footprint": "Crystal:Crystal_SMD_3225-4Pin_3.2x2.5mm",
+      "pins": {
+        "1": [
+          "XI",
+          "passive",
+          "HSE_IN"
+        ],
+        "2": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "3": [
+          "XO",
+          "passive",
+          "HSE_DRV"
+        ],
+        "4": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "ABM8-16.000MHZ-B2-T",
+      "spec": "16MHz; CL18pF; ±20ppm; ±50ppm temperature; ESR80ohm maximum; verify drive power",
+      "source": "abracon-abm8",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_Y1"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R11",
+      "value": "0",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HSE_OUT"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "HSE_DRV"
+        ]
+      },
+      "mpn": "GEN-R-0402-0-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "HSE drive-limiting series R footprint; tune per AN2867 before release",
+      "libname": "CANView_communicator_R11"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "C8",
+      "value": "27p",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HSE_IN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-27p-50V-C0G",
+      "spec": "50V; ±5%; C0G; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C8"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "C9",
+      "value": "27p",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HSE_DRV"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-27p-50V-C0G",
+      "spec": "50V; ±5%; C0G; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C9"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "J10",
+      "value": "SWD 2x5 1.27mm",
+      "footprint": "CANView:Connector_PinHeader_1.27mm__PinHeader_2x05_P1.27mm_Vertical",
+      "original_footprint": "Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical",
+      "pins": {
+        "1": [
+          "VTref_OUT",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "SWDIO",
+          "passive",
+          "SWDIO"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "4": [
+          "SWCLK",
+          "passive",
+          "SWCLK"
+        ],
+        "5": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "6": [
+          "SWO_NC",
+          "passive",
+          null
+        ],
+        "7": [
+          "KEY_NC",
+          "passive",
+          null
+        ],
+        "8": [
+          "NC",
+          "passive",
+          null
+        ],
+        "9": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "10": [
+          "NRST",
+          "passive",
+          "SYS_RESET_N"
+        ]
+      },
+      "mpn": "SWD 2x5 1.27mm",
+      "spec": "Keyed shrouded matching cable required; VTref sense only, no external power",
+      "source": "",
+      "dnp": false,
+      "note": "Use pin1 marking; SWO not routed",
+      "libname": "CANView_communicator_J10"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R12",
+      "value": "33",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "STM_TX_SRC"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_TX"
+        ]
+      },
+      "mpn": "GEN-R-0402-33-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Place next to the named transmitter",
+      "libname": "CANView_communicator_R12"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R13",
+      "value": "33",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "STM_RTS_SRC"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_RTS"
+        ]
+      },
+      "mpn": "GEN-R-0402-33-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Place next to the named transmitter",
+      "libname": "CANView_communicator_R13"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R14",
+      "value": "33",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "ESP_TX_SRC"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ESP_TX"
+        ]
+      },
+      "mpn": "GEN-R-0402-33-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Place next to the named transmitter",
+      "libname": "CANView_communicator_R14"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R15",
+      "value": "33",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "ESP_RTS_SRC"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ESP_RTS"
+        ]
+      },
+      "mpn": "GEN-R-0402-33-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Place next to the named transmitter",
+      "libname": "CANView_communicator_R15"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R16",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_RTS"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R16"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R17",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ESP_RTS"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R17"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R18",
+      "value": "47k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "STM_TX"
+        ]
+      },
+      "mpn": "GEN-R-0402-47k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R18"
+    },
+    {
+      "sheet": "05_debug_clock_uart",
+      "ref": "R19",
+      "value": "47k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ESP_TX"
+        ]
+      },
+      "mpn": "GEN-R-0402-47k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R19"
+    },
+    {
+      "sheet": "06_esp32",
+      "ref": "U11",
+      "value": "ESP32-S3-MINI-1-N4R2",
+      "footprint": "CANView:RF_Module__ESP32-S2-MINI-1",
+      "original_footprint": "RF_Module:ESP32-S2-MINI-1",
+      "pins": {
+        "1": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "2": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "3": [
+          "3V3",
+          "power_in",
+          "3V3"
+        ],
+        "4": [
+          "IO0",
+          "bidirectional",
+          "ESP_BOOT_N"
+        ],
+        "5": [
+          "IO1",
+          "bidirectional",
+          null
+        ],
+        "6": [
+          "IO2",
+          "bidirectional",
+          null
+        ],
+        "7": [
+          "IO3",
+          "bidirectional",
+          null
+        ],
+        "8": [
+          "IO4",
+          "bidirectional",
+          "GPS_TX_SELECT"
+        ],
+        "9": [
+          "IO5",
+          "bidirectional",
+          "GPS_RX_TAP"
+        ],
+        "10": [
+          "IO6",
+          "bidirectional",
+          "GPS_PPS"
+        ],
+        "11": [
+          "IO7",
+          "bidirectional",
+          null
+        ],
+        "12": [
+          "IO8",
+          "bidirectional",
+          "BARO_SDA"
+        ],
+        "13": [
+          "IO9",
+          "bidirectional",
+          "BARO_SCL"
+        ],
+        "14": [
+          "IO10",
+          "bidirectional",
+          "IMU_SCLK"
+        ],
+        "15": [
+          "IO11",
+          "bidirectional",
+          "IMU_MOSI"
+        ],
+        "16": [
+          "IO12",
+          "bidirectional",
+          "IMU_MISO"
+        ],
+        "17": [
+          "IO13",
+          "bidirectional",
+          "IMU_CS_N"
+        ],
+        "18": [
+          "IO14",
+          "bidirectional",
+          "IMU_DRDY"
+        ],
+        "19": [
+          "IO15",
+          "bidirectional",
+          "ESP_RTS_SRC"
+        ],
+        "20": [
+          "IO16",
+          "bidirectional",
+          "STM_RTS"
+        ],
+        "21": [
+          "IO17",
+          "bidirectional",
+          "ESP_TX_SRC"
+        ],
+        "22": [
+          "IO18",
+          "bidirectional",
+          "STM_TX"
+        ],
+        "23": [
+          "USB_D-",
+          "bidirectional",
+          "USB_DM"
+        ],
+        "24": [
+          "USB_D+",
+          "bidirectional",
+          "USB_DP"
+        ],
+        "25": [
+          "IO21",
+          "bidirectional",
+          "IMU_RESET_N"
+        ],
+        "26": [
+          "IO26",
+          "bidirectional",
+          null
+        ],
+        "27": [
+          "IO47",
+          "bidirectional",
+          "GPS_PWR_REQ"
+        ],
+        "28": [
+          "IO33",
+          "bidirectional",
+          "USB_SERVICE_SENSE"
+        ],
+        "29": [
+          "IO34",
+          "bidirectional",
+          null
+        ],
+        "30": [
+          "IO48",
+          "bidirectional",
+          null
+        ],
+        "31": [
+          "IO35",
+          "bidirectional",
+          null
+        ],
+        "32": [
+          "IO36",
+          "bidirectional",
+          null
+        ],
+        "33": [
+          "IO37",
+          "bidirectional",
+          null
+        ],
+        "34": [
+          "IO38",
+          "bidirectional",
+          null
+        ],
+        "35": [
+          "IO39",
+          "bidirectional",
+          null
+        ],
+        "36": [
+          "IO40",
+          "bidirectional",
+          null
+        ],
+        "37": [
+          "IO41",
+          "bidirectional",
+          null
+        ],
+        "38": [
+          "IO42",
+          "bidirectional",
+          null
+        ],
+        "39": [
+          "TXD0",
+          "bidirectional",
+          null
+        ],
+        "40": [
+          "RXD0",
+          "bidirectional",
+          null
+        ],
+        "41": [
+          "IO45",
+          "bidirectional",
+          null
+        ],
+        "42": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "43": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "44": [
+          "IO46",
+          "bidirectional",
+          null
+        ],
+        "45": [
+          "EN",
+          "input",
+          "SYS_RESET_N"
+        ],
+        "46": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "47": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "48": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "49": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "50": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "51": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "52": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "53": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "54": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "55": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "56": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "57": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "58": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "59": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "60": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "61": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "62": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "63": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "64": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "65": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "ESP32-S3-MINI-1-N4R2",
+      "spec": "4MB flash + 2MB PSRAM; 3.0..3.6V; -40..85C",
+      "source": "esp32s3-mini: pin table, peripheral schematic and land pattern",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U11"
+    },
+    {
+      "sheet": "06_esp32",
+      "ref": "C10",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C10"
+    },
+    {
+      "sheet": "06_esp32",
+      "ref": "C11",
+      "value": "10u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-10u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C11"
+    },
+    {
+      "sheet": "06_esp32",
+      "ref": "C12",
+      "value": "10u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-10u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C12"
+    },
+    {
+      "sheet": "06_esp32",
+      "ref": "R20",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ESP_BOOT_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R20"
+    },
+    {
+      "sheet": "07_esp_service",
+      "ref": "SW1",
+      "value": "BOOT",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "ESP_BOOT_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Momentary normally open; logic signal only",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_SW1"
+    },
+    {
+      "sheet": "07_esp_service",
+      "ref": "R21",
+      "value": "22",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_DM_CONN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "USB_DM"
+        ]
+      },
+      "mpn": "GEN-R-0402-22-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R21"
+    },
+    {
+      "sheet": "07_esp_service",
+      "ref": "R22",
+      "value": "22",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_DP_CONN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "USB_DP"
+        ]
+      },
+      "mpn": "GEN-R-0402-22-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R22"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "U20",
+      "value": "TCAN1046AVDYYRQ1",
+      "footprint": "CANView:TI_DYY0014A",
+      "original_footprint": "CANView:TI_DYY0014A",
+      "pins": {
+        "1": [
+          "TXD1",
+          "input",
+          "CAN1_TXD"
+        ],
+        "2": [
+          "GND1",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "VCC",
+          "power_in",
+          "AUTO5V"
+        ],
+        "4": [
+          "RXD1",
+          "output",
+          "CAN1_RX_PHY"
+        ],
+        "5": [
+          "GND2",
+          "power_in",
+          "GND"
+        ],
+        "6": [
+          "TXD2",
+          "input",
+          "CAN2_TXD"
+        ],
+        "7": [
+          "RXD2",
+          "output",
+          "CAN2_RX_PHY"
+        ],
+        "8": [
+          "STB2",
+          "input",
+          "CAN2_STB"
+        ],
+        "9": [
+          "CANL2",
+          "bidirectional",
+          "CAN2_L"
+        ],
+        "10": [
+          "CANH2",
+          "bidirectional",
+          "CAN2_H"
+        ],
+        "11": [
+          "VIO",
+          "power_in",
+          "PHY3V3"
+        ],
+        "12": [
+          "CANL1",
+          "bidirectional",
+          "CAN1_L"
+        ],
+        "13": [
+          "CANH1",
+          "bidirectional",
+          "CAN1_H"
+        ],
+        "14": [
+          "STB1",
+          "input",
+          "CAN1_STB"
+        ]
+      },
+      "mpn": "TCAN1046AVDYYRQ1",
+      "spec": "Dual CAN FD; 4.5..5.5V VCC; 3.3V VIO; bus fault ±58V",
+      "source": "tcan1046av: pp4-5, operating modes, DYY0014A land pattern",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U20"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "C13",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "AUTO5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C13"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "C14",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C14"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "C15",
+      "value": "4.7u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "AUTO5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-4.7u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C15"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "R23",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN1_TXD"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R23"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "R24",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN1_STB"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R24"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "R25",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN2_TXD"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R25"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "R26",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN2_STB"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R26"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "U21",
+      "value": "SN74LVC2G17DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "1A",
+          "input",
+          "CAN1_RX_PHY"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "2A",
+          "input",
+          "CAN2_RX_PHY"
+        ],
+        "4": [
+          "2Y",
+          "output",
+          "CAN2_RX"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "6": [
+          "1Y",
+          "output",
+          "CAN1_RX"
+        ]
+      },
+      "mpn": "SN74LVC2G17DCKR",
+      "spec": "5.5V-tolerant inputs; partial-power-down Ioff; powered from MCU rail",
+      "source": "sn74lvc2g17: DCK pins, Ioff, VIH/VIL",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U21"
+    },
+    {
+      "sheet": "08_can_fd",
+      "ref": "C16",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C16"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "U22",
+      "value": "MAX3055ASD+",
+      "footprint": "CANView:Package_SO__SOIC-14_3.9x8.7mm_P1.27mm",
+      "original_footprint": "Package_SO:SOIC-14_3.9x8.7mm_P1.27mm",
+      "pins": {
+        "1": [
+          "INH",
+          "output",
+          "FT_INH_MON"
+        ],
+        "2": [
+          "TXD",
+          "input",
+          "CAN3_TXD"
+        ],
+        "3": [
+          "RXD",
+          "output",
+          "CAN3_RX_PHY"
+        ],
+        "4": [
+          "ERR_N",
+          "output",
+          "FT_ERR_PHY"
+        ],
+        "5": [
+          "STB",
+          "input",
+          "AUTO5V"
+        ],
+        "6": [
+          "EN",
+          "input",
+          "CAN3_EN"
+        ],
+        "7": [
+          "WAKE",
+          "input",
+          "FT_WAKE"
+        ],
+        "8": [
+          "RTH",
+          "passive",
+          "FT_RTH"
+        ],
+        "9": [
+          "RTL",
+          "passive",
+          "FT_RTL"
+        ],
+        "10": [
+          "VCC",
+          "power_in",
+          "AUTO5V"
+        ],
+        "11": [
+          "CANH",
+          "bidirectional",
+          "CAN3_H"
+        ],
+        "12": [
+          "CANL",
+          "bidirectional",
+          "CAN3_L"
+        ],
+        "13": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "14": [
+          "BATT",
+          "power_in",
+          "PROTECTED_VBAT"
+        ]
+      },
+      "mpn": "MAX3055ASD+",
+      "spec": "125kbps FT CAN; VCC4.75..5.25V; BATT>=5V for valid operation; bus fault±80V",
+      "source": "max3055: pp1,11,16-17",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U22"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "C17",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "AUTO5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C17"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "C18",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PROTECTED_VBAT"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-100n-50V-X7R",
+      "spec": "50V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C18"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "C19",
+      "value": "4.7u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "AUTO5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-4.7u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C19"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "R27",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0603_1608Metric",
+      "original_footprint": "Resistor_SMD:R_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PROTECTED_VBAT"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "FT_WAKE"
+        ]
+      },
+      "mpn": "GEN-R-0603-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R27"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "R28",
+      "value": "220k",
+      "footprint": "CANView:Resistor_SMD__R_0603_1608Metric",
+      "original_footprint": "Resistor_SMD:R_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "FT_INH_MON"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0603-220k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Defined load <0.18mA at32V; INH never controls regulator",
+      "libname": "CANView_communicator_R28"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "R29",
+      "value": "4.7k",
+      "footprint": "CANView:Resistor_SMD__R_0805_2012Metric",
+      "original_footprint": "Resistor_SMD:R_0805_2012Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "FT_RTH"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN3_H"
+        ]
+      },
+      "mpn": "GEN-R-0805-4.7k-1%",
+      "spec": "0.25W; 100V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R29"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "R30",
+      "value": "4.7k",
+      "footprint": "CANView:Resistor_SMD__R_0805_2012Metric",
+      "original_footprint": "Resistor_SMD:R_0805_2012Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "FT_RTL"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN3_L"
+        ]
+      },
+      "mpn": "GEN-R-0805-4.7k-1%",
+      "spec": "0.25W; 100V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R30"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "R31",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CAN3_TXD"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R31"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "R32",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "CAN3_EN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R32"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "U23",
+      "value": "SN74LVC2G17DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "1A",
+          "input",
+          "CAN3_RX_PHY"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "2A",
+          "input",
+          "FT_ERR_PHY"
+        ],
+        "4": [
+          "2Y",
+          "output",
+          "FT_ERR_N"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "6": [
+          "1Y",
+          "output",
+          "CAN3_RX"
+        ]
+      },
+      "mpn": "SN74LVC2G17DCKR",
+      "spec": "5.5V-tolerant inputs, Ioff; do not replace with resistor divider",
+      "source": "sn74lvc2g17",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U23"
+    },
+    {
+      "sheet": "09_can_ft",
+      "ref": "C20",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C20"
+    },
+    {
+      "sheet": "10_tx_gate",
+      "ref": "U24",
+      "value": "SN74LVC2G125DCUR",
+      "footprint": "CANView:Package_SO__VSSOP-8_2.3x2mm_P0.5mm",
+      "original_footprint": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
+      "pins": {
+        "1": [
+          "1OE_N",
+          "input",
+          "TX_OE_N"
+        ],
+        "2": [
+          "1A",
+          "input",
+          "CAN1_TX_REQ"
+        ],
+        "3": [
+          "2Y",
+          "tri_state",
+          "CAN2_TXD"
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "2A",
+          "input",
+          "CAN2_TX_REQ"
+        ],
+        "6": [
+          "1Y",
+          "tri_state",
+          "CAN1_TXD"
+        ],
+        "7": [
+          "2OE_N",
+          "input",
+          "TX_OE_N"
+        ],
+        "8": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ]
+      },
+      "mpn": "SN74LVC2G125DCUR",
+      "spec": "Dual independent tristate buffers; 3.3V PHY-domain supply",
+      "source": "sn74lvc2g125: p4, Ioff",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U24"
+    },
+    {
+      "sheet": "10_tx_gate",
+      "ref": "U25",
+      "value": "SN74LVC2G125DCUR",
+      "footprint": "CANView:Package_SO__VSSOP-8_2.3x2mm_P0.5mm",
+      "original_footprint": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
+      "pins": {
+        "1": [
+          "1OE_N",
+          "input",
+          "TX_OE_N"
+        ],
+        "2": [
+          "1A",
+          "input",
+          "CAN3_TX_REQ"
+        ],
+        "3": [
+          "2Y",
+          "tri_state",
+          "CAN3_EN"
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "2A",
+          "input",
+          "FT_EN_REQ"
+        ],
+        "6": [
+          "1Y",
+          "tri_state",
+          "CAN3_TXD"
+        ],
+        "7": [
+          "2OE_N",
+          "input",
+          "FT_RX_OE_N"
+        ],
+        "8": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ]
+      },
+      "mpn": "SN74LVC2G125DCUR",
+      "spec": "CAN3 TX and RX-mode enable are independently gated",
+      "source": "sn74lvc2g125",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U25"
+    },
+    {
+      "sheet": "10_tx_gate",
+      "ref": "R33",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "TX_OE_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R33"
+    },
+    {
+      "sheet": "10_tx_gate",
+      "ref": "R34",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "FT_RX_OE_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R34"
+    },
+    {
+      "sheet": "10_tx_gate",
+      "ref": "C21",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C21"
+    },
+    {
+      "sheet": "10_tx_gate",
+      "ref": "C22",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C22"
+    },
+    {
+      "sheet": "11_phy_modes",
+      "ref": "U26",
+      "value": "SN74LVC2G125DCUR",
+      "footprint": "CANView:Package_SO__VSSOP-8_2.3x2mm_P0.5mm",
+      "original_footprint": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
+      "pins": {
+        "1": [
+          "1OE_N",
+          "input",
+          "FT_RX_OE_N"
+        ],
+        "2": [
+          "1A",
+          "input",
+          "STB1_REQ"
+        ],
+        "3": [
+          "2Y",
+          "tri_state",
+          "CAN2_STB"
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "2A",
+          "input",
+          "STB2_REQ"
+        ],
+        "6": [
+          "1Y",
+          "tri_state",
+          "CAN1_STB"
+        ],
+        "7": [
+          "2OE_N",
+          "input",
+          "FT_RX_OE_N"
+        ],
+        "8": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ]
+      },
+      "mpn": "SN74LVC2G125DCUR",
+      "spec": "Ioff inputs; pulls on PHY side enforce standby",
+      "source": "sn74lvc2g125",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U26"
+    },
+    {
+      "sheet": "11_phy_modes",
+      "ref": "U27",
+      "value": "SN74LVC1G04DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "A",
+          "input",
+          "AUTO_GOOD"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "FT_RX_OE_N"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G04DBVR",
+      "spec": "Ioff support",
+      "source": "sn74lvc1g04: DBV pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U27"
+    },
+    {
+      "sheet": "11_phy_modes",
+      "ref": "C23",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C23"
+    },
+    {
+      "sheet": "11_phy_modes",
+      "ref": "C24",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C24"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "U30",
+      "value": "TPS3431SDRBR",
+      "footprint": "CANView:TI_DRB0008A",
+      "original_footprint": "CANView:TI_DRB0008A",
+      "pins": {
+        "1": [
+          "VDD",
+          "power_in",
+          "PHY3V3"
+        ],
+        "2": [
+          "CWD",
+          "passive",
+          "WDT_C"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "PHY3V3"
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "SET1",
+          "input",
+          "PHY3V3"
+        ],
+        "6": [
+          "WDI",
+          "input",
+          "WD_PULSE"
+        ],
+        "7": [
+          "WDO_N",
+          "open_collector",
+          "WD_OK_N"
+        ],
+        "8": [
+          "ENOUT",
+          "open_collector",
+          null
+        ],
+        "9": [
+          "EP",
+          "power_in",
+          "GND"
+        ]
+      },
+      "mpn": "TPS3431SDRBR",
+      "spec": "External missing-pulse watchdog; falling-edge WDI; firmware scheduler heartbeat, never autonomous timer",
+      "source": "tps3431: pp3,6,9-11",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U30"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "C25",
+      "value": "1n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "WDT_C"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-1n-16V-C0G",
+      "spec": "16V; ±5%; C0G; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C25"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "C26",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C26"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "R35",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "WD_OK_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R35"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "U31",
+      "value": "SN74LVC1G11DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "A",
+          "input",
+          "WD_OK_N"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "B",
+          "input",
+          "SYS_RESET_N"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "ARM_CLEAR_N"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ],
+        "6": [
+          "C",
+          "input",
+          "AUTO_GOOD"
+        ]
+      },
+      "mpn": "SN74LVC1G11DCKR",
+      "spec": "3-input AND; Ioff support",
+      "source": "sn74lvc1g11: DCK pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U31"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "C27",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C27"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "U32",
+      "value": "SN74LVC1G74DCUR",
+      "footprint": "CANView:Package_SO__VSSOP-8_2.3x2mm_P0.5mm",
+      "original_footprint": "Package_SO:VSSOP-8_2.3x2mm_P0.5mm",
+      "pins": {
+        "1": [
+          "CLK",
+          "input",
+          "STM_ARM_EDGE"
+        ],
+        "2": [
+          "D",
+          "input",
+          "PHY3V3"
+        ],
+        "3": [
+          "Q_N",
+          "output",
+          null
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "Q",
+          "output",
+          "ARM_LATCH"
+        ],
+        "6": [
+          "CLR_N",
+          "input",
+          "ARM_CLEAR_N"
+        ],
+        "7": [
+          "PRE_N",
+          "input",
+          "PHY3V3"
+        ],
+        "8": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G74DCUR",
+      "spec": "Latched disarm after watchdog or power failure; no automatic re-arm",
+      "source": "sn74lvc1g74: p4 pin functions (Q=5, inverted Q=3) and asynchronous clear truth table",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U32"
+    },
+    {
+      "sheet": "12_watchdog_latch",
+      "ref": "C28",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C28"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "J30",
+      "value": "TX_ARM normally OPEN",
+      "footprint": "CANView:Connector_PinHeader_1.27mm__PinHeader_1x02_P1.27mm_Vertical",
+      "original_footprint": "Connector_PinHeader_1.27mm:PinHeader_1x02_P1.27mm_Vertical",
+      "pins": {
+        "1": [
+          "PHY3V3",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "TX_ARM",
+          "passive",
+          "TX_ARM"
+        ]
+      },
+      "mpn": "TX_ARM normally OPEN",
+      "spec": "Removable shunt; default absent. Installer-controlled TX arm, not user UI setting",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_J30"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "R36",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "TX_ARM"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_R36"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "U33",
+      "value": "SN74LVC1G11DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "A",
+          "input",
+          "ARM_LATCH"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "B",
+          "input",
+          "TX_ARM"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "TX_PERMIT"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ],
+        "6": [
+          "C",
+          "input",
+          "SYS_RESET_N"
+        ]
+      },
+      "mpn": "SN74LVC1G11DCKR",
+      "spec": "3-input AND; Ioff support",
+      "source": "sn74lvc1g11: DCK pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U33"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "C29",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C29"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "U34",
+      "value": "SN74LVC1G04DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "A",
+          "input",
+          "TX_PERMIT"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "TX_OE_N"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "PHY3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G04DBVR",
+      "spec": "Ioff support",
+      "source": "sn74lvc1g04: DBV pin functions",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U34"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "C30",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PHY3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C30"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "U35",
+      "value": "SN74LVC2G17DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "1A",
+          "input",
+          "TX_PERMIT"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "2A",
+          "input",
+          "AUTO_GOOD"
+        ],
+        "4": [
+          "2Y",
+          "output",
+          "AUTO_GOOD_MCU"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "6": [
+          "1Y",
+          "output",
+          "GATE_SENSE"
+        ]
+      },
+      "mpn": "SN74LVC2G17DCKR",
+      "spec": "Ioff supply-domain sense isolation",
+      "source": "sn74lvc2g17",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_U35"
+    },
+    {
+      "sheet": "13_arm_switch",
+      "ref": "C31",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_communicator_C31"
+    }
+  ]
+}

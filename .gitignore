@@ -19,4 +19,10 @@ firmware/**/.idf_tools/
 provisioning/
 captures/
 artifacts/
+.tools/
+hardware/**/fp-info-cache
+hardware/**/*-backups/
+hardware/**/*.kicad_prl
+hardware/**/~*.lck
+tools/hardware/__pycache__/
 evidence/private/

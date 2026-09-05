@@ -1,0 +1,130 @@
+{
+  "retrieved": "2026-09-05",
+  "documents": [
+    {
+      "id": "abracon-abm8",
+      "url": "https://abracon.com/Resonators/abm8.pdf",
+      "use": "16MHz crystal CL18pF, package, load and drive limits",
+      "file": "hardware/references/pdf/abracon-abm8.pdf",
+      "bytes": 1535935,
+      "sha256": "564ac331d8bf38b4ae1222444b0d9cfea3a6ba29148a8be906b2e0ffe40471d8"
+    },
+    {
+      "id": "esd2can24",
+      "url": "https://www.ti.com/lit/ds/symlink/esd2can24-q1.pdf",
+      "use": "CAN port transient protection, pinout and capacitance",
+      "file": "hardware/references/pdf/esd2can24.pdf",
+      "bytes": 2091693,
+      "sha256": "305b0aafdec918e96476fdf7a385cd2143e8b7664383842160c3ef1522d2bc5e"
+    },
+    {
+      "id": "esp32s3-mini",
+      "url": "https://documentation.espressif.com/esp32-s3-mini-1_mini-1u_datasheet_en.pdf",
+      "use": "N4R2 module pins, reference circuit and land pattern",
+      "file": "hardware/references/pdf/esp32s3-mini.pdf",
+      "bytes": 1338916,
+      "sha256": "4d4b7f1c17b484c627aaa0f806566c48a6124a8e466c6d21d99210e6eacdef04"
+    },
+    {
+      "id": "max3055",
+      "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/max3054-max3056.pdf",
+      "download_url": "https://docs.ampnuts.ru/maximintegrated.com.datasheet/MAX3054-MAX3056.pdf",
+      "use": "fault-tolerant CAN pin functions, BATT/WAKE/INH, distributed termination; manufacturer PDF Rev2 mirror",
+      "file": "hardware/references/pdf/max3055.pdf",
+      "bytes": 1582093,
+      "sha256": "d0710659e5fe2293925bcbb73de85d6dfe1b1437f6676d1d8100b8f1506b37b1"
+    },
+    {
+      "id": "sn74lvc125a",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lvc125a.pdf",
+      "use": "tri-state TX gate pin functions, default OE pull-up",
+      "file": "hardware/references/pdf/sn74lvc125a.pdf",
+      "bytes": 2668579,
+      "sha256": "430357530e5f1e7de9c255273f777284de0a91254cc3a241479c1658738e1c8d"
+    },
+    {
+      "id": "sn74lvc1g04",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf",
+      "use": "active-low permit conversion",
+      "file": "hardware/references/pdf/sn74lvc1g04.pdf",
+      "bytes": 2748219,
+      "sha256": "ac04a53de979125799e57ea5a6dff4138fe53e0eceebe45c31f57523669887d5"
+    },
+    {
+      "id": "sn74lvc1g11",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lvc1g11.pdf",
+      "use": "hardware permit AND gate",
+      "file": "hardware/references/pdf/sn74lvc1g11.pdf",
+      "bytes": 2242255,
+      "sha256": "ffd953703273b43844eae23cfbf31cfc801a3b9443f2c863d49dde62f5a9232b"
+    },
+    {
+      "id": "sn74lvc1g74",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lvc1g74.pdf",
+      "use": "latched watchdog disarm; p4 Q5/Qbar3; async clear truth table",
+      "file": "hardware/references/pdf/sn74lvc1g74.pdf",
+      "bytes": 1427201,
+      "sha256": "e46a5a867fec742290000dca5ed3b291535f3c4418ef2ae267acc4ab51b26d8a"
+    },
+    {
+      "id": "sn74lvc2g125",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lvc2g125.pdf",
+      "use": "Ioff domain isolation, OE default and pin functions p4",
+      "file": "hardware/references/pdf/sn74lvc2g125.pdf",
+      "bytes": 813417,
+      "sha256": "0592da7d851d40f70a2c500a88553d33883cfb37a606a205f1c95422c050452b"
+    },
+    {
+      "id": "sn74lvc2g17",
+      "url": "https://www.ti.com/lit/ds/symlink/sn74lvc2g17.pdf",
+      "use": "MAX3055 RXD/ERR 5V-tolerant Ioff receivers",
+      "file": "hardware/references/pdf/sn74lvc2g17.pdf",
+      "bytes": 1888823,
+      "sha256": "624dbe55679d2fed4123b0d7708cd0d295efcc78de395e71a0caf5cd13cbc216"
+    },
+    {
+      "id": "stm32g474",
+      "url": "https://www.st.com/resource/en/datasheet/stm32g474ce.pdf",
+      "download_url": "https://www.datasheets.com/stmicroelectronics/stm32g474cet6/datasheet.pdf",
+      "use": "UFQFPN48 pin/AF, electrical limits, package; DS12288 Rev6 manufacturer PDF mirror",
+      "file": "hardware/references/pdf/stm32g474.pdf",
+      "bytes": 2620123,
+      "sha256": "d29552cb81222a0a6604517e28f66ec523c7853aec1b9cbfb405b52fe5ceeb62"
+    },
+    {
+      "id": "tcan1046-evm",
+      "url": "https://www.ti.com/lit/ug/sllu355/sllu355.pdf",
+      "use": "CAN FD termination and bypass reference",
+      "file": "hardware/references/pdf/tcan1046-evm.pdf",
+      "bytes": 823450,
+      "sha256": "4c760fcc5598acb09d5f91693b68cf3f8bfe0a2023ddca35caef246863cba837"
+    },
+    {
+      "id": "tcan1046av",
+      "url": "https://www.ti.com/lit/ds/symlink/tcan1046av-q1.pdf",
+      "use": "PHY supply, pin functions, standby and protection",
+      "file": "hardware/references/pdf/tcan1046av.pdf",
+      "bytes": 2432982,
+      "sha256": "4a5ed78f3e24462929ccdcc103eec074014a3f2ff412944ee20aceebe54e24ed"
+    },
+    {
+      "id": "tps3431",
+      "url": "https://www.ti.com/lit/ds/symlink/tps3431.pdf",
+      "use": "external watchdog timing, WDO startup behavior",
+      "file": "hardware/references/pdf/tps3431.pdf",
+      "bytes": 1774216,
+      "sha256": "99bf5dbfffe06e8f85d9a86cfb777a0151e85b4a103033bc025f4897a0bdc6f3"
+    },
+    {
+      "id": "waveshare-controller",
+      "url": "https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-3.5/ESP32-S3-Touch-LCD-3.5-Schematic.pdf",
+      "use": "32-pin header, audio/camera GPIO and RTC power",
+      "file": "hardware/references/pdf/waveshare-controller.pdf",
+      "bytes": 1051098,
+      "sha256": "1fc6459d66b420605c1e667ce47ff73adc80cdbed42501d58f0d773f4fd7cfcc"
+    }
+  ],
+  "failures": [
+    "stm32g4-hardware: The read operation timed out"
+  ]
+}

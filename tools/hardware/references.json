@@ -1,0 +1,18 @@
+[
+  {"id":"stm32g474", "url":"https://www.st.com/resource/en/datasheet/stm32g474ce.pdf", "download_url":"https://www.datasheets.com/stmicroelectronics/stm32g474cet6/datasheet.pdf", "use":"UFQFPN48 pin/AF, electrical limits, package; DS12288 Rev6 manufacturer PDF mirror"},
+  {"id":"stm32g4-hardware", "url":"https://www.st.com/resource/en/application_note/dm00442716-getting-started-with-stm32g4-series-hardware-development-boards-stmicroelectronics.pdf", "use":"supply decoupling, HSE, reset, debug"},
+  {"id":"esp32s3-mini", "url":"https://documentation.espressif.com/esp32-s3-mini-1_mini-1u_datasheet_en.pdf", "use":"N4R2 module pins, reference circuit and land pattern"},
+  {"id":"tcan1046av", "url":"https://www.ti.com/lit/ds/symlink/tcan1046av-q1.pdf", "use":"PHY supply, pin functions, standby and protection"},
+  {"id":"tcan1046-evm", "url":"https://www.ti.com/lit/ug/sllu355/sllu355.pdf", "use":"CAN FD termination and bypass reference"},
+  {"id":"max3055", "url":"https://www.analog.com/media/en/technical-documentation/data-sheets/max3054-max3056.pdf", "download_url":"https://docs.ampnuts.ru/maximintegrated.com.datasheet/MAX3054-MAX3056.pdf", "use":"fault-tolerant CAN pin functions, BATT/WAKE/INH, distributed termination; manufacturer PDF Rev2 mirror"},
+  {"id":"sn74lvc125a", "url":"https://www.ti.com/lit/ds/symlink/sn74lvc125a.pdf", "use":"tri-state TX gate pin functions, default OE pull-up"},
+  {"id":"sn74lvc2g17", "url":"https://www.ti.com/lit/ds/symlink/sn74lvc2g17.pdf", "use":"MAX3055 RXD/ERR 5V-tolerant Ioff receivers"},
+  {"id":"tps3431", "url":"https://www.ti.com/lit/ds/symlink/tps3431.pdf", "use":"external watchdog timing, WDO startup behavior"},
+  {"id":"sn74lvc1g11", "url":"https://www.ti.com/lit/ds/symlink/sn74lvc1g11.pdf", "use":"hardware permit AND gate"},
+  {"id":"sn74lvc1g04", "url":"https://www.ti.com/lit/ds/symlink/sn74lvc1g04.pdf", "use":"active-low permit conversion"},
+  {"id":"waveshare-controller", "url":"https://files.waveshare.com/wiki/ESP32-S3-Touch-LCD-3.5/ESP32-S3-Touch-LCD-3.5-Schematic.pdf", "use":"32-pin header, audio/camera GPIO and RTC power"},
+  {"id":"sn74lvc2g125", "url":"https://www.ti.com/lit/ds/symlink/sn74lvc2g125.pdf", "use":"Ioff domain isolation, OE default and pin functions p4"},
+  {"id":"sn74lvc1g74", "url":"https://www.ti.com/lit/ds/symlink/sn74lvc1g74.pdf", "use":"latched watchdog disarm; p4 Q5/Qbar3; async clear truth table"},
+  {"id":"esd2can24", "url":"https://www.ti.com/lit/ds/symlink/esd2can24-q1.pdf", "use":"CAN port transient protection, pinout and capacitance"},
+  {"id":"abracon-abm8", "url":"https://abracon.com/Resonators/abm8.pdf", "use":"16MHz crystal CL18pF, package, load and drive limits"}
+]
