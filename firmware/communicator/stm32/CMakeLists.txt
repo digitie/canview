@@ -16,6 +16,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 
 set(STM32CUBE_G4_ROOT "" CACHE PATH "Path to a pinned STM32CubeG4 checkout")
 if(NOT STM32CUBE_G4_ROOT)
@@ -51,11 +52,17 @@ endforeach()
 set(CANVIEW_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 include("${CANVIEW_ROOT}/cmake/CanviewWarnings.cmake")
 set(TARGET_NAME canview-communicator-stm32)
+set(CANVIEW_BUILD_MODE "CAPTURE_ONLY" CACHE STRING "Only capture-only bench is supported")
+if(NOT CANVIEW_BUILD_MODE STREQUAL "CAPTURE_ONLY")
+    message(FATAL_ERROR "T-102a supports CAPTURE_ONLY only; no CAN TX implementation is linked")
+endif()
 
 add_executable(${TARGET_NAME}
-    "${CANVIEW_ROOT}/firmware/app/startup.c"
+    app/main.c
     bsp/board.c
+    bsp/core.c
     platform/stm32g474/safe_gpio.c
+    platform/stm32g474/core_hw.c
     platform/stm32g474/syscalls.c
     "${STARTUP_SOURCE}"
     "${SYSTEM_SOURCE}"
@@ -69,6 +76,7 @@ target_compile_definitions(${TARGET_NAME} PRIVATE
 target_include_directories(${TARGET_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/bsp"
     "${CMAKE_CURRENT_SOURCE_DIR}/platform/stm32g474"
+    "${CMAKE_CURRENT_SOURCE_DIR}/interface"
     "${CANVIEW_ROOT}/firmware/interface"
 )
 target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
@@ -85,13 +93,14 @@ set(MCU_OPTIONS
 
 add_subdirectory("${CANVIEW_ROOT}/shared/protocol" "${CMAKE_CURRENT_BINARY_DIR}/shared-protocol")
 add_subdirectory("${CANVIEW_ROOT}/shared/app" "${CMAKE_CURRENT_BINARY_DIR}/shared-app")
-foreach(core canview_wire canview_app)
+add_subdirectory(module)
+foreach(core canview_wire canview_app canview_stm_core)
     target_compile_options(${core} PRIVATE ${MCU_OPTIONS} -ffunction-sections -fdata-sections -fstack-usage)
 endforeach()
-target_link_libraries(${TARGET_NAME} PRIVATE canview_wire canview_app)
+target_link_libraries(${TARGET_NAME} PRIVATE canview_wire canview_app canview_stm_core)
 # Keep vendor implementation outside the project's ISO warning contract.
 set_source_files_properties(
-    "${CANVIEW_ROOT}/firmware/app/startup.c" bsp/board.c platform/stm32g474/safe_gpio.c
+    app/main.c bsp/board.c bsp/core.c platform/stm32g474/safe_gpio.c platform/stm32g474/core_hw.c
     platform/stm32g474/syscalls.c
     PROPERTIES COMPILE_OPTIONS "-Werror;-Wpedantic;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef")
 
@@ -112,6 +121,9 @@ target_compile_options(${TARGET_NAME} PRIVATE
 )
 
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_FLASH.ld")
+set_property(TARGET ${TARGET_NAME} APPEND PROPERTY LINK_DEPENDS
+    "${LINKER_SCRIPT}" "${CANVIEW_ROOT}/tools/check_stm32_core.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/register_model.h")
 target_link_options(${TARGET_NAME} PRIVATE
     ${MCU_OPTIONS}
     -T${LINKER_SCRIPT}
@@ -135,5 +147,8 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         $<TARGET_FILE:${TARGET_NAME}>
         ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.bin
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${TARGET_NAME}>
+    COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/check_stm32_core.py"
+        --elf $<TARGET_FILE:${TARGET_NAME}> --compiler "${CMAKE_C_COMPILER}"
+        --sdk "${STM32CUBE_G4_ROOT}"
     COMMENT "Generating HEX/BIN and reporting image size"
 )

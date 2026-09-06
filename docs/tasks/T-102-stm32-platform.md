@@ -3,12 +3,14 @@
 - 상태: `BLOCKED`
 - 우선순위: `P0`
 - Gate: `G1/G2`
-- 선행: `T-001`
+- 선행: `T-001`, `T-102a`
 - 병렬 가능: `T-100`, `T-200`, `T-300`
 
 ## 목표
 
 현재 safe GPIO 후 `__WFI()`만 하는 scaffold를 production firmware 기반으로 확장하되 CAN TX는 열지 않는다.
+
+최소 boot/fault image·host fixture·target compile은 [T-102a](T-102a-stm32-core-bench.md)로 먼저 구현한다. 이 하위 task의 완료만으로 아래 G1/G2·실제 clock/reset/UART diagnostic·watermark 수용 기준을 완료 처리하지 않는다.
 
 ## 구현 범위
 

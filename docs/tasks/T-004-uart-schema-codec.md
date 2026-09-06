@@ -1,6 +1,6 @@
 # T-004 Communicator UART v1.0 schema와 codec
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - branch: `agent/codex-t004-uart-schema-codec`
 - PR: [#20](https://github.com/digitie/canview/pull/20)
 - 우선순위: `P0`
@@ -84,4 +84,4 @@ UART error가 vehicle command retry로 직접 변환되면 안 된다. link resy
 - [최종 68개 host 검증·coverage·target binary SHA-256](../reviews/adversarial/evidence/2026-09-07-T-004-validation-final.md)
 - [방향당 34.56GB 실제 C parser soak](../reviews/adversarial/evidence/2026-09-07-T-004-soak-final.md)
 
-수용 기준 시험은 완료했으며 reviewer 최종 판정·원격 CI·PR merge 완료 전까지 상태는 IN_PROGRESS다. physical/HIL gate는 위 범위 경계를 따른다.
+수용 기준·2인 코드 finding closure·최신 원격 CI 10건을 통과한 뒤 PR #20이 2026-09-07 KST `caafc242568e43a34dcf4cdf977cdb914c75290e`로 main에 merge됐다. [동일 커밋 전체 clean build와 CI](../reviews/adversarial/evidence/2026-09-07-T-004-merge.md)를 추가 보존한다. physical/HIL gate는 위 범위 경계를 따른다.

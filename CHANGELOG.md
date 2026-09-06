@@ -6,6 +6,8 @@
 
 ### Added
 
+- STM32 최소 boot/fault bench core에 bounded HSE/PLL·IWDG·TIM2/SysTick, 진척 감시 scheduler·고정 queue와 host fault 검증을 추가했다. 실제 UART/CAN/OTA·보드 G1/G2는 포함하지 않는다.
+
 - 네 MCU의 안전 idle/BSP/platform 프로젝트, MCU 독립 C99 framing·CRC·COBS·classic CAN batch·sequence window를 추가했다. 보드 pin/config 생성, 넓은 host 시험·coverage·strict API 문서를 포함하며 실제 통신·차량 송신·OTA 기능은 후속 구현이다.
 
 - 전체 계획 2차 대조용 요구사항 추적표와 누락된 OTA·PCB·오디오/SPORT evidence 작업 11개, task metadata/선행 DAG 검증을 추가했다. 제품 구현·차량 승인과 계획 완료를 분리했다.

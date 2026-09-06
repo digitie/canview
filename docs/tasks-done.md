@@ -2,6 +2,14 @@
 
 완료·종료 task를 newest-first로 이동해 기록한다. 설계 감사와 문서 구조 정리는 구현 task 완료 이력과 분리해 PR·journal에 기록한다.
 
+## 2026-09-07 T-004
+
+| ID | 상태 | 우선순위 | 작업 | 선행 |
+|---|---|---:|---|---|
+| [T-004](tasks/T-004-uart-schema-codec.md) | DONE | P0 | Communicator UART v1.0 schema와 codec | T-001, T-002 |
+
+PR [#20](https://github.com/digitie/canview/pull/20)은 `caafc24`로 main에 merge됐다. CTest Debug/Release/ASan 각각68/68, 실제 C parser69.12GB duplex soak, STM32/ESP32 전체 clean binary warning0, 2인 적대적 리뷰와 최신 원격 CI10건을 통과했다. [최종 merge evidence](reviews/adversarial/evidence/2026-09-07-T-004-merge.md)와 physical/HIL NOT_RUN 경계를 유지한다.
+
 ## 2026-09-06
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
