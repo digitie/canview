@@ -1,7 +1,7 @@
 # T-003 target build evidence
 
 - 실행 시각: 2026-09-07 KST
-- 기준 commit: `1780e0a512569e1a5c5c9c6cd5e15858f5792cc5`
+- 기준 commit: `6a076a3b0bcbd3b3615969f6f956efbf05c8c54c`
 - SDK: ESP-IDF `6.0.3`, STM32CubeG4 `1.6.3`, Arm GNU Toolchain `15.3.Rel1`
 - host tools: CMake `4.4.3`, Ninja `1.13.2`
 - SDK root: `C:\cv`; Arm GNU root: `C:\Users\digit\AppData\Local\CANView\toolchains\arm-gnu-toolchain-15.3.rel1`
@@ -35,9 +35,9 @@ idf.py -C <project> build
 |---|---|---|---:|---|
 | Communicator STM32 | debug | `firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin` | 1,348 | `b6088a39c3cc393be09c10c945b1e2739873965166c72dbee063f12fc99691cc` |
 | Communicator STM32 | release | `firmware/communicator/stm32/build/release/canview-communicator-stm32.bin` | 1,244 | `f6e264574b470e6bba48aa3bbfd411fc808c3f59cf815a1ec45750faae281c4b` |
-| Communicator ESP32-S3 | default | `firmware/communicator/esp32/build/canview_communicator_esp32.bin` | 160,048 | `7d464a752550db81af2fec64e9cc9a4bf6c82785a0002529b4fe1dd0b9a84eb7` |
-| Diagnostic Bridge ESP32-S3 | default | `firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin` | 155,648 | `0be2e77c71c316edb4c0ac50d64576ac13fa2e2ea16d6857549fa5f68ab702df` |
-| Controller ESP32-S3 | default | `firmware/controller/build/canview_controller.bin` | 159,712 | `816145bf7f35d30d24d66d096ba6a122c8ec3c277d03a75a153eeca21a0523bb` |
-| public IDF fixture ESP32-S3 | default | `tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin` | 144,816 | `0c619c19fa9667bac0c788d2d4669becfc241d5cc3c09a10032f6a3cd7da812d` |
+| Communicator ESP32-S3 | default | `firmware/communicator/esp32/build/canview_communicator_esp32.bin` | 160,048 | `a668a67d898b9d821613f9fd00be9e5a651e280a62fd74bf77ee63fc54b8c0a4` |
+| Diagnostic Bridge ESP32-S3 | default | `firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin` | 155,648 | `f4c5b7f44ed53c5ca132b1dffc7fc86832de6f70713bfcf14fa7d91a7a892ff5` |
+| Controller ESP32-S3 | default | `firmware/controller/build/canview_controller.bin` | 159,712 | `66569366631e3b5c3e81f02de04611c7a7bc83c32d3f4b27a839379f513b160e` |
+| public IDF fixture ESP32-S3 | default | `tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin` | 144,816 | `cecc171ede6d2f0f355ee12565853bb9f306cff05dd70cfb3586a6a1183883e2` |
 
 ESP-IDF가 출력하는 기존 `NOTE`/`HINT`는 compiler/linker warning이 아니며 strict scan의 warning/error 결과에 포함되지 않았다. 실제 board flash, reset/brownout fault injection, RF, CAN/HIL, 차량, production OTA signing/provisioning은 장비·승인 범위 밖이므로 `NOT_RUN`이다.
