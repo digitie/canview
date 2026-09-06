@@ -108,8 +108,9 @@ PR에 tool version, 전체 CI URL, test 수를 남긴다. 기존 직접 GCC test
 
 - 상태는 `IN_PROGRESS`를 유지한다. 수용 기준·evidence·리뷰는 닫혔지만, 이 저장소의 `DONE` 정의가 main merge까지 요구하므로 Draft PR 단계에서 임의로 `DONE`으로 바꾸지 않는다.
 - branch/PR: `agent/codex-firmware-foundation`, [Draft PR #17](https://github.com/digitie/canview/pull/17)
-- 최종 구현 head: `9cb76e2`; 최종 local target binary와 SHA-256은 [target evidence](../reviews/adversarial/evidence/2026-09-06-T-001-target-final.md)에 둔다.
+- 최종 구현 commit: `9cb76e2`; 문서 closure head: `5d5d82c`; 최종 local target binary와 SHA-256은 [target evidence](../reviews/adversarial/evidence/2026-09-06-T-001-target-final.md)에 둔다.
 - 독립 적대적 리뷰 최종 report: [T-001 report](../reviews/adversarial/2026-09-06-T-001.md). 최종 reviewer A/B P0–P3 finding은 0건이며 두 verdict는 `PASS`다.
 - 직접 설치 SDK: Arm GNU `15.3.Rel1`, ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`; Arm archive와 설치 root 전체 file inventory를 검증했다.
 - local 검증: host Debug/Release/Coverage CTest 각각 35/35, Python unittest 35, coverage gate, generated/budget/negative/plan/document/API gate PASS; STM32 debug/release와 ESP32-S3 세 이미지·public fixture clean build 및 warning/error scan PASS.
-- 제한: 실제 GitHub Actions 최종 run, 보드 flash, HIL, 차량 CAN TX, production OTA signing/provisioning은 별도 gate다.
+- 원격 검증: 최신 head의 [PR run 34023031785](https://github.com/digitie/canview/actions/runs/34023031785)와 [push run 34023029483](https://github.com/digitie/canview/actions/runs/34023029483)가 target 포함 전체 `success`다.
+- 제한: 보드 flash, HIL, 차량 CAN TX, production OTA signing/provisioning은 별도 gate다.
