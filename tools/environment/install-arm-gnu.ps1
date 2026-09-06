@@ -114,6 +114,16 @@ function Assert-ArchiveLayout {
         if ($outsideRoot.Count -gt 0) {
             throw "Arm GNU archive contains file entries outside the selected root '$selectedPrefix': $($outsideRoot -join ', ')"
         }
+        $selectedFiles = @($entryNames | Where-Object {
+            $_ -notmatch '/$' -and
+            ($selectedPrefix.Length -eq 0 -or $_.StartsWith("$selectedPrefix/", [System.StringComparison]::OrdinalIgnoreCase))
+        } | ForEach-Object {
+            if ($selectedPrefix.Length -eq 0) { $_ } else { $_.Substring($selectedPrefix.Length + 1) }
+        })
+        $duplicateFiles = @($selectedFiles | Group-Object | Where-Object Count -gt 1)
+        if ($duplicateFiles.Count -gt 0) {
+            throw "Arm GNU archive contains duplicate file entries: $($duplicateFiles.Name -join ', ')"
+        }
         Write-Host "Verified Arm GNU archive layout root prefix: '$($uniquePrefixes[0])'"
     } finally {
         $zip.Dispose()
