@@ -19,12 +19,16 @@ def main():
     for group, binary, sources in (
         ("portable", "canview-esp32-core-tests", ["module/health.c", "module/pool.c"]),
         ("sdk", "canview-esp32-runtime-tests", ["platform/esp32s3/runtime.c", "bsp/runtime.c"]),
+        ("app", "canview-esp32-app-tests", ["app/main.c"]),
     ):
         directory = report / group
         directory.mkdir()
         env = dict(os.environ, LLVM_PROFILE_FILE=str(directory / "%p.profraw"))
         executable = build / (binary + suffix)
-        subprocess.run([str(executable)] + (["all"] if group == "portable" else []), check=True, env=env)
+        arguments = (["open", "gpio", "watchdog", "memory", "pool", "wait", "late", "healthy"]
+                     if group == "app" else (["all"] if group == "portable" else [None]))
+        for argument in arguments:
+            subprocess.run([str(executable)] + ([] if argument is None else [argument]), check=True, env=env)
         profiles = sorted(directory.glob("*.profraw"))
         if not profiles:
             raise RuntimeError("instrumented profile 누락")

@@ -14,5 +14,5 @@ html_title = project
 nitpicky = True
 # C library types are supplied by the compiler, not duplicated API entities.
 nitpick_ignore = [("c:identifier", name) for name in
-                  ("uint8_t", "uint16_t", "uint32_t", "uint64_t", "size_t", "bool")]
+                  ("uint8_t", "uint16_t", "uint32_t", "uint64_t", "uintptr_t", "size_t", "bool")]
 exclude_patterns = []
