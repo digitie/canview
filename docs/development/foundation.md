@@ -16,7 +16,7 @@ cmake --build --preset host-release
 ctest --preset host-release
 ```
 
-첫 script는 tools/foundation-tools.json의 공식 URL/SHA256 archive를 .tools에 내려받고 현재 shell PATH만 설정한다.
+첫 script는 tools/foundation-tools.json의 공식 URL/SHA256 archive를 .tools에 내려받고 현재 shell PATH와 PYTHONUTF8=1을 설정한다. CTest의 Python 진입점도 -X utf8을 지정해 영문 Windows의 redirected 한글 진단이 cp1252 오류로 중단되지 않게 한다.
 Clang23.1.0 GNU frontend, CMake4.4.3, Ninja1.13.2, Doxygen1.18.0을 고정한다. LLVM archive는 약901 MB로 첫 설치 비용이 크다.
 download/digest/version 오류는 중단하고 기존 archive를 자동 삭제/덮어쓰지 않는다.
 PowerShell에서 명령을 개별 실행할 때도 각 exit code를 확인한다. CI는 모든 단계 실패를 즉시 전파한다.

@@ -7,7 +7,7 @@ endforeach()
 
 add_executable(canview-wire-vectors wire_vectors.c)
 target_link_libraries(canview-wire-vectors PRIVATE canview_wire canview_warnings)
-add_test(NAME foundation-golden COMMAND ${Python3_EXECUTABLE} -B
+add_test(NAME foundation-golden COMMAND ${Python3_EXECUTABLE} -X utf8 -B
     ${CMAKE_CURRENT_SOURCE_DIR}/test_vectors.py $<TARGET_FILE:canview-wire-vectors>)
 set(board_index 0)
 foreach(board controller communicator/esp32 diagnostic-bridge communicator/stm32)

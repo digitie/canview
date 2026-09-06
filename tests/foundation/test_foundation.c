@@ -81,14 +81,14 @@ static int test_envelope(void)
         bytes[0] ^= 1U;
         CHECK(canview_wire_envelope_decode(transport, bytes, 32U, &view) == CANVIEW_MALFORMED);
         bytes[0] ^= 1U;
-        bytes[2] += 1U;
+        bytes[2] ^= 0x80U;
         CHECK(canview_wire_envelope_decode(transport, bytes, 32U, &view) ==
               CANVIEW_UNSUPPORTED_VERSION);
-        bytes[2] -= 1U;
-        bytes[3] += 1U;
+        bytes[2] ^= 0x80U;
+        bytes[3] ^= 0x80U;
         CHECK(canview_wire_envelope_decode(transport, bytes, 32U, &view) ==
               CANVIEW_UNSUPPORTED_VERSION);
-        bytes[3] -= 1U;
+        bytes[3] ^= 0x80U;
         const size_t reserved = kind == 0U ? 26U : 10U;
         bytes[reserved] = 1U;
         CHECK(canview_wire_envelope_decode(transport, bytes, 32U, &view) == CANVIEW_MALFORMED);

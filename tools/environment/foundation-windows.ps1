@@ -2,6 +2,8 @@
 param([switch]$IncludeDocs)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+# Korean diagnostics must also work in redirected output on English Windows.
+$env:PYTHONUTF8 = "1"
 $taskRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $taskManifest = Get-Content -Raw -LiteralPath (Join-Path $taskRoot "tools/foundation-tools.json") | ConvertFrom-Json
 $names = @("llvm", "cmake", "ninja")
