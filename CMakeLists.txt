@@ -27,8 +27,8 @@ add_subdirectory(shared/app)
 include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests/foundation)
-    # Protocol ABI is generated from the v1.3 schema and tested independently
-    # before any runtime transport integration is enabled.
+    # ESP-NOW v1.3 and Communicator UART v1.0 ABIs are generated separately and
+    # tested independently before runtime transport integration is enabled.
     add_executable(canview-protocol-header-c11 tests/protocol/header_c11.c)
     set_target_properties(canview-protocol-header-c11 PROPERTIES
         C_STANDARD 11
@@ -57,11 +57,29 @@ if(BUILD_TESTING)
         add_test(NAME espnow-${scenario} COMMAND canview-espnow-tests ${scenario})
         set_tests_properties(espnow-${scenario} PROPERTIES TIMEOUT 60)
     endforeach()
+    add_executable(canview-uart-tests tests/protocol/test_uart.c)
+    target_include_directories(canview-uart-tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/protocol
+        ${PROJECT_SOURCE_DIR}/shared/protocol/include
+        ${PROJECT_SOURCE_DIR}/shared/interface)
+    target_link_libraries(canview-uart-tests PRIVATE canview_wire canview_warnings)
+    foreach(scenario matrix direction malformed stream long-stream soak-smoke payload-lifetime plan plan-boundaries command command-boundaries link link-boundaries limits session replay)
+        add_test(NAME uart-${scenario} COMMAND canview-uart-tests ${scenario})
+        set_tests_properties(uart-${scenario} PROPERTIES TIMEOUT 60)
+    endforeach()
     add_subdirectory(tests/automation)
     add_test(NAME generated-transport COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_transport.py --check)
     add_test(NAME generated-boards COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_boards.py --check)
     add_test(NAME generated-check COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_generated.py)
     add_test(NAME generated-protocol COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --check)
+    add_test(NAME generated-uart COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --schema
+        ${PROJECT_SOURCE_DIR}/protocol/schema/uart-v1.0.yaml --check)
+    add_test(NAME uart-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
+    add_test(NAME uart-fault-stream COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
+    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 300)
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)

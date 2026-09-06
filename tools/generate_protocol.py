@@ -2954,11 +2954,22 @@ def generate(write: bool) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--schema",
+        type=Path,
+        help="dispatch a schema-specific generator; UART v1.0 uses generate_uart_protocol.py",
+    )
     parser.add_argument("--check", action="store_true", help="fail if generated outputs are stale")
     parser.add_argument("--write", action="store_true", help="write generated outputs")
     args = parser.parse_args(argv)
     if args.check and args.write:
         parser.error("--check and --write are mutually exclusive")
+    if args.schema is not None:
+        from generate_uart_protocol import main as generate_uart_main
+
+        forwarded = ["--schema", str(args.schema)]
+        forwarded.append("--check" if args.check else "--write")
+        return generate_uart_main(forwarded)
     try:
         generate(write=not args.check)
     except (OSError, SchemaError, ValueError, KeyError) as exc:

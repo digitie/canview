@@ -1,5 +1,22 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-004 구현·검증 closure)
+
+UART 1.0 schema/generator·semantic payload 검증·COBS/CRC stream·plan transaction·command cache·link/session/replay를 구현했다. 적대적 리뷰에서 발견한 stale heartbeat/cache, 방향·auth 혼동, enqueue 전 replay commit, borrowed payload 수명, quota와 staging timeout을 수정하고 재시험했다. 동기 queue copy와 단일 worker 소유권을 공개 계약에 명시했다. 최초·중간 finding과 2인 post-fix 원문은 [T-004 통합 기록](reviews/adversarial/2026-09-07-T-004.md)에 모두 보존했다.
+
+- `3c6967a` 기준 Windows Debug/Release와 WSL Clang ASan+UBSan은 각각 68/68 PASS. UART function100%·line91.24%·branch79.12%, core coverage·schema·strict API docs도 PASS다.
+- C `soak-24h`는 양방향 합계 69,120,000,130 byte를 실제 decoder에 입력했고 315,103회 손상 주입과 guard/resync/counter 검사를 801.87초에 통과했다. 이는 4Mbps·8-N-1의 방향당 24시간 byte budget이며 실제 벽시계 24시간·실물 UART 시험이 아니다. Python virtual-time 시험만으로 full-rate를 주장했던 근거는 대체했다.
+- STM32 Debug/Release clean build와 ESP32 네 프로젝트 incremental build의 최종 바이너리·SHA-256·warning/error0을 [evidence](reviews/adversarial/evidence/2026-09-07-T-004-validation-final.md)에 기록했다. ESP 버전 문자열은 병행 문서 커밋 때문에 서로 다르며 단일 재현 bundle로 표시하지 않았다.
+- B 최종 T-004 PASS, A 최종 조건부 PASS의 physical 문구 구분을 반영했다. 코드 P0/P1은 남지 않았으며 원격 CI 완료 전 merge하지 않는다. PR #20 merge 후 DONE 기록을 갱신한다.
+- 최신 사용자 재개 요청에 따라 PR merge 후 후속 task를 계속한다. 실제 UART DMA/RTS/CTS·보드 flash·CAN/RF/HIL·production provisioning·차량은 NOT_RUN이다.
+
+## 2026-09-07 (codex, T-004 UART schema/codec 시작)
+
+T-003 PR #19가 `4ee017b`로 main에 merge된 것을 확인하고 `agent/codex-t004-uart-schema-codec`에서 T-004를 시작했다. T-004는 ESP-NOW tunnel이 아닌 Communicator ESP32↔STM32 내부 UART v1.0 semantic ABI, generated C header, fixed-buffer COBS/CRC codec/parser와 host fault simulation만 다룬다. UART DMA/실물 RTS/CTS, 보드 flash, CAN/HIL, recovery UART는 후속 task와 별도 gate다.
+
+- 직접 설치한 SDK 기준은 유지한다: ESP-IDF `6.0.3` (`C:\cv\esp-idf-6.0.3`), STM32CubeG4 `1.6.3` (`C:\cv\STM32CubeG4-1.6.3`), Arm GNU `15.3.Rel1`, CMake `4.4.3`, Ninja `1.13.2`.
+- 먼저 schema→generator→semantic codec→fault/negative test→host/target build 순으로 진행하고, draft PR에 작은 커밋을 원격 반영한다. 생성 ABI drift와 실제 target warning을 별도로 기록한다.
+
 ## 2026-09-07 (codex, T-003 ESP-NOW codec/session/QoS closure)
 
 T-002 merge `c18a8a5` 이후 branch `agent/codex-t003-espnow-codec-session`에서 T-003을 구현했다. 사용자 변경은 보존했으며, target SDK를 직접 설치·검증했다: ESP-IDF `6.0.3` (`C:\cv\esp-idf-6.0.3`), STM32CubeG4 `1.6.3` (`C:\cv\STM32CubeG4-1.6.3`), Arm GNU `15.3.Rel1`, CMake `4.4.3`, Ninja `1.13.2`.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 from pathlib import Path
 
@@ -23,9 +24,15 @@ def load_generator(name: str):
 def expected_outputs() -> dict[Path, str]:
     transport = load_generator("generate_transport")
     boards = load_generator("generate_boards")
+    uart = load_generator("generate_uart_protocol")
     transport_source = transport.SOURCE.read_bytes().replace(b"\r\n", b"\n")
+    uart_source = uart.canonical_schema_bytes(uart.SCHEMA_PATH)
     outputs: dict[Path, str] = {
         transport.OUTPUT: transport.render(transport_source),
+        uart.HEADER_PATH: uart.render(
+            uart.load_schema(uart.SCHEMA_PATH),
+            hashlib.sha256(uart_source).hexdigest(),
+        ),
     }
     outputs.update({ROOT / relative: content
                     for relative, content in boards.outputs().items()})

@@ -1,0 +1,721 @@
+{
+  "schema_version": 1,
+  "protocol": {
+    "name": "Communicator UART v1.0",
+    "major": 1,
+    "minor": 0,
+    "header_size": 32,
+    "max_frame": 1024,
+    "max_payload": 992,
+    "max_encoded": 1029,
+    "baud": 4000000,
+    "crc": "CRC-32/ISO-HDLC"
+  },
+  "flags": {
+    "ACK_REQUIRED": 1,
+    "RESPONSE": 2,
+    "ERROR": 4,
+    "HIGH_PRIORITY": 8,
+    "SNAPSHOT": 16
+  },
+  "limits": {
+    "command_cache_capacity": 256,
+    "command_result_max": 82,
+    "command_cache_retention_ms": 60000,
+    "command_ttl_min_ms": 500,
+    "command_ttl_max_ms": 30000,
+    "plan_max_chunks": 16,
+    "plan_max_filters": 64,
+    "plan_chunk_max_filters": 16,
+    "plan_staging_timeout_ms": 2000,
+    "plan_min_records_per_second": 1,
+    "plan_max_records_per_second": 200,
+    "plan_min_bytes_per_second": 512,
+    "plan_max_bytes_per_second": 20000,
+    "can_batch_max_records": 12,
+    "can_id_stats_max_records": 5,
+    "config_max_records": 25,
+    "diagnostic_counter_max_records": 12
+  },
+  "enums": {
+    "capture_action": {
+      "ARM": 1,
+      "START": 2,
+      "STOP": 3,
+      "CANCEL": 4
+    },
+    "plan_operation": {
+      "BEGIN": 1,
+      "CHUNK": 2,
+      "COMMIT": 3,
+      "ABORT": 4
+    }
+  },
+  "messages": [
+    {
+      "id": 1,
+      "name": "LINK_HELLO",
+      "direction": "BOTH",
+      "qos": "LINK",
+      "supported": true,
+      "allowed_flags": 0,
+      "required_flags": 0,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_link_hello_payload_t",
+        "size": 72,
+        "fields": [
+          {"name": "boot_id", "c_name": "boot_id_le", "type": "u64", "offset": 0},
+          {"name": "protocol_min_major", "type": "u8", "offset": 8},
+          {"name": "protocol_min_minor", "type": "u8", "offset": 9},
+          {"name": "protocol_max_major", "type": "u8", "offset": 10},
+          {"name": "protocol_max_minor", "type": "u8", "offset": 11},
+          {"name": "hardware_revision", "c_name": "hardware_revision_le", "type": "u16", "offset": 12},
+          {"name": "firmware_major", "c_name": "firmware_major_le", "type": "u16", "offset": 14},
+          {"name": "firmware_minor", "c_name": "firmware_minor_le", "type": "u16", "offset": 16},
+          {"name": "firmware_patch", "c_name": "firmware_patch_le", "type": "u16", "offset": 18},
+          {"name": "capability_bits", "c_name": "capability_bits_le", "type": "u64", "offset": 20},
+          {"name": "max_packet", "c_name": "max_packet_le", "type": "u16", "offset": 28},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 30, "reserved": true},
+          {"name": "build_id_digest", "type": "bytes", "length": 16, "offset": 32},
+          {"name": "device_id", "c_name": "device_id_le", "type": "u64", "offset": 48},
+          {"name": "capability_digest", "type": "bytes", "length": 16, "offset": 56}
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "LINK_HELLO_ACK",
+      "direction": "BOTH",
+      "qos": "LINK",
+      "supported": true,
+      "allowed_flags": 2,
+      "required_flags": 2,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_link_hello_ack_payload_t",
+        "size": 40,
+        "fields": [
+          {"name": "local_boot_id", "c_name": "local_boot_id_le", "type": "u64", "offset": 0},
+          {"name": "peer_boot_id", "c_name": "peer_boot_id_le", "type": "u64", "offset": 8},
+          {"name": "selected_major", "type": "u8", "offset": 16},
+          {"name": "selected_minor", "type": "u8", "offset": 17},
+          {"name": "result", "type": "u8", "offset": 18},
+          {"name": "reserved0", "type": "u8", "offset": 19, "reserved": true},
+          {"name": "capability_bits", "c_name": "capability_bits_le", "type": "u64", "offset": 20},
+          {"name": "max_packet", "c_name": "max_packet_le", "type": "u16", "offset": 28},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u16", "offset": 30, "reserved": true},
+          {"name": "negotiation_digest", "type": "bytes", "length": 8, "offset": 32}
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "name": "HEARTBEAT",
+      "direction": "BOTH",
+      "qos": "Q0",
+      "supported": true,
+      "allowed_flags": 16,
+      "required_flags": 0,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_heartbeat_payload_t",
+        "size": 48,
+        "fields": [
+          {"name": "boot_id", "c_name": "boot_id_le", "type": "u64", "offset": 0},
+          {"name": "uptime_us", "c_name": "uptime_us_le", "type": "u64", "offset": 8},
+          {"name": "link_state", "type": "u8", "offset": 16},
+          {"name": "flags", "type": "u8", "offset": 17},
+          {"name": "safety_queue_depth", "c_name": "safety_queue_depth_le", "type": "u16", "offset": 18},
+          {"name": "state_queue_depth", "c_name": "state_queue_depth_le", "type": "u16", "offset": 20},
+          {"name": "raw_queue_depth", "c_name": "raw_queue_depth_le", "type": "u16", "offset": 22},
+          {"name": "telemetry_dropped", "c_name": "telemetry_dropped_le", "type": "u32", "offset": 24},
+          {"name": "protocol_errors", "c_name": "protocol_errors_le", "type": "u32", "offset": 28},
+          {"name": "cts_blocked_ms", "c_name": "cts_blocked_ms_le", "type": "u32", "offset": 32},
+          {"name": "safety_inhibit", "c_name": "safety_inhibit_le", "type": "u16", "offset": 36},
+          {"name": "active_bus_mask", "type": "u8", "offset": 38},
+          {"name": "bus_error_mask", "type": "u8", "offset": 39},
+          {"name": "state_revision", "c_name": "state_revision_le", "type": "u32", "offset": 40},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u32", "offset": 44, "reserved": true}
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "name": "ACK",
+      "direction": "BOTH",
+      "qos": "LINK",
+      "supported": true,
+      "allowed_flags": 2,
+      "required_flags": 2,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_ack_payload_t",
+        "size": 20,
+        "fields": [
+          {"name": "acknowledged_sequence", "c_name": "acknowledged_sequence_le", "type": "u32", "offset": 0},
+          {"name": "detail", "c_name": "detail_le", "type": "u16", "offset": 4},
+          {"name": "status", "c_name": "status_le", "type": "u16", "offset": 6},
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 8},
+          {"name": "receiver_time_ms", "c_name": "receiver_time_ms_le", "type": "u32", "offset": 16}
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "name": "ERROR",
+      "direction": "BOTH",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 6,
+      "required_flags": 4,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_error_payload_t",
+        "size": 20,
+        "fields": [
+          {"name": "code", "c_name": "code_le", "type": "u16", "offset": 0},
+          {"name": "severity", "type": "u8", "offset": 2},
+          {"name": "origin", "type": "u8", "offset": 3},
+          {"name": "offending_message_type", "type": "u8", "offset": 4},
+          {"name": "reserved0", "type": "u8", "offset": 5, "reserved": true},
+          {"name": "detail", "c_name": "detail_le", "type": "u16", "offset": 6},
+          {"name": "offending_sequence", "c_name": "offending_sequence_le", "type": "u32", "offset": 8},
+          {"name": "retry_after_ms", "c_name": "retry_after_ms_le", "type": "u32", "offset": 12},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u32", "offset": 16, "reserved": true}
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "name": "CAN_RX_BATCH",
+      "direction": "STM_TO_ESP",
+      "qos": "Q0",
+      "supported": true,
+      "allowed_flags": 16,
+      "required_flags": 0,
+      "payload": {"kind": "can_batch", "count_max": 12, "prefix_size": 12, "record_size": 16, "max_size": 204}
+    },
+    {
+      "id": 17,
+      "name": "CAN_BUS_STATUS",
+      "direction": "STM_TO_ESP",
+      "qos": "Q0",
+      "supported": true,
+      "allowed_flags": 16,
+      "required_flags": 16,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_can_bus_status_payload_t",
+        "size": 28,
+        "fields": [
+          {"name": "bus_id", "type": "u8", "offset": 0},
+          {"name": "state", "type": "u8", "offset": 1},
+          {"name": "flags", "c_name": "flags_le", "type": "u16", "offset": 2},
+          {"name": "bitrate", "c_name": "bitrate_le", "type": "u32", "offset": 4},
+          {"name": "rx_error", "c_name": "rx_error_le", "type": "u16", "offset": 8},
+          {"name": "tx_error", "c_name": "tx_error_le", "type": "u16", "offset": 10},
+          {"name": "bus_off_count", "c_name": "bus_off_count_le", "type": "u32", "offset": 12},
+          {"name": "last_error_code", "c_name": "last_error_code_le", "type": "u16", "offset": 16},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 18, "reserved": true},
+          {"name": "timestamp_us", "c_name": "timestamp_us_le", "type": "u64", "offset": 20}
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "name": "SAFETY_SNAPSHOT",
+      "direction": "STM_TO_ESP",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 16,
+      "required_flags": 16,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_safety_snapshot_payload_t",
+        "size": 48,
+        "fields": [
+          {"name": "boot_id", "c_name": "boot_id_le", "type": "u64", "offset": 0},
+          {"name": "state_revision", "c_name": "state_revision_le", "type": "u32", "offset": 8},
+          {"name": "profile_revision", "c_name": "profile_revision_le", "type": "u32", "offset": 12},
+          {"name": "safety_flags", "c_name": "safety_flags_le", "type": "u32", "offset": 16},
+          {"name": "inhibit_reason", "c_name": "inhibit_reason_le", "type": "u16", "offset": 20},
+          {"name": "control_lease_state", "type": "u8", "offset": 22},
+          {"name": "tx_gate", "type": "u8", "offset": 23},
+          {"name": "active_bus_mask", "type": "u8", "offset": 24},
+          {"name": "bus_error_mask", "type": "u8", "offset": 25},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 26, "reserved": true},
+          {"name": "can_profile_id", "c_name": "can_profile_id_le", "type": "u32", "offset": 28},
+          {"name": "snapshot_time_us", "c_name": "snapshot_time_us_le", "type": "u64", "offset": 32},
+          {"name": "vehicle_state_digest", "type": "bytes", "length": 8, "offset": 40}
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "name": "CAN_TX_AUDIT",
+      "direction": "STM_TO_ESP",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 18,
+      "required_flags": 2,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_can_tx_audit_payload_t",
+        "size": 40,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "command_id", "c_name": "command_id_le", "type": "u16", "offset": 8},
+          {"name": "status", "type": "u8", "offset": 10},
+          {"name": "reserved0", "type": "u8", "offset": 11, "reserved": true},
+          {"name": "can_id", "c_name": "can_id_le", "type": "u32", "offset": 12},
+          {"name": "bus_id", "type": "u8", "offset": 16},
+          {"name": "dlc", "type": "u8", "offset": 17},
+          {"name": "flags", "c_name": "flags_le", "type": "u16", "offset": 18},
+          {"name": "tx_time_us", "c_name": "tx_time_us_le", "type": "u64", "offset": 20},
+          {"name": "safety_revision", "c_name": "safety_revision_le", "type": "u32", "offset": 28},
+          {"name": "feedback_revision", "c_name": "feedback_revision_le", "type": "u32", "offset": 32},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u32", "offset": 36, "reserved": true}
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "name": "CAN_ID_STATS",
+      "direction": "STM_TO_ESP",
+      "qos": "Q0",
+      "supported": true,
+      "allowed_flags": 16,
+      "required_flags": 16,
+      "payload": {
+        "kind": "bounded",
+        "c_type": "canview_uart_can_id_stats",
+        "count_field": "count",
+        "count_max": 5,
+        "prefix": {
+          "size": 8,
+          "c_type": "canview_uart_can_id_stats_prefix_t",
+          "fields": [
+            {"name": "window_end_ms", "c_name": "window_end_ms_le", "type": "u32", "offset": 0},
+            {"name": "count", "type": "u8", "offset": 4},
+            {"name": "part_index", "type": "u8", "offset": 5},
+            {"name": "part_count", "type": "u8", "offset": 6},
+            {"name": "reserved0", "type": "u8", "offset": 7, "reserved": true}
+          ]
+        },
+        "record": {
+          "size": 40,
+          "c_type": "canview_uart_can_id_stats_record_t",
+          "fields": [
+            {"name": "bus_id", "type": "u8", "offset": 0},
+            {"name": "flags_dlc", "type": "u8", "offset": 1},
+            {"name": "rate_tenth_hz", "c_name": "rate_tenth_hz_le", "type": "u16", "offset": 2},
+            {"name": "can_id", "c_name": "can_id_le", "type": "u32", "offset": 4},
+            {"name": "frame_count", "c_name": "frame_count_le", "type": "u32", "offset": 8},
+            {"name": "change_count", "c_name": "change_count_le", "type": "u32", "offset": 12},
+            {"name": "period_p50_us", "c_name": "period_p50_us_le", "type": "u32", "offset": 16},
+            {"name": "period_p95_us", "c_name": "period_p95_us_le", "type": "u32", "offset": 20},
+            {"name": "bit_change_mask", "c_name": "bit_change_mask_le", "type": "u64", "offset": 24},
+            {"name": "last_data", "type": "bytes", "length": 8, "offset": 32}
+          ]
+        }
+      }
+    },
+    {
+      "id": 21,
+      "name": "CAN_OBSERVER_PLAN",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "variants",
+        "operation_offset": 0,
+        "variants": [
+          {
+            "name": "BEGIN",
+            "value": 1,
+            "c_type": "canview_uart_observer_plan_begin_t",
+            "size": 32,
+            "fields": [
+              {"name": "operation", "type": "u8", "offset": 0},
+              {"name": "reserved0", "type": "bytes", "length": 3, "offset": 1, "reserved": true},
+              {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 4},
+              {"name": "plan_revision", "c_name": "plan_revision_le", "type": "u32", "offset": 12},
+              {"name": "expected_active_revision", "c_name": "expected_active_revision_le", "type": "u32", "offset": 16},
+              {"name": "total_chunks", "c_name": "total_chunks_le", "type": "u16", "offset": 20},
+              {"name": "filter_count", "c_name": "filter_count_le", "type": "u16", "offset": 22},
+              {"name": "max_records_per_second", "c_name": "max_records_per_second_le", "type": "u16", "offset": 24},
+              {"name": "max_bytes_per_second", "c_name": "max_bytes_per_second_le", "type": "u32", "offset": 26},
+              {"name": "bus_mask", "type": "u8", "offset": 30},
+              {"name": "reserved1", "type": "u8", "offset": 31, "reserved": true}
+            ]
+          },
+          {
+            "name": "CHUNK",
+            "value": 2,
+            "c_type": "canview_uart_observer_plan_chunk_t",
+            "kind": "bounded",
+            "count_field": "record_count",
+            "count_max": 16,
+            "prefix_size": 24,
+            "record_size": 12,
+            "fields": [
+              {"name": "operation", "type": "u8", "offset": 0},
+              {"name": "reserved0", "type": "bytes", "length": 3, "offset": 1, "reserved": true},
+              {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 4},
+              {"name": "plan_revision", "c_name": "plan_revision_le", "type": "u32", "offset": 12},
+              {"name": "chunk_index", "c_name": "chunk_index_le", "type": "u16", "offset": 16},
+              {"name": "chunk_count", "c_name": "chunk_count_le", "type": "u16", "offset": 18},
+              {"name": "record_count", "type": "u8", "offset": 20},
+              {"name": "reserved1", "type": "bytes", "length": 3, "offset": 21, "reserved": true}
+            ],
+            "record": {
+              "c_type": "canview_uart_observer_filter_record_t",
+              "size": 12,
+              "fields": [
+                {"name": "bus_id", "type": "u8", "offset": 0},
+                {"name": "flags", "type": "u8", "offset": 1},
+                {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 2, "reserved": true},
+                {"name": "can_id", "c_name": "can_id_le", "type": "u32", "offset": 4},
+                {"name": "can_mask", "c_name": "can_mask_le", "type": "u32", "offset": 8}
+              ]
+            }
+          },
+          {
+            "name": "COMMIT",
+            "value": 3,
+            "c_type": "canview_uart_observer_plan_commit_t",
+            "size": 48,
+            "fields": [
+              {"name": "operation", "type": "u8", "offset": 0},
+              {"name": "reserved0", "type": "bytes", "length": 3, "offset": 1, "reserved": true},
+              {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 4},
+              {"name": "plan_revision", "c_name": "plan_revision_le", "type": "u32", "offset": 12},
+              {"name": "plan_digest", "type": "bytes", "length": 32, "offset": 16}
+            ]
+          },
+          {
+            "name": "ABORT",
+            "value": 4,
+            "c_type": "canview_uart_observer_plan_abort_t",
+            "size": 20,
+            "fields": [
+              {"name": "operation", "type": "u8", "offset": 0},
+              {"name": "reserved0", "type": "bytes", "length": 3, "offset": 1, "reserved": true},
+              {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 4},
+              {"name": "plan_revision", "c_name": "plan_revision_le", "type": "u32", "offset": 12},
+              {"name": "reason", "c_name": "reason_le", "type": "u16", "offset": 16},
+              {"name": "reserved1", "c_name": "reserved1_le", "type": "u16", "offset": 18, "reserved": true}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "name": "CAN_CAPTURE_CONTROL",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_capture_control_payload_t",
+        "size": 28,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "capture_id", "c_name": "capture_id_le", "type": "u64", "offset": 8},
+          {"name": "action", "type": "u8", "offset": 16},
+          {"name": "reserved0", "type": "u8", "offset": 17, "reserved": true},
+          {"name": "flags", "c_name": "flags_le", "type": "u16", "offset": 18},
+          {"name": "requested_time_ms", "c_name": "requested_time_ms_le", "type": "u32", "offset": 20},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u32", "offset": 24, "reserved": true}
+        ]
+      }
+    },
+    {
+      "id": 23,
+      "name": "CAN_CAPTURE_STATUS",
+      "direction": "STM_TO_ESP",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 18,
+      "required_flags": 2,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_capture_status_payload_t",
+        "size": 44,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "capture_id", "c_name": "capture_id_le", "type": "u64", "offset": 8},
+          {"name": "state", "type": "u8", "offset": 16},
+          {"name": "reason", "c_name": "reason_le", "type": "u16", "offset": 17},
+          {"name": "bus_mask", "type": "u8", "offset": 19},
+          {"name": "accepted_records", "c_name": "accepted_records_le", "type": "u32", "offset": 20},
+          {"name": "dropped_records", "c_name": "dropped_records_le", "type": "u32", "offset": 24},
+          {"name": "stored_bytes", "c_name": "stored_bytes_le", "type": "u32", "offset": 28},
+          {"name": "remaining_ms", "c_name": "remaining_ms_le", "type": "u32", "offset": 32},
+          {"name": "effective_filter_revision", "c_name": "effective_filter_revision_le", "type": "u32", "offset": 36},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u32", "offset": 40, "reserved": true}
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "name": "CAN_EVENT_MARKER",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_event_marker_payload_t",
+        "size": 28,
+        "fields": [
+          {"name": "capture_id", "c_name": "capture_id_le", "type": "u64", "offset": 0},
+          {"name": "marker_id", "c_name": "marker_id_le", "type": "u32", "offset": 8},
+          {"name": "sender_time_ms", "c_name": "sender_time_ms_le", "type": "u32", "offset": 12},
+          {"name": "marker_kind", "c_name": "marker_kind_le", "type": "u16", "offset": 16},
+          {"name": "flags", "c_name": "flags_le", "type": "u16", "offset": 18},
+          {"name": "label_code", "c_name": "label_code_le", "type": "u16", "offset": 20},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 22, "reserved": true},
+          {"name": "time_uncertainty_us", "c_name": "time_uncertainty_us_le", "type": "u32", "offset": 24}
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "name": "COMMAND_REQUEST",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "suffix",
+        "c_type": "canview_uart_command_request_t",
+        "prefix_size": 104,
+        "suffix_name": "argument_tlv",
+        "suffix_max": 136,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "command_id", "c_name": "command_id_le", "type": "u16", "offset": 8},
+          {"name": "ttl_ms", "c_name": "ttl_ms_le", "type": "u16", "offset": 10},
+          {"name": "origin_device_id", "c_name": "origin_device_id_le", "type": "u64", "offset": 12},
+          {"name": "origin_boot_id", "c_name": "origin_boot_id_le", "type": "u64", "offset": 20},
+          {"name": "wireless_session_id", "c_name": "wireless_session_id_le", "type": "u32", "offset": 28},
+          {"name": "control_generation", "c_name": "control_generation_le", "type": "u32", "offset": 32},
+          {"name": "issued_at_controller_ms", "c_name": "issued_at_controller_ms_le", "type": "u32", "offset": 36},
+          {"name": "control_sync_generation", "c_name": "control_sync_generation_le", "type": "u32", "offset": 40},
+          {"name": "expected_state_revision", "c_name": "expected_state_revision_le", "type": "u32", "offset": 44},
+          {"name": "precondition_flags", "c_name": "precondition_flags_le", "type": "u32", "offset": 48},
+          {"name": "argument_tlv_length", "c_name": "argument_tlv_length_le", "type": "u16", "offset": 52},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 54, "reserved": true},
+          {"name": "canonical_argument_digest", "type": "bytes", "length": 32, "offset": 56},
+          {"name": "control_tag", "type": "bytes", "length": 16, "offset": 88}
+        ]
+      }
+    },
+    {
+      "id": 33,
+      "name": "COMMAND_RESULT",
+      "direction": "STM_TO_ESP",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 18,
+      "required_flags": 2,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_command_result_t",
+        "size": 82,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "command_id", "c_name": "command_id_le", "type": "u16", "offset": 8},
+          {"name": "stage", "type": "u8", "offset": 10},
+          {"name": "reserved0", "type": "u8", "offset": 11, "reserved": true},
+          {"name": "reason", "c_name": "reason_le", "type": "u16", "offset": 12},
+          {"name": "state_revision", "c_name": "state_revision_le", "type": "u32", "offset": 14},
+          {"name": "completed_time_ms", "c_name": "completed_time_ms_le", "type": "u32", "offset": 18},
+          {"name": "request_sequence", "c_name": "request_sequence_le", "type": "u32", "offset": 22},
+          {"name": "control_tag", "type": "bytes", "length": 16, "offset": 26},
+          {"name": "feedback_revision", "c_name": "feedback_revision_le", "type": "u32", "offset": 42},
+          {"name": "feedback_time_ms", "c_name": "feedback_time_ms_le", "type": "u32", "offset": 46},
+          {"name": "canonical_argument_digest", "type": "bytes", "length": 32, "offset": 50}
+        ]
+      }
+    },
+    {
+      "id": 34,
+      "name": "CONTROL_LEASE",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_control_lease_payload_t",
+        "size": 52,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "action", "type": "u8", "offset": 8},
+          {"name": "reserved0", "type": "bytes", "length": 3, "offset": 9, "reserved": true},
+          {"name": "requested_ms", "c_name": "requested_ms_le", "type": "u32", "offset": 12},
+          {"name": "lease_id", "c_name": "lease_id_le", "type": "u64", "offset": 16},
+          {"name": "requested_scope", "c_name": "requested_scope_le", "type": "u16", "offset": 24},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u16", "offset": 26, "reserved": true},
+          {"name": "expected_state_revision", "c_name": "expected_state_revision_le", "type": "u32", "offset": 28},
+          {"name": "control_generation", "c_name": "control_generation_le", "type": "u32", "offset": 32},
+          {"name": "control_tag", "type": "bytes", "length": 16, "offset": 36}
+        ]
+      }
+    },
+    {
+      "id": 48,
+      "name": "CONFIG_GET",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_config_get_payload_t",
+        "size": 24,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "expected_state_revision", "c_name": "expected_state_revision_le", "type": "u32", "offset": 8},
+          {"name": "schema_version", "c_name": "schema_version_le", "type": "u16", "offset": 12},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 14, "reserved": true},
+          {"name": "key", "c_name": "key_le", "type": "u16", "offset": 16},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u16", "offset": 18, "reserved": true},
+          {"name": "known_revision", "c_name": "known_revision_le", "type": "u32", "offset": 20}
+        ]
+      }
+    },
+    {
+      "id": 49,
+      "name": "CONFIG_SET",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "bounded",
+        "c_type": "canview_uart_config_batch",
+        "count_field": "count",
+        "count_max": 25,
+        "prefix": {
+          "size": 4,
+          "c_type": "canview_uart_config_batch_prefix_t",
+          "fields": [
+            {"name": "schema_version", "c_name": "schema_version_le", "type": "u16", "offset": 0},
+            {"name": "count", "type": "u8", "offset": 2},
+            {"name": "reserved0", "type": "u8", "offset": 3, "reserved": true}
+          ]
+        },
+        "record": {
+          "size": 8,
+          "c_type": "canview_uart_config_record_t",
+          "fields": [
+            {"name": "key", "c_name": "key_le", "type": "u16", "offset": 0},
+            {"name": "value_type", "type": "u8", "offset": 2},
+            {"name": "reserved0", "type": "u8", "offset": 3, "reserved": true},
+            {"name": "value_bits", "c_name": "value_bits_le", "type": "u32", "offset": 4}
+          ]
+        }
+      }
+    },
+    {
+      "id": 50,
+      "name": "CONFIG_RESULT",
+      "direction": "STM_TO_ESP",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 18,
+      "required_flags": 2,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_config_result_payload_t",
+        "size": 28,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "stage", "type": "u8", "offset": 8},
+          {"name": "applied_count", "type": "u8", "offset": 9},
+          {"name": "pending_count", "type": "u8", "offset": 10},
+          {"name": "reserved0", "type": "u8", "offset": 11, "reserved": true},
+          {"name": "reason", "c_name": "reason_le", "type": "u16", "offset": 12},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u16", "offset": 14, "reserved": true},
+          {"name": "state_revision", "c_name": "state_revision_le", "type": "u32", "offset": 16},
+          {"name": "completed_time_ms", "c_name": "completed_time_ms_le", "type": "u32", "offset": 20},
+          {"name": "detail", "c_name": "detail_le", "type": "u32", "offset": 24}
+        ]
+      }
+    },
+    {
+      "id": 64,
+      "name": "DIAGNOSTIC_COUNTERS",
+      "direction": "BOTH",
+      "qos": "Q0",
+      "supported": true,
+      "allowed_flags": 16,
+      "required_flags": 0,
+      "payload": {
+        "kind": "bounded",
+        "c_type": "canview_uart_diagnostic_counters",
+        "count_field": "count",
+        "count_max": 12,
+        "prefix": {
+          "size": 16,
+          "c_type": "canview_uart_diagnostic_counters_prefix_t",
+          "fields": [
+            {"name": "boot_id", "c_name": "boot_id_le", "type": "u64", "offset": 0},
+            {"name": "state_revision", "c_name": "state_revision_le", "type": "u32", "offset": 8},
+            {"name": "count", "type": "u8", "offset": 12},
+            {"name": "reserved0", "type": "bytes", "length": 3, "offset": 13, "reserved": true}
+          ]
+        },
+        "record": {
+          "size": 16,
+          "c_type": "canview_uart_diagnostic_counter_record_t",
+          "fields": [
+            {"name": "counter_id", "c_name": "counter_id_le", "type": "u16", "offset": 0},
+            {"name": "category", "type": "u8", "offset": 2},
+            {"name": "reserved0", "type": "u8", "offset": 3, "reserved": true},
+            {"name": "value", "c_name": "value_le", "type": "u64", "offset": 4},
+            {"name": "saturated", "type": "u8", "offset": 12},
+            {"name": "reserved1", "type": "bytes", "length": 3, "offset": 13, "reserved": true}
+          ]
+        }
+      }
+    },
+    {
+      "id": 80,
+      "name": "FIRMWARE_PREPARE",
+      "direction": "ESP_TO_STM",
+      "qos": "Q1",
+      "supported": false,
+      "allowed_flags": 9,
+      "required_flags": 1,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_firmware_prepare_payload_t",
+        "size": 36,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "target", "type": "u8", "offset": 8},
+          {"name": "action", "type": "u8", "offset": 9},
+          {"name": "reserved0", "c_name": "reserved0_le", "type": "u16", "offset": 10, "reserved": true},
+          {"name": "image_size", "c_name": "image_size_le", "type": "u32", "offset": 12},
+          {"name": "image_digest", "type": "bytes", "length": 16, "offset": 16},
+          {"name": "requested_generation", "c_name": "requested_generation_le", "type": "u32", "offset": 32}
+        ]
+      }
+    }
+  ]
+}
