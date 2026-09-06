@@ -1,11 +1,11 @@
 # T-002 ESP-NOW v1.3 schema와 생성 header 동결
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-001`
 - 후속: `T-003`, `T-005`, `T-200`, `T-300`, `T-400`
-- branch: `agent/codex-t002-espnow-schema`, Draft PR #18
+- branch: `agent/codex-t002-espnow-schema`, PR #18 merged as `c18a8a5`
 
 ## 목표
 
@@ -103,7 +103,7 @@ cmake --build --preset host-debug
 ctest --preset host-debug -R protocol-schema --output-on-failure
 ```
 
-`fb30b29e4e0ac27170b0ce8bb989e0d93e9d861a` 기준으로 generator/check, generated/negative/budget gate, Python schema 24/24, host Debug·Release·Coverage CTest 각 39/39, coverage 9/9와 core line/function 100%·branch 99.6296%를 재실행했다. 생성물은 15개 정상 frame, 6개 malformed, 4개 compatibility와 pairing contract를 포함한다. Windows checkout의 CRLF에도 generator digest와 text artifact가 동일하도록 canonical LF 회귀시험과 `.gitattributes` 정책을 포함한다. STM32 Debug/Release와 Communicator ESP32, Diagnostic Bridge, Controller, public component fixture의 clean target build와 warning/error scan은 현재 같은 commit에서 재실행 중이다. 최종 2인 post-fix reviewer verdict와 PR CI가 남아 있어 아직 `DONE`으로 표시하지 않는다.
+`fb30b29e4e0ac27170b0ce8bb989e0d93e9d861a` 기준으로 generator/check, generated/negative/budget gate, Python schema 24/24, host Debug·Release·Coverage CTest 각 39/39, coverage 9/9와 core line/function 100%·branch 99.6296%를 재실행했다. 생성물은 15개 정상 frame, 6개 malformed, 4개 compatibility와 pairing contract를 포함한다. Windows checkout의 CRLF에도 generator digest와 text artifact가 동일하도록 canonical LF 회귀시험과 `.gitattributes` 정책을 포함한다. STM32 Debug/Release와 Communicator ESP32, Diagnostic Bridge, Controller, public component fixture의 clean target build와 warning/error scan 0건을 확인했고, 최종 2인 post-fix reviewer verdict와 PR #18 CI도 통과했다. 상세 target artifact는 [T-002 target evidence](../reviews/adversarial/evidence/2026-09-06-T-002-target-final.md), 리뷰 disposition은 [T-002 adversarial review](../reviews/adversarial/2026-09-06-T-002.md)에 보존한다.
 
 T-002는 wire/schema ABI와 정적 policy oracle 범위다. request/response의 sequence·token·retry·duplicate·session에 대한 stateful correlation은 pending table과 runtime state machine이 필요한 T-003 수용 기준으로 이관하며, T-002에서 nonzero response correlation field와 static response shape만 고정한다.
 

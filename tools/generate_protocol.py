@@ -23,6 +23,8 @@ from typing import Any, Iterable, Mapping, Sequence
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "protocol" / "schema" / "espnow-v1.3.yaml"
 HEADER_PATH = ROOT / "protocol" / "canview_protocol.h"
+CONTRACT_HEADER_PATH = ROOT / "shared" / "protocol" / "include" / "canview_espnow_contract.h"
+CONTRACT_SOURCE_PATH = ROOT / "shared" / "protocol" / "src" / "canview_espnow_contract.c"
 GOLDEN_DIR = ROOT / "protocol" / "golden" / "espnow-v1.3"
 MALFORMED_DIR = GOLDEN_DIR / "malformed"
 COMPATIBILITY_DIR = GOLDEN_DIR / "compatibility"
@@ -993,6 +995,12 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
 
     _validate_tlv_policy(schema.get("tlv"), "tlv")
     _validate_tlv_policy(schema.get("command_argument_tlv"), "command_argument_tlv")
+    tlv_policy = schema["tlv"]
+    command_argument_tlv_policy = schema["command_argument_tlv"]
+    if (tlv_policy["header_size"] != command_argument_tlv_policy["header_size"] or
+            tlv_policy["critical_bit"] != command_argument_tlv_policy["critical_bit"] or
+            tlv_policy["max_nesting_depth"] != command_argument_tlv_policy["max_nesting_depth"]):
+        raise SchemaError("TLV policies must share wire framing and nesting rules")
 
     qos_values = {str(m.get("qos")) for m in schema["messages"]}
     if not qos_values.issubset(KNOWN_QOS):
@@ -1198,6 +1206,499 @@ def _render_enum(enum: Mapping[str, Any], macro_prefix: str | None = None) -> li
         )
     lines.append("")
     return lines
+
+
+def _contract_payload_regions(
+    message: Mapping[str, Any],
+) -> list[tuple[int, int, int, Sequence[Mapping[str, Any]]]]:
+    payload = message["payload"]
+    kind = str(payload["kind"])
+    if kind == "fixed":
+        return [(0, 0xFF, 0, payload["fields"])]
+    if kind == "bounded":
+        return [
+            (0, 0xFF, 0, payload["prefix"]["fields"]),
+            (1, 0xFF, int(payload["record"]["size"]), payload["record"]["fields"]),
+        ]
+    if kind in {"suffix", "tlv"}:
+        return [(0, 0xFF, 0, payload["prefix"]["fields"])]
+    if kind == "variants":
+        return [
+            (0, variant_index, 0, variant["fields"])
+            for variant_index, variant in enumerate(payload["variants"])
+        ]
+    raise SchemaError(f"unknown payload kind {kind!r}")
+
+
+def _contract_enum_values(schema: Mapping[str, Any], enum_name: str) -> list[int]:
+    for enum in schema["enums"]:
+        if enum.get("name") == enum_name:
+            return [int(value) for value in enum["values"].values()]
+    raise SchemaError(f"missing enum {enum_name}")
+
+
+def _contract_enum_mask(schema: Mapping[str, Any], enum_name: str) -> int:
+    return sum(value for value in _contract_enum_values(schema, enum_name))
+
+
+def _contract_role_mask(schema: Mapping[str, Any], roles: Sequence[str]) -> int:
+    values = next(enum["values"] for enum in schema["enums"] if enum.get("name") == "role")
+    return sum(1 << int(values[role]) for role in roles)
+
+
+def _contract_state_mask(schema: Mapping[str, Any], states: Sequence[str]) -> int:
+    values = next(enum["values"] for enum in schema["enums"] if enum.get("name") == "link_state")
+    return sum(1 << int(values[state]) for state in states)
+
+
+def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> tuple[str, str]:
+    payload_kinds = {"fixed": 0, "bounded": 1, "suffix": 2, "tlv": 3, "variants": 4}
+    qos_values = {"NONE": 0, "Q0": 1, "Q1": 2, "Q1_WINDOW": 3}
+    field_kinds = {"reserved": 0, "enum": 1, "bitmask": 2, "range": 3}
+    tlv_policy = schema["tlv"]
+    messages = {str(message["name"]): message for message in schema["messages"]}
+    frame_policy = schema["frame_policy"]
+    response_messages = set(frame_policy["response_messages"])
+    response_variants = {
+        (str(item["message"]), str(item["variant"]))
+        for item in frame_policy["response_variants"]
+    }
+    variant_policies = {
+        (str(item["message"]), str(item["variant"])): item
+        for item in frame_policy["variant_policies"]
+    }
+
+    tlv_rows: list[dict[str, Any]] = []
+    tlv_policy_rows: dict[str, tuple[int, int]] = {}
+
+    def add_tlv_policy(policy_name: str, policy: Mapping[str, Any]) -> tuple[int, int]:
+        existing = tlv_policy_rows.get(policy_name)
+        if existing is not None:
+            return existing
+        offset = len(tlv_rows)
+        for item in policy["types"]:
+            tlv_rows.append({
+                "type": int(item["value"]),
+                "size": int(item["size"]),
+                "singleton": 1 if item["singleton"] else 0,
+            })
+        result = (offset, len(policy["types"]))
+        tlv_policy_rows[policy_name] = result
+        return result
+
+    contract_rows: list[dict[str, Any]] = []
+    for message in schema["messages"]:
+        name = str(message["name"])
+        payload = message["payload"]
+        kind = str(payload["kind"])
+        minimum, maximum = payload_size_bounds(message)
+        prefix_size = 0
+        record_size = 0
+        count_offset = 0xFF
+        count_width = 0
+        length_offset = 0xFF
+        length_width = 0
+        count_max = 0
+        if kind == "bounded":
+            prefix = payload["prefix"]
+            prefix_size = int(prefix["size"])
+            record_size = int(payload["record"]["size"])
+            count_max = int(payload["count_max"])
+            count_field = next(field for field in prefix["fields"] if field["name"] == payload["count_field"])
+            count_offset = int(count_field["offset"])
+            count_width = _type_size(count_field)
+        elif kind in {"suffix", "tlv"}:
+            prefix_size = int(payload["prefix_size"])
+            if kind == "suffix":
+                length_field_name = str(
+                    payload.get("suffix_length_field") or f"{payload['suffix_name']}_length"
+                )
+                length_field = next(
+                    field for field in payload["prefix"]["fields"]
+                    if field["name"] == length_field_name
+                )
+                length_offset = int(length_field["offset"])
+                length_width = _type_size(length_field)
+        variants = payload.get("variants", []) if kind == "variants" else []
+        tlv_contract_index = 0
+        tlv_contract_count = 0
+        if kind == "tlv":
+            tlv_contract_index, tlv_contract_count = add_tlv_policy("tlv", schema["tlv"])
+        elif name == "COMMAND_REQUEST":
+            tlv_contract_index, tlv_contract_count = add_tlv_policy(
+                "command_argument_tlv", schema["command_argument_tlv"])
+        variant_sizes = [int(variant["size"]) for variant in variants]
+        variant_sender_masks = [
+            _contract_role_mask(schema, variant_policies[(name, str(variant["name"]))]["senders"])
+            if (name, str(variant["name"])) in variant_policies else 0
+            for variant in variants
+        ]
+        variant_receiver_masks = [
+            _contract_role_mask(schema, variant_policies[(name, str(variant["name"]))]["receivers"])
+            if (name, str(variant["name"])) in variant_policies else 0
+            for variant in variants
+        ]
+        variant_response_values = [
+            1 if (name, str(variant["name"])) in response_variants else 0
+            for variant in variants
+        ]
+        variant_ack_values = [
+            0 if (name, str(variant["name"])) in response_variants
+            else (1 if message["ack"] == "required" else 0)
+            for variant in variants
+        ]
+        while len(variant_sizes) < 2:
+            variant_sizes.append(0)
+            variant_sender_masks.append(0)
+            variant_receiver_masks.append(0)
+            variant_response_values.append(0)
+            variant_ack_values.append(0)
+        contract_rows.append({
+            "id": int(message["id"]),
+            "kind": payload_kinds[kind],
+            "qos": qos_values[str(message["qos"])],
+            "priority": int(message["priority"]),
+            "ack_required": 1 if message["ack"] == "required" else 0,
+            "broadcast": 1 if message["broadcast"] else 0,
+            "encrypted": 1 if message["encrypted"] else 0,
+            "response": 1 if name in response_messages else 0,
+            "fragment": 1 if name in set(frame_policy["fragment_messages"]) else 0,
+            "session_zero": 1 if name in set(frame_policy["session_zero_messages"]) else 0,
+            "authenticated_session_zero": 1 if name in set(frame_policy["authenticated_session_zero_messages"]) else 0,
+            "sender_mask": _contract_role_mask(schema, message["senders"]),
+            "receiver_mask": _contract_role_mask(schema, message["receivers"]),
+            "state_mask": _contract_state_mask(schema, message["states"]),
+            "minimum": minimum,
+            "maximum": maximum,
+            "prefix_size": prefix_size,
+            "record_size": record_size,
+            "count_max": count_max,
+            "count_offset": count_offset,
+            "count_width": count_width,
+            "length_offset": length_offset,
+            "length_width": length_width,
+            "variant_count": len(variants),
+            "variant_sizes": variant_sizes[:2],
+            "variant_sender_masks": variant_sender_masks[:2],
+            "variant_receiver_masks": variant_receiver_masks[:2],
+            "variant_response_values": variant_response_values[:2],
+            "variant_ack_values": variant_ack_values[:2],
+            "tlv_contract_index": tlv_contract_index,
+            "tlv_contract_count": tlv_contract_count,
+        })
+
+    raw_rules: list[dict[str, Any]] = []
+    allowed_values: list[int] = []
+    seen_rules: set[tuple[int, int, int, int, int]] = set()
+
+    def add_rule(
+        message_name: str,
+        field_name: str,
+        rule_kind: str,
+        *,
+        enum_name: str | None = None,
+        mask: int = 0,
+        minimum: int = 0,
+        maximum: int = 0,
+    ) -> None:
+        message = messages[message_name]
+        message_id = int(message["id"])
+        for region, variant_index, stride, fields in _contract_payload_regions(message):
+            for field in fields:
+                if str(field["name"]) != field_name:
+                    continue
+                field_offset = int(field["offset"])
+                rule_number = field_kinds[rule_kind]
+                key = (message_id, region, variant_index, rule_number, field_offset)
+                if key in seen_rules:
+                    continue
+                seen_rules.add(key)
+                values = _contract_enum_values(schema, enum_name) if enum_name else []
+                allowed_index = len(allowed_values)
+                allowed_values.extend(values)
+                raw_rules.append({
+                    "message_type": message_id,
+                    "region": region,
+                    "variant_index": variant_index,
+                    "kind": rule_number,
+                    "width": _type_size(field),
+                    "offset": field_offset,
+                    "stride": stride,
+                    "minimum": minimum,
+                    "maximum": maximum,
+                    "mask": mask,
+                    "allowed_index": allowed_index,
+                    "allowed_count": len(values),
+                })
+
+    for message in schema["messages"]:
+        for region, variant_index, _stride, fields in _contract_payload_regions(message):
+            del region, variant_index
+            for field in fields:
+                if field.get("reserved"):
+                    add_rule(str(message["name"]), str(field["name"]), "reserved")
+
+    semantic = schema["semantic_policy"]
+    for item in semantic["role_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "enum", enum_name="role")
+    for item in semantic["scope_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "bitmask", mask=_contract_enum_mask(schema, "control_scope"))
+    for item in semantic["command_id_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "enum", enum_name="command_id")
+    for item in semantic["config_key_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "enum", enum_name="config_key")
+    for item in semantic["enum_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "enum", enum_name=str(item["enum"]))
+    for item in semantic["record_enum_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "enum", enum_name=str(item["enum"]))
+    for item in semantic["bitmask_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "bitmask", mask=_contract_enum_mask(schema, str(item["enum"])))
+    for item in semantic["record_bitmask_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "bitmask", mask=_contract_enum_mask(schema, str(item["enum"])))
+    for item in semantic["fixed_bitmask_fields"]:
+        add_rule(str(item["message"]), str(item["field"]), "bitmask", mask=int(item["known_mask"]))
+    for item in semantic["range_fields"]:
+        add_rule(
+            str(item["message"]), str(item["field"]), "range",
+            minimum=int(item["minimum"]), maximum=int(item["maximum"]),
+        )
+
+    pairing_rows: list[dict[str, Any]] = []
+    for phase in schema["pairing_phases"]:
+        message_name = str(phase["message"])
+        message = messages[message_name]
+        field_offsets: list[tuple[int, int]] = []
+        for field_name in phase["canonical_fields"]:
+            matches = [
+                (int(field["offset"]), _type_size(field))
+                for _region, variant_index, _stride, fields in _contract_payload_regions(message)
+                for field in fields
+                if variant_index == 0xFF and str(field["name"]) == field_name
+            ]
+            if len(matches) != 1:
+                raise SchemaError(f"pairing canonical field is not unique: {message_name}.{field_name}")
+            field_offsets.append(matches[0])
+        if len(field_offsets) > 16:
+            raise SchemaError(f"too many pairing canonical fields: {message_name}")
+        pairing_rows.append({
+            "message_type": int(message["id"]),
+            "domain": str(phase["domain"]),
+            "field_offsets": field_offsets,
+        })
+
+    header = "\n".join([
+        "/* GENERATED FILE - DO NOT EDIT.",
+        " * Source: protocol/schema/espnow-v1.3.yaml",
+        " * Regenerate with: python tools/generate_protocol.py",
+        " * SPDX-License-Identifier: GPL-3.0-only */",
+        "#ifndef CANVIEW_ESPNOW_CONTRACT_H",
+        "#define CANVIEW_ESPNOW_CONTRACT_H",
+        "",
+        "#include <stddef.h>",
+        "#include <stdint.h>",
+        "",
+        f'#define CANVIEW_ESPNOW_CONTRACT_SCHEMA_SHA256 "{schema_digest}"',
+        "#define CANVIEW_ESPNOW_CONTRACT_VARIANT_NONE UINT8_C(0xFF)",
+        f"#define CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE UINT8_C({int(tlv_policy['header_size'])})",
+        f"#define CANVIEW_ESPNOW_CONTRACT_TLV_CRITICAL_BIT UINT16_C(0x{int(tlv_policy['critical_bit']):04X})",
+        "#define CANVIEW_ESPNOW_CONTRACT_TLV_VARIABLE_SIZE UINT16_MAX",
+        "",
+        "typedef enum {",
+        "    CANVIEW_CONTRACT_PAYLOAD_FIXED = 0,",
+        "    CANVIEW_CONTRACT_PAYLOAD_BOUNDED = 1,",
+        "    CANVIEW_CONTRACT_PAYLOAD_SUFFIX = 2,",
+        "    CANVIEW_CONTRACT_PAYLOAD_TLV = 3,",
+        "    CANVIEW_CONTRACT_PAYLOAD_VARIANTS = 4",
+        "} canview_contract_payload_kind_t;",
+        "",
+        "typedef enum {",
+        "    CANVIEW_CONTRACT_QOS_NONE = 0,",
+        "    CANVIEW_CONTRACT_QOS_0 = 1,",
+        "    CANVIEW_CONTRACT_QOS_1 = 2,",
+        "    CANVIEW_CONTRACT_QOS_1_WINDOW = 3",
+        "} canview_contract_qos_t;",
+        "",
+        "typedef enum {",
+        "    CANVIEW_CONTRACT_FIELD_RESERVED = 0,",
+        "    CANVIEW_CONTRACT_FIELD_ENUM = 1,",
+        "    CANVIEW_CONTRACT_FIELD_BITMASK = 2,",
+        "    CANVIEW_CONTRACT_FIELD_RANGE = 3",
+        "} canview_contract_field_kind_t;",
+        "",
+        "typedef struct {",
+        "    uint8_t message_type;",
+        "    uint8_t payload_kind;",
+        "    uint8_t qos;",
+        "    uint8_t priority;",
+        "    uint8_t ack_required;",
+        "    uint8_t broadcast;",
+        "    uint8_t encrypted;",
+        "    uint8_t response;",
+        "    uint8_t fragment;",
+        "    uint8_t session_zero;",
+        "    uint8_t authenticated_session_zero;",
+        "    uint8_t sender_role_mask;",
+        "    uint8_t receiver_role_mask;",
+        "    uint16_t state_mask;",
+        "    uint16_t payload_min;",
+        "    uint16_t payload_max;",
+        "    uint16_t prefix_size;",
+        "    uint16_t record_size;",
+        "    uint16_t count_max;",
+        "    uint8_t count_offset;",
+        "    uint8_t count_width;",
+        "    uint8_t length_offset;",
+        "    uint8_t length_width;",
+        "    uint8_t variant_count;",
+        "    uint16_t variant_sizes[2];",
+        "    uint8_t variant_sender_role_masks[2];",
+        "    uint8_t variant_receiver_role_masks[2];",
+        "    uint8_t variant_response[2];",
+        "    uint8_t variant_ack_required[2];",
+        "    uint16_t tlv_contract_index;",
+        "    uint8_t tlv_contract_count;",
+        "} canview_espnow_message_contract_t;",
+        "",
+        "typedef struct {",
+        "    uint16_t type;",
+        "    uint16_t size;",
+        "    uint8_t singleton;",
+        "} canview_espnow_tlv_contract_t;",
+        "",
+        "typedef struct {",
+        "    uint8_t message_type;",
+        "    uint8_t region;",
+        "    uint8_t variant_index;",
+        "    uint8_t kind;",
+        "    uint8_t width;",
+        "    uint16_t offset;",
+        "    uint16_t stride;",
+        "    uint32_t minimum;",
+        "    uint32_t maximum;",
+        "    uint32_t mask;",
+        "    uint16_t allowed_index;",
+        "    uint8_t allowed_count;",
+        "} canview_espnow_field_constraint_t;",
+        "",
+        "typedef struct {",
+        "    uint8_t message_type;",
+        "    const char *domain;",
+        "    uint8_t field_count;",
+        "    uint16_t offsets[16];",
+        "    uint16_t lengths[16];",
+        "} canview_espnow_pairing_contract_t;",
+        "",
+        "extern const canview_espnow_message_contract_t canview_espnow_message_contracts[];",
+        "extern const size_t canview_espnow_message_contract_count;",
+        "extern const canview_espnow_tlv_contract_t canview_espnow_tlv_contracts[];",
+        "extern const size_t canview_espnow_tlv_contract_count;",
+        "extern const canview_espnow_field_constraint_t canview_espnow_field_constraints[];",
+        "extern const size_t canview_espnow_field_constraint_count;",
+        "extern const uint32_t canview_espnow_allowed_values[];",
+        "extern const size_t canview_espnow_allowed_value_count;",
+        "extern const canview_espnow_pairing_contract_t canview_espnow_pairing_contracts[];",
+        "extern const size_t canview_espnow_pairing_contract_count;",
+        "",
+        "#endif /* CANVIEW_ESPNOW_CONTRACT_H */",
+        "",
+    ])
+
+    def c_list(values: Sequence[int], suffix: str = "U") -> str:
+        return ", ".join(f"{int(value)}{suffix}" for value in values) if values else "0U"
+
+    source_lines = [
+        "/* GENERATED FILE - DO NOT EDIT.",
+        " * Source: protocol/schema/espnow-v1.3.yaml",
+        " * Regenerate with: python tools/generate_protocol.py",
+        " * SPDX-License-Identifier: GPL-3.0-only */",
+        '#include "canview_espnow_contract.h"',
+        "",
+        "const canview_espnow_message_contract_t canview_espnow_message_contracts[] = {",
+    ]
+    for row in contract_rows:
+        source_lines.append(
+            "    {"
+            f" .message_type = {row['id']}U, .payload_kind = {row['kind']}U,"
+            f" .qos = {row['qos']}U, .priority = {row['priority']}U,"
+            f" .ack_required = {row['ack_required']}U, .broadcast = {row['broadcast']}U,"
+            f" .encrypted = {row['encrypted']}U, .response = {row['response']}U,"
+            f" .fragment = {row['fragment']}U, .session_zero = {row['session_zero']}U,"
+            f" .authenticated_session_zero = {row['authenticated_session_zero']}U,"
+            f" .sender_role_mask = {row['sender_mask']}U, .receiver_role_mask = {row['receiver_mask']}U,"
+            f" .state_mask = {row['state_mask']}U, .payload_min = {row['minimum']}U,"
+            f" .payload_max = {row['maximum']}U, .prefix_size = {row['prefix_size']}U,"
+            f" .record_size = {row['record_size']}U, .count_max = {row['count_max']}U,"
+            f" .count_offset = {row['count_offset']}U, .count_width = {row['count_width']}U,"
+            f" .length_offset = {row['length_offset']}U, .length_width = {row['length_width']}U,"
+            f" .variant_count = {row['variant_count']}U,"
+            f" .variant_sizes = {{{c_list(row['variant_sizes'])}}},"
+            f" .variant_sender_role_masks = {{{c_list(row['variant_sender_masks'])}}},"
+            f" .variant_receiver_role_masks = {{{c_list(row['variant_receiver_masks'])}}},"
+            f" .variant_response = {{{c_list(row['variant_response_values'])}}},"
+            f" .variant_ack_required = {{{c_list(row['variant_ack_values'])}}},"
+            f" .tlv_contract_index = {row['tlv_contract_index']}U,"
+            f" .tlv_contract_count = {row['tlv_contract_count']}U }},"
+        )
+    source_lines.extend([
+        "};",
+        "const size_t canview_espnow_message_contract_count =",
+        "    sizeof(canview_espnow_message_contracts) / sizeof(canview_espnow_message_contracts[0]);",
+        "",
+        "const canview_espnow_tlv_contract_t canview_espnow_tlv_contracts[] = {",
+    ])
+    for row in tlv_rows:
+        size = "UINT16_MAX" if row["size"] < 0 else f"{row['size']}U"
+        source_lines.append(
+            "    {"
+            f" .type = {row['type']}U, .size = {size}, .singleton = {row['singleton']}U }},"
+        )
+    source_lines.extend([
+        "};",
+        "const size_t canview_espnow_tlv_contract_count =",
+        "    sizeof(canview_espnow_tlv_contracts) / sizeof(canview_espnow_tlv_contracts[0]);",
+        "",
+        "const uint32_t canview_espnow_allowed_values[] = {",
+        "    " + c_list(allowed_values),
+        "};",
+        "const size_t canview_espnow_allowed_value_count =",
+        "    sizeof(canview_espnow_allowed_values) / sizeof(canview_espnow_allowed_values[0]);",
+        "",
+        "const canview_espnow_field_constraint_t canview_espnow_field_constraints[] = {",
+    ])
+    for rule in raw_rules:
+        source_lines.append(
+            "    {"
+            f" .message_type = {rule['message_type']}U, .region = {rule['region']}U,"
+            f" .variant_index = {rule['variant_index']}U, .kind = {rule['kind']}U,"
+            f" .width = {rule['width']}U, .offset = {rule['offset']}U, .stride = {rule['stride']}U,"
+            f" .minimum = {rule['minimum']}U, .maximum = {rule['maximum']}U, .mask = {rule['mask']}U,"
+            f" .allowed_index = {rule['allowed_index']}U, .allowed_count = {rule['allowed_count']}U }},"
+        )
+    source_lines.extend([
+        "};",
+        "const size_t canview_espnow_field_constraint_count =",
+        "    sizeof(canview_espnow_field_constraints) / sizeof(canview_espnow_field_constraints[0]);",
+        "",
+        "const canview_espnow_pairing_contract_t canview_espnow_pairing_contracts[] = {",
+    ])
+    for row in pairing_rows:
+        offsets = [item[0] for item in row["field_offsets"]]
+        lengths = [item[1] for item in row["field_offsets"]]
+        offsets.extend([0] * (16 - len(offsets)))
+        lengths.extend([0] * (16 - len(lengths)))
+        source_lines.append(
+            "    {"
+            f" .message_type = {row['message_type']}U, .domain = \"{row['domain']}\","
+            f" .field_count = {len(row['field_offsets'])}U,"
+            f" .offsets = {{{c_list(offsets)}}}, .lengths = {{{c_list(lengths)}}} }},"
+        )
+    source_lines.extend([
+        "};",
+        "const size_t canview_espnow_pairing_contract_count =",
+        "    sizeof(canview_espnow_pairing_contracts) / sizeof(canview_espnow_pairing_contracts[0]);",
+        "",
+    ])
+    return header, "\n".join(source_lines)
 
 
 def render_header(schema: Mapping[str, Any], schema_digest: str) -> str:
@@ -2397,7 +2898,12 @@ def _expected_generated_paths(
     negative: Mapping[str, tuple[bytes, str]],
     compatibility: Mapping[str, tuple[bytes, str]],
 ) -> set[Path]:
-    paths = {HEADER_PATH, PAIRING_VECTOR_PATH}
+    paths = {
+        HEADER_PATH,
+        CONTRACT_HEADER_PATH,
+        CONTRACT_SOURCE_PATH,
+        PAIRING_VECTOR_PATH,
+    }
     paths.update(GOLDEN_DIR / f"{name}.{suffix}" for name in golden for suffix in ("bin", "json"))
     paths.update(MALFORMED_DIR / f"{name}.{suffix}" for name in negative for suffix in ("bin", "json"))
     paths.update(COMPATIBILITY_DIR / f"{name}.{suffix}" for name in compatibility for suffix in ("bin", "json"))
@@ -2406,8 +2912,9 @@ def _expected_generated_paths(
 
 def _validate_generated_inventory(expected: set[Path], *, write: bool) -> None:
     actual: set[Path] = set()
-    if HEADER_PATH.exists():
-        actual.add(HEADER_PATH)
+    for path in (HEADER_PATH, CONTRACT_HEADER_PATH, CONTRACT_SOURCE_PATH):
+        if path.exists():
+            actual.add(path)
     for directory in (GOLDEN_DIR,):
         if directory.exists():
             actual.update(path for path in directory.rglob("*") if path.is_file())
@@ -2426,8 +2933,13 @@ def generate(write: bool) -> None:
     schema = load_schema()
     validate_schema(schema)
     header, golden, negative, compatibility, pairing = _expected_outputs(schema)
+    contract_header, contract_source = _render_contract_outputs(
+        schema, hashlib.sha256(_canonical_schema_bytes()).hexdigest()
+    )
     _validate_generated_inventory(_expected_generated_paths(golden, negative, compatibility), write=write)
     _check_or_write_file(HEADER_PATH, header.encode("utf-8"), write)
+    _check_or_write_file(CONTRACT_HEADER_PATH, contract_header.encode("utf-8"), write)
+    _check_or_write_file(CONTRACT_SOURCE_PATH, contract_source.encode("utf-8"), write)
     for name, (frame, metadata) in golden.items():
         _check_or_write_file(GOLDEN_DIR / f"{name}.bin", frame, write)
         _check_or_write_file(GOLDEN_DIR / f"{name}.json", metadata.encode("utf-8"), write)

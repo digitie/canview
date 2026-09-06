@@ -45,12 +45,28 @@ if(BUILD_TESTING)
     target_include_directories(canview-protocol-header-c99 PRIVATE ${PROJECT_SOURCE_DIR}/protocol)
     target_link_libraries(canview-protocol-header-c99 PRIVATE canview_warnings)
     add_test(NAME protocol-header-c99 COMMAND canview-protocol-header-c99)
+    add_executable(canview-espnow-tests tests/protocol/test_espnow.c)
+    target_include_directories(canview-espnow-tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/protocol
+        ${PROJECT_SOURCE_DIR}/shared/protocol/include
+        ${PROJECT_SOURCE_DIR}/shared/interface)
+    target_compile_definitions(canview-espnow-tests PRIVATE
+        CANVIEW_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    target_link_libraries(canview-espnow-tests PRIVATE canview_wire canview_warnings)
+    foreach(scenario vectors malformed tlv-contracts session security control qos pool-fuzz)
+        add_test(NAME espnow-${scenario} COMMAND canview-espnow-tests ${scenario})
+        set_tests_properties(espnow-${scenario} PROPERTIES TIMEOUT 60)
+    endforeach()
     add_subdirectory(tests/automation)
     add_test(NAME generated-transport COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_transport.py --check)
     add_test(NAME generated-boards COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_boards.py --check)
     add_test(NAME generated-check COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_generated.py)
     add_test(NAME generated-protocol COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --check)
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
+    add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)
+    add_test(NAME espnow-fault-transport COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/protocol/fault_transport.py --seed 1 --loss 0,1,5,20,50)
     add_test(NAME budget-check COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_budgets.py)
     add_test(NAME negative-fixtures COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_negative_fixtures.py)
     add_test(NAME foundation-python COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_generators.py -v)

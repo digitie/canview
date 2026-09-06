@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-07 | T-003 ESP-NOW codec/session/QoS 최종 post-fix | `6a076a3` → `67ccee9`, session lifecycle/security binding·generated TLV·anti-replay·QoS/resource·STM32/ESP32 target evidence | embedded safety·target runtime / protocol·security·build/integration | [report·Reviewer A/B 원문·target evidence](adversarial/2026-09-07-T-003.md), 최초 B-P1-01 evidence freshness FIXED·양 reviewer post-fix PASS |
 | 2026-09-06 | T-002 ESP-NOW v1.3 schema·generated header 최종 post-fix | `fe564fe` → `fb30b29`, schema ABI·generated namespace·clear decode context·bulk bounds·golden/negative·host/target evidence | embedded safety·protocol·security / protocol·ABI·generator·reproducibility | [report·reviewer A/B evidence·target/coverage evidence](adversarial/2026-09-06-T-002.md), 최종 finding 0건·양 reviewer PASS·F-02는 T-003 이관 |
 | 2026-09-06 | T-001 host·target toolchain·CI 최종 post-fix | `68cac2b` → `9cb76e2`, Arm archive provenance·Windows SDK checkout·STM32/ESP32 target gate | embedded safety·target runtime / CI·재현성·evidence integrity | [report·최종 원문·target evidence](adversarial/2026-09-06-T-001.md), 최종 finding 0건·양 reviewer PASS·Draft PR/실차 gate 별도 |
 | 2026-09-06 | C99 펌웨어 기반·protocol·시험/API | `59ac404` → `b084720`, 네 MCU 구조·MCU 독립 codec·pin 생성기·Windows/Linux CI | embedded runtime/board/reset / protocol/security/build quality | [report·원문·변이 재현](adversarial/2026-09-06-firmware-foundation.md), 원 P2 5건 전부 FIXED·양 reviewer PASS·target/HIL/차량 승인 아님 |
