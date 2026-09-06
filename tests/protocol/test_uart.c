@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "canview_uart.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -808,6 +809,152 @@ static int test_long_stream(void)
     CHECK(corrupted_frames > 0U);
     CHECK(codec.crc_failures + codec.malformed_packets + codec.unsupported_messages > 0U);
     CHECK(codec.oversize_packets == 0U);
+    return 0;
+}
+
+/* Count bytes actually passed through the production C decoder. The ordinary
+ * virtual-time fault test does not represent a saturated 4 Mbps line.
+ * This fixture exercises framing/semantics only; it does not dispatch CAN. */
+static int test_byte_soak(uint32_t seconds)
+{
+    enum { SOAK_DIRECTIONS = 2, SOAK_BANKS = 8, SOAK_FAULT_PERIOD = 997 };
+    const uint64_t required_bytes = (uint64_t)seconds * UINT64_C(4000000) / UINT64_C(10);
+    const uint32_t guard = UINT32_C(0xA5963CC3);
+    struct
+    {
+        uint32_t before;
+        canview_uart_codec_t codec;
+        uint32_t after;
+    } guarded[SOAK_DIRECTIONS];
+    uint8_t serial[SOAK_DIRECTIONS][SOAK_BANKS][CANVIEW_UART_MAX_SERIAL_SIZE];
+    size_t lengths[SOAK_DIRECTIONS][SOAK_BANKS];
+    uint8_t scratch[CANVIEW_UART_MAX_FRAME_SIZE];
+    uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
+    uint64_t fed[SOAK_DIRECTIONS] = {0U};
+    uint32_t accepted[SOAK_DIRECTIONS] = {0U};
+    uint32_t faults[SOAK_DIRECTIONS] = {0U};
+    canview_uart_message_view_t view;
+    const uint8_t messages[SOAK_DIRECTIONS] = {
+        CANVIEW_UART_MSG_CAN_RX_BATCH, CANVIEW_UART_MSG_CAN_OBSERVER_PLAN};
+    for (size_t direction = 0U; direction < SOAK_DIRECTIONS; ++direction)
+    {
+        guarded[direction].before = guard;
+        guarded[direction].after = guard;
+        CHECK(test_codec_reset_for_message(&guarded[direction].codec, messages[direction]) ==
+              CANVIEW_OK);
+        for (size_t bank = 0U; bank < SOAK_BANKS; ++bank)
+        {
+            const size_t size = fill_valid_payload(messages[direction], payload, sizeof(payload),
+                                                  bank != 0U);
+            /* Vary data/IDs while preserving the independent semantic layout. */
+            if (bank != 0U)
+            {
+                if (direction == 0U)
+                {
+                    for (size_t record = 0U; record < payload[8]; ++record)
+                    {
+                        uint8_t *item = payload + 12U + record * 16U;
+                        item[2] = (uint8_t)(record % CANVIEW_WIRE_CAN_BUS_COUNT);
+                        item[3] = 8U;
+                        put_le(item + 4U, 4U, bank * 16U + record);
+                        for (size_t byte = 0U; byte < 8U; ++byte)
+                        {
+                            item[8U + byte] = (uint8_t)(bank * 31U + record * 8U + byte);
+                        }
+                    }
+                }
+                else
+                {
+                    for (size_t record = 0U; record < payload[20]; ++record)
+                    {
+                        uint8_t *item = payload + 24U + record * 12U;
+                        item[0] = (uint8_t)(record % CANVIEW_WIRE_CAN_BUS_COUNT);
+                        put_le(item + 4U, 4U, bank * 16U + record);
+                        put_le(item + 8U, 4U, UINT32_C(0x7FF));
+                    }
+                }
+            }
+            CHECK(canview_uart_message_encode(
+                      messages[direction], flags_for(messages[direction]), (uint32_t)bank,
+                      (uint32_t)bank + 1U, (uint64_t)bank * UINT64_C(1000000), payload, size,
+                      scratch, sizeof(scratch), serial[direction][bank],
+                      sizeof(serial[direction][bank]), &lengths[direction][bank]) == CANVIEW_OK);
+        }
+    }
+    uint32_t round = 0U;
+    uint64_t next_progress = UINT64_C(1440000000); /* one hour at 4 Mbps, 8-N-1 */
+    while (fed[0] < required_bytes || fed[1] < required_bytes)
+    {
+        for (size_t direction = 0U; direction < SOAK_DIRECTIONS; ++direction)
+        {
+            if (fed[direction] >= required_bytes)
+            {
+                continue;
+            }
+            canview_uart_codec_t *codec = &guarded[direction].codec;
+            const size_t bank = round % SOAK_BANKS;
+            const uint8_t *good = serial[direction][bank];
+            const size_t size = lengths[direction][bank];
+            if (round % SOAK_FAULT_PERIOD == 0U)
+            {
+                uint8_t damaged[CANVIEW_UART_MAX_SERIAL_SIZE + 1U];
+                size_t damaged_size = size;
+                memcpy(damaged, good, size);
+                switch ((round / SOAK_FAULT_PERIOD) % 4U)
+                {
+                case 0U:
+                    /* Corrupt a data byte without introducing another delimiter. */
+                    damaged[size - 2U] = good[size - 2U] == 1U ? 2U : 1U;
+                    break;
+                case 1U:
+                    damaged[size - 2U] = 0U; /* delete the final data byte */
+                    --damaged_size;
+                    break;
+                case 2U:
+                    damaged[size - 1U] = UINT8_C(0xA5); /* insert before delimiter */
+                    damaged[size] = 0U;
+                    ++damaged_size;
+                    break;
+                default:
+                    damaged_size = CANVIEW_UART_MAX_ENCODED_SIZE + 2U;
+                    memset(damaged, 0xA5, damaged_size);
+                    damaged[damaged_size - 1U] = 0U;
+                    break;
+                }
+                for (size_t byte = 0U; byte < damaged_size; ++byte)
+                {
+                    CHECK(canview_uart_codec_feed(codec, damaged[byte], &view) != CANVIEW_OK);
+                }
+                fed[direction] += damaged_size;
+                ++faults[direction];
+            }
+            CHECK(feed_frame(codec, good, size, &view) == 0);
+            fed[direction] += size;
+            ++accepted[direction];
+            CHECK(codec->packets_ok == accepted[direction]);
+            CHECK(codec->stream.used == 0U && !codec->stream.discarding);
+            CHECK(guarded[direction].before == guard && guarded[direction].after == guard);
+        }
+        ++round;
+        if (fed[0] >= next_progress && fed[1] >= next_progress)
+        {
+            (void)printf("SOAK progress actual_bytes=%" PRIu64 ",%" PRIu64 "\n", fed[0], fed[1]);
+            (void)fflush(stdout);
+            next_progress += UINT64_C(1440000000);
+        }
+    }
+    for (size_t direction = 0U; direction < SOAK_DIRECTIONS; ++direction)
+    {
+        const canview_uart_codec_t *codec = &guarded[direction].codec;
+        CHECK(fed[direction] >= required_bytes && faults[direction] > 0U);
+        CHECK(codec->crc_failures + codec->malformed_packets + codec->oversize_packets ==
+              faults[direction]);
+        (void)printf("PASS: C UART soak direction=%zu seconds=%" PRIu32
+                     " baud=4000000 bits_per_byte=10 required_bytes=%" PRIu64
+                     " actual_bytes=%" PRIu64 " accepted=%" PRIu32 " faults=%" PRIu32 "\n",
+                     direction, seconds, required_bytes, fed[direction], accepted[direction],
+                     faults[direction]);
+    }
     return 0;
 }
 
@@ -1646,6 +1793,14 @@ static int run_scenario(const char *scenario)
     {
         return test_long_stream();
     }
+    if (strcmp(scenario, "soak-smoke") == 0)
+    {
+        return test_byte_soak(1U);
+    }
+    if (strcmp(scenario, "soak-24h") == 0)
+    {
+        return test_byte_soak(86400U);
+    }
     if (strcmp(scenario, "direction") == 0)
     {
         return test_direction();
@@ -1689,7 +1844,7 @@ static int run_scenario(const char *scenario)
     if (strcmp(scenario, "all") == 0)
     {
         return test_message_matrix() || test_direction() || test_malformed() || test_stream() ||
-               test_long_stream() || test_plan() ||
+               test_long_stream() || test_byte_soak(1U) || test_plan() ||
                test_plan_boundaries() ||
                test_command_cache() || test_command_boundaries() || test_link() ||
                test_link_boundaries() || test_session() || test_replay() || test_limits();

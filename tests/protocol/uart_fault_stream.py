@@ -154,7 +154,6 @@ def run(seed: int, duration_seconds: int) -> int:
     streams = (Stream(), Stream())
     expected_good = 0
     corrupted = 0
-    virtual_line_bits = duration_seconds * 4_000_000
     frames = duration_seconds * 10
     for sequence in range(frames):
         for direction, stream in enumerate(streams):
@@ -190,8 +189,8 @@ def run(seed: int, duration_seconds: int) -> int:
         raise AssertionError("stream retained bytes after simulation")
     print(
         f"PASS: UART duplex virtual stream seed={seed} virtual_seconds={duration_seconds} "
-        f"frames={frames * 2} corrupted={corrupted * 2} accepted={accepted} "
-        f"virtual_line_bits={virtual_line_bits} malformed={sum(s.malformed for s in streams)} "
+        f"frames={frames * 2} corrupted={corrupted} accepted={accepted} "
+        f"load=10_primary_frames_per_second_per_direction malformed={sum(s.malformed for s in streams)} "
         f"crc_errors={sum(s.crc_errors for s in streams)} oversize={sum(s.oversize for s in streams)}"
     )
     return 0
