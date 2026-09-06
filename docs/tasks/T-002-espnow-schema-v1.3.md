@@ -5,7 +5,7 @@
 - Gate: `G0`
 - 선행: `T-001`
 - 후속: `T-003`, `T-005`, `T-200`, `T-300`, `T-400`
-- branch: `agent/codex-t002-espnow-schema`
+- branch: `agent/codex-t002-espnow-schema`, Draft PR #18
 
 ## 목표
 
@@ -84,6 +84,9 @@ docs/architecture/protocols/esp-now.md
 - [x] `u8` catalog revision, plain wrapping cumulative `u32` counter, `u8` common reason이 schema에 0개다.
 - [x] Bridge/read-only schema policy에서 control root와 nonzero control scope를 금지한다.
 - [x] C packed layout과 Python oracle에서 모든 golden binary size/field 값이 일치한다.
+- [x] 모든 enum compatibility alias·constant·known-count/mask·message symbol을 하나의 generated namespace에서 검사하고 effective `macro_prefix` 충돌을 거부한다.
+- [x] policy decoder가 clear/session-zero frame을 포함한 모든 frame에 명시적인 sender·receiver·link-state·session context를 요구한다.
+- [x] bulk inactivity timeout은 architecture 정본과 일치하는 `1000..30000 ms` 범위로 고정한다.
 
 ## 계획 보완 수용 기준
 
@@ -100,7 +103,9 @@ cmake --build --preset host-debug
 ctest --preset host-debug -R protocol-schema --output-on-failure
 ```
 
-현재 실행 결과: `python -B tools/generate_protocol.py --check`, `python -B tests/protocol/test_schema.py` 20/20, host-debug CTest는 protocol/generator/legacy automation을 포함해 37/37 PASS였다. 생성물은 15개 정상 frame, 6개 malformed, 4개 compatibility와 pairing contract를 포함한다. Windows checkout의 CRLF에도 generator digest와 text artifact가 동일하도록 canonical LF 회귀시험과 `.gitattributes` 정책을 포함한다. Release/sanitize/coverage와 두 전문 reviewer의 독립 검증은 T-002 PR closure 전에 다시 실행한다.
+`fb30b29e4e0ac27170b0ce8bb989e0d93e9d861a` 기준으로 generator/check, generated/negative/budget gate, Python schema 24/24, host Debug·Release·Coverage CTest 각 39/39, coverage 9/9와 core line/function 100%·branch 99.6296%를 재실행했다. 생성물은 15개 정상 frame, 6개 malformed, 4개 compatibility와 pairing contract를 포함한다. Windows checkout의 CRLF에도 generator digest와 text artifact가 동일하도록 canonical LF 회귀시험과 `.gitattributes` 정책을 포함한다. STM32 Debug/Release와 Communicator ESP32, Diagnostic Bridge, Controller, public component fixture의 clean target build와 warning/error scan은 현재 같은 commit에서 재실행 중이다. 최종 2인 post-fix reviewer verdict와 PR CI가 남아 있어 아직 `DONE`으로 표시하지 않는다.
+
+T-002는 wire/schema ABI와 정적 policy oracle 범위다. request/response의 sequence·token·retry·duplicate·session에 대한 stateful correlation은 pending table과 runtime state machine이 필요한 T-003 수용 기준으로 이관하며, T-002에서 nonzero response correlation field와 static response shape만 고정한다.
 
 ## 안전·rollback
 
