@@ -148,7 +148,8 @@ static canview_status_t validate_plan_packet(const uint8_t *payload, size_t size
     }
     if (operation == CANVIEW_UART_PLAN_OP_COMMIT)
     {
-        return size == UART_PLAN_COMMIT_SIZE && read_le(payload + 4U, 8U) != 0U
+        return size == UART_PLAN_COMMIT_SIZE && read_le(payload + 4U, 8U) != 0U &&
+                       zero_range(payload, size, 1U, 3U)
                    ? CANVIEW_OK
                    : CANVIEW_MALFORMED;
     }
@@ -313,11 +314,6 @@ static canview_status_t validate_fixed_payload(uint8_t message_type, const uint8
     }
     if (message_type == CANVIEW_UART_MSG_CONFIG_RESULT &&
         (!zero_range(payload, size, 11U, 1U) || !zero_range(payload, size, 14U, 2U)))
-    {
-        return CANVIEW_MALFORMED;
-    }
-    if (message_type == CANVIEW_UART_MSG_FIRMWARE_PREPARE &&
-        (!zero_range(payload, size, 10U, 2U) || read_le(payload, 8U) == 0U))
     {
         return CANVIEW_MALFORMED;
     }
@@ -918,13 +914,9 @@ canview_status_t canview_uart_link_tick(canview_uart_link_t *link, uint64_t now_
     const bool cts_offline = link->cts_blocked &&
                              elapsed_ms(now_ms, link->cts_blocked_since_ms) >=
                                  CANVIEW_UART_CTS_OFFLINE_MS;
-    link->state = (cts_offline ||
-                   (heartbeat_suspect &&
-                    elapsed_ms(now_ms, link->last_heartbeat_ms) >=
-                        CANVIEW_UART_HEARTBEAT_OFFLINE_MS))
-                      ? CANVIEW_UART_LINK_OFFLINE
-                      : ((heartbeat_suspect || cts_suspect) ? CANVIEW_UART_LINK_SUSPECT
-                                                             : CANVIEW_UART_LINK_ONLINE);
+    link->state = cts_offline ? CANVIEW_UART_LINK_OFFLINE
+                              : ((heartbeat_suspect || cts_suspect) ? CANVIEW_UART_LINK_SUSPECT
+                                                                     : CANVIEW_UART_LINK_ONLINE);
     return CANVIEW_OK;
 }
 
