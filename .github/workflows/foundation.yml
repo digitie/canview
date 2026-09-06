@@ -37,6 +37,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/check_coverage.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/check_stm32_coverage.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/check_generated.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/check_budgets.py
@@ -62,6 +64,7 @@ jobs:
             build/api/html
             build/host-*/Testing/Temporary/LastTest.log
             build/host-coverage/coverage-*/summary.json
+            build/host-coverage/stm32-coverage-*/**/export.json
   linux-portability:
     runs-on: ubuntu-latest
     timeout-minutes: 15

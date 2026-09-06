@@ -127,3 +127,7 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
+
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.ccmram) <= 80K, "STM32 static RAM budget exceeded")
+ASSERT(_Min_Stack_Size <= 24K, "STM32 reserved stack budget exceeded")
+ASSERT(128K - SIZEOF(.data) - SIZEOF(.bss) - SIZEOF(.ccmram) - _Min_Stack_Size >= 24K, "STM32 RAM margin below 24 KiB")

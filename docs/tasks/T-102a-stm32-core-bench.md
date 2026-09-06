@@ -2,6 +2,7 @@
 
 - 상태: `IN_PROGRESS`
 - branch: `codex/t102a-stm32-core-bench`
+- PR: [#21](https://github.com/digitie/canview/pull/21)
 - 우선순위: `P0`
 - Gate: `G0 / G1 준비`
 - 선행: `T-001`

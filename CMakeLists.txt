@@ -24,8 +24,24 @@ endif()
 find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
+add_subdirectory(firmware/communicator/stm32/module)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-stm32-core-tests firmware/communicator/stm32/tests/test_core.c)
+    add_executable(canview-stm32-register-tests
+        firmware/communicator/stm32/tests/test_registers.c
+        firmware/communicator/stm32/platform/stm32g474/core_hw.c)
+    target_compile_definitions(canview-stm32-register-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_include_directories(canview-stm32-register-tests PRIVATE
+        firmware/communicator/stm32/tests firmware/communicator/stm32/platform/stm32g474)
+    target_link_libraries(canview-stm32-register-tests PRIVATE canview_stm_core canview_warnings)
+    add_test(NAME stm32-core-register-model COMMAND canview-stm32-register-tests)
+    set_tests_properties(stm32-core-register-model PROPERTIES TIMEOUT 30)
+    target_link_libraries(canview-stm32-core-tests PRIVATE canview_stm_core canview_warnings)
+    foreach(scenario boot scheduler-validation scheduler-healthy scheduler-faults queue)
+        add_test(NAME stm32-core-${scenario} COMMAND canview-stm32-core-tests ${scenario})
+        set_tests_properties(stm32-core-${scenario} PROPERTIES TIMEOUT 30)
+    endforeach()
     add_subdirectory(tests/foundation)
     # ESP-NOW v1.3 and Communicator UART v1.0 ABIs are generated separately and
     # tested independently before runtime transport integration is enabled.

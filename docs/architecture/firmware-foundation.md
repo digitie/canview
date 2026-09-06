@@ -15,7 +15,7 @@ Controller/Bridge에 raw CAN TX 경로를 추가하지 않았으며, 차량 송�
 
 | 계층 | 실제 코드 | 책임·허용 의존 |
 |---|---|---|
-| app | firmware/app/startup.c, shared/app | 역할 고정, 안전 초기화 결과, 단일 main owner; interface만 의존 |
+| app | firmware/app/startup.c, shared/app, communicator/stm32/app | ESP 역할 고정·안전 idle, STM32 boot와 cooperative worker 조합; interface만 의존 |
 | 공용 module | shared/protocol | 전송 바이트 검증/인코딩; 표준 C99와 shared/interface만 의존 |
 | interface | shared/interface, firmware/interface | 상태·함수 계약만 선언. SDK 타입/전역 singleton 없음 |
 | BSP | firmware/<target>/bsp | 생성 pin 이름으로 보드별 초기화 순서 조합 |
@@ -25,7 +25,7 @@ Controller/Bridge에 raw CAN TX 경로를 추가하지 않았으며, 차량 송�
 
 구체 드라이버·미들웨어·RTOS task를 구현하지 않았으므로 비어 있는 미래 디렉터리나 가짜 HAL을 만들지 않는다.
 후속 드라이버는 bus port와 device context로 분리하고 app/codec에 HAL header를 가져오지 않는다.
-IDF app_main과 STM main은 같은 composition root를 사용한다. 역할은 빌드 상수이고 무선 입력으로 변경할 수 없다.
+IDF app_main은 공용 startup, STM main은 [core bench](../../firmware/communicator/stm32/docs/core-bench.md) composition root를 사용한다. 역할은 빌드 상수이고 무선 입력으로 변경할 수 없다.
 
 ## 프로토콜 구현 계약
 
@@ -73,8 +73,8 @@ reset 이전·brownout·rail 이상 시 안전은 외부 pull/gate/supervisor에
 UART TX/RTS, FDCAN alternate function, watchdog pulse는 활성화하지 않는다.
 
 STM32 clock 계획값은 HSE16 MHz → PLL M4/N80/R2 → CPU160 MHz,
-PCLK1/FDCAN80 MHz, UART4 Mbps/BRR20이다. **현재 부팅 코드는 PLL/HSE를 시작하지 않는다.**
-후속 T-102/T-105에서 실제 clock/error/timeout/bitrate를 검증한 다음 peripheral을 활성화한다.
+PCLK1/FDCAN80 MHz, UART4 Mbps/BRR20이다. T-102a는 HSE/PLL·TIM2/SysTick·IWDG의 bounded 초기화를 구현한다.
+host register 모델과 실제 CMSIS 상수 대조는 실물 clock/error/timeout/bitrate 계측을 대신하지 않는다. UART/FDCAN은 아직 활성화하지 않는다.
 STM32 linker는 bench용 전체 Flash, heap 예약0, stack 예약8 KiB다. stack 사용량/HIL/OTA loader 영역 검증은 별도다.
 PSRAM 용량과 ECC 실제 가용량, cache/DMA 제한은 target bring-up에서 확인한다.
 

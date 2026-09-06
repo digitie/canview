@@ -24,7 +24,12 @@ foreach(board controller communicator/esp32 diagnostic-bridge communicator/stm32
     add_test(NAME foundation-bsp-${board_index} COMMAND ${target})
     # Compile the actual composition root in every role; never run its infinite loop.
     set(startup_target canview-startup-${board_index})
-    add_library(${startup_target} OBJECT ${PROJECT_SOURCE_DIR}/firmware/app/startup.c)
+    if(board_index EQUAL 3)
+        add_library(${startup_target} OBJECT ${PROJECT_SOURCE_DIR}/firmware/communicator/stm32/app/main.c)
+        target_link_libraries(${startup_target} PRIVATE canview_stm_core)
+    else()
+        add_library(${startup_target} OBJECT ${PROJECT_SOURCE_DIR}/firmware/app/startup.c)
+    endif()
     target_include_directories(${startup_target} PRIVATE ${PROJECT_SOURCE_DIR}/firmware/interface
         ${PROJECT_SOURCE_DIR}/shared/interface ${PROJECT_SOURCE_DIR}/shared/app/include)
     list(GET board_roles ${board_index} role)
