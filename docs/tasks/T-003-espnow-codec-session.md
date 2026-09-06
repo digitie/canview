@@ -82,6 +82,14 @@ python tests/protocol/fault_transport.py --seed 1 --loss 0,1,5,20,50
 
 golden vector count, fuzz seed corpus, branch coverage, sequence/session state graph를 PR artifact로 남긴다. cryptographic primitive 자체를 새로 구현하지 않고 ESP-IDF mbedTLS adapter와 host library를 사용한다.
 
+현재 구현·검증 기록:
+
+- generated contract는 CAPABILITIES와 COMMAND_REQUEST의 TLV policy를 함께 내보내며 C parser가 generated table만 사용한다. unknown optional/critical, fixed-size, singleton, truncated TLV regression을 `espnow-tlv-contracts`에서 검사한다.
+- CTest에 `vectors`, `malformed`, `tlv-contracts`, `session`, `security`, `control`, `qos`, `pool-fuzz` 8개 C scenario와 독립 Python reference/fault transport를 등록했다. 현재 host Debug/Release 전체 suite와 Linux portability/sanitizer는 재실행 중인 PR check로 확인한다.
+- ESP-NOW 전용 계측은 70개 함수 100%, region 83.52%, line 70.51%, branch 61.26%를 기록했다. 기존 공용 foundation coverage gate는 9/9, core line/function 100%, branch 99.63%다.
+- STM32 Debug/Release, 세 ESP32-S3 image와 public IDF fixture의 clean target 결과·artifact digest는 [T-003 target evidence](../reviews/adversarial/evidence/2026-09-07-T-003-target-final.md)에 둔다.
+- board flash, reset/brownout fault injection, RF, CAN/HIL, 차량, production OTA signing/provisioning, 실제 mbedTLS/CCMP runtime은 `NOT_RUN`이며 이 task의 host/compile PASS로 대체하지 않는다.
+
 
 ## 산출물·범위 경계
 

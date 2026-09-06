@@ -13,3 +13,6 @@ hardware/**/*.png binary
 protocol/schema/**/*.yaml text eol=lf
 protocol/**/*.h text eol=lf
 protocol/**/*.json text eol=lf
+# Generated protocol contracts are byte-compared by every host.
+shared/protocol/**/*.h text eol=lf
+shared/protocol/**/*.c text eol=lf
