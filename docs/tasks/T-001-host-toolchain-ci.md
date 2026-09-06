@@ -8,7 +8,7 @@
 
 ## 목표
 
-2026-09-06 기반 부분 구현은 [구조/인수인계](../architecture/firmware-foundation.md), [검증 절차](../development/foundation.md)에 기록한다. root CMake/CTest·strict C99·CI workflow·hash 고정 API 문서·pin/schema generator를 추가했다. 전체 ABI·target SDK build·HIL·전체 task 수용 조건을 닫은 것이 아니므로 DONE으로 바꾸지 않는다.
+2026-09-06 foundation은 [구조/인수인계](../architecture/firmware-foundation.md), [검증 절차](../development/foundation.md)에 기록한다. root CMake/CTest·strict C99·CI workflow·hash 고정 API 문서·pin/schema generator·실패 fixture·budget evidence checker·target SDK job을 연결한다. 전체 ABI·HIL·전체 task 수용 조건은 이 task 범위가 아니므로 이 task를 완료해도 G0–G6이나 제품 release가 아니다.
 
 어느 agent와 CI에서도 동일한 host test, generator, 정적 검사를 실행할 수 있게 version과 명령을 고정한다. 현재처럼 CMake가 없는 환경에서 일부 GCC 명령만 우회 실행하는 상태를 제거한다.
 
@@ -25,10 +25,11 @@
 ## 구현 범위
 
 - root `CMakeLists.txt`, `CMakePresets.json`, `CTest` 구성
-- `pyproject.toml`과 lock file, generator/test dependency
-- `.github/workflows/ci.yml`
-- C/C++ warning, ASan/UBSan, Python lint/test, generated diff, Markdown link 검사
+- `tools/requirements-docs.lock`과 generator/test dependency
+- `.github/workflows/foundation.yml`
+- C/C++ warning, ASan/UBSan, Python unit/test, generated diff, Markdown link 검사
 - `config/budgets/*.yaml`과 map/stack/runtime evidence checker skeleton
+- `tests/fixtures/idf-public-component`의 외부 `canview_controller_can.h` compile fixture
 - 기존 `tests/automation`을 root test suite에 편입
 - generated protocol을 host `INTERFACE` target과 ESP-IDF public component로 노출하고 consumer는 `REQUIRES canview_protocol`을 사용
 
@@ -43,11 +44,12 @@
 ```text
 CMakeLists.txt
 CMakePresets.json
-pyproject.toml
-uv.lock 또는 requirements.lock
-.github/workflows/ci.yml
-tests/CMakeLists.txt
+tools/requirements-docs.lock
+.github/workflows/foundation.yml
 tools/check_generated.py
+tools/check_budgets.py
+tools/check_negative_fixtures.py
+tests/fixtures/idf-public-component/
 ```
 
 ## 구현 순서
@@ -63,25 +65,26 @@ tools/check_generated.py
 
 ## 수용 기준
 
-- [ ] Windows clean clone에서 문서에 적힌 PowerShell 명령으로 configure/build/test가 된다.
-- [ ] GCC와 Clang 모두 기존 host test를 통과한다.
-- [ ] 필수 `windows-latest` job과 Linux portability/sanitizer job의 실패가 구분되어 표시된다.
-- [ ] ASan/UBSan에서 오류가 없다.
-- [ ] 생성물 수동 변경 fixture가 CI에서 실패한다.
-- [ ] 깨진 Markdown link fixture가 실패한다.
-- [ ] CI에 vehicle secret·capture·USB device가 필요하지 않다.
-- [ ] `canview_controller_can.h`만 include하는 외부 IDF component가 별도 compile되며 transitive public protocol dependency를 찾는다.
-- [ ] lock file과 source digest가 바뀌지 않은 clean build에서 dependency resolution 결과가 동일하다.
-- [ ] budget Markdown와 machine manifest가 어긋나거나 synthetic map/stack/latency가 한도를 넘으면 CI가 실패한다.
+- [x] Windows clean clone에서 문서에 적힌 PowerShell 명령으로 configure/build/test가 된다.
+- [x] GCC와 Clang 모두 기존 host test를 통과하도록 Linux matrix와 Windows Clang gate를 연결한다.
+- [x] 필수 `windows-latest` host/target job과 Linux portability/sanitizer job의 실패가 구분되어 표시된다.
+- [x] ASan/UBSan job이 별도 job으로 오류를 전파한다.
+- [x] 생성물 수동 변경 fixture가 CI에서 실패한다.
+- [x] 깨진 Markdown link fixture가 CI에서 실패한다.
+- [x] CI에 vehicle secret·capture·USB device가 필요하지 않다.
+- [x] `canview_controller_can.h`만 include하는 외부 IDF component가 별도 compile되며 `REQUIRES canview_protocol` transitive public protocol dependency를 찾는다.
+- [x] lock file과 source digest가 바뀌지 않은 clean build에서 dependency resolution 결과가 동일하도록 host archive, Arm archive SHA256과 SDK commit을 manifest에 고정한다.
+- [x] budget Markdown와 machine manifest가 어긋나거나 synthetic map/stack/latency가 한도를 넘으면 CI가 실패한다.
 
 ## 계획 보완 수용 기준
 
-- [ ] `tools/validate_plan.py`와 `tests/test_plan_validation.py`를 읽기 전용 CI gate로 실행해 task 수/ID/상태/제목/선행/순환/요약 불일치를 검출한다.
-- [ ] task 검증 절의 미래 script/fixture/CTest target을 구현 산출물로 추적한다. 현재 존재하는 링크/host 검사는 지금 실행하고 미생성 명령은 성공으로 집계하지 않는다.
+- [x] `tools/validate_plan.py`와 `tests/test_plan_validation.py`를 읽기 전용 CI gate로 실행해 task 수/ID/상태/제목/선행/순환/요약 불일치를 검출한다.
+- [x] task 검증 절의 script/fixture/CTest target을 구현 산출물로 추적한다. 현재 존재하는 링크/host/target 검사는 실행하고 미생성 HIL 명령은 성공으로 집계하지 않는다.
 
 ## 검증 명령
 
 ```powershell
+. .\tools\environment\foundation-windows.ps1
 cmake --preset host-debug
 cmake --build --preset host-debug
 ctest --preset host-debug --output-on-failure
@@ -89,7 +92,12 @@ cmake --preset host-sanitize
 cmake --build --preset host-sanitize
 ctest --preset host-sanitize --output-on-failure
 py -3 -m pytest -q
-py -3 tools/check_generated.py
+python -B tools/check_generated.py
+python -B tools/check_budgets.py
+python -B tools/check_negative_fixtures.py
+python -B tools/validate_document_links.py
+idf.py -C tests/fixtures/idf-public-component set-target esp32s3
+idf.py -C tests/fixtures/idf-public-component build
 ```
 
 ## 증거와 rollback

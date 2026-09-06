@@ -6,12 +6,13 @@
 
 canview_status_t canview_gpio_output(uint8_t pin, bool high, bool open_drain)
 {
-    if (!GPIO_IS_VALID_OUTPUT_GPIO(pin))
+    const gpio_num_t gpio = (gpio_num_t)pin;
+    if (!GPIO_IS_VALID_OUTPUT_GPIO(gpio))
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
     /* external default-safe pulls remain necessary before this code executes. */
-    if (gpio_set_level((gpio_num_t)pin, high ? 1U : 0U) != ESP_OK)
+    if (gpio_set_level(gpio, high ? 1U : 0U) != ESP_OK)
     {
         return CANVIEW_NOT_IMPLEMENTED;
     }
@@ -25,7 +26,8 @@ canview_status_t canview_gpio_output(uint8_t pin, bool high, bool open_drain)
 
 canview_status_t canview_gpio_input(uint8_t pin)
 {
-    if (!GPIO_IS_VALID_GPIO(pin))
+    const gpio_num_t gpio = (gpio_num_t)pin;
+    if (!GPIO_IS_VALID_GPIO(gpio))
     {
         return CANVIEW_INVALID_ARGUMENT;
     }

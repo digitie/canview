@@ -5,8 +5,10 @@
 canview_status_t canview_app_start(canview_app_t *app, canview_app_role_t role,
                                    const canview_platform_port_t *port)
 {
+    const int32_t role_value = (int32_t)role;
     if (app == NULL || port == NULL || port->enter_safe_state == NULL || port->idle == NULL ||
-        role < CANVIEW_APP_CONTROLLER || role > CANVIEW_APP_DIAGNOSTIC_BRIDGE ||
+        role_value < (int32_t)CANVIEW_APP_CONTROLLER ||
+        role_value > (int32_t)CANVIEW_APP_DIAGNOSTIC_BRIDGE ||
         app->state != CANVIEW_APP_UNINITIALIZED)
     {
         return CANVIEW_INVALID_ARGUMENT;

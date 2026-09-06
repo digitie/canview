@@ -57,4 +57,4 @@ Pop-Location
 
 ## 현재 기반 범위 안내
 
-현재 프로젝트는 [C99 기반 구조](../../../docs/architecture/firmware-foundation.md)의 공용 startup/app과 분리된 BSP/platform을 사용한다. CAN PHY 요청·ARM·WD 출력은 안전 비활성 상태로 유지하고 UART/CAN/HSE는 시작하지 않는다. 위 장치 설정·절차는 bring-up 계획이며 실제 target build/HIL은 미실행이다. linker는 전체 Flash를 사용하는 bench 전용으로 제품 OTA loader/slot image와 다르다.
+현재 프로젝트는 [C99 기반 구조](../../../docs/architecture/firmware-foundation.md)의 공용 startup/app과 분리된 BSP/platform을 사용한다. CAN PHY 요청·ARM·WD 출력은 안전 비활성 상태로 유지하고 UART/CAN/HSE는 시작하지 않는다. Arm GNU `15.3.Rel1`로 debug/release ELF·HEX·BIN·MAP 생성을 확인했고 컴파일·링커 warning/error scan도 통과했다. 실제 보드 flash·clock·HIL은 미실행이다. linker는 전체 Flash를 사용하는 bench 전용으로 제품 OTA loader/slot image와 다르다.

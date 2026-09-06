@@ -22,9 +22,9 @@
 | static prototype | Windows Node 구문 검사 + Playwright 오프라인 상호작용·스크린샷 회귀 |
 | hardware | KiCad `10.0.6` schematic/PCB/ERC/netlist/BOM CLI |
 
-정확한 SDK 버전과 dependency digest는 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 고정한다. `tools/environment/setup-windows.ps1`는 해당 manifest와 checkout commit을 검증한다. STM32CubeG4_ROOT가 없는 환경에서는 STM32 image build를 성공으로 표시하지 않는다.
+정확한 SDK 버전과 dependency digest는 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 고정한다. `tools/environment/setup-windows.ps1`는 해당 manifest와 checkout commit을 검증한다. Arm GNU `15.3.Rel1` archive SHA-256도 같은 manifest에 둔다. STM32CubeG4_ROOT가 없는 환경에서는 STM32 image build를 성공으로 표시하지 않는다.
 
-현재 기반 코드의 SHA256 고정 host tool bootstrap, coverage와 API 문서 명령은 [기반 개발 절차](foundation.md)를 따른다. SDK 전체 설치/검증과 구분한다.
+현재 기반 코드의 SHA256 고정 host tool bootstrap, coverage와 API 문서 명령은 [기반 개발 절차](foundation.md)를 따른다. SDK 전체 설치/검증과 구분한다. 대상 빌드 전에는 host tool과 target SDK를 각각 dot-source한다.
 
 ## 3. 필요 시 생성하는 임시 worktree
 

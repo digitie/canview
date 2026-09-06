@@ -42,6 +42,7 @@ Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구한다. 최신 안정 b
 ### 2.2 설치와 빌드
 
 ```powershell
+. .\tools\environment\foundation-windows.ps1
 . .\tools\environment\setup-windows.ps1
 ```
 
@@ -97,7 +98,7 @@ ESP32 Communicator firmware는 DBC 표시 catalog를 필요로 하지 않는다.
 
 첫 prototype은 `ESP32-S3-WROOM-1-N8R2` 개발보드를 권장한다. 8 MB Flash는 OTA A/B와 gzip web asset을 담고, 2 MB PSRAM은 제한된 pre-trigger ring과 HTTP buffer에 사용한다. 차량 상시 설치에서 온도 여유가 중요하므로 기본 권장 주변온도가 65 °C인 `N8R8`보다 -40~85 °C의 `N8R2`를 우선한다.
 
-Diagnostic Bridge firmware directory는 아직 생성되지 않았다. T-400에서 top-level project를 추가한 뒤 Controller·Communicator와 같은 `setup-windows.ps1` 및 `idf.py -C firmware/diagnostic-bridge ...` 순서를 적용한다.
+Diagnostic Bridge firmware directory는 foundation bootstrap project로 생성되어 있다. 실제 SoftAP·capture·web 기능은 T-400에서 추가하며 현재는 Controller·Communicator와 같은 `setup-windows.ps1` 및 `idf.py -C firmware/diagnostic-bridge ...` 순서로 image compile만 검증한다.
 
 필수 configuration 기준은 다음과 같다.
 
@@ -140,6 +141,7 @@ STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공
 [`../firmware/communicator/stm32/`](../../firmware/communicator/stm32/)의 CMake project는 STM32CubeG4를 repository 밖 dependency로 참조한다. vendor package를 이 저장소에 무분별하게 복사하지 않는다.
 
 ```powershell
+. .\tools\environment\foundation-windows.ps1
 . .\tools\environment\setup-windows.ps1
 Push-Location firmware/communicator/stm32
 cmake --preset debug
@@ -213,7 +215,11 @@ DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32�
 
 두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 runtime quality와 별개인 `CANDIDATE` evidence grade를 유지한다. 새로운 signal이 기존 CAN ID를 사용하면 Communicator firmware를 바꾸지 않고 Controller catalog만 갱신한다. 새로운 ID를 사용하면 Controller allow-list entry와 upstream subscription을 함께 추가한다.
 
-## 7. CI 권고 gate
+## 7. foundation target build evidence
+
+2026-09-06에 Arm GNU `15.3.Rel1`, ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`을 manifest commit/SHA로 준비했다. STM32 debug/release와 Communicator ESP32, Diagnostic Bridge, Controller의 ESP32-S3 foundation binary 및 public component fixture를 생성했다. 네 target log에서 컴파일·링커 warning/error 진단은 0개였다. 이 결과는 compile gate만 닫으며 실제 flash, reset/brownout, clock, PSRAM, UART/CAN, RF와 HIL은 닫지 않는다.
+
+## 8. CI 권고 gate
 
 - Controller/Communicator ESP32: `idf.py build`, partition size, `sdkconfig` drift
 - STM32: CMake configure/build, warnings, ELF size, linker overflow
@@ -223,7 +229,7 @@ DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32�
 - Diagnostic Bridge: ESP-IDF build, web asset offline check, REST schema, WebSocket reconnect, 390×844 screenshot diff
 - hardware docs: pinmap CSV 중복 pin/net 검사
 
-## 8. 공식 출처
+## 9. 공식 출처
 
 - [Waveshare ESP-IDF 안내](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5/ESP-IDF)
 - [Waveshare example repository](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/)

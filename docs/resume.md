@@ -16,11 +16,11 @@
 
 ## 다음 한 작업
 
-T-001 재현 가능한 host toolchain과 CI를 수행한다. target SDK와 build scaffold는 먼저 최신 안정 버전으로 고정했다.
+T-001 재현 가능한 host toolchain과 CI의 독립 gate를 마감하고, 다음으로 T-002 ESP-NOW v1.3 schema를 시작한다. target SDK와 build scaffold는 manifest digest까지 고정했다.
 
 - 시작 문서: docs/tasks/T-001-host-toolchain-ci.md, docs/development/windows.md
 - 확인 대상: 고정 CMake/Ninja/Clang 기반 C99와 별도 C11 legacy 회귀, Arm GNU/IDF target build, Python validator, Node static checks, 생성물 검사
-- 완료 조건: 반복 가능한 명령과 CI gate가 정의되고, 도구가 없는 항목은 차단 사유로 기록됨
+- 완료 조건: host/target build, 35개 host CTest, coverage, negative fixture, budget, public component compile과 CI job 정의를 실제 실행하고 리뷰 disposition을 남김
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
@@ -34,9 +34,9 @@ T-001 재현 가능한 host toolchain과 CI를 수행한다. target SDK와 build
 - ESP-NOW/UART v1.3/v1.0 전체 ABI와 생성 codec이 아직 동결되지 않음
 - 2017 Tucson TL의 실제 bus 종류·bitrate·connector·신호가 미확정
 - 완성 target firmware와 HIL/fault evidence가 없음
-- 일반 PowerShell PATH의 VerifyOnly는 CMake 검색 실패. 새 foundation-windows.ps1로 Clang23.1.0/CMake4.4.3/Ninja1.13.2 host 검증은 통과했으나 이후 VerifyOnly는 Arm GCC 부재로 실패했다. target Arm15.3.Rel1 baseline은 미완료다.
+- 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. foundation-windows.ps1와 setup-windows.ps1을 dot-source하면 Clang23.1.0/CMake4.4.3/Ninja1.13.2 및 직접 설치된 Arm15.3.Rel1/IDF6.0.3/CubeG4 1.6.3을 검증한다. target compile gate는 통과했지만 실제 보드/HIL은 미실행이다.
 - KiCad ERC/정합성은 통과했으나 MAX20040 footprint PROVISIONAL, PCB/routing/thermal/SI/transient 검증 미완료
-- ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3`은 setup script 대상이지만 현재 세션에서 target build를 실행했다는 증거는 없음
+- ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3` checkout, Arm archive digest와 target binary는 확보했지만 실제 board flash/HIL 및 production security provisioning은 미실행
 
 ## 문서 정본
 

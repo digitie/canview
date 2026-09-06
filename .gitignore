@@ -10,6 +10,10 @@ firmware/**/.idf_tools/
 .vscode/
 .claude/
 .codegraph/
+__pycache__/
+tests/fixtures/**/build/
+tests/fixtures/**/sdkconfig
+tests/fixtures/**/sdkconfig.old
 
 # Local credentials, provisioning and vehicle evidence
 .env

@@ -56,6 +56,7 @@ add_executable(${TARGET_NAME}
     "${CANVIEW_ROOT}/firmware/app/startup.c"
     bsp/board.c
     platform/stm32g474/safe_gpio.c
+    platform/stm32g474/syscalls.c
     "${STARTUP_SOURCE}"
     "${SYSTEM_SOURCE}"
 )
@@ -91,6 +92,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE canview_wire canview_app)
 # Keep vendor implementation outside the project's ISO warning contract.
 set_source_files_properties(
     "${CANVIEW_ROOT}/firmware/app/startup.c" bsp/board.c platform/stm32g474/safe_gpio.c
+    platform/stm32g474/syscalls.c
     PROPERTIES COMPILE_OPTIONS "-Werror;-Wpedantic;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef")
 
 target_compile_options(${TARGET_NAME} PRIVATE

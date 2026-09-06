@@ -51,8 +51,8 @@ BSP mock, SDK/driver, Python generator, legacy 자동화는 이 분모에 포함
 | startup4종 | 네 역할의 실제 startup.c를 strict C99 object로 build. 무한 main loop 실행은 하지 않음 |
 | generator | source/output drift, BOM, 중복 pin, JSON/CSV의 SoC·모듈별 금지 pin, I²S 재생16/녹음14 방향, partition overlap/크기, clock, SDK SHA 길이 |
 
-임의 잡음 시험은 sanitizer/지속 fuzzing의 대체가 아니다. Linux 보조 CI에서 GCC Release와 Clang ASan+UBSan을 별도 실행한다.
-GitHub workflow는 .github/workflows/foundation.yml이며 Windows job과 Linux job을 구분한다. SDK/target 성공을 나타내는 job은 아직 없다.
+임의 잡음 시험은 sanitizer/지속 fuzzing의 대체가 아니다. Linux 보조 CI에서 GCC·Clang Release와 Clang ASan+UBSan을 별도 job으로 실행한다.
+GitHub workflow는 .github/workflows/foundation.yml이며 Windows host, Linux portability/sanitizer, Windows target job을 구분한다. target job은 Arm archive digest와 SDK commit을 검증한 뒤 각 image를 별도 artifact로 올린다.
 
 ## API 문서
 
@@ -77,16 +77,16 @@ pip-compile --generate-hashes --strip-extras --output-file tools/requirements-do
 대상 경로는 firmware/controller, firmware/communicator/esp32, firmware/diagnostic-bridge, firmware/communicator/stm32다.
 새 IDF main은 strict C99 startup/BSP만 포함하며 canview_foundation/canview_esp32_platform/esp_psram에 의존한다. GPIO SDK adapter는 별도 canview_esp32_platform의 GNU 모드로 격리한다. legacy component는 image에서 제외한다.
 
-현재 세션에서 target SDK/Arm toolchain이 준비되지 않아 실제 target build와 HIL은 미실행이다.
-기존 setup-windows.ps1 -VerifyOnly는 일반 shell에서 CMake 검색 실패, 새 고정 host 도구 활성화 뒤에는 arm-none-eabi-gcc 부재로 실패했다. 새 host 도구 활성화는 Arm/IDF 설치 완료가 아니다.
-STM32CubeG4 commit의 기존 39자리 오기를 공식 v1.6.3 전체40자리로 수정했으나 이것만으로 target build 성공이라 하지 않는다.
+2026-09-06에 직접 설치한 Arm GNU `15.3.Rel1` archive(SHA-256 `b85669d3408e2ae713b17b0cc59bc4ea26369a7f2bd19108fd11df7095f159e6`)와 고정 ESP-IDF/STM32CubeG4 checkout으로 target build를 실행했다. `setup-windows.ps1 -VerifyOnly -ToolRoot C:\cv`가 직접 설치된 Arm toolchain을 자동 탐색했고, ESP-IDF의 `tools\idf.py` 경로도 확인한다.
+STM32 debug/release와 Communicator ESP32, Diagnostic Bridge, Controller, `canview_controller_can.h` public component fixture가 모두 binary까지 생성됐다. target build log의 컴파일·링커 warning/error scan은 0개였다. 실제 보드 flash·HIL·PSRAM/clock/DMA/UART4 Mbps/전원 단전/CAN 송신 안전은 여전히 미검증이다.
 
 ## 작성자 측정 기록
 
-- 고정 Windows Clang23.1.0/CMake4.4.3/Ninja1.13.2 Debug 및 Release: 각각 CTest31/31 PASS, 새 C99·legacy 각각 적용 경고0.
+- 고정 Windows Clang23.1.0/CMake4.4.3/Ninja1.13.2 Debug: CTest35/35 PASS; Release도 기존 및 확장 suite PASS, 새 C99·legacy 각각 적용 경고0.
 - 공용 core 측정: 실행 line100%, function100%, branch99.66% (protocol99.63%, app100%).
 - API: Doxygen XML 계약14개 PASS, Sphinx strict warning0.
 - 새 profile로 coverage gate를 재실행했고 hash lock 설치 및 API strict build도 통과했다. 독립 리뷰 결과는 review record에서 별도로 추적한다.
 - 초기 CI는 영문 Windows cp1252 출력과 GCC의 정수 승격 경고로 실패했다. UTF-8 진입점과 테스트 피연산자 형식을 수정한 beae8a9에서 [Windows 전체 gate와 Linux GCC/Clang ASan+UBSan](https://github.com/digitie/canview/actions/runs/34009610099)이 모두 PASS다. Linux는 보조 이식성 검증이며 target 또는 Windows 결과로 합산하지 않는다.
 - 별도 깨끗한 .tools/api-venv에서 hash lock 설치, pip check 및 API strict build를 다시 통과했다. 기존 plan validator의 부정 fixture35개도 별도로 통과했다.
+- generated drift·깨진 Markdown link·budget overflow negative fixture와 map/stack/latency synthetic evidence checker를 CTest/CI에 연결했다.
 - 실제 보드의 pin 파형/PSRAM/clock/DMA/UART4 Mbps/전원 단전/CAN 송신 안전은 미검증이다.

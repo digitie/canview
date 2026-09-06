@@ -1,0 +1,3 @@
+# Synthetic GCC -fstack-usage evidence; not a device artifact.
+firmware/app/startup.c:20:1:canview_startup	128	static
+shared/app/src/canview_app.c:5:1:canview_app_start	64	static

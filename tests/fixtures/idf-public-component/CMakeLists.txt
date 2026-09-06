@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.25...4.4)
+if(NOT DEFINED ENV{IDF_PATH})
+    message(FATAL_ERROR "Set pinned IDF_PATH before building the public component fixture")
+endif()
+set(EXTRA_COMPONENT_DIRS "${CMAKE_CURRENT_LIST_DIR}/../../../firmware/controller/components")
+set(COMPONENTS main)
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(canview_public_component_fixture)

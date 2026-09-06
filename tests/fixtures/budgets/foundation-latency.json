@@ -1,0 +1,4 @@
+{
+  "boot_to_safe_state_ms": 12,
+  "control_round_trip_ms": 40
+}

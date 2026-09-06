@@ -2,7 +2,7 @@
 
 Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF application이다. 현재는 IDF build와 public protocol/component 경계를 검증하는 안전한 bootstrap 단계다.
 
-현재 target은 [C99 기반 구조](../../docs/architecture/firmware-foundation.md)의 공용 startup/BSP/platform을 사용하고 BL을 끈 채 대기한다. legacy components는 host 회귀에만 남기며 target image에 포함하지 않는다. 아래 pipeline/FFT/UI는 제품 설계와 prototype 설명이지 현재 target에서 활성화된 기능이 아니다. 실제 target build/HIL은 미실행이다.
+현재 target은 [C99 기반 구조](../../docs/architecture/firmware-foundation.md)의 공용 startup/BSP/platform을 사용하고 BL을 끈 채 대기한다. legacy components는 host 회귀에만 남기며 target image에 포함하지 않는다. 아래 pipeline/FFT/UI는 제품 설계와 prototype 설명이지 현재 target에서 활성화된 기능이 아니다. ESP-IDF `v6.0.3`으로 foundation image binary 생성과 warning/error scan을 통과했으며 실제 보드 flash·HIL은 미실행이다.
 
 - 기준 ESP-IDF: `v6.0.3` (`esp32s3`)
 - Flash/PSRAM: 16 MB / 8 MB Octal PSRAM

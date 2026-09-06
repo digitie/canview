@@ -1,0 +1,3 @@
+# Synthetic GNU map evidence for the foundation checker; not a device artifact.
+CANVIEW_BUDGET_METRIC flash_used_bytes = 1348
+CANVIEW_BUDGET_METRIC ram_used_bytes = 8224

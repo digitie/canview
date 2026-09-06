@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "profile": "foundation-bench",
+  "evidence": {
+    "map": "tests/fixtures/budgets/foundation.map",
+    "stack": "tests/fixtures/budgets/foundation.su",
+    "latency": "tests/fixtures/budgets/foundation-latency.json"
+  },
+  "metrics": {
+    "flash_used_bytes": {"limit": 262144, "unit": "bytes", "source": "map"},
+    "ram_used_bytes": {"limit": 65536, "unit": "bytes", "source": "map"},
+    "stack_max_bytes": {"limit": 8192, "unit": "bytes", "source": "stack"},
+    "boot_to_safe_state_ms": {"limit": 250, "unit": "ms", "source": "latency"},
+    "control_round_trip_ms": {"limit": 100, "unit": "ms", "source": "latency"}
+  }
+}

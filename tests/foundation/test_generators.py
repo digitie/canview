@@ -99,6 +99,9 @@ class GeneratorTests(unittest.TestCase):
         manifest = json.loads((ROOT / "tools/toolchain-versions.json").read_text())
         for sdk in manifest["sdk"].values():
             self.assertRegex(sdk["gitCommit"], r"^[0-9a-f]{40}$")
+        arm = manifest["tools"]["armGnuToolchain"]
+        self.assertRegex(arm["archiveSha256"], r"^[0-9a-f]{64}$")
+        self.assertIn("arm-none-eabi", arm["archiveUrl"])
 
     def test_controller_audio_direction(self):
         source = json.loads((ROOT / "firmware/boards/waveshare35-pins.json").read_bytes())

@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$ToolRoot = (Join-Path $env:LOCALAPPDATA "CANView\toolchains"),
+    [string]$ArmGnuRoot = "",
     [switch]$VerifyOnly
 )
 
@@ -154,6 +155,27 @@ function Invoke-PinnedClone {
     }
 }
 
+$espIdfRoot = Join-Path $ToolRoot "esp-idf-$($manifest.sdk.espIdf.version.TrimStart('v'))"
+$cubeG4Root = Join-Path $ToolRoot "STM32CubeG4-$($manifest.sdk.stm32CubeG4.version.TrimStart('v'))"
+
+if ($ToolRoot -match "\s") {
+    throw "ToolRoot cannot contain spaces because ESP-IDF does not support spaces in SDK paths: $ToolRoot"
+}
+
+$armCandidates = @()
+if ($ArmGnuRoot.Trim().Length -gt 0) {
+    $armCandidates += (Resolve-Path -LiteralPath $ArmGnuRoot -ErrorAction Stop).Path
+}
+$armCandidates += (Join-Path $ToolRoot "arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())")
+$armCandidates += (Join-Path $env:LOCALAPPDATA "CANView\toolchains\arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())")
+$armBin = $armCandidates |
+    ForEach-Object { Join-Path $_ "bin" } |
+    Where-Object { Test-Path -LiteralPath (Join-Path $_ "arm-none-eabi-gcc.exe") } |
+    Select-Object -First 1
+if ($null -ne $armBin) {
+    $env:Path = "$armBin;$env:Path"
+}
+
 $cmakeCommand = Get-RequiredCommand -Name "cmake"
 $ninjaCommand = Get-RequiredCommand -Name "ninja"
 $gccCommand = Get-RequiredCommand -Name "arm-none-eabi-gcc"
@@ -171,13 +193,6 @@ $gccBin = Split-Path -Parent $gccCommand
 
 Assert-ExactVersion -Name "CMake" -Actual $cmakeVersion -Expected $manifest.tools.cmake.version
 Assert-ExactVersion -Name "Ninja" -Actual $ninjaVersion -Expected $manifest.tools.ninja.version
-
-$espIdfRoot = Join-Path $ToolRoot "esp-idf-$($manifest.sdk.espIdf.version.TrimStart('v'))"
-$cubeG4Root = Join-Path $ToolRoot "STM32CubeG4-$($manifest.sdk.stm32CubeG4.version.TrimStart('v'))"
-
-if ($ToolRoot -match "\s") {
-    throw "ToolRoot cannot contain spaces because ESP-IDF does not support spaces in SDK paths: $ToolRoot"
-}
 
 $allowClone = -not $VerifyOnly
 Invoke-PinnedClone `
@@ -202,8 +217,12 @@ if (-not $VerifyOnly) {
     }
 }
 
-if (-not (Test-Path -LiteralPath (Join-Path $espIdfRoot "idf.py"))) {
-    throw "ESP-IDF checkout is incomplete: $espIdfRoot"
+$idfPyCandidates = @(
+    (Join-Path $espIdfRoot "tools\idf.py"),
+    (Join-Path $espIdfRoot "idf.py")
+)
+if (-not ($idfPyCandidates | Where-Object { Test-Path -LiteralPath $_ })) {
+    throw "ESP-IDF checkout is incomplete: $espIdfRoot (idf.py not found)"
 }
 if (-not (Test-Path -LiteralPath (Join-Path $cubeG4Root "Drivers\CMSIS\Device\ST\STM32G4xx\Include\stm32g474xx.h"))) {
     throw "STM32CubeG4 checkout is incomplete: $cubeG4Root"
