@@ -37,6 +37,14 @@ if(BUILD_TESTING)
     target_include_directories(canview-protocol-header-c11 PRIVATE ${PROJECT_SOURCE_DIR}/protocol)
     target_link_libraries(canview-protocol-header-c11 PRIVATE canview_warnings)
     add_test(NAME protocol-header-c11 COMMAND canview-protocol-header-c11)
+    add_executable(canview-protocol-header-c99 tests/protocol/header_c11.c)
+    set_target_properties(canview-protocol-header-c99 PROPERTIES
+        C_STANDARD 99
+        C_STANDARD_REQUIRED ON
+        C_EXTENSIONS OFF)
+    target_include_directories(canview-protocol-header-c99 PRIVATE ${PROJECT_SOURCE_DIR}/protocol)
+    target_link_libraries(canview-protocol-header-c99 PRIVATE canview_warnings)
+    add_test(NAME protocol-header-c99 COMMAND canview-protocol-header-c99)
     add_subdirectory(tests/automation)
     add_test(NAME generated-transport COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_transport.py --check)
     add_test(NAME generated-boards COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_boards.py --check)

@@ -235,6 +235,10 @@ class EspNowSchemaTests(unittest.TestCase):
             pair_confirm,
             {},
             self._zero_payload("PAIR_CONFIRM"),
+            sender_role="PRIMARY_CONTROLLER",
+            receiver_role="COMMUNICATOR",
+            link_state="PAIRING",
+            expected_session_id=0,
             authenticated=True,
         )
         with self.assertRaises(generator.ProtocolDecodeError) as context:
@@ -306,11 +310,221 @@ class EspNowSchemaTests(unittest.TestCase):
             {**bulk_begin["header"], "flags": 0x41},
             bulk_begin["payload"],
             sender_role="READ_ONLY_CONTROLLER",
+            receiver_role="COMMUNICATOR",
+            link_state="ONLINE",
+            expected_session_id=bulk_begin["header"]["session_id"],
+            authenticated=True,
         )
         generator.decode_frame(
             self.schema,
             read_only_bulk,
             **{**self._context_for("BULK_BEGIN"), "sender_role": "READ_ONLY_CONTROLLER"},
+        )
+
+    def test_variant_authorization_semantics_and_owner_masks_are_enforced(self) -> None:
+        diagnostic = self.messages["DIAGNOSTIC_LEASE"]
+        request_values = {
+            "variant": "request",
+            "request_token": 1,
+            "action": 1,
+            "requested_ms": 1000,
+            "lease_id": 2,
+        }
+        response_values = {
+            "variant": "response",
+            "request_token": 1,
+            "lease_id": 2,
+            "status": 0,
+            "granted_ms": 1000,
+            "expires_at_ms": 2000,
+            "owner_device_id": 3,
+        }
+        with self.assertRaises(ValueError):
+            generator.encode_payload(diagnostic, {**request_values, "action": 0xFF})
+        with self.assertRaises(ValueError):
+            generator.encode_payload(diagnostic, {**response_values, "status": 0xFF})
+        request_header = {"flags": 0x41, "priority": 1, "session_id": 1, "sequence": 1, "sender_time_ms": 1}
+        request_frame = generator.encode_frame(
+            self.schema,
+            diagnostic,
+            request_header,
+            request_values,
+            sender_role="DIAGNOSTIC_BRIDGE",
+            receiver_role="COMMUNICATOR",
+            link_state="ONLINE",
+            expected_session_id=1,
+            authenticated=True,
+        )
+        generator.decode_frame(
+            self.schema,
+            request_frame,
+            sender_role="DIAGNOSTIC_BRIDGE",
+            receiver_role="COMMUNICATOR",
+            link_state="ONLINE",
+            authenticated=True,
+            expected_session_id=1,
+        )
+        response_header = {
+            "flags": 0x03,
+            "priority": 1,
+            "session_id": 1,
+            "sequence": 2,
+            "sender_time_ms": 2,
+            "correlation_id": 1,
+        }
+        response_frame = generator.encode_frame(
+            self.schema,
+            diagnostic,
+            response_header,
+            response_values,
+            sender_role="COMMUNICATOR",
+            receiver_role="DIAGNOSTIC_BRIDGE",
+            link_state="ONLINE",
+            expected_session_id=1,
+            authenticated=True,
+        )
+        generator.decode_frame(
+            self.schema,
+            response_frame,
+            sender_role="COMMUNICATOR",
+            receiver_role="DIAGNOSTIC_BRIDGE",
+            link_state="ONLINE",
+            authenticated=True,
+            expected_session_id=1,
+        )
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                diagnostic,
+                {**response_header, "flags": 1},
+                response_values,
+                sender_role="COMMUNICATOR",
+                receiver_role="DIAGNOSTIC_BRIDGE",
+                link_state="ONLINE",
+                expected_session_id=1,
+                authenticated=True,
+            )
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                diagnostic,
+                {**response_header, "correlation_id": 0},
+                response_values,
+                sender_role="COMMUNICATOR",
+                receiver_role="DIAGNOSTIC_BRIDGE",
+                link_state="ONLINE",
+                expected_session_id=1,
+                authenticated=True,
+            )
+
+        filter_record = {
+            "filter_id": 1,
+            "can_id": 0,
+            "can_id_mask": 0,
+            "period_ms": 20,
+            "bus_id": 0,
+            "flags_value": 0x80,
+            "flags_mask": 0,
+            "min_dlc": 0,
+            "max_dlc": 8,
+            "max_records_per_period": 1,
+            "enabled": 1,
+            "reserved0": 0,
+        }
+        with self.assertRaises(ValueError):
+            generator.encode_payload(
+                self.messages["CAN_FILTER_SET"],
+                {"action": 1, "config_revision": 1, "records": [filter_record]},
+            )
+        observer_values = self._zero_payload("CAN_OBSERVER_CONFIG")
+        observer_values["bus_mask"] = 0x08
+        with self.assertRaises(ValueError):
+            generator.encode_payload(self.messages["CAN_OBSERVER_CONFIG"], observer_values)
+        observer_values["bus_mask"] = 0
+        observer_values["flags"] = 1
+        with self.assertRaises(ValueError):
+            generator.encode_payload(self.messages["CAN_OBSERVER_CONFIG"], observer_values)
+
+        with self.assertRaises(ValueError):
+            generator.encode_payload(
+                self.messages["PAIR_CHALLENGE"],
+                {**self._zero_payload("PAIR_CHALLENGE"), "allowed_message_classes": 0xFFFFFFFF},
+            )
+
+        for message_name, field_name, invalid_value in (
+            ("COMMAND_REQUEST", "ttl_ms", 0),
+            ("COMMAND_REQUEST", "ttl_ms", 30001),
+            ("BULK_BEGIN", "total_size", 0),
+            ("BULK_BEGIN", "total_size", 65537),
+            ("BULK_BEGIN", "fragment_size", 0),
+            ("BULK_BEGIN", "fragment_size", 193),
+            ("BULK_BEGIN", "window_size", 0),
+            ("BULK_BEGIN", "window_size", 5),
+            ("BULK_FRAGMENT", "total_fragments", 0),
+            ("BULK_FRAGMENT", "total_fragments", 65537),
+            ("BULK_FRAGMENT", "payload_len", 0),
+            ("BULK_FRAGMENT", "payload_len", 181),
+        ):
+            with self.subTest(range_field=f"{message_name}.{field_name}={invalid_value}"):
+                values = self._zero_payload(message_name)
+                values[field_name] = invalid_value
+                if message_name == "BULK_FRAGMENT":
+                    values["fragment_index"] = 0
+                    if field_name == "total_fragments":
+                        values["payload_len"] = 1
+                        values["fragment_bytes"] = "00"
+                    else:
+                        values["total_fragments"] = 1
+                        values["fragment_bytes"] = "00" * max(0, min(invalid_value, 180))
+                with self.assertRaises(ValueError):
+                    generator.encode_payload(self.messages[message_name], values)
+
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                self.messages["CONTROL_LEASE_REQUEST"],
+                {"flags": 1, "priority": 1, "session_id": 1, "sequence": 1, "sender_time_ms": 1},
+                self._zero_payload("CONTROL_LEASE_REQUEST"),
+                sender_role="COMMUNICATOR",
+            )
+
+        config_set = next(vector for vector in self.schema["golden_vectors"] if vector["message"] == "CONFIG_SET")
+        rtc_record = {"key": 769, "value_type": 4, "value_bits": 1}
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                self.messages["CONFIG_SET"],
+                config_set["header"],
+                {**config_set["payload"], "records": [rtc_record]},
+                sender_role="PRIMARY_CONTROLLER",
+                receiver_role="COMMUNICATOR",
+                link_state="ONLINE",
+                expected_session_id=config_set["header"]["session_id"],
+                authenticated=True,
+            )
+        remote_config = next(vector for vector in self.schema["golden_vectors"] if vector["message"] == "REMOTE_CONFIG_REQUEST")
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                self.messages["REMOTE_CONFIG_REQUEST"],
+                remote_config["header"],
+                {**remote_config["payload"], "records": [rtc_record]},
+                sender_role="DIAGNOSTIC_BRIDGE",
+                receiver_role="COMMUNICATOR",
+                link_state="ONLINE",
+                expected_session_id=remote_config["header"]["session_id"],
+                authenticated=True,
+            )
+        generator.encode_frame(
+            self.schema,
+            self.messages["REMOTE_CONFIG_REQUEST"],
+            remote_config["header"],
+            {**remote_config["payload"], "records": [rtc_record]},
+            sender_role="DIAGNOSTIC_BRIDGE",
+            receiver_role="PRIMARY_CONTROLLER",
+            link_state="ONLINE",
+            expected_session_id=remote_config["header"]["session_id"],
+            authenticated=True,
         )
 
     def test_singleton_tlv_and_pairing_canonical_contracts_are_enforced(self) -> None:
@@ -340,6 +554,10 @@ class EspNowSchemaTests(unittest.TestCase):
         changed = copy.deepcopy(self.schema)
         changed["encoding"]["crc"]["check_123456789"] += 1
         invalid_cases.append(("crc metadata", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["header"]["crc_field"] = "reserved"
+        invalid_cases.append(("crc field binding", changed))
 
         changed = copy.deepcopy(self.schema)
         changed["message_contracts"]["HELLO"]["idempotency_key"] = ["not_a_wire_field"]
@@ -388,6 +606,14 @@ class EspNowSchemaTests(unittest.TestCase):
         changed = copy.deepcopy(self.schema)
         changed["enums"][8]["value_kind"] = "bitmask"
         invalid_cases.append(("invalid bitmask enum", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["enums"].append(copy.deepcopy(changed["enums"][0]))
+        invalid_cases.append(("duplicate logical enum name", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["config_policy"]["owner_roles"]["CAN_RX_BYTES_PER_SECOND"] = "PRIMARY_CONTROLLER"
+        invalid_cases.append(("config owner binding", changed))
 
         changed = copy.deepcopy(self.schema)
         changed["enums"][0]["values"]["PRIMARY_CONTROLLER"] = 0
@@ -487,6 +713,9 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertIn("CANVIEW_LINK_KNOWN_MASK", expected)
         self.assertIn("CANVIEW_BUS_FLAG_KNOWN_MASK UINT32_C(0x0000000F)", expected)
         self.assertIn("CANVIEW_PRECOND_KNOWN_MASK UINT32_C(0x000000FF)", expected)
+        self.assertIn("CANVIEW_MSG_CLASS_KNOWN_MASK UINT32_C(0x0000000F)", expected)
+        self.assertIn("CANVIEW_CONTROL_SCOPE_AUDIO_PROFILE", expected)
+        self.assertIn("CANVIEW_SCOPE_KNOWN_MASK UINT32_C(0x000007FF)", expected)
 
     def test_schema_digest_is_platform_independent(self) -> None:
         canonical = generator._canonical_schema_bytes()
@@ -630,7 +859,15 @@ class EspNowSchemaTests(unittest.TestCase):
     def test_payload_reserved_bytes_are_rejected_after_crc_recalculation(self) -> None:
         vector = next(item for item in self.schema["golden_vectors"] if item["name"] == "hello")
         message = self.messages["HELLO"]
-        raw = bytearray(generator.encode_frame(self.schema, message, vector["header"], vector["payload"]))
+        raw = bytearray(
+            generator.encode_frame(
+                self.schema,
+                message,
+                vector["header"],
+                vector["payload"],
+                **self._context_for("HELLO"),
+            )
+        )
         raw[32 + 35] = 1
         raw[28:32] = b"\x00\x00\x00\x00"
         raw[28:32] = (zlib.crc32(raw) & 0xFFFFFFFF).to_bytes(4, "little")
