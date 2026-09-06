@@ -1,0 +1,6 @@
+add_library(canview_app STATIC src/canview_app.c)
+target_include_directories(canview_app PUBLIC include ../interface)
+target_compile_features(canview_app PUBLIC c_std_99)
+if(TARGET canview_warnings)
+    target_link_libraries(canview_app PRIVATE canview_warnings)
+endif()

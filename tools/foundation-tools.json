@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-09-06",
+  "windows": {
+    "llvm": {
+      "version": "23.1.0",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-23.1.0/clang%2Bllvm-23.1.0-x86_64-pc-windows-msvc.tar.xz",
+      "sha256": "5799ebeca6870e9e61d5b4c8bc869ca8490e8db55f22d1388c4545404864d9e3",
+      "directory": "llvm-23.1.0",
+      "archive": "archive.tar.xz",
+      "binary": "clang+llvm-23.1.0-x86_64-pc-windows-msvc/bin/clang.exe"
+    },
+    "cmake": {
+      "version": "4.4.3",
+      "url": "https://github.com/Kitware/CMake/releases/download/v4.4.3/cmake-4.4.3-windows-x86_64.zip",
+      "sha256": "4d52ebab7193a698651639ed80d8d04fd903358843572cf44c7fd234cb7c26ab",
+      "directory": "cmake-4.4.3",
+      "archive": "archive.zip",
+      "binary": "bin/cmake-4.4.3-windows-x86_64/bin/cmake.exe"
+    },
+    "ninja": {
+      "version": "1.13.2",
+      "url": "https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip",
+      "sha256": "07fc8261b42b20e71d1720b39068c2e14ffcee6396b76fb7a795fb460b78dc65",
+      "directory": "ninja-1.13.2",
+      "archive": "archive.zip",
+      "binary": "bin/ninja.exe"
+    },
+    "doxygen": {
+      "version": "1.18.0",
+      "url": "https://www.doxygen.nl/files/doxygen-1.18.0.windows.x64.bin.zip",
+      "sha256": "e84f54cfd49ef06b0b16536056dbec0c496323de28abcce53a4269463de35eaf",
+      "directory": "doxygen-1.18.0",
+      "archive": "archive.zip",
+      "binary": "bin/doxygen.exe"
+    }
+  }
+}

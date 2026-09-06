@@ -2,6 +2,8 @@
 
 ## 현재 진척도
 
+2026-09-06 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 부분 구현 IN_PROGRESS다.
+
 2026-09-06 전체 계획 재점검: 1차 전체 읽기와 2차 요구/task/정본 대조로 [42개 요구 추적표](architecture/requirements-coverage.md)와 46개 상세 task를 정리했다. OTA 8개 구현 단계, PCB 제작 gate와 오디오/SPORT의 수신 조사→bench 송신 순환 의존성을 보완했다. 운전자·진단 웹 각 5뷰와 LVGL을 개선하고 밝기/음량/SPORT host 결함을 수정했다. 작성자 검증과 최종 독립 2인 리뷰의 범위는 새 review 기록으로 추적한다. 이는 제품 전체 구현 완료가 아니다.
 
 2026-09-06 OTA 변경: Communicator를 WROOM-1-N16R8로 변경하고 독립 ESP/STM reset, J31 서비스 인터록과 단방향 GPIO sense, 복구 버튼 회로를 생성했다. [단일 OTA 설계·독립 리뷰 기록](architecture/ota.md)에 브라우저 업데이트, 전원 차단 복구, Flash 배치, 승인 commit과 영속 버전 정책을 모았다. 회로 ERC/정합성·host 회귀는 통과했으나 실제 OTA 펌웨어·PCB·HIL은 미구현/미검증이다. 현재 환경의 target VerifyOnly는 CMake 부재로 실패했으며 다음 toolchain 작업은 유지한다.
@@ -17,7 +19,7 @@
 T-001 재현 가능한 host toolchain과 CI를 수행한다. target SDK와 build scaffold는 먼저 최신 안정 버전으로 고정했다.
 
 - 시작 문서: docs/tasks/T-001-host-toolchain-ci.md, docs/development/windows.md
-- 확인 대상: CMake/Ninja, Arm GNU, C11 host test, Python validator, Node static checks, 생성물 검사
+- 확인 대상: 고정 CMake/Ninja/Clang 기반 C99와 별도 C11 legacy 회귀, Arm GNU/IDF target build, Python validator, Node static checks, 생성물 검사
 - 완료 조건: 반복 가능한 명령과 CI gate가 정의되고, 도구가 없는 항목은 차단 사유로 기록됨
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
@@ -32,7 +34,7 @@ T-001 재현 가능한 host toolchain과 CI를 수행한다. target SDK와 build
 - ESP-NOW/UART v1.3/v1.0 전체 ABI와 생성 codec이 아직 동결되지 않음
 - 2017 Tucson TL의 실제 bus 종류·bitrate·connector·신호가 미확정
 - 완성 target firmware와 HIL/fault evidence가 없음
-- 일반 PowerShell PATH의 VerifyOnly는 CMake 검색 실패. VS Developer PowerShell에서는 MSVC19.50/CMake4.2.3-msvc3/Ninja1.12.1로 automation·공식 LVGL host 검증 가능하나 잠금 파일의 CMake4.4.3/Ninja1.13.2/Arm15.3.Rel1 baseline 완료는 아님
+- 일반 PowerShell PATH의 VerifyOnly는 CMake 검색 실패. 새 foundation-windows.ps1로 Clang23.1.0/CMake4.4.3/Ninja1.13.2 host 검증은 통과했으나 이후 VerifyOnly는 Arm GCC 부재로 실패했다. target Arm15.3.Rel1 baseline은 미완료다.
 - KiCad ERC/정합성은 통과했으나 MAX20040 footprint PROVISIONAL, PCB/routing/thermal/SI/transient 검증 미완료
 - ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3`은 setup script 대상이지만 현재 세션에서 target build를 실행했다는 증거는 없음
 

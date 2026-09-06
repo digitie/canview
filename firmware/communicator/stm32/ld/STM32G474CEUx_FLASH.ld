@@ -1,8 +1,9 @@
-/* STM32G474CEU6: 512 KiB Flash, 96 KiB SRAM, 32 KiB CCM SRAM. */
+/* BENCH FOUNDATION ONLY; NOT the immutable-loader/slot OTA linker layout.
+ * STM32G474CEU6: 512 KiB Flash, 96 KiB SRAM, 32 KiB CCM SRAM. */
 ENTRY(Reset_Handler)
 
-_Min_Heap_Size = 0x200;
-_Min_Stack_Size = 0x800;
+_Min_Heap_Size = 0;
+_Min_Stack_Size = 0x2000;
 
 MEMORY
 {

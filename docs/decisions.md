@@ -1,6 +1,6 @@
 # CANView 결정 색인
 
-구조적 결정은 파일당 하나의 ADR로 docs/adr/ 아래에 기록한다. 이 문서는 목록과 현재 상태만 제공하며 상세 근거는 각 ADR가 정본이다. 다음 후보 번호는 ADR-008이다.
+구조적 결정은 파일당 하나의 ADR로 docs/adr/ 아래에 기록한다. 이 문서는 목록과 현재 상태만 제공하며 상세 근거는 각 ADR가 정본이다. 다음 후보 번호는 ADR-009이다.
 
 | ADR | 상태 | 제목 | 위치 |
 |-----|------|------|------|
@@ -11,5 +11,6 @@
 | ADR-005 | accepted | 최신 Windows 임베디드 toolchain baseline | [005-latest-windows-embedded-toolchain.md](adr/005-latest-windows-embedded-toolchain.md) |
 | ADR-006 | partially superseded by ADR-007 | 소형 R1 회로·USB service 전원·INS·원격 수음 | [006-compact-hardware-power-and-sensors.md](adr/006-compact-hardware-power-and-sensors.md) |
 | ADR-007 | accepted | N16R8과 장치별 독립 복구 OTA | [007-n16r8-independent-recoverable-ota.md](adr/007-n16r8-independent-recoverable-ota.md) |
+| ADR-008 | accepted | 공용 C99 기반과 생성 API 문서 | [008-portable-foundation-and-api-docs.md](adr/008-portable-foundation-and-api-docs.md) |
 
 설계 세부는 [implementation-readiness.md](architecture/implementation-readiness.md), 기능·protocol·하드웨어의 배경은 관련 subsystem 문서를 함께 참조한다. 결정이 바뀌면 기존 ADR를 삭제하지 않고 새 ADR를 추가한다.

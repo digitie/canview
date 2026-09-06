@@ -1,0 +1,4 @@
+# Doxygen native binary 1.18.0 is locked separately in foundation tools manifest.
+sphinx==9.1.0
+breathe==4.36.0
+furo==2025.12.19

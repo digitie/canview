@@ -12,7 +12,7 @@ if(CMAKE_C_COMPILER_VERSION VERSION_LESS 15.3 OR
     )
 endif()
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -48,21 +48,29 @@ foreach(required_path
     endif()
 endforeach()
 
+set(CANVIEW_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
+include("${CANVIEW_ROOT}/cmake/CanviewWarnings.cmake")
 set(TARGET_NAME canview-communicator-stm32)
 
 add_executable(${TARGET_NAME}
-    src/main.c
-    src/canview_auto_sport.c
+    "${CANVIEW_ROOT}/firmware/app/startup.c"
+    bsp/board.c
+    platform/stm32g474/safe_gpio.c
     "${STARTUP_SOURCE}"
     "${SYSTEM_SOURCE}"
 )
 
 target_compile_definitions(${TARGET_NAME} PRIVATE
     STM32G474xx
+    CANVIEW_TARGET_ROLE=CANVIEW_APP_COMMUNICATOR_STM32
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/bsp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/platform/stm32g474"
+    "${CANVIEW_ROOT}/firmware/interface"
+)
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
     "${CMSIS_CORE_ROOT}/Core/Include"
     "${CMSIS_DEVICE_ROOT}/Include"
 )
@@ -73,6 +81,17 @@ set(MCU_OPTIONS
     -mfpu=fpv4-sp-d16
     -mfloat-abi=hard
 )
+
+add_subdirectory("${CANVIEW_ROOT}/shared/protocol" "${CMAKE_CURRENT_BINARY_DIR}/shared-protocol")
+add_subdirectory("${CANVIEW_ROOT}/shared/app" "${CMAKE_CURRENT_BINARY_DIR}/shared-app")
+foreach(core canview_wire canview_app)
+    target_compile_options(${core} PRIVATE ${MCU_OPTIONS} -ffunction-sections -fdata-sections -fstack-usage)
+endforeach()
+target_link_libraries(${TARGET_NAME} PRIVATE canview_wire canview_app)
+# Keep vendor implementation outside the project's ISO warning contract.
+set_source_files_properties(
+    "${CANVIEW_ROOT}/firmware/app/startup.c" bsp/board.c platform/stm32g474/safe_gpio.c
+    PROPERTIES COMPILE_OPTIONS "-Werror;-Wpedantic;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef")
 
 target_compile_options(${TARGET_NAME} PRIVATE
     ${MCU_OPTIONS}

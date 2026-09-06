@@ -2,6 +2,8 @@
 
 Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF application이다. 현재는 IDF build와 public protocol/component 경계를 검증하는 안전한 bootstrap 단계다.
 
+현재 target은 [C99 기반 구조](../../docs/architecture/firmware-foundation.md)의 공용 startup/BSP/platform을 사용하고 BL을 끈 채 대기한다. legacy components는 host 회귀에만 남기며 target image에 포함하지 않는다. 아래 pipeline/FFT/UI는 제품 설계와 prototype 설명이지 현재 target에서 활성화된 기능이 아니다. 실제 target build/HIL은 미실행이다.
+
 - 기준 ESP-IDF: `v6.0.3` (`esp32s3`)
 - Flash/PSRAM: 16 MB / 8 MB Octal PSRAM
 - UI: [`../../ui/lvgl/`](../../ui/lvgl/)
@@ -16,7 +18,7 @@ Primary Controller는 read-only 장치가 아니며, 활성 차량 profile에서
 
 온보드 ES8311 microphone의 16 kHz mono capture에서 1024-point FFT를 계산해 23개 표시 bin과 peak 주파수·레벨만 LVGL 모델에 전달한다. raw PCM은 UI task나 ESP-NOW로 전달하지 않는다.
 
-`components/canview_automation/`은 ESP-IDF에 바로 포함할 수 있는 순수 C component다.
+`components/canview_automation/`은 기존 순수 C prototype이며 현행 v1.3 계약 검증 후 이식해야 한다.
 
 - 차량 tail/low-beam·rheostat CAN 상태로만 backlight 목표를 만들고 1.2초 ramp를 적용한다.
 - FFT focus-band excess가 설정된 시간 동안 유지될 때 음량 offset을 한 step씩 올리고, release가 유지되면 더 느리게 내린다.

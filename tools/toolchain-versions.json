@@ -39,7 +39,7 @@
     },
     "stm32CubeG4": {
       "version": "v1.6.3",
-      "gitCommit": "d11b194a9f05d1b143d154771f3dbc282c8052a",
+      "gitCommit": "d11b194a9f05d1b143d154771f3dbc282c8052a5",
       "repository": "https://github.com/STMicroelectronics/STM32CubeG4.git",
       "mcu": "STM32G474CEU6"
     }

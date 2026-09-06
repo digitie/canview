@@ -1,12 +1,14 @@
 # T-001 재현 가능한 host toolchain과 CI
 
-- 상태: `READY`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: 없음
 - 병렬 가능: `T-100`
 
 ## 목표
+
+2026-09-06 기반 부분 구현은 [구조/인수인계](../architecture/firmware-foundation.md), [검증 절차](../development/foundation.md)에 기록한다. root CMake/CTest·strict C99·CI workflow·hash 고정 API 문서·pin/schema generator를 추가했다. 전체 ABI·target SDK build·HIL·전체 task 수용 조건을 닫은 것이 아니므로 DONE으로 바꾸지 않는다.
 
 어느 agent와 CI에서도 동일한 host test, generator, 정적 검사를 실행할 수 있게 version과 명령을 고정한다. 현재처럼 CMake가 없는 환경에서 일부 GCC 명령만 우회 실행하는 상태를 제거한다.
 

@@ -1,5 +1,18 @@
 # CANView 작업 일지
 
+## 2026-09-06 (codex, C99 기반 코드·넓은 시험·생성 API)
+
+기준선 b529a722fb813d5b60ab667675d73996895ea3fc에서 agent/codex-firmware-foundation을 만들었다. 사용자 dirty 변경 없이 시작했으며 기존 v1.2 prototype은 수정하지 않고 별도 host 회귀로 보존했다. embedded-architecture/cstyle/documentation 원칙으로 SDK-free codec/app, BSP/platform, caller ownership, API 오류·수명 계약을 분리했다.
+
+- 세 장치·네 MCU startup/BSP/config와 생성 pin header, strict C99 envelope/CRC/COBS/classic CAN batch/sequence를 추가했다. radio/CAN/OTA 활성화 경로는 없다.
+- 사용자가 Doxygen 허용을 명확히 한 뒤 Sphinx9.1.0/Breathe4.36.0/Doxygen1.18.0/Furo2025.12.19와 hash lock을 선택했다. 공개 함수14개 계약 검사 및 warning0 사이트 build를 실행했다.
+- 독립 C 표준 자문 Boole(01a074a0-9ee0-7883-83da-4e4a79fbe3ea)은 C17을 권고했으나 사용자 C99 지시를 유지했다. SDK GNU23과 공용 C99를 분리하고 C99 정적 검사를 추가했다. 자문은 2인 코드 리뷰 PASS를 대체하지 않는다.
+- 공식 archive SHA256 검증 후 .tools의 Clang23.1.0/CMake4.4.3/Ninja1.13.2/Doxygen1.18.0으로 Windows Debug/Release 각각31/31 CTest를 통과했다. core9그룹·독립 Python/C2195 vector·BSP4종 실패 주입·generator·legacy12회귀·문서/plan gate 포함.
+- 새 profile coverage: core 실행line546/546(100%), function20/20(100%), branch295/296(99.66%). BSP/SDK/Python/legacy를 분모에 포함하지 않았다.
+- tools/build_docs.py 실제 통과. 작성 중 Doxygen output parent 부재와 Sphinx 함수 pointer 표기 경고를 발견하고 builder 및 명시적인 함수 type typedef로 수정한 뒤 재검증했다.
+- tools/environment/setup-windows.ps1 -VerifyOnly: 일반 shell CMake 부재, 고정 host shell에서는 arm-none-eabi-gcc 부재로 실패. target SDK build/실보드/단전/차량 gate는 NOT_RUN이다.
+- T-001은 IN_PROGRESS이고 전체 ABI·SDK target CI·HIL acceptance는 열어 둔다. 새 2인 독립 리뷰와 remote CI 결과는 후속 review closure에 기록한다.
+
 ## 2026-09-06 (codex, 전체 계획 두 차례 점검·UI 개선)
 
 기준선 `4aeb2912da063c6fcb0d8715aa46f84c7d1d1b0f`의 사용자 변경을 보존하고 기존 PR16 branch에서 작업했다. 계획/자동화/LVGL/진단 웹을 분리한 작업자와 main의 2차 대조를 수행했다. [요구 추적표](architecture/requirements-coverage.md)에 42개 요구와 46개 상세 task, 남은 실제 gate를 연결했다. embedded-architecture/documentation/cstyle 원칙으로 의미 명령·상태 소유권·ISR/queue 경계·실행되지 않은 gate를 분리했다. Hallmark는 사용하지 않았다.

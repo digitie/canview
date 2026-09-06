@@ -1,6 +1,6 @@
 # Communicator STM32 firmware
 
-`STM32G474CEU6`용 CMake project 골격이다. reset 직후 transceiver safe-state와 순수 C 자동 SPORT 상태기계를 포함하며 UART/FDCAN 송수신은 의도적으로 활성화하지 않는다.
+`STM32G474CEU6`용 C99 CMake project 골격이다. reset 직후 transceiver safe-state만 실행하며 UART/FDCAN 송수신과 SPORT는 활성화하지 않는다. 기존 자동 SPORT prototype은 별도 host 회귀에서만 유지한다.
 
 ## dependency
 
@@ -54,3 +54,7 @@ Pop-Location
 - [Communicator UART protocol](../../../docs/architecture/protocols/communicator-uart.md)
 - [자동 제어 로직](../../../docs/architecture/automation.md)
 - [장치별 toolchain](../../../docs/development/toolchains.md)
+
+## 현재 기반 범위 안내
+
+현재 프로젝트는 [C99 기반 구조](../../../docs/architecture/firmware-foundation.md)의 공용 startup/app과 분리된 BSP/platform을 사용한다. CAN PHY 요청·ARM·WD 출력은 안전 비활성 상태로 유지하고 UART/CAN/HSE는 시작하지 않는다. 위 장치 설정·절차는 bring-up 계획이며 실제 target build/HIL은 미실행이다. linker는 전체 Flash를 사용하는 bench 전용으로 제품 OTA loader/slot image와 다르다.

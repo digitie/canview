@@ -42,6 +42,7 @@ AGENTS.md                     모든 작업의 규칙·금지선
 |---|---|
 | 장치명·데이터 흐름·권한 | [system](architecture/system.md) |
 | 구현 경계·gate·목표 구조 | [implementation readiness](architecture/implementation-readiness.md) |
+| 현재 기반 코드·API·검증 명령 | [firmware foundation](architecture/firmware-foundation.md), [개발 절차](development/foundation.md) |
 | 요구사항 누락·선행 task·미구현 범위 감사 | [requirements coverage](architecture/requirements-coverage.md) |
 | ESP-NOW·UART 계약 | [protocol index](architecture/protocols/README.md) |
 | 독립 OTA·전원 차단 복구·N16R8 회로 | [OTA 설계 및 리뷰](architecture/ota.md) |
