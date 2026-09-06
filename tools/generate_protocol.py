@@ -995,6 +995,12 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
 
     _validate_tlv_policy(schema.get("tlv"), "tlv")
     _validate_tlv_policy(schema.get("command_argument_tlv"), "command_argument_tlv")
+    tlv_policy = schema["tlv"]
+    command_argument_tlv_policy = schema["command_argument_tlv"]
+    if (tlv_policy["header_size"] != command_argument_tlv_policy["header_size"] or
+            tlv_policy["critical_bit"] != command_argument_tlv_policy["critical_bit"] or
+            tlv_policy["max_nesting_depth"] != command_argument_tlv_policy["max_nesting_depth"]):
+        raise SchemaError("TLV policies must share wire framing and nesting rules")
 
     qos_values = {str(m.get("qos")) for m in schema["messages"]}
     if not qos_values.issubset(KNOWN_QOS):
@@ -1249,6 +1255,7 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
     payload_kinds = {"fixed": 0, "bounded": 1, "suffix": 2, "tlv": 3, "variants": 4}
     qos_values = {"NONE": 0, "Q0": 1, "Q1": 2, "Q1_WINDOW": 3}
     field_kinds = {"reserved": 0, "enum": 1, "bitmask": 2, "range": 3}
+    tlv_policy = schema["tlv"]
     messages = {str(message["name"]): message for message in schema["messages"]}
     frame_policy = schema["frame_policy"]
     response_messages = set(frame_policy["response_messages"])
@@ -1260,6 +1267,24 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
         (str(item["message"]), str(item["variant"])): item
         for item in frame_policy["variant_policies"]
     }
+
+    tlv_rows: list[dict[str, Any]] = []
+    tlv_policy_rows: dict[str, tuple[int, int]] = {}
+
+    def add_tlv_policy(policy_name: str, policy: Mapping[str, Any]) -> tuple[int, int]:
+        existing = tlv_policy_rows.get(policy_name)
+        if existing is not None:
+            return existing
+        offset = len(tlv_rows)
+        for item in policy["types"]:
+            tlv_rows.append({
+                "type": int(item["value"]),
+                "size": int(item["size"]),
+                "singleton": 1 if item["singleton"] else 0,
+            })
+        result = (offset, len(policy["types"]))
+        tlv_policy_rows[policy_name] = result
+        return result
 
     contract_rows: list[dict[str, Any]] = []
     for message in schema["messages"]:
@@ -1295,6 +1320,13 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
                 length_offset = int(length_field["offset"])
                 length_width = _type_size(length_field)
         variants = payload.get("variants", []) if kind == "variants" else []
+        tlv_contract_index = 0
+        tlv_contract_count = 0
+        if kind == "tlv":
+            tlv_contract_index, tlv_contract_count = add_tlv_policy("tlv", schema["tlv"])
+        elif name == "COMMAND_REQUEST":
+            tlv_contract_index, tlv_contract_count = add_tlv_policy(
+                "command_argument_tlv", schema["command_argument_tlv"])
         variant_sizes = [int(variant["size"]) for variant in variants]
         variant_sender_masks = [
             _contract_role_mask(schema, variant_policies[(name, str(variant["name"]))]["senders"])
@@ -1351,6 +1383,8 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
             "variant_receiver_masks": variant_receiver_masks[:2],
             "variant_response_values": variant_response_values[:2],
             "variant_ack_values": variant_ack_values[:2],
+            "tlv_contract_index": tlv_contract_index,
+            "tlv_contract_count": tlv_contract_count,
         })
 
     raw_rules: list[dict[str, Any]] = []
@@ -1465,6 +1499,9 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
         "",
         f'#define CANVIEW_ESPNOW_CONTRACT_SCHEMA_SHA256 "{schema_digest}"',
         "#define CANVIEW_ESPNOW_CONTRACT_VARIANT_NONE UINT8_C(0xFF)",
+        f"#define CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE UINT8_C({int(tlv_policy['header_size'])})",
+        f"#define CANVIEW_ESPNOW_CONTRACT_TLV_CRITICAL_BIT UINT16_C(0x{int(tlv_policy['critical_bit']):04X})",
+        "#define CANVIEW_ESPNOW_CONTRACT_TLV_VARIABLE_SIZE UINT16_MAX",
         "",
         "typedef enum {",
         "    CANVIEW_CONTRACT_PAYLOAD_FIXED = 0,",
@@ -1518,7 +1555,15 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
         "    uint8_t variant_receiver_role_masks[2];",
         "    uint8_t variant_response[2];",
         "    uint8_t variant_ack_required[2];",
+        "    uint16_t tlv_contract_index;",
+        "    uint8_t tlv_contract_count;",
         "} canview_espnow_message_contract_t;",
+        "",
+        "typedef struct {",
+        "    uint16_t type;",
+        "    uint16_t size;",
+        "    uint8_t singleton;",
+        "} canview_espnow_tlv_contract_t;",
         "",
         "typedef struct {",
         "    uint8_t message_type;",
@@ -1545,6 +1590,8 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
         "",
         "extern const canview_espnow_message_contract_t canview_espnow_message_contracts[];",
         "extern const size_t canview_espnow_message_contract_count;",
+        "extern const canview_espnow_tlv_contract_t canview_espnow_tlv_contracts[];",
+        "extern const size_t canview_espnow_tlv_contract_count;",
         "extern const canview_espnow_field_constraint_t canview_espnow_field_constraints[];",
         "extern const size_t canview_espnow_field_constraint_count;",
         "extern const uint32_t canview_espnow_allowed_values[];",
@@ -1588,12 +1635,27 @@ def _render_contract_outputs(schema: Mapping[str, Any], schema_digest: str) -> t
             f" .variant_sender_role_masks = {{{c_list(row['variant_sender_masks'])}}},"
             f" .variant_receiver_role_masks = {{{c_list(row['variant_receiver_masks'])}}},"
             f" .variant_response = {{{c_list(row['variant_response_values'])}}},"
-            f" .variant_ack_required = {{{c_list(row['variant_ack_values'])}}} }},"
+            f" .variant_ack_required = {{{c_list(row['variant_ack_values'])}}},"
+            f" .tlv_contract_index = {row['tlv_contract_index']}U,"
+            f" .tlv_contract_count = {row['tlv_contract_count']}U }},"
         )
     source_lines.extend([
         "};",
         "const size_t canview_espnow_message_contract_count =",
         "    sizeof(canview_espnow_message_contracts) / sizeof(canview_espnow_message_contracts[0]);",
+        "",
+        "const canview_espnow_tlv_contract_t canview_espnow_tlv_contracts[] = {",
+    ])
+    for row in tlv_rows:
+        size = "UINT16_MAX" if row["size"] < 0 else f"{row['size']}U"
+        source_lines.append(
+            "    {"
+            f" .type = {row['type']}U, .size = {size}, .singleton = {row['singleton']}U }},"
+        )
+    source_lines.extend([
+        "};",
+        "const size_t canview_espnow_tlv_contract_count =",
+        "    sizeof(canview_espnow_tlv_contracts) / sizeof(canview_espnow_tlv_contracts[0]);",
         "",
         "const uint32_t canview_espnow_allowed_values[] = {",
         "    " + c_list(allowed_values),

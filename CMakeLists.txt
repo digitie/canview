@@ -53,7 +53,7 @@ if(BUILD_TESTING)
     target_compile_definitions(canview-espnow-tests PRIVATE
         CANVIEW_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
     target_link_libraries(canview-espnow-tests PRIVATE canview_wire canview_warnings)
-    foreach(scenario vectors malformed session security control qos pool-fuzz)
+    foreach(scenario vectors malformed tlv-contracts session security control qos pool-fuzz)
         add_test(NAME espnow-${scenario} COMMAND canview-espnow-tests ${scenario})
         set_tests_properties(espnow-${scenario} PROPERTIES TIMEOUT 60)
     endforeach()

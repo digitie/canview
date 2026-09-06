@@ -63,6 +63,46 @@ static uint32_t read_le32_for_test(const uint8_t *bytes)
            ((uint32_t)bytes[2] << 16U) | ((uint32_t)bytes[3] << 24U);
 }
 
+static uint16_t read_le16_for_test(const uint8_t *bytes)
+{
+    return (uint16_t)((uint16_t)bytes[0] | ((uint16_t)bytes[1] << 8U));
+}
+
+static void write_le16_for_test(uint8_t *bytes, uint16_t value)
+{
+    bytes[0] = (uint8_t)value;
+    bytes[1] = (uint8_t)(value >> 8U);
+}
+
+static const canview_espnow_message_contract_t *contract_for_test(uint8_t message_type)
+{
+    for (size_t index = 0U; index < canview_espnow_message_contract_count; ++index)
+    {
+        if (canview_espnow_message_contracts[index].message_type == message_type)
+        {
+            return &canview_espnow_message_contracts[index];
+        }
+    }
+    return NULL;
+}
+
+static bool append_tlv_for_test(
+    uint8_t *bytes, size_t *length, uint16_t type, const uint8_t *value, size_t value_length)
+{
+    if (bytes == NULL || length == NULL || value == NULL || value_length > UINT16_MAX ||
+        value_length > CANVIEW_MAX_FRAME_SIZE - CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE ||
+        *length > CANVIEW_MAX_FRAME_SIZE - CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE - value_length)
+    {
+        return false;
+    }
+    write_le16_for_test(bytes + *length, type);
+    write_le16_for_test(bytes + *length + 2U, (uint16_t)value_length);
+    memcpy(bytes + *length + CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE, value, value_length);
+    *length += CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE + value_length;
+    write_le16_for_test(bytes + 24U, (uint16_t)(*length - CANVIEW_HEADER_SIZE));
+    return canview_frame_recalculate_crc(bytes, *length) == CANVIEW_OK;
+}
+
 static void default_meta(canview_transport_meta_t *meta)
 {
     memset(meta, 0, sizeof(*meta));
@@ -208,6 +248,111 @@ static int test_malformed(void)
     return 0;
 }
 
+static int decode_mutated_fixture(
+    const char *name, uint8_t *bytes, size_t length, bool expect_valid,
+    canview_decode_reason_t expected_reason)
+{
+    canview_transport_meta_t meta;
+    metadata_for(name, &meta);
+    canview_peer_session_t session;
+    CHECK(canview_peer_session_start(&session, meta.receiver_role, meta.expected_session_id,
+                                     true, true, meta.now_ms) == CANVIEW_OK);
+    if (strcmp(name, "command-retry") == 0)
+    {
+        CHECK(canview_control_time_sync_update(&session.control_time_sync, 3U, 1000U,
+                                               meta.now_ms, 1U, 2U) == CANVIEW_OK);
+    }
+    canview_decoded_frame_t decoded;
+    const canview_decode_result_t result = canview_frame_decode(
+        &meta, bytes, length, &session, &decoded);
+    if (expect_valid)
+    {
+        CHECK(result == CANVIEW_DECODE_DELIVER || result == CANVIEW_DECODE_ACK_REQUIRED);
+        CHECK(decoded.reason == CANVIEW_DECODE_REASON_NONE);
+        CHECK(canview_peer_session_release_rx(&session) == CANVIEW_OK);
+    }
+    else
+    {
+        CHECK(result == CANVIEW_DECODE_DROP_SILENT || result == CANVIEW_DECODE_ERROR_RATE_LIMITED);
+        CHECK(decoded.reason == expected_reason);
+        CHECK(session.rx_reserved == 0U);
+    }
+    return 0;
+}
+
+static int test_tlv_contracts(void)
+{
+    CHECK(canview_espnow_tlv_contract_count == 9U);
+    CHECK(CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE == 4U);
+    CHECK(CANVIEW_ESPNOW_CONTRACT_TLV_CRITICAL_BIT == UINT16_C(0x8000));
+
+    uint8_t bytes[TEST_FRAME_BYTES] = {0};
+    size_t length = 0U;
+    CHECK(read_fixture("", "capabilities", bytes, sizeof(bytes), &length));
+    const canview_espnow_message_contract_t *capabilities =
+        contract_for_test(CANVIEW_MSG_CAPABILITIES);
+    CHECK(capabilities != NULL && capabilities->tlv_contract_count == 8U);
+    const size_t first_tlv = CANVIEW_HEADER_SIZE + capabilities->prefix_size;
+
+    uint8_t duplicate[TEST_FRAME_BYTES] = {0};
+    memcpy(duplicate, bytes, length);
+    const uint8_t feature_bits[8] = {0};
+    size_t duplicate_length = length;
+    CHECK(append_tlv_for_test(duplicate, &duplicate_length, 1U, feature_bits,
+                              sizeof(feature_bits)));
+    CHECK(decode_mutated_fixture("capabilities", duplicate, duplicate_length, false,
+                                 CANVIEW_DECODE_REASON_SEMANTIC) == 0);
+
+    uint8_t bad_size[TEST_FRAME_BYTES] = {0};
+    memcpy(bad_size, bytes, length);
+    write_le16_for_test(bad_size + first_tlv + 2U, 7U);
+    CHECK(canview_frame_recalculate_crc(bad_size, length) == CANVIEW_OK);
+    CHECK(decode_mutated_fixture("capabilities", bad_size, length, false,
+                                 CANVIEW_DECODE_REASON_SEMANTIC) == 0);
+
+    uint8_t unknown_critical[TEST_FRAME_BYTES] = {0};
+    memcpy(unknown_critical, bytes, length);
+    write_le16_for_test(unknown_critical + first_tlv, UINT16_C(0x8002));
+    CHECK(canview_frame_recalculate_crc(unknown_critical, length) == CANVIEW_OK);
+    CHECK(decode_mutated_fixture("capabilities", unknown_critical, length, false,
+                                 CANVIEW_DECODE_REASON_SEMANTIC) == 0);
+
+    uint8_t unknown_optional[TEST_FRAME_BYTES] = {0};
+    memcpy(unknown_optional, bytes, length);
+    write_le16_for_test(unknown_optional + first_tlv, UINT16_C(0x0100));
+    CHECK(canview_frame_recalculate_crc(unknown_optional, length) == CANVIEW_OK);
+    CHECK(decode_mutated_fixture("capabilities", unknown_optional, length, true,
+                                 CANVIEW_DECODE_REASON_NONE) == 0);
+
+    CHECK(read_fixture("", "command-retry", bytes, sizeof(bytes), &length));
+    const canview_espnow_message_contract_t *command =
+        contract_for_test(CANVIEW_MSG_COMMAND_REQUEST);
+    CHECK(command != NULL && command->tlv_contract_count == 1U);
+    const size_t argument_tlv = CANVIEW_HEADER_SIZE + command->prefix_size;
+    uint8_t command_critical[TEST_FRAME_BYTES] = {0};
+    memcpy(command_critical, bytes, length);
+    write_le16_for_test(command_critical + argument_tlv, UINT16_C(0x8002));
+    CHECK(canview_frame_recalculate_crc(command_critical, length) == CANVIEW_OK);
+    CHECK(decode_mutated_fixture("command-retry", command_critical, length, false,
+                                 CANVIEW_DECODE_REASON_SEMANTIC) == 0);
+
+    uint8_t command_bad_length[TEST_FRAME_BYTES] = {0};
+    memcpy(command_bad_length, bytes, length);
+    write_le16_for_test(command_bad_length + argument_tlv + 2U, 5U);
+    CHECK(canview_frame_recalculate_crc(command_bad_length, length) == CANVIEW_OK);
+    CHECK(decode_mutated_fixture("command-retry", command_bad_length, length, false,
+                                 CANVIEW_DECODE_REASON_SEMANTIC) == 0);
+
+    uint8_t command_optional[TEST_FRAME_BYTES] = {0};
+    memcpy(command_optional, bytes, length);
+    write_le16_for_test(command_optional + argument_tlv, UINT16_C(0x0100));
+    CHECK(canview_frame_recalculate_crc(command_optional, length) == CANVIEW_OK);
+    CHECK(decode_mutated_fixture("command-retry", command_optional, length, true,
+                                 CANVIEW_DECODE_REASON_NONE) == 0);
+    CHECK(read_le16_for_test(command_optional + 24U) == length - CANVIEW_HEADER_SIZE);
+    return 0;
+}
+
 static int test_session(void)
 {
     canview_peer_session_t session;
@@ -243,6 +388,29 @@ static int test_session(void)
     CHECK(canview_sequence_window_accept(&window, UINT32_MAX) == CANVIEW_OK);
     CHECK(canview_sequence_window_accept(&window, 0U) == CANVIEW_OK);
     CHECK(canview_sequence_window_accept(&window, UINT32_MAX) == CANVIEW_DUPLICATE);
+
+    uint8_t hello[TEST_FRAME_BYTES] = {0};
+    size_t hello_length = 0U;
+    CHECK(read_fixture("", "hello", hello, sizeof(hello), &hello_length));
+    canview_transport_meta_t hello_meta;
+    metadata_for("hello", &hello_meta);
+    canview_peer_session_t backoff_session;
+    CHECK(canview_peer_session_start(&backoff_session, hello_meta.receiver_role,
+                                     hello_meta.expected_session_id, true, true,
+                                     hello_meta.now_ms) == CANVIEW_OK);
+    for (size_t index = 0U; index < 5U; ++index)
+    {
+        canview_peer_session_auth_failure(&backoff_session, hello_meta.now_ms);
+    }
+    canview_decoded_frame_t backoff_decoded;
+    CHECK(canview_frame_decode(&hello_meta, hello, hello_length, &backoff_session,
+                               &backoff_decoded) == CANVIEW_DECODE_ERROR_RATE_LIMITED);
+    CHECK(backoff_decoded.reason == CANVIEW_DECODE_REASON_AUTH_BACKOFF);
+    CHECK(backoff_session.rx_reserved == 0U);
+    hello_meta.now_ms += 1000U;
+    CHECK(canview_frame_decode(&hello_meta, hello, hello_length, &backoff_session,
+                               &backoff_decoded) == CANVIEW_DECODE_DELIVER);
+    CHECK(canview_peer_session_release_rx(&backoff_session) == CANVIEW_OK);
     return 0;
 }
 
@@ -379,6 +547,40 @@ static int test_qos(void)
     CHECK(read_le32_for_test(frame + 12U) == 101U);
     CHECK(canview_qos_ack(&scheduler, UINT64_C(0x0102030405060708), 101U, 5090U) == CANVIEW_OK);
     CHECK(canview_qos_poll(&scheduler, 6000U, &frame, &frame_size) == CANVIEW_QOS_NO_EVENT);
+
+    canview_qos_scheduler_t retry_scheduler;
+    CHECK(canview_qos_scheduler_reset(&retry_scheduler, 200U) == CANVIEW_OK);
+    CHECK(canview_qos_submit(&retry_scheduler, &request, 1000U, 499U,
+                             UINT64_C(0x0102030405060708), &frame, &frame_size) ==
+          CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_qos_submit(&retry_scheduler, &request, 1000U, 30001U,
+                             UINT64_C(0x0102030405060708), &frame, &frame_size) ==
+          CANVIEW_INVALID_ARGUMENT);
+    uint8_t short_ttl_payload[TEST_PAYLOAD_BYTES] = {0};
+    memcpy(short_ttl_payload, request.payload, request.payload_size);
+    write_le16_for_test(short_ttl_payload + 10U, 500U);
+    canview_encode_request_t short_request = request;
+    short_request.payload = short_ttl_payload;
+    CHECK(canview_qos_submit(&retry_scheduler, &short_request, 1000U, 500U,
+                             UINT64_C(0x0102030405060708), &frame, &frame_size) == CANVIEW_OK);
+    uint8_t initial_frame[TEST_FRAME_BYTES] = {0};
+    memcpy(initial_frame, frame, frame_size);
+    CHECK(retry_scheduler.pending[0].expires_at_ms == 1500U);
+    CHECK(canview_qos_poll(&retry_scheduler, 1079U, &frame, &frame_size) == CANVIEW_QOS_NO_EVENT);
+    CHECK(canview_qos_poll(&retry_scheduler, 1080U, &frame, &frame_size) ==
+          CANVIEW_QOS_RETRY_READY);
+    CHECK(read_le32_for_test(frame + 12U) == 201U);
+    CHECK(memcmp(frame + CANVIEW_HEADER_SIZE, initial_frame + CANVIEW_HEADER_SIZE,
+                 frame_size - CANVIEW_HEADER_SIZE) == 0);
+    CHECK(canview_qos_poll(&retry_scheduler, 1160U, &frame, &frame_size) ==
+          CANVIEW_QOS_RETRY_READY);
+    CHECK(read_le32_for_test(frame + 12U) == 202U);
+    CHECK(canview_qos_poll(&retry_scheduler, 1240U, &frame, &frame_size) ==
+          CANVIEW_QOS_EXPIRED);
+    CHECK(frame == NULL && frame_size == 0U);
+    CHECK(!retry_scheduler.pending[0].in_use);
+    CHECK(retry_scheduler.pending[0].expires_at_ms == 1500U);
+    CHECK(retry_scheduler.pending[0].attempts == CANVIEW_ESPNOW_MAX_ATTEMPTS);
     return 0;
 }
 
@@ -441,6 +643,10 @@ int main(int argc, char **argv)
     if (strcmp(argv[1], "malformed") == 0)
     {
         return test_malformed();
+    }
+    if (strcmp(argv[1], "tlv-contracts") == 0)
+    {
+        return test_tlv_contracts();
     }
     if (strcmp(argv[1], "session") == 0)
     {

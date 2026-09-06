@@ -10,6 +10,9 @@
 
 #define CANVIEW_ESPNOW_CONTRACT_SCHEMA_SHA256 "02ce0eea119158151a038c1b1b89600cc38a7e125df96193f09ff05518ed4108"
 #define CANVIEW_ESPNOW_CONTRACT_VARIANT_NONE UINT8_C(0xFF)
+#define CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE UINT8_C(4)
+#define CANVIEW_ESPNOW_CONTRACT_TLV_CRITICAL_BIT UINT16_C(0x8000)
+#define CANVIEW_ESPNOW_CONTRACT_TLV_VARIABLE_SIZE UINT16_MAX
 
 typedef enum {
     CANVIEW_CONTRACT_PAYLOAD_FIXED = 0,
@@ -63,7 +66,15 @@ typedef struct {
     uint8_t variant_receiver_role_masks[2];
     uint8_t variant_response[2];
     uint8_t variant_ack_required[2];
+    uint16_t tlv_contract_index;
+    uint8_t tlv_contract_count;
 } canview_espnow_message_contract_t;
+
+typedef struct {
+    uint16_t type;
+    uint16_t size;
+    uint8_t singleton;
+} canview_espnow_tlv_contract_t;
 
 typedef struct {
     uint8_t message_type;
@@ -90,6 +101,8 @@ typedef struct {
 
 extern const canview_espnow_message_contract_t canview_espnow_message_contracts[];
 extern const size_t canview_espnow_message_contract_count;
+extern const canview_espnow_tlv_contract_t canview_espnow_tlv_contracts[];
+extern const size_t canview_espnow_tlv_contract_count;
 extern const canview_espnow_field_constraint_t canview_espnow_field_constraints[];
 extern const size_t canview_espnow_field_constraint_count;
 extern const uint32_t canview_espnow_allowed_values[];

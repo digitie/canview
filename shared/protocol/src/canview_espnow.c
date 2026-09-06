@@ -10,8 +10,6 @@
 #define ESPNOW_CRC_OFFSET (28U)
 #define ESPNOW_CRC_SIZE (4U)
 #define ESPNOW_SEQUENCE_HALF UINT32_C(0x80000000)
-#define ESPNOW_TLV_HEADER_SIZE (4U)
-#define ESPNOW_TLV_CRITICAL_BIT UINT16_C(0x8000)
 #define ESPNOW_CONTROL_COMMAND_ID_OFFSET (8U)
 #define ESPNOW_CONTROL_COMMAND_TAG_OFFSET (56U)
 #define ESPNOW_CONTROL_COMMAND_PREFIX_SIZE (56U)
@@ -228,79 +226,93 @@ static bool effective_roles(
     return true;
 }
 
+static const canview_espnow_tlv_contract_t *find_tlv_contract(
+    const canview_espnow_message_contract_t *contract, uint16_t type)
+{
+    if (contract == NULL ||
+        (size_t)contract->tlv_contract_index + (size_t)contract->tlv_contract_count >
+            canview_espnow_tlv_contract_count)
+    {
+        return NULL;
+    }
+    for (size_t index = 0U; index < contract->tlv_contract_count; ++index)
+    {
+        const canview_espnow_tlv_contract_t *candidate =
+            &canview_espnow_tlv_contracts[contract->tlv_contract_index + index];
+        if (candidate->type == type)
+        {
+            return candidate;
+        }
+    }
+    return NULL;
+}
+
+static bool tlv_singleton_seen(
+    const uint8_t *payload, size_t first_offset, size_t current_offset, uint16_t type)
+{
+    size_t offset = first_offset;
+    while (offset < current_offset)
+    {
+        if (current_offset - offset < CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE)
+        {
+            return false;
+        }
+        const uint16_t previous_type = read_le16(payload + offset);
+        const uint16_t previous_length = read_le16(
+            payload + offset + CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE - 2U);
+        offset += CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE;
+        if ((size_t)previous_length > current_offset - offset)
+        {
+            return false;
+        }
+        if (previous_type == type)
+        {
+            return true;
+        }
+        offset += (size_t)previous_length;
+    }
+    return false;
+}
+
 static bool valid_tlv_payload(
     const canview_espnow_message_contract_t *contract, const uint8_t *payload,
     size_t payload_size)
 {
-    if (contract == NULL || payload == NULL || payload_size < contract->prefix_size)
+    if (contract == NULL || payload == NULL || payload_size < contract->prefix_size ||
+        (size_t)contract->tlv_contract_index + (size_t)contract->tlv_contract_count >
+            canview_espnow_tlv_contract_count)
     {
         return false;
     }
-    bool singleton_seen[8] = {false};
-    size_t offset = contract->prefix_size;
+    const size_t first_offset = contract->prefix_size;
+    size_t offset = first_offset;
     while (offset < payload_size)
     {
-        if (payload_size - offset < ESPNOW_TLV_HEADER_SIZE)
+        if (payload_size - offset < CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE)
         {
             return false;
         }
         const uint16_t type = read_le16(payload + offset);
-        const uint16_t value_length = read_le16(payload + offset + 2U);
-        offset += ESPNOW_TLV_HEADER_SIZE;
+        const uint16_t value_length = read_le16(
+            payload + offset + CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE - 2U);
+        offset += CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE;
         if ((size_t)value_length > payload_size - offset)
         {
             return false;
         }
-        size_t singleton_index = 0U;
-        size_t expected_size = 0U;
-        bool known = true;
-        switch (type)
+        const canview_espnow_tlv_contract_t *definition = find_tlv_contract(contract, type);
+        if (definition == NULL)
         {
-        case 1U:
-            singleton_index = 1U;
-            expected_size = 8U;
-            break;
-        case 2U:
-            singleton_index = 2U;
-            expected_size = 2U;
-            break;
-        case 3U:
-            singleton_index = 3U;
-            expected_size = 4U;
-            break;
-        case 4U:
-            singleton_index = 4U;
-            expected_size = 32U;
-            break;
-        case 5U:
-            singleton_index = 5U;
-            expected_size = 32U;
-            break;
-        case 6U:
-            singleton_index = 6U;
-            expected_size = 2U;
-            break;
-        case 7U:
-            singleton_index = 7U;
-            expected_size = 3U;
-            break;
-        case UINT16_C(0x8001):
-            singleton_index = 0U;
-            expected_size = (size_t)value_length;
-            break;
-        default:
-            known = false;
-            break;
-        }
-        if (known && type != UINT16_C(0x8001))
-        {
-            if ((size_t)value_length != expected_size || singleton_seen[singleton_index])
+            if ((type & CANVIEW_ESPNOW_CONTRACT_TLV_CRITICAL_BIT) != 0U)
             {
                 return false;
             }
-            singleton_seen[singleton_index] = true;
         }
-        else if (!known && (type & ESPNOW_TLV_CRITICAL_BIT) != 0U)
+        else if ((definition->size != CANVIEW_ESPNOW_CONTRACT_TLV_VARIABLE_SIZE &&
+                  definition->size != value_length) ||
+                 (definition->singleton != 0U &&
+                  tlv_singleton_seen(payload, first_offset, offset -
+                                     CANVIEW_ESPNOW_CONTRACT_TLV_HEADER_SIZE, type)))
         {
             return false;
         }
@@ -342,7 +354,8 @@ static bool validate_payload_shape(
         {
             return false;
         }
-        return suffix_length == payload_size - contract->prefix_size;
+        return suffix_length == payload_size - contract->prefix_size &&
+               (contract->tlv_contract_count == 0U || valid_tlv_payload(contract, payload, payload_size));
     }
     if (contract->payload_kind == CANVIEW_CONTRACT_PAYLOAD_TLV)
     {
@@ -673,6 +686,10 @@ canview_decode_result_t canview_frame_decode(
         session->rx_resource_limit = CANVIEW_ESPNOW_RX_RESOURCE_LIMIT;
         (void)canview_error_rate_limiter_reset(&session->error_limiter, ESPNOW_DEFAULT_ERROR_RATE_LIMIT);
     }
+    if (!canview_peer_session_auth_allowed(session, meta->now_ms))
+    {
+        return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_AUTH_BACKOFF);
+    }
     if (length < ESPNOW_HEADER_SIZE || length > CANVIEW_MAX_FRAME_SIZE)
     {
         return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_BAD_LENGTH);
@@ -967,7 +984,9 @@ canview_status_t canview_peer_session_release_rx(canview_peer_session_t *session
 
 bool canview_peer_session_auth_allowed(const canview_peer_session_t *session, uint32_t now_ms)
 {
-    return session != NULL && now_ms - session->auth_backoff_until_ms < UINT32_C(0x80000000);
+    return session != NULL &&
+           (session->auth_failures < 5U ||
+            now_ms - session->auth_backoff_until_ms < UINT32_C(0x80000000));
 }
 
 void canview_peer_session_auth_failure(canview_peer_session_t *session, uint32_t now_ms)
