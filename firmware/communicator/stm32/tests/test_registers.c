@@ -269,7 +269,7 @@ static void fault_tests(void)
     }
     TIM2->CNT += 21000U;
     CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
-    for (uint32_t stage = 0U; stage < 6U; ++stage)
+    for (uint32_t stage = 0U; stage < 5U; ++stage)
     {
         healthy_boot();
         if (stage == 0U)
@@ -292,21 +292,22 @@ static void fault_tests(void)
         {
             canview_stm_hw_latch_fault();
         }
-        if (stage == 5U)
-        {
-            RCC->CIFR = RCC_CIFR_CSSF;
-            if (setjmp(stopped) == 0)
-            {
-                NMI_Handler();
-                CHECK(false);
-            }
-            CHECK(reset_requests == 1U);
-            CHECK(RCC->CICR == RCC_CICR_CSSC);
-        }
         CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
         CHECK(canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
         check_no_control();
     }
+    /* longjmp 경계와 반복 변수의 수명을 분리한다. */
+    healthy_boot();
+    RCC->CIFR = RCC_CIFR_CSSF;
+    if (setjmp(stopped) == 0)
+    {
+        NMI_Handler();
+        CHECK(false);
+    }
+    CHECK(reset_requests == 1U && RCC->CICR == RCC_CICR_CSSC);
+    CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
+    CHECK(canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
+    check_no_control();
     healthy_boot();
     if (setjmp(stopped) == 0)
     {
