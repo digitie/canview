@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "vectors": [
+    {
+      "canonical_contract_sha256": "d1dc84d7a829ed77ba28fa6cc40b193deaea799bbf94b918da9514dcc25841e1",
+      "canonical_fields": [
+        "installation_id",
+        "endpoint_id",
+        "mac",
+        "nonce",
+        "channel",
+        "proposed_major",
+        "proposed_minor_min",
+        "proposed_minor_max",
+        "link_key_generation",
+        "expires_at_ms"
+      ],
+      "domain": "CV-DISCOVERY-1",
+      "expected": "must_not_bind",
+      "mutation": "bind_peer_nonce",
+      "name": "discovery-peer-nonce",
+      "phase": "DISCOVERY",
+      "phase_binding": {
+        "canonical_fields": [
+          "installation_id",
+          "endpoint_id",
+          "mac",
+          "nonce",
+          "channel",
+          "proposed_major",
+          "proposed_minor_min",
+          "proposed_minor_max",
+          "link_key_generation",
+          "expires_at_ms"
+        ],
+        "domain": "CV-DISCOVERY-1",
+        "message": "DISCOVERY"
+      }
+    },
+    {
+      "canonical_contract_sha256": "d1dc84d7a829ed77ba28fa6cc40b193deaea799bbf94b918da9514dcc25841e1",
+      "canonical_fields": [
+        "installation_id",
+        "endpoint_id",
+        "mac",
+        "nonce",
+        "channel",
+        "proposed_major",
+        "proposed_minor_min",
+        "proposed_minor_max",
+        "link_key_generation",
+        "expires_at_ms"
+      ],
+      "domain": "CV-DISCOVERY-1",
+      "expected": "must_not_bind",
+      "mutation": "bind_selected_version",
+      "name": "discovery-selected-version",
+      "phase": "DISCOVERY",
+      "phase_binding": {
+        "canonical_fields": [
+          "installation_id",
+          "endpoint_id",
+          "mac",
+          "nonce",
+          "channel",
+          "proposed_major",
+          "proposed_minor_min",
+          "proposed_minor_max",
+          "link_key_generation",
+          "expires_at_ms"
+        ],
+        "domain": "CV-DISCOVERY-1",
+        "message": "DISCOVERY"
+      }
+    },
+    {
+      "canonical_contract_sha256": "12b18289456591261c0166a7cfd782851ccf1223cec6e4bac254624846d03b2f",
+      "canonical_fields": [
+        "request_token",
+        "discovery_digest",
+        "requester_endpoint_id",
+        "requester_mac",
+        "controller_nonce",
+        "requested_role",
+        "requested_major",
+        "requested_minor",
+        "expires_at_ms"
+      ],
+      "domain": "CV-PAIR-REQUEST-1",
+      "expected": "must_not_authorize",
+      "mutation": "authorize_requested_role",
+      "name": "request-authorizes-role",
+      "phase": "PAIR_REQUEST",
+      "phase_binding": {
+        "canonical_fields": [
+          "request_token",
+          "discovery_digest",
+          "requester_endpoint_id",
+          "requester_mac",
+          "controller_nonce",
+          "requested_role",
+          "requested_major",
+          "requested_minor",
+          "expires_at_ms"
+        ],
+        "domain": "CV-PAIR-REQUEST-1",
+        "message": "PAIR_REQUEST"
+      }
+    },
+    {
+      "canonical_contract_sha256": "cb715574d7f6ea82e7062163a098bc9631bcbbf9eaab4b0a14969c44afc53555",
+      "canonical_fields": [
+        "discovery_digest",
+        "request_digest",
+        "endpoint0_id",
+        "endpoint1_id",
+        "nonce0",
+        "nonce1",
+        "selected_major",
+        "selected_minor",
+        "channel",
+        "authorized_role",
+        "authorized_scope",
+        "allowed_message_classes",
+        "link_key_generation"
+      ],
+      "domain": "CV-PAIR-CHALLENGE-1",
+      "expected": "reject_without_local_authorization",
+      "mutation": "accept_untrusted_scope",
+      "name": "challenge-unauthorized-scope",
+      "phase": "PAIR_CHALLENGE",
+      "phase_binding": {
+        "canonical_fields": [
+          "discovery_digest",
+          "request_digest",
+          "endpoint0_id",
+          "endpoint1_id",
+          "nonce0",
+          "nonce1",
+          "selected_major",
+          "selected_minor",
+          "channel",
+          "authorized_role",
+          "authorized_scope",
+          "allowed_message_classes",
+          "link_key_generation"
+        ],
+        "domain": "CV-PAIR-CHALLENGE-1",
+        "message": "PAIR_CHALLENGE"
+      }
+    },
+    {
+      "canonical_contract_sha256": "41c5f647efb0cb942e05e50a606b9b9047e39608ff15dd92e72dea008977de3e",
+      "canonical_fields": [
+        "transcript_hash",
+        "selected_major",
+        "selected_minor",
+        "authorized_role",
+        "link_key_generation",
+        "confirm_nonce"
+      ],
+      "domain": "CV-PAIR-CONFIRM-1",
+      "expected": "bad_canonical_order",
+      "mutation": "reorder_transcript_fields",
+      "name": "confirm-transcript-order",
+      "phase": "PAIR_CONFIRM",
+      "phase_binding": {
+        "canonical_fields": [
+          "transcript_hash",
+          "selected_major",
+          "selected_minor",
+          "authorized_role",
+          "link_key_generation",
+          "confirm_nonce"
+        ],
+        "domain": "CV-PAIR-CONFIRM-1",
+        "message": "PAIR_CONFIRM"
+      }
+    },
+    {
+      "canonical_contract_sha256": "1711e7289feeb60eb5d94516bd79795fb329d5231ea8124a263296136ef0861e",
+      "canonical_fields": [
+        "request_token",
+        "status",
+        "assigned_role",
+        "link_key_generation",
+        "peer_id",
+        "transcript_hash",
+        "expires_at_ms"
+      ],
+      "domain": "CV-PAIR-RESULT-1",
+      "expected": "bad_transcript",
+      "mutation": "change_transcript_hash",
+      "name": "result-transcript-digest",
+      "phase": "PAIR_RESULT",
+      "phase_binding": {
+        "canonical_fields": [
+          "request_token",
+          "status",
+          "assigned_role",
+          "link_key_generation",
+          "peer_id",
+          "transcript_hash",
+          "expires_at_ms"
+        ],
+        "domain": "CV-PAIR-RESULT-1",
+        "message": "PAIR_RESULT"
+      }
+    }
+  ]
+}

@@ -1,10 +1,11 @@
 # T-002 ESP-NOW v1.3 schema와 생성 header 동결
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-001`
 - 후속: `T-003`, `T-005`, `T-200`, `T-300`, `T-400`
+- branch: `agent/codex-t002-espnow-schema`, Draft PR #18
 
 ## 목표
 
@@ -70,25 +71,28 @@ docs/architecture/protocols/esp-now.md
 
 ## 수용 기준
 
-- [ ] 선언된 모든 message ID에 payload schema 또는 명시적 `payload: none`이 있다.
-- [ ] role/state/direction/QoS가 없는 message가 0개다.
-- [ ] 모든 count 기반 payload가 208 byte 이하임을 generator가 증명한다.
-- [ ] C header를 다시 생성해 diff가 없다.
-- [ ] protocol minor assertion과 문서가 모두 `1.3`이다.
-- [ ] RTC vehicle command와 owner 없는 config key가 남지 않는다.
-- [ ] role/control scope가 local provisioning policy보다 넓게 협상될 수 없다.
-- [ ] retry해도 command issued time과 TTL이 바뀌지 않는 golden vector가 있다.
-- [ ] Bridge용 `link_root`/LMK로 Primary Controller session이나 scope를 인증할 수 없다.
-- [ ] 모든 mutating marker 경로가 단일 message와 16-bit reason namespace를 사용한다.
-- [ ] `u8` catalog revision, plain wrapping cumulative `u32` counter, `u8` common reason이 schema에 0개다.
-- [ ] Bridge/read-only schema state에서는 control root/tag 생성 API와 nonzero control scope가 존재하지 않는다.
-- [ ] C, Python에서 모든 golden binary size/field 값이 일치한다.
+- [x] 선언된 모든 message ID에 payload schema가 있다.
+- [x] role/state/direction/QoS와 response/idempotency/log policy가 없는 message가 0개다.
+- [x] 모든 count 기반 payload가 208 byte 이하임을 generator가 증명한다.
+- [x] C header를 다시 생성해 diff가 없다.
+- [x] protocol minor assertion과 문서가 모두 `1.3`이다.
+- [x] RTC vehicle command와 owner 없는 config key가 남지 않는다.
+- [x] role/control scope가 local provisioning policy보다 넓게 협상될 수 없고 read-only role은 scope 0이다.
+- [x] retry해도 command issued time과 TTL이 바뀌지 않는 golden vector가 있다.
+- [x] Bridge용 `link_root`/LMK로 Primary Controller session이나 scope를 인증할 수 없도록 security policy를 고정했다.
+- [x] 모든 mutating marker 경로가 `CAN_EVENT_MARKER` 단일 message와 16-bit reason namespace를 사용한다.
+- [x] `u8` catalog revision, plain wrapping cumulative `u32` counter, `u8` common reason이 schema에 0개다.
+- [x] Bridge/read-only schema policy에서 control root와 nonzero control scope를 금지한다.
+- [x] C packed layout과 Python oracle에서 모든 golden binary size/field 값이 일치한다.
+- [x] 모든 enum compatibility alias·constant·known-count/mask·message symbol을 하나의 generated namespace에서 검사하고 effective `macro_prefix` 충돌을 거부한다.
+- [x] policy decoder가 clear/session-zero frame을 포함한 모든 frame에 명시적인 sender·receiver·link-state·session context를 요구한다.
+- [x] bulk inactivity timeout은 architecture 정본과 일치하는 `1000..30000 ms` 범위로 고정한다.
 
 ## 계획 보완 수용 기준
 
-- [ ] navigation-v1.json의 ESP-NOW 1.4 확장을 companion schema로 연결하고 1.3 peer에는 새 sensor message/capability가 노출되지 않는다. 1.3 기본 ABI를 1.4로 조용히 재정의하지 않는다.
-- [ ] bulk의 object/fragment/window/timeout/digest·config schema 16 KiB 제한, config owner/revision/status를 전 메시지 golden vector로 검사한다. 최신 정본의 wireless_session_id:u32와 공통 header/boot binding, capture STATUS의 reason:u16·구 reserved 0B·총44B를 exact offset/size vector로 대조한다.
-- [ ] pairing 각 phase의 canonical prefix/domain·필드 순서·nonce/digest·authorized role/range 변경 negative vector를 독립적으로 고정한다. 권위 key record는 보호된 provisioning A/B, normal NVS는 cache로 구분한다. 이 문서 변경은 schema/codec/golden 구현 완료가 아니다.
+- [x] navigation-v1.json의 ESP-NOW 1.4 확장을 companion schema로 연결하고 1.3 peer에는 새 sensor message/capability가 노출되지 않는다. 1.3 기본 ABI를 1.4로 조용히 재정의하지 않는다.
+- [x] bulk의 object/fragment/window/timeout/digest·config schema 16 KiB 제한, config owner/revision/status를 전 메시지 golden vector로 검사한다. 최신 정본의 wireless_session_id:u32와 공통 header/boot binding, capture STATUS의 reason:u16·구 reserved 0B·총44B를 exact offset/size vector로 대조한다.
+- [x] pairing 각 phase의 canonical prefix/domain·필드 순서·nonce/digest·authorized role/range 변경 negative vector를 독립적으로 고정한다. 권위 key record는 보호된 provisioning A/B, normal NVS는 cache로 구분한다. 이 문서 변경은 schema/codec/golden 구현 완료가 아니다.
 
 ## 검증 명령
 
@@ -98,6 +102,10 @@ python -m pytest -q tests/protocol/test_schema.py
 cmake --build --preset host-debug
 ctest --preset host-debug -R protocol-schema --output-on-failure
 ```
+
+`fb30b29e4e0ac27170b0ce8bb989e0d93e9d861a` 기준으로 generator/check, generated/negative/budget gate, Python schema 24/24, host Debug·Release·Coverage CTest 각 39/39, coverage 9/9와 core line/function 100%·branch 99.6296%를 재실행했다. 생성물은 15개 정상 frame, 6개 malformed, 4개 compatibility와 pairing contract를 포함한다. Windows checkout의 CRLF에도 generator digest와 text artifact가 동일하도록 canonical LF 회귀시험과 `.gitattributes` 정책을 포함한다. STM32 Debug/Release와 Communicator ESP32, Diagnostic Bridge, Controller, public component fixture의 clean target build와 warning/error scan은 현재 같은 commit에서 재실행 중이다. 최종 2인 post-fix reviewer verdict와 PR CI가 남아 있어 아직 `DONE`으로 표시하지 않는다.
+
+T-002는 wire/schema ABI와 정적 policy oracle 범위다. request/response의 sequence·token·retry·duplicate·session에 대한 stateful correlation은 pending table과 runtime state machine이 필요한 T-003 수용 기준으로 이관하며, T-002에서 nonzero response correlation field와 static response shape만 고정한다.
 
 ## 안전·rollback
 

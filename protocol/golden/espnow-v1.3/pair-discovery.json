@@ -1,0 +1,44 @@
+{
+  "crc32": "72e8e8bb",
+  "frame_hex": "43560103200120000000000001000000e80300000000000044000000bbe8e87208070605040302011817161514131211aabbccddeeff0000000102030405060708090a0b0c0d0e0f0601030307000000c0d40100f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+  "frame_size": 100,
+  "header": {
+    "correlation_id": 0,
+    "crc32": 1927866555,
+    "flags": 32,
+    "header_len": 32,
+    "magic": 22083,
+    "major": 1,
+    "message_type": 1,
+    "minor": 3,
+    "payload_len": 68,
+    "priority": 0,
+    "reserved": 0,
+    "sender_time_ms": 1000,
+    "sequence": 1,
+    "session_id": 0
+  },
+  "message": "DISCOVERY",
+  "message_id": 1,
+  "name": "pair-discovery",
+  "payload": {
+    "channel": 6,
+    "endpoint_id": 1230066625199609624,
+    "expires_at_ms": 120000,
+    "hmac_tag": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+    "installation_id": 72623859790382856,
+    "link_key_generation": 7,
+    "mac": "aabbccddeeff",
+    "nonce": "000102030405060708090a0b0c0d0e0f",
+    "proposed_major": 1,
+    "proposed_minor_max": 3,
+    "proposed_minor_min": 3
+  },
+  "payload_hex": "08070605040302011817161514131211aabbccddeeff0000000102030405060708090a0b0c0d0e0f0601030307000000c0d40100f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+  "payload_size": 68,
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}

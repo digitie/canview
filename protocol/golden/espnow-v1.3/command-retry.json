@@ -1,0 +1,47 @@
+{
+  "crc32": "799755d2",
+  "frame_hex": "4356010320300101040302010a000000881300000000000050000000d255977908070605040302010101d007181716151413121108070605040302010403020109000000a00f000003000000110000004100000008000000000102030405060708090a0b0c0d0e0f0100040001000000",
+  "frame_size": 112,
+  "header": {
+    "correlation_id": 0,
+    "crc32": 2039961042,
+    "flags": 1,
+    "header_len": 32,
+    "magic": 22083,
+    "major": 1,
+    "message_type": 48,
+    "minor": 3,
+    "payload_len": 80,
+    "priority": 1,
+    "reserved": 0,
+    "sender_time_ms": 5000,
+    "sequence": 10,
+    "session_id": 16909060
+  },
+  "message": "COMMAND_REQUEST",
+  "message_id": 48,
+  "name": "command-retry",
+  "payload": {
+    "argument_tlv": "0100040001000000",
+    "argument_tlv_length": 8,
+    "command_id": 257,
+    "control_generation": 9,
+    "control_sync_generation": 3,
+    "control_tag": "000102030405060708090a0b0c0d0e0f",
+    "expected_state_revision": 17,
+    "issued_at_controller_ms": 4000,
+    "origin_boot_id": 72623859790382856,
+    "origin_device_id": 1230066625199609624,
+    "precondition_flags": 65,
+    "request_token": 72623859790382856,
+    "ttl_ms": 2000,
+    "wireless_session_id": 16909060
+  },
+  "payload_hex": "08070605040302010101d007181716151413121108070605040302010403020109000000a00f000003000000110000004100000008000000000102030405060708090a0b0c0d0e0f0100040001000000",
+  "payload_size": 80,
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}

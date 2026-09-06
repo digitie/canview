@@ -505,7 +505,7 @@ int main(void)
     (void)_set_error_mode(_OUT_TO_STDERR);
     (void)_set_abort_behavior(0U, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 #endif
-    assert(CANVIEW_PROTOCOL_MINOR == 2U);
+    assert(CANVIEW_PROTOCOL_MINOR == 3U);
     assert(sizeof(canview_config_record_t) == 8U);
     test_can_brightness_debounce_and_stale_hold();
     test_idle_return_touch_restore_and_warning_priority();

@@ -53,6 +53,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="수동 변경된 생성물을 반드시 거부하는지 검사")
     args = parser.parse_args(argv)
     outputs = expected_outputs()
+    try:
+        protocol = load_generator("generate_protocol")
+        protocol.generate(write=False)
+    except (OSError, KeyError, ValueError) as exc:
+        print(f"FAIL: generated protocol drift: {exc}")
+        return 1
     if args.negative_fixture:
         if negative_fixture(outputs):
             print("FAIL: generated drift negative fixture was accepted")
