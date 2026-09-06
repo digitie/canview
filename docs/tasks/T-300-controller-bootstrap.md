@@ -8,19 +8,19 @@
 
 ## 목표
 
-Waveshare `ESP32-S3-Touch-LCD-3.5`에서 build/flash 가능한 ESP-IDF 5.5.2 app을 만들고 기존 LVGL 화면을 실제 display/touch/RTC/audio BSP 위에 올린다.
+Waveshare `ESP32-S3-Touch-LCD-3.5`에서 build/flash 가능한 ESP-IDF 6.0.3 app을 만들고 기존 LVGL 화면을 실제 display/touch/RTC/audio BSP 위에 올린다.
 
 ## 고정 target
 
 - board ESP32-S3R8, 16 MB Flash, 8 MB PSRAM
 - ST7796 320×480, FT6336 touch, AXP2101 PMIC
 - QMI8658, PCF85063 RTC, ES8311/onboard microphone
-- LVGL 8.4.x와 Waveshare 공식 ESP-IDF 5.5.2 baseline
+- LVGL 8.4.x와 Waveshare 공식 요구사항을 만족하는 ESP-IDF 6.0.3 baseline
 
 ## 구현 범위
 
 - top-level IDF project, board component와 pinned Waveshare dependency
-- separate `sdkconfig.defaults.controller`, partition table
+- project-local `sdkconfig.defaults`, partition table
 - PMIC/display/touch/shared I²C/RTC/audio smoke driver
 - single LVGL task, tick/timer, double-buffer display flush
 - UI model mailbox skeleton과 command callback queue
@@ -28,9 +28,16 @@ Waveshare `ESP32-S3-Touch-LCD-3.5`에서 build/flash 가능한 ESP-IDF 5.5.2 app
 - host mock BSP interface
 - public `canview_protocol` IDF component dependency와 component include 경계 수정
 
+## 현재 준비된 bootstrap
+
+- `firmware/controller/CMakeLists.txt`와 `main/`이 독립 ESP-IDF application으로 구성되어 있다.
+- `canview_can`은 private protocol include path가 아니라 public `canview_protocol` component를 `REQUIRES`로 사용하도록 준비했다. 현재 application은 incomplete v1.2 header를 링크하지 않으며 T-002 v1.3 완료 뒤 연결한다.
+- `sdkconfig.defaults`와 `partitions.csv`가 16 MB Flash / 8 MB Octal PSRAM target을 고정한다.
+- Waveshare BSP, LVGL, RTC/audio와 실제 `idf.py build/flash`는 아직 구현·검증하지 않았다.
+
 ## 수용 기준
 
-- [ ] clean IDF 5.5.2에서 build/flash된다.
+- [ ] clean IDF 6.0.3에서 build/flash된다.
 - [ ] 16 MB/8 MB 설정이 Communicator config와 섞이지 않는다.
 - [ ] full-screen color, rotation, tearing, touch edge/coordinate test를 통과한다.
 - [ ] touch·RTC·PMIC·IMU shared I²C가 24시간 충돌하지 않는다.
@@ -41,14 +48,21 @@ Waveshare `ESP32-S3-Touch-LCD-3.5`에서 build/flash 가능한 ESP-IDF 5.5.2 app
 
 ## 검증
 
-```bash
-cd firmware/controller
-idf.py set-target esp32s3
-idf.py build
-idf.py size-components
-python ../../tests/hil/controller_bsp_smoke.py
+```powershell
+. .\tools\environment\setup-windows.ps1
+idf.py -C firmware/controller set-target esp32s3
+idf.py -C firmware/controller build
+idf.py -C firmware/controller size-components
 ```
+
+실제 Waveshare HIL smoke script와 board build는 BSP가 추가된 뒤 수행한다.
 
 ## 증거
 
 보드 revision, official example commit, sdkconfig diff, LCD/touch 사진·영상, I²C error count, heap/PSRAM report를 남긴다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 기존 `firmware/controller/` BSP·LVGL task·touch/LCD/backlight/RTC adapter와 budget fixture다. full UI model·OTA recovery·차량 command는 범위 밖이다.
+- GPIO/board revision별 init 실패와 deinit 자원 해제·task/ISR 소유권을 문서화하고 watchdog/heap/PSRAM/화면 timing을 측정한다. 실패한 BSP를 정적 screenshot 성공으로 대체하지 않는다.

@@ -54,3 +54,7 @@ python tests/vehicle/compare_inventory.py --profile tucson-tl-2017
 ## rollback
 
 bus type/bitrate/pin 중 하나라도 모순되면 해당 channel을 `UNKNOWN`/standby로 되돌린다. 다른 Hyundai 모델의 명칭으로 보완 추정하지 않는다.
+
+## 산출물·범위 경계
+
+- 위 capture matrix와 bus/harness 근거 수집이 구현 범위다. 산출물은 vehicle analysis scripts, 비공개 capture와 `docs/vehicle/target-2017-tucson.md`의 승인 요약이다. CAN TX·DBC 기반 bus 자동확정은 범위 밖이다.

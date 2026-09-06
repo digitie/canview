@@ -1,14 +1,14 @@
-# T-503 OEM audio command와 feedback 검증
+# T-503 OEM audio command와 feedback 수신 조사
 
 - 상태: `BLOCKED`
 - 우선순위: `P0`
-- Gate: `G3 조사`, `G4 bench TX`
+- Gate: `G3` 수신 조사; bench 송신·복원은 T-503a
 - 선행: `T-501`, `T-403`, `T-500`
-- 후속: `T-106`, `T-504`
+- 후속: `T-106`, `T-503a`
 
 ## 목표
 
-취침 mode, 뒷좌석 강화, 상대 volume offset과 OEM snapshot 복원에 필요한 frame owner, alive counter, checksum, feedback을 검증한다. 실제 head unit/bus를 교란하지 않고 bench에서 먼저 재현한다.
+취침 mode, 뒷좌석 강화, 상대 volume offset과 OEM snapshot 복원에 필요한 frame owner, alive counter, checksum, feedback을 수신 조사와 offline 비교로 검증한다. 실제 bench 송신·복원 재현은 T-503a가 담당한다.
 
 ## 조사 항목
 
@@ -29,9 +29,9 @@
 ## 수용 기준
 
 - [ ] 각 field/counter/checksum/feedback에 반복 capture와 negative control이 있다.
-- [ ] physical operation과 generated bench frame의 analyzer diff가 허용 mask 안이다.
+- [ ] physical operation과 offline generated frame의 byte/mask 비교가 일치한다. 실제 bench TX 비교는 T-503a에서 수행한다.
 - [ ] unrelated payload bit가 바뀌는 frame이 0개다.
-- [ ] partial profile failure와 reverse/call/manual override에서 복원 matrix가 통과한다.
+- [ ] partial profile failure와 reverse/call/manual override의 기대 복원 matrix·timeout·scope를 정의하고 T-503a로 전달한다.
 - [ ] snapshot revision/TTL과 ignition invalidation 규칙이 test로 고정된다.
 - [ ] vehicle profile generator가 VERIFIED evidence 없이는 audio command를 생성하지 않는다.
 
@@ -39,10 +39,17 @@
 
 ```bash
 python tests/audio/analyze_owner_counter.py private/evidence/audio/*.cvtrace
-python tests/hil/run_audio_profile_matrix.py --bench-only
-python tests/hil/compare_tx_allowlist.py evidence/latest/audio-tx.log
+python tests/audio/check_capture_vectors.py --no-transmit
 ```
 
 ## 차량 송신 금지
 
-이 task의 조사 단계는 read-only다. G4에서 ECU/head-unit simulator bench가 통과하기 전 실제 차량에 frame을 송신하지 않는다.
+이 task 전체는 read-only다. 현재 없는 두 audio 분석 script는 이 task의 산출물이다. 실물 bench 명령·restore 시험은 T-106 이후 T-503a에서 수행하며 조사 완료가 차량 송신 승인이 아니다.
+
+## 결정 변경 기록
+
+2026-09-06 계획 감사: T-106이 필요했던 기존 bench acceptance를 T-503a로 옮겨 조사→executor→bench 순서를 만들었다. wire/profile 권한은 변경하지 않는다.
+
+## 산출물·범위 경계
+
+- 위 조사 항목과 두 audio 분석 script·합성 offline fixture·source manifest가 산출 범위다. CAN bench/차량 TX는 범위 밖이며 비교 실패 시 candidate로 유지한다.

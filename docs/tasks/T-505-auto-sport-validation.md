@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P2`
 - Gate: `G4/G5`
-- 선행: `T-106`, `T-305`, `T-501`, `T-500`
+- 선행: `T-106`, `T-305`, `T-505a`, `T-500`, `T-508`
 - 병렬 가능: `T-504`
 
 ## 목표
@@ -39,7 +39,7 @@
 - [ ] exit는 minimum hold와 confirm을 모두 만족해야 한다.
 - [ ] feedback 없는 반복 pulse가 command limit을 넘지 않는다.
 - [ ] 모든 inhibit/fault에서 새 pulse 0건이다.
-- [ ] ECO/SMART/COMFORT 등 지원 mode에서 이전 mode로 복귀하고 unknown은 자동화 disable이다.
+- [ ] T-505a에서 해당 차량에 실제 확인한 mode만 이전 mode로 복귀하고 미관측 ECO/SMART/COMFORT 등을 있다고 가정하지 않는다. unknown은 자동화 disable이다.
 - [ ] stale signal이나 scheduler stall이 entry/exit confirmation을 충족시키거나 복귀 pulse를 만들지 않는다.
 - [ ] enable만으로는 action/TX 0건이고 explicit arm+G5 capability 뒤에만 pulse가 가능하다.
 - [ ] 590/650/730/750/810은 거부·state 불변, 600/700/800만 성공한다.
@@ -55,3 +55,8 @@ python tests/hil/run_auto_sport_matrix.py --bench-only
 ## release
 
 기본 off, opt-in이다. public road에서 첫 TX 시험을 하지 않는다. 폐쇄시험 evidence와 rollback 확인 전 G5를 통과시키지 않는다.
+
+## 산출물·범위 경계
+
+- 위 단계와 inhibit/복귀 matrix가 구현 범위다. 산출물은 STM SPORT·Controller arm 통합·replay/HIL scripts·feature report다. 다른 ECU 제어·미확인 mode·일반도로 첫 TX는 범위 밖이다.
+- T-508 포함 작업대/보안 gate 뒤에만 새 OTA firmware로 차량 시험한다. 실패 시 disarm/monitor-only로 남고 previous mode feedback 없이 복귀 완료로 표시하지 않는다.

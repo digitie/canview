@@ -4,7 +4,7 @@
 - 우선순위: `P1`
 - Gate: `G3`
 - 선행: `T-006`, `T-402`
-- 후속: `T-501`, `T-502`, `T-503`
+- 후속: `T-502`, `T-503`, `T-505a`
 
 ## 목표
 
@@ -24,7 +24,7 @@
 
 ## 고정 evidence 등급
 
-`UNKNOWN → CANDIDATE → OBSERVED → VERIFIED`다. UI는 score만으로 승격하지 않는다. VERIFIED는 code review와 T-501/T-502 또는 T-503의 별도 acceptance가 필요하다.
+[구현 준비 §9.2](../architecture/implementation-readiness.md#92-evidence와-품질)의 공통 evidence 등급을 따른다. 심사 결과 `REJECTED`는 별도 `review_status`이며 audit grade를 보존해도 operational export에는 사용할 수 없다. UI는 score만으로 승격하지 않는다. VERIFIED는 code review와 T-501/T-502 또는 T-503의 별도 acceptance가 필요하다.
 
 ## 수용 기준
 
@@ -36,6 +36,12 @@
 - [ ] 새 ID/bit/scale이 Communicator firmware 변경을 요구하지 않는다.
 - [ ] profile patch가 command section을 자동 생성하지 않는다.
 - [ ] maintainer-signed evidence approval 없이 VERIFIED grade를 export하지 않는다.
+- [ ] UNKNOWN·REJECTED·APPROVED 여부와 grade의 교차 fixture를 검사한다. 구 단일 status descriptor/DEMO export는 versioned migration 전 operational import를 거절하고, 제외된 candidate를 재심사하면 새 revision·approval을 요구한다.
+
+## 계획 보완 수용 기준
+
+- [ ] 후보 CRUD·제외/삭제·history·동시 revision conflict·참조 capture 삭제를 atomic persistence로 검사한다. UI checklist는 maintainer 서명을 대체하지 않는다.
+- [ ] privacy export는 후보·marker·raw 식별자·위치·음성·키를 검사하고, 원본 보존/비식별 export가 서로 다른 digest인 경우 승인 manifest를 재사용하지 않는다.
 
 ## 검증
 
@@ -48,3 +54,8 @@ python tools/generate_vehicle_profile.py tests/fixtures/signal-lab/exported-prof
 ## 증거
 
 서로 다른 3회 반복, negative control, expected bit map을 가진 synthetic fixture를 먼저 만든다. 실차 candidate report에는 확정 표현 대신 관찰 근거와 반례를 포함한다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 Signal Lab/candidate store·브라우저 offline decoder와 evidence validator/negative fixtures다. 실제 signal/command 승인 권한과 원본 private capture 공개는 범위 밖이다.
+- 해석·schema·서명 실패 시 candidate 유지 또는 격리하고 VERIFIED로 조용히 승격하지 않는다.

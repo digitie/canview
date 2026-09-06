@@ -1,0 +1,3266 @@
+(export
+	(version "E")
+	(design
+		(source "F:\\dev\\canview\\hardware\\controller-adapter\\kicad\\controller-adapter.kicad_sch")
+		(date "2026-09-06T08:36:38")
+		(tool "Eeschema 10.0.6")
+		(sheet
+			(number "1")
+			(name "/")
+			(tstamps "/")
+			(title_block
+				(title "CANView / controller-adapter")
+				(company "digitie/canview")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
+				(source "controller-adapter.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "2")
+			(name "/01_waveshare_header/")
+			(tstamps "/35bcdb3a-d2e0-5a3b-b794-71de3b75bd53/")
+			(title_block
+				(title "CANView / 01_waveshare_header")
+				(company "digitie/canview")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
+				(source "01_waveshare_header.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "3")
+			(name "/02_i2s_differential/")
+			(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			(title_block
+				(title "CANView / 02_i2s_differential")
+				(company "digitie/canview")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
+				(source "02_i2s_differential.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "4")
+			(name "/03_mic_cable/")
+			(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			(title_block
+				(title "CANView / 03_mic_cable")
+				(company "digitie/canview")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
+				(source "03_mic_cable.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "5")
+			(name "/04_ota_recovery/")
+			(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			(title_block
+				(title "CANView / 04_ota_recovery")
+				(company "digitie/canview")
+				(rev "R1.1 OTA REVIEW")
+				(date "2026-09-06")
+				(source "04_ota_recovery.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+	)
+	(components
+		(comp
+			(ref "C1")
+			(value "4.7u")
+			(footprint "CANView:Capacitor_SMD__C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0603-4.7u-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_C1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0603-4.7u-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_waveshare_header")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_waveshare_header.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_waveshare_header/")
+				(tstamps "/35bcdb3a-d2e0-5a3b-b794-71de3b75bd53/")
+			)
+			(tstamps "2c1c81a7-2244-538c-b769-e44e0f9cac77")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C2")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_C2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_waveshare_header")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_waveshare_header.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_waveshare_header/")
+				(tstamps "/35bcdb3a-d2e0-5a3b-b794-71de3b75bd53/")
+			)
+			(tstamps "2f90458f-e088-5ee8-beb0-788be42c95f6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J1")
+			(value "Waveshare 2x16 mating male")
+			(footprint "CANView:Connector_PinHeader_2.54mm__PinHeader_2x16_P2.54mm_Vertical")
+			(fields
+				(field
+					(name "MPN") "GEN-2x16-MALE-2.54")
+				(field
+					(name "Specification") "Mates with board female socket;2.54mm pitch verified, insertion height/board-side orientation require mechanical check;5V only when host source provides it")
+				(field
+					(name "Source") "waveshare-controller schematic and official STEP HEADER-SMD-F-2_54-2X16PIN")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Connector_PinHeader_2.54mm__PinHeader_2x16_P2.54mm_Vertical")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_J1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-2x16-MALE-2.54")
+			)
+			(property
+				(name "Specification")
+				(value "Mates with board female socket;2.54mm pitch verified, insertion height/board-side orientation require mechanical check;5V only when host source provides it")
+			)
+			(property
+				(name "Source")
+				(value "waveshare-controller schematic and official STEP HEADER-SMD-F-2_54-2X16PIN")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_waveshare_header")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_waveshare_header.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_waveshare_header/")
+				(tstamps "/35bcdb3a-d2e0-5a3b-b794-71de3b75bd53/")
+			)
+			(tstamps "e42e2c6e-e9e3-5ba1-8fd9-0fec2b2fca15")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "9")
+						)
+						(pin
+							(num "10")
+						)
+						(pin
+							(num "11")
+						)
+						(pin
+							(num "12")
+						)
+						(pin
+							(num "13")
+						)
+						(pin
+							(num "14")
+						)
+						(pin
+							(num "15")
+						)
+						(pin
+							(num "16")
+						)
+						(pin
+							(num "17")
+						)
+						(pin
+							(num "18")
+						)
+						(pin
+							(num "19")
+						)
+						(pin
+							(num "20")
+						)
+						(pin
+							(num "21")
+						)
+						(pin
+							(num "22")
+						)
+						(pin
+							(num "23")
+						)
+						(pin
+							(num "24")
+						)
+						(pin
+							(num "25")
+						)
+						(pin
+							(num "26")
+						)
+						(pin
+							(num "27")
+						)
+						(pin
+							(num "28")
+						)
+						(pin
+							(num "29")
+						)
+						(pin
+							(num "30")
+						)
+						(pin
+							(num "31")
+						)
+						(pin
+							(num "32")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C3")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_C3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "78ffe687-2a6a-5131-90b7-826052a367ae")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C4")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_C4")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "7a8129c0-94dc-5244-b250-004c3b34005c")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C5")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_C5")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "2dada2c1-6aa9-5834-8e01-0873e94fb7e2")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R1")
+			(value "100")
+			(footprint "CANView:Resistor_SMD__R_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-R-0402-100-1%")
+				(field
+					(name "Specification") "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_R1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-R-0402-100-1%")
+			)
+			(property
+				(name "Specification")
+				(value "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "6b6ad872-02dd-5eb9-8327-dd9bae2fd389")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U1")
+			(value "SN65LVDS1DBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "SN65LVDS1DBVR")
+				(field
+					(name "Specification") "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+				(field
+					(name "Source") "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_U1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN65LVDS1DBVR")
+			)
+			(property
+				(name "Specification")
+				(value "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+			)
+			(property
+				(name "Source")
+				(value "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "7bd7f39b-33c8-5326-ad1c-a0cf2bbc0bb4")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U2")
+			(value "SN65LVDS1DBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "SN65LVDS1DBVR")
+				(field
+					(name "Specification") "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+				(field
+					(name "Source") "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_U2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN65LVDS1DBVR")
+			)
+			(property
+				(name "Specification")
+				(value "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+			)
+			(property
+				(name "Source")
+				(value "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "0e6e4afb-3856-54ae-8445-6229f2f79822")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U3")
+			(value "SN65LVDS2DBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "SN65LVDS2DBVR")
+				(field
+					(name "Specification") "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+				(field
+					(name "Source") "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_U3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN65LVDS2DBVR")
+			)
+			(property
+				(name "Specification")
+				(value "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+			)
+			(property
+				(name "Source")
+				(value "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_differential")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_differential.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_differential/")
+				(tstamps "/feef010d-ef95-5e3e-bda2-25d3fd293d0f/")
+			)
+			(tstamps "21845ee1-7f89-5d3b-a10a-37fb99254819")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C6")
+			(value "1u")
+			(footprint "CANView:Capacitor_SMD__C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0603-1u-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_C6")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0603-1u-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mic_cable")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mic_cable.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mic_cable/")
+				(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			)
+			(tstamps "b1c5f746-378c-5bba-b587-1a1d03bdacea")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D1")
+			(value "TPD2E2U06DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+			(fields
+				(field
+					(name "MPN") "TPD2E2U06DCKR")
+				(field
+					(name "Specification") "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+				(field
+					(name "Source") "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_D1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPD2E2U06DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+			)
+			(property
+				(name "Source")
+				(value "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mic_cable")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mic_cable.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mic_cable/")
+				(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			)
+			(tstamps "1f3a233e-8e6f-5c10-a8b6-8d5bbd002d33")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D2")
+			(value "TPD2E2U06DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+			(fields
+				(field
+					(name "MPN") "TPD2E2U06DCKR")
+				(field
+					(name "Specification") "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+				(field
+					(name "Source") "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_D2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPD2E2U06DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+			)
+			(property
+				(name "Source")
+				(value "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mic_cable")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mic_cable.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mic_cable/")
+				(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			)
+			(tstamps "3321aea0-b949-5763-9fd1-43429a3a939a")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D3")
+			(value "TPD2E2U06DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+			(fields
+				(field
+					(name "MPN") "TPD2E2U06DCKR")
+				(field
+					(name "Specification") "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+				(field
+					(name "Source") "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_D3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPD2E2U06DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+			)
+			(property
+				(name "Source")
+				(value "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mic_cable")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mic_cable.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mic_cable/")
+				(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			)
+			(tstamps "ec15cf78-091c-52bc-a109-9093450adf60")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "F1")
+			(value "0.10A PTC")
+			(footprint "CANView:Fuse__Fuse_0805_2012Metric")
+			(fields
+				(field
+					(name "MPN") "MF-PSMF010X-2")
+				(field
+					(name "Specification") "15V;Ihold0.1A@23C;Itrip0.3A;R1max7.5ohm;trip<=1.5s@0.5A; -40..85C; not a precision limiter")
+				(field
+					(name "Source") "bourns-psmf:pp1-3")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Fuse__Fuse_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_F1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "MF-PSMF010X-2")
+			)
+			(property
+				(name "Specification")
+				(value "15V;Ihold0.1A@23C;Itrip0.3A;R1max7.5ohm;trip<=1.5s@0.5A; -40..85C; not a precision limiter")
+			)
+			(property
+				(name "Source")
+				(value "bourns-psmf:pp1-3")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mic_cable")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mic_cable.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mic_cable/")
+				(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			)
+			(tstamps "1ec806eb-ac05-52ec-a5fa-b3fcdbed0f4e")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J2")
+			(value "REMOTE MIC / NOT ETHERNET")
+			(footprint "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal")
+			(fields
+				(field
+					(name "MPN") "SM08B-GHS-TB(LF)(SN)")
+				(field
+					(name "Specification") "8-wire4twisted-pairs; keyed GH8 both ends;1:1 cable <=3m design target, SI qualification required")
+				(field
+					(name "Source") "jst-gh")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_J2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SM08B-GHS-TB(LF)(SN)")
+			)
+			(property
+				(name "Specification")
+				(value "8-wire4twisted-pairs; keyed GH8 both ends;1:1 cable <=3m design target, SI qualification required")
+			)
+			(property
+				(name "Source")
+				(value "jst-gh")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mic_cable")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mic_cable.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mic_cable/")
+				(tstamps "/2221c52d-ab97-5c38-8fb0-f65bac2e154d/")
+			)
+			(tstamps "1634a799-6deb-5f5d-a68c-fd85d14025bd")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "MP")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R2")
+			(value "10k")
+			(footprint "CANView:Resistor_SMD__R_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-R-0402-10k-1%")
+				(field
+					(name "Specification") "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_R2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-R-0402-10k-1%")
+			)
+			(property
+				(name "Specification")
+				(value "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "04_ota_recovery")
+			)
+			(property
+				(name "Sheetfile")
+				(value "04_ota_recovery.kicad_sch")
+			)
+			(sheetpath
+				(names "/04_ota_recovery/")
+				(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			)
+			(tstamps "46dff09d-7065-5ec3-bfa7-2d0755b6d9b6")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW1")
+			(value "RECOVERY")
+			(footprint "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+			(fields
+				(field
+					(name "MPN") "TL3342F160QG")
+				(field
+					(name "Specification") "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_SW1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TL3342F160QG")
+			)
+			(property
+				(name "Specification")
+				(value "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "04_ota_recovery")
+			)
+			(property
+				(name "Sheetfile")
+				(value "04_ota_recovery.kicad_sch")
+			)
+			(sheetpath
+				(names "/04_ota_recovery/")
+				(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			)
+			(tstamps "8fe069a1-452f-5d02-a18f-020af11e0042")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "SW2")
+			(value "HOST_RESET")
+			(footprint "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+			(fields
+				(field
+					(name "MPN") "TL3342F160QG")
+				(field
+					(name "Specification") "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_controller-adapter_SW2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TL3342F160QG")
+			)
+			(property
+				(name "Specification")
+				(value "Normally-open momentary; host reset is sink-only; hold recovery5s across reset")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "04_ota_recovery")
+			)
+			(property
+				(name "Sheetfile")
+				(value "04_ota_recovery.kicad_sch")
+			)
+			(sheetpath
+				(names "/04_ota_recovery/")
+				(tstamps "/8414180a-8f28-5a9a-acdf-8f73b7269a8f/")
+			)
+			(tstamps "e0295dcc-ca16-5dc0-ab2f-2c0d1b5b68fc")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+	)
+	(groups)
+	(variants)
+	(libparts
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_C1")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "4.7u")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_C2")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_C3")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_C4")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_C5")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_C6")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "1u")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_D1")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "TPD2E2U06DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_D2")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "TPD2E2U06DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_D3")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "TPD2E2U06DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_F1")
+			(fields
+				(field
+					(name "Reference") "F")
+				(field
+					(name "Value") "0.10A PTC")
+				(field
+					(name "Footprint") "CANView:Fuse__Fuse_0805_2012Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_J1")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "Waveshare 2x16 mating male")
+				(field
+					(name "Footprint") "CANView:Connector_PinHeader_2.54mm__PinHeader_2x16_P2.54mm_Vertical")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "BAT_NC")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "5V_IN")
+					(type "power_out")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "power_out")
+				)
+				(pin
+					(num "4")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "GPIO21_NC")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "USB_DM_NC")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "GPIO38")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "USB_DP_NC")
+					(type "passive")
+				)
+				(pin
+					(num "9")
+					(name "GPIO39")
+					(type "passive")
+				)
+				(pin
+					(num "10")
+					(name "GPIO11_NC")
+					(type "passive")
+				)
+				(pin
+					(num "11")
+					(name "GPIO40")
+					(type "passive")
+				)
+				(pin
+					(num "12")
+					(name "GPIO10_NC")
+					(type "passive")
+				)
+				(pin
+					(num "13")
+					(name "GPIO41")
+					(type "passive")
+				)
+				(pin
+					(num "14")
+					(name "GPIO9_NC")
+					(type "passive")
+				)
+				(pin
+					(num "15")
+					(name "GPIO42_NC")
+					(type "passive")
+				)
+				(pin
+					(num "16")
+					(name "GPIO17_NC")
+					(type "passive")
+				)
+				(pin
+					(num "17")
+					(name "GPIO45_NC")
+					(type "passive")
+				)
+				(pin
+					(num "18")
+					(name "GPIO18_NC")
+					(type "passive")
+				)
+				(pin
+					(num "19")
+					(name "GPIO46_NC")
+					(type "passive")
+				)
+				(pin
+					(num "20")
+					(name "BOOT_NC")
+					(type "passive")
+				)
+				(pin
+					(num "21")
+					(name "GPIO47_NC")
+					(type "passive")
+				)
+				(pin
+					(num "22")
+					(name "RESET")
+					(type "passive")
+				)
+				(pin
+					(num "23")
+					(name "GPIO48_NC")
+					(type "passive")
+				)
+				(pin
+					(num "24")
+					(name "PWR_NC")
+					(type "passive")
+				)
+				(pin
+					(num "25")
+					(name "TXD43_NC")
+					(type "passive")
+				)
+				(pin
+					(num "26")
+					(name "SCL7_NC")
+					(type "passive")
+				)
+				(pin
+					(num "27")
+					(name "RXD44_NC")
+					(type "passive")
+				)
+				(pin
+					(num "28")
+					(name "SDA8_NC")
+					(type "passive")
+				)
+				(pin
+					(num "29")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "30")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "31")
+					(name "3V3_IN")
+					(type "power_out")
+				)
+				(pin
+					(num "32")
+					(name "3V3_IN")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_J2")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "REMOTE MIC / NOT ETHERNET")
+				(field
+					(name "Footprint") "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "5V")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "BCLK_P")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "BCLK_N")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "WS_P")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "WS_N")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "DATA_P")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "DATA_N")
+					(type "passive")
+				)
+				(pin
+					(num "MP")
+					(name "MECHANICAL_NC")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_R1")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "100")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_R2")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "10k")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_SW1")
+			(fields
+				(field
+					(name "Reference") "S")
+				(field
+					(name "Value") "RECOVERY")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_SW2")
+			(fields
+				(field
+					(name "Reference") "S")
+				(field
+					(name "Value") "HOST_RESET")
+				(field
+					(name "Footprint") "CANView:Button_Switch_SMD__SW_SPST_TL3342")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_U1")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN65LVDS1DBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "Z_N")
+					(type "output")
+				)
+				(pin
+					(num "4")
+					(name "Y_P")
+					(type "output")
+				)
+				(pin
+					(num "5")
+					(name "D")
+					(type "input")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_U2")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN65LVDS1DBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "Z_N")
+					(type "output")
+				)
+				(pin
+					(num "4")
+					(name "Y_P")
+					(type "output")
+				)
+				(pin
+					(num "5")
+					(name "D")
+					(type "input")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_controller-adapter_U3")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN65LVDS2DBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "A_P")
+					(type "input")
+				)
+				(pin
+					(num "4")
+					(name "B_N")
+					(type "input")
+				)
+				(pin
+					(num "5")
+					(name "R")
+					(type "output")
+				)
+			)
+		)
+	)
+	(libraries
+		(library
+			(logical "CANView")
+			(uri "${KIPRJMOD}/../../libraries/CANView.kicad_sym")
+		)
+	)
+	(nets
+		(net
+			(code "1")
+			(name "3V3")
+			(class "Default")
+			(node
+				(ref "C2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "31")
+				(pinfunction "3V3_IN_31")
+				(pintype "power_out")
+			)
+			(node
+				(ref "J1")
+				(pin "32")
+				(pinfunction "3V3_IN_32")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U2")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U3")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "power_in")
+			)
+		)
+		(net
+			(code "2")
+			(name "CLK_N")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "2")
+				(pinfunction "IO2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "4")
+				(pinfunction "BCLK_N_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "3")
+				(pinfunction "Z_N_3")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "3")
+			(name "CLK_P")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "3")
+				(pinfunction "BCLK_P_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "4")
+				(pinfunction "Y_P_4")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "4")
+			(name "DATA_N")
+			(class "Default")
+			(node
+				(ref "D3")
+				(pin "2")
+				(pinfunction "IO2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "8")
+				(pinfunction "DATA_N_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "4")
+				(pinfunction "B_N_4")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "5")
+			(name "DATA_P")
+			(class "Default")
+			(node
+				(ref "D3")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "7")
+				(pinfunction "DATA_P_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "3")
+				(pinfunction "A_P_3")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "6")
+			(name "GND")
+			(class "Default")
+			(node
+				(ref "C1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C6")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "D1")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "D2")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "D3")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "29")
+				(pinfunction "GND_29")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "power_out")
+			)
+			(node
+				(ref "J1")
+				(pin "30")
+				(pinfunction "GND_30")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "4")
+				(pinfunction "GND_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U2")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U3")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+		)
+		(net
+			(code "7")
+			(name "HOST5V")
+			(class "Default")
+			(node
+				(ref "C1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "F1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "2")
+				(pinfunction "5V_IN_2")
+				(pintype "power_out")
+			)
+		)
+		(net
+			(code "8")
+			(name "HOST_RESET_N")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "22")
+				(pinfunction "RESET_22")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "9")
+			(name "MIC5V")
+			(class "Default")
+			(node
+				(ref "C6")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "F1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "1")
+				(pinfunction "5V_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "10")
+			(name "MIC_BCLK")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "7")
+				(pinfunction "GPIO38_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "5")
+				(pinfunction "D_5")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "11")
+			(name "MIC_SD")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "11")
+				(pinfunction "GPIO40_11")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "5")
+				(pinfunction "R_5")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "12")
+			(name "MIC_WS")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "9")
+				(pinfunction "GPIO39_9")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "5")
+				(pinfunction "D_5")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "13")
+			(name "RECOVERY_BUTTON_N")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "13")
+				(pinfunction "GPIO41_13")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "SW1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+		)
+		(net
+			(code "14")
+			(name "WS_N")
+			(class "Default")
+			(node
+				(ref "D2")
+				(pin "2")
+				(pinfunction "IO2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "6")
+				(pinfunction "WS_N_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "3")
+				(pinfunction "Z_N_3")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "15")
+			(name "WS_P")
+			(class "Default")
+			(node
+				(ref "D2")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J2")
+				(pin "5")
+				(pinfunction "WS_P_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "U2")
+				(pin "4")
+				(pinfunction "Y_P_4")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "16")
+			(name "unconnected-(J1-BAT_NC-Pad1)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "1")
+				(pinfunction "BAT_NC_1")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "17")
+			(name "unconnected-(J1-BOOT_NC-Pad20)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "20")
+				(pinfunction "BOOT_NC_20")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "18")
+			(name "unconnected-(J1-GPIO9_NC-Pad14)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "14")
+				(pinfunction "GPIO9_NC_14")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "19")
+			(name "unconnected-(J1-GPIO10_NC-Pad12)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "12")
+				(pinfunction "GPIO10_NC_12")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "20")
+			(name "unconnected-(J1-GPIO11_NC-Pad10)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "10")
+				(pinfunction "GPIO11_NC_10")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "21")
+			(name "unconnected-(J1-GPIO17_NC-Pad16)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "16")
+				(pinfunction "GPIO17_NC_16")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "22")
+			(name "unconnected-(J1-GPIO18_NC-Pad18)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "18")
+				(pinfunction "GPIO18_NC_18")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "23")
+			(name "unconnected-(J1-GPIO21_NC-Pad5)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "5")
+				(pinfunction "GPIO21_NC_5")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "24")
+			(name "unconnected-(J1-GPIO42_NC-Pad15)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "15")
+				(pinfunction "GPIO42_NC_15")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "25")
+			(name "unconnected-(J1-GPIO45_NC-Pad17)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "17")
+				(pinfunction "GPIO45_NC_17")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "26")
+			(name "unconnected-(J1-GPIO46_NC-Pad19)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "19")
+				(pinfunction "GPIO46_NC_19")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "27")
+			(name "unconnected-(J1-GPIO47_NC-Pad21)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "21")
+				(pinfunction "GPIO47_NC_21")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "28")
+			(name "unconnected-(J1-GPIO48_NC-Pad23)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "23")
+				(pinfunction "GPIO48_NC_23")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "29")
+			(name "unconnected-(J1-PWR_NC-Pad24)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "24")
+				(pinfunction "PWR_NC_24")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "30")
+			(name "unconnected-(J1-RXD44_NC-Pad27)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "27")
+				(pinfunction "RXD44_NC_27")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "31")
+			(name "unconnected-(J1-SCL7_NC-Pad26)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "26")
+				(pinfunction "SCL7_NC_26")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "32")
+			(name "unconnected-(J1-SDA8_NC-Pad28)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "28")
+				(pinfunction "SDA8_NC_28")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "33")
+			(name "unconnected-(J1-TXD43_NC-Pad25)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "25")
+				(pinfunction "TXD43_NC_25")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "34")
+			(name "unconnected-(J1-USB_DM_NC-Pad6)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "6")
+				(pinfunction "USB_DM_NC_6")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "35")
+			(name "unconnected-(J1-USB_DP_NC-Pad8)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "8")
+				(pinfunction "USB_DP_NC_8")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "36")
+			(name "unconnected-(J2-MECHANICAL_NC-PadMP)")
+			(class "Default")
+			(node
+				(ref "J2")
+				(pin "MP")
+				(pinfunction "MECHANICAL_NC_MP")
+				(pintype "passive+no_connect")
+			)
+		)
+	)
+)

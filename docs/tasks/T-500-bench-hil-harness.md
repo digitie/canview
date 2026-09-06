@@ -44,6 +44,12 @@
 - [ ] CI에서는 host subset, lab에서는 hardware subset을 같은 scenario 형식으로 실행한다.
 - [ ] machine-readable budget manifest의 map/stack/heap/queue/WCET/latency 위반이 첫 invariant로 보고된다.
 
+## 계획 보완 수용 기준
+
+- [ ] 먼저 host runner·rig adapter 계약·합성 실패 fixture와 scenario inventory를 완성한다. target별 실제 실행 evidence는 T-101/T-103/T-104/T-201/T-501/T-503a/T-505/T-508에서 생성한다.
+- [ ] 이 task의 완료는 harness 준비다. 자체 G2/G4 통과나 차량 연결 승인이 아니며 실제 장치 미실행 결과는 SKIPPED/BLOCKED로 출력한다.
+- [ ] consumer task에 적힌 새 script/CTest 이름은 해당 consumer가 구현하고 suite에 등록한다. 존재하지 않는 테스트 필터가 0 tests로 성공하지 않도록 `--no-tests=error` 또는 동등 검사를 제공한다.
+
 ## 검증
 
 ```bash
@@ -55,3 +61,8 @@ python tests/hil/validate_evidence.py evidence/latest
 ## 증거
 
 rig schematic/version, calibration, scenario files, summary JSON과 digest를 남긴다. local serial/port/secret은 Git에 넣지 않는다.
+
+## 산출물·범위 경계
+
+- 위 rig 구성과 공용 scenario 계약이 구현 범위다. 산출물은 `tests/hil/` runner/adapter/로그 schema·실패 로그 fixture와 rig 설정 template다. 모든 소비 firmware의 시험 실행·실차 연결은 범위 밖이다.
+- seed/rig revision/scenario coverage를 남긴다. 장비/script/test 수 부재는 SKIP/NOT_RUN이며 결과 parser 실패 시 pass를 생성하지 않는다.

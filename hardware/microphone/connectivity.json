@@ -1,0 +1,1016 @@
+{
+  "revision": "R1-review",
+  "board": "microphone",
+  "sheets": {
+    "01_receiver_power": "Remote microphone board; supply cable5V. Two clock receivers, one data driver. T5848 is 1.8V ONLY.",
+    "02_i2s_link": "Receiver terminations on BCLK/WS. Use32kHz/2.048MHz. Cable+logic+SD output delay must meet the next rising-edge setup.",
+    "03_mems_microphone": "T5848 bottom acoustic port. Pin7=VDD (datasheet p35 prose typo). Shield from direct airflow; no PCB copper/paste across hole."
+  },
+  "components": [
+    {
+      "sheet": "01_receiver_power",
+      "ref": "J1",
+      "value": "REMOTE MIC / NOT ETHERNET",
+      "footprint": "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal",
+      "original_footprint": "Connector_JST:JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal",
+      "pins": {
+        "1": [
+          "5V",
+          "passive",
+          "MIC5V"
+        ],
+        "2": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "3": [
+          "BCLK_P",
+          "passive",
+          "CLK_P"
+        ],
+        "4": [
+          "BCLK_N",
+          "passive",
+          "CLK_N"
+        ],
+        "5": [
+          "WS_P",
+          "passive",
+          "WS_P"
+        ],
+        "6": [
+          "WS_N",
+          "passive",
+          "WS_N"
+        ],
+        "7": [
+          "DATA_P",
+          "passive",
+          "DATA_P"
+        ],
+        "8": [
+          "DATA_N",
+          "passive",
+          "DATA_N"
+        ],
+        "MP": [
+          "MECHANICAL_NC",
+          "passive",
+          null
+        ]
+      },
+      "mpn": "SM08B-GHS-TB(LF)(SN)",
+      "spec": "8-wire4twisted-pairs; keyed GH8 both ends;1:1 cable <=3m design target, SI qualification required",
+      "source": "jst-gh",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_J1"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "U1",
+      "value": "TPS7A2033PDBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "IN",
+          "power_in",
+          "MIC5V"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "MIC5V"
+        ],
+        "4": [
+          "NC",
+          "passive",
+          null
+        ],
+        "5": [
+          "OUT",
+          "power_out",
+          "3V3"
+        ]
+      },
+      "mpn": "TPS7A2033PDBVR",
+      "spec": "300mA LDO; fixed 3.3V; 1uF effective output minimum",
+      "source": "tps7a20: p4 DBV pins, input/output capacitor requirements",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U1"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "C1",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "MIC5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C1"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "C2",
+      "value": "2.2u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-2.2u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C2"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "U2",
+      "value": "TPS7A2018PDBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "IN",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "3V3"
+        ],
+        "4": [
+          "NC",
+          "passive",
+          null
+        ],
+        "5": [
+          "OUT",
+          "power_out",
+          "1V8"
+        ]
+      },
+      "mpn": "TPS7A2018PDBVR",
+      "spec": "300mA LDO; fixed 1.8V; 1uF effective output minimum",
+      "source": "tps7a20: p4 DBV pins, input/output capacitor requirements",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U2"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "C3",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C3"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "C4",
+      "value": "2.2u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "1V8"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-2.2u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C4"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "D1",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "CLK_P"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "CLK_N"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_D1"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "D2",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "WS_P"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "WS_N"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_D2"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "D3",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "DATA_P"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "DATA_N"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_D3"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "R1",
+      "value": "100",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "CLK_P"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "CLK_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-100-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "100ohm receiver-end differential termination; do not add at transmitter",
+      "libname": "CANView_microphone_R1"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "U3",
+      "value": "SN65LVDS2DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "A_P",
+          "input",
+          "CLK_P"
+        ],
+        "4": [
+          "B_N",
+          "input",
+          "CLK_N"
+        ],
+        "5": [
+          "R",
+          "output",
+          "BCLK_3V3"
+        ]
+      },
+      "mpn": "SN65LVDS2DBVR",
+      "spec": "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required",
+      "source": "sn65lvds1: pp3-4 DBV pin functions, timing tables",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U3"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "C5",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C5"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "R2",
+      "value": "100",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "WS_P"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "WS_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-100-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "100ohm receiver-end differential termination; do not add at transmitter",
+      "libname": "CANView_microphone_R2"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "U4",
+      "value": "SN65LVDS2DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "A_P",
+          "input",
+          "WS_P"
+        ],
+        "4": [
+          "B_N",
+          "input",
+          "WS_N"
+        ],
+        "5": [
+          "R",
+          "output",
+          "WS_3V3"
+        ]
+      },
+      "mpn": "SN65LVDS2DBVR",
+      "spec": "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required",
+      "source": "sn65lvds1: pp3-4 DBV pin functions, timing tables",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U4"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "C6",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C6"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "U5",
+      "value": "SN65LVDS1DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "Z_N",
+          "output",
+          "DATA_N"
+        ],
+        "4": [
+          "Y_P",
+          "output",
+          "DATA_P"
+        ],
+        "5": [
+          "D",
+          "input",
+          "DATA_3V3"
+        ]
+      },
+      "mpn": "SN65LVDS1DBVR",
+      "spec": "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required",
+      "source": "sn65lvds1: pp3-4 DBV pin functions, timing tables",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U5"
+    },
+    {
+      "sheet": "02_i2s_link",
+      "ref": "C7",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C7"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "MK1",
+      "value": "MMICT5848-00-012",
+      "footprint": "CANView:TDK_T5848_LGA8",
+      "original_footprint": "CANView:TDK_T5848_LGA8",
+      "pins": {
+        "1": [
+          "WS",
+          "input",
+          "WS_1V8"
+        ],
+        "2": [
+          "LR",
+          "input",
+          "GND"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "WAKE",
+          "output",
+          null
+        ],
+        "5": [
+          "THSEL",
+          "input",
+          null
+        ],
+        "6": [
+          "SCK",
+          "input",
+          "BCLK_1V8"
+        ],
+        "7": [
+          "VDD",
+          "power_in",
+          "1V8"
+        ],
+        "8": [
+          "SD",
+          "output",
+          "DATA_1V8"
+        ]
+      },
+      "mpn": "MMICT5848-00-012",
+      "spec": "1.62..1.98V; HQ BCLK2.0..3.7MHz; SD valid<=75ns; 24bit I2S with20bit precision",
+      "source": "t5848: pp7-10,30-31,35,37,39",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_MK1"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C8",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "1V8"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C8"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "R3",
+      "value": "100k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "DATA_1V8"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-100k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_R3"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "U6",
+      "value": "SN74AXC1T45DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "VCCA",
+          "power_in",
+          "1V8"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "A",
+          "bidirectional",
+          "BCLK_1V8"
+        ],
+        "4": [
+          "B",
+          "bidirectional",
+          "BCLK_3V3"
+        ],
+        "5": [
+          "DIR",
+          "input",
+          "GND"
+        ],
+        "6": [
+          "VCCB",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74AXC1T45DCKR",
+      "spec": "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter",
+      "source": "sn74axc1t45: p3, direction and VCC isolation",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U6"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C9",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "1V8"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C9"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C10",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C10"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "U7",
+      "value": "SN74AXC1T45DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "VCCA",
+          "power_in",
+          "1V8"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "A",
+          "bidirectional",
+          "WS_1V8"
+        ],
+        "4": [
+          "B",
+          "bidirectional",
+          "WS_3V3"
+        ],
+        "5": [
+          "DIR",
+          "input",
+          "GND"
+        ],
+        "6": [
+          "VCCB",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74AXC1T45DCKR",
+      "spec": "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter",
+      "source": "sn74axc1t45: p3, direction and VCC isolation",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U7"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C11",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "1V8"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C11"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C12",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C12"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "U8",
+      "value": "SN74AXC1T45DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-363_SC-70-6",
+      "pins": {
+        "1": [
+          "VCCA",
+          "power_in",
+          "1V8"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "A",
+          "bidirectional",
+          "DATA_1V8"
+        ],
+        "4": [
+          "B",
+          "bidirectional",
+          "DATA_3V3"
+        ],
+        "5": [
+          "DIR",
+          "input",
+          "1V8"
+        ],
+        "6": [
+          "VCCB",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "SN74AXC1T45DCKR",
+      "spec": "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter",
+      "source": "sn74axc1t45: p3, direction and VCC isolation",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_U8"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C13",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "1V8"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C13"
+    },
+    {
+      "sheet": "03_mems_microphone",
+      "ref": "C14",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_microphone_C14"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "#FLG1",
+      "value": "PWR_FLAG",
+      "footprint": "",
+      "original_footprint": "",
+      "pins": {
+        "1": [
+          "pwr",
+          "power_out",
+          "MIC5V"
+        ]
+      },
+      "mpn": "PWR_FLAG",
+      "spec": "ERC source declaration, NOT a physical component",
+      "source": "Cable5V from fused controller adapter",
+      "dnp": false,
+      "note": "External source or regulator output after a passive filter",
+      "libname": "CANView_microphone_#FLG1"
+    },
+    {
+      "sheet": "01_receiver_power",
+      "ref": "#FLG2",
+      "value": "PWR_FLAG",
+      "footprint": "",
+      "original_footprint": "",
+      "pins": {
+        "1": [
+          "pwr",
+          "power_out",
+          "GND"
+        ]
+      },
+      "mpn": "PWR_FLAG",
+      "spec": "ERC source declaration, NOT a physical component",
+      "source": "Cable ground conductor",
+      "dnp": false,
+      "note": "External source or regulator output after a passive filter",
+      "libname": "CANView_microphone_#FLG2"
+    }
+  ]
+}

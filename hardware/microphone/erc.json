@@ -1,0 +1,51 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-09-06T08:36:43",
+    "ignored_checks": [
+        {
+            "description": "Global label only appears once in the schematic",
+            "key": "single_global_label"
+        },
+        {
+            "description": "Four connection points are joined together",
+            "key": "four_way_junction"
+        },
+        {
+            "description": "SPICE model issue",
+            "key": "simulation_model_issue"
+        },
+        {
+            "description": "Assigned footprint doesn't match footprint filters",
+            "key": "footprint_filter"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.6",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/1d34f65b-d219-5339-b331-6d5818a5adaa",
+            "violations": []
+        },
+        {
+            "path": "/01_receiver_power/",
+            "uuid_path": "/1d34f65b-d219-5339-b331-6d5818a5adaa/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1",
+            "violations": []
+        },
+        {
+            "path": "/02_i2s_link/",
+            "uuid_path": "/1d34f65b-d219-5339-b331-6d5818a5adaa/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba",
+            "violations": []
+        },
+        {
+            "path": "/03_mems_microphone/",
+            "uuid_path": "/1d34f65b-d219-5339-b331-6d5818a5adaa/6b1eabc2-4049-5218-bda8-efb6c72c8efc",
+            "violations": []
+        }
+    ],
+    "source": "microphone.kicad_sch"
+}

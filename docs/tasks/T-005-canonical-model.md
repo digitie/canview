@@ -13,6 +13,7 @@ protocol, Controller decoder, automation, LVGL과 Diagnostic Bridge가 서로 �
 ## 고정 결정
 
 - runtime `signal_quality`와 정적 `evidence_grade`를 분리한다.
+- enum 정본은 [구현 준비 §9.2](../architecture/implementation-readiness.md#92-evidence와-품질) 한 곳이다. candidate `review_status`는 별도 축이며 `REJECTED`를 evidence 등급이나 `UNKNOWN` 별칭으로 만들지 않는다.
 - UI enum 숫자 cast를 금지하고 exhaustive adapter를 사용한다.
 - 모든 차량 값은 sample time, age, source revision, evidence를 가진다.
 - 자동화 입력도 같은 metadata를 가지며 raw 숫자만 받는 API를 두지 않는다.
@@ -42,6 +43,7 @@ protocol, Controller decoder, automation, LVGL과 Diagnostic Bridge가 서로 �
 - [ ] protocol quality와 UI quality 사이 C cast가 0개다.
 - [ ] 모든 운전자 화면 입력에 metadata가 있다.
 - [ ] derived value가 dependency보다 높은 evidence를 만들 수 없다.
+- [ ] `UNKNOWN` dependency·unknown enum·`REJECTED` candidate revision은 operational/derived VERIFIED 출력을 만들지 않는다. audit grade 보존과 사용 허용을 분리하고 승인 없는 `APPROVED`/구 status·grade export의 암묵 변환을 거절한다.
 - [ ] `uint32_t` monotonic wrap test가 통과한다.
 - [ ] RTC invalid/oscillator-stop 상태가 CAN freshness에 영향을 주지 않는다.
 - [ ] negative dBFS peak/level이 정확히 표시 model에 전달된다.
@@ -61,3 +63,9 @@ rg -n '\(canview_.*quality_t\)' firmware ui protocol
 ## migration
 
 `CANVIEW_UI_QUALITY_*`, unsigned `fft_peak_tenth_db`, `sport_monitor_enabled`, 사용하지 않는 평균연비 field를 한 PR에서 정리한다. 임시 숫자 호환 enum은 만들지 않는다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 schema의 공통 enum, `shared/model/` 시간·품질 helper와 Controller/UI exhaustive adapter·model tests다. 차량 signal을 VERIFIED로 승격하거나 새 제어 scope를 만드는 작업은 범위 밖이다.
+- migration 전후 enum/unit/time fixture와 consumer compile 결과를 남기며 unknown을 정상값으로 호환하지 않는다. 오류 시 해당 output을 unavailable로 닫는다.

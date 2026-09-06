@@ -1,9 +1,16 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.25...4.4)
 
 project(canview_communicator_stm32
     VERSION 0.1.0
     LANGUAGES C ASM
 )
+
+if(CMAKE_C_COMPILER_VERSION VERSION_LESS 15.3 OR
+   CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 15.4)
+    message(FATAL_ERROR
+        "Arm GNU Toolchain GCC 15.3.x from release 15.3.Rel1 is required; found ${CMAKE_C_COMPILER_VERSION}."
+    )
+endif()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -91,6 +98,7 @@ target_link_options(${TARGET_NAME} PRIVATE
     --specs=nosys.specs
     -Wl,--gc-sections
     -Wl,--cref
+    -Wl,--print-memory-usage
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.map
 )
 

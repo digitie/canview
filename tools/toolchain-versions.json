@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-05",
+  "host": {
+    "os": "windows",
+    "architecture": "x64"
+  },
+  "tools": {
+    "cmake": {
+      "version": "4.4.3",
+      "source": "https://cmake.org/download/"
+    },
+    "ninja": {
+      "version": "1.13.2",
+      "source": "https://github.com/ninja-build/ninja/releases/tag/v1.13.2"
+    },
+    "armGnuToolchain": {
+      "release": "15.3.Rel1",
+      "compilerVersionPrefix": "15.3",
+      "triplet": "arm-none-eabi",
+      "source": "https://gitlab.arm.com/gnu-t/gnu-toolchain-for-arm/-/releases"
+    }
+  },
+  "eda": {
+    "kicad": {
+      "version": "10.0.6",
+      "source": "https://www.kicad.org/blog/2026/08/KiCad-10.0.6-Release/",
+      "cli": "kicad-cli"
+    }
+  },
+  "sdk": {
+    "espIdf": {
+      "version": "v6.0.3",
+      "gitCommit": "76f5dedd9950a3012fee8fb7d5586df21fc67802",
+      "repository": "https://github.com/espressif/esp-idf.git",
+      "targets": [
+        "esp32s3"
+      ]
+    },
+    "stm32CubeG4": {
+      "version": "v1.6.3",
+      "gitCommit": "d11b194a9f05d1b143d154771f3dbc282c8052a",
+      "repository": "https://github.com/STMicroelectronics/STM32CubeG4.git",
+      "mcu": "STM32G474CEU6"
+    }
+  }
+}

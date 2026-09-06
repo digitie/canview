@@ -68,3 +68,8 @@ ctest --preset host-debug -R vehicle-profile --output-on-failure
 ## 증거와 rollback
 
 실차 원본 capture 대신 승인된 최소 fixture와 SHA-256 reference만 public repo에 넣는다. 새 profile generation이 실패하면 이전 generated artifact를 수동 유지하지 않고 release를 중단한다.
+
+
+## 산출물·범위 경계
+
+- 위 구현 범위의 경로와 `tests/profile/` C/Python cross-decode fixture를 생성한다. 실제 capture 수집/승인(T-501/T-502/T-503/T-505a), upstream DBC 편집과 target TX는 범위 밖이다.

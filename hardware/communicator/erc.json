@@ -1,0 +1,196 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-09-06T08:36:33",
+    "ignored_checks": [
+        {
+            "description": "Global label only appears once in the schematic",
+            "key": "single_global_label"
+        },
+        {
+            "description": "Four connection points are joined together",
+            "key": "four_way_junction"
+        },
+        {
+            "description": "SPICE model issue",
+            "key": "simulation_model_issue"
+        },
+        {
+            "description": "Assigned footprint doesn't match footprint filters",
+            "key": "footprint_filter"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.6",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092",
+            "violations": []
+        },
+        {
+            "path": "/00_vehicle_input/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/5e67c397-05be-57b7-afa8-e975e1cfcfd6",
+            "violations": []
+        },
+        {
+            "path": "/00b_reverse_ov/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/33f8f21b-ef50-563a-949c-b1cbacf0523a",
+            "violations": []
+        },
+        {
+            "path": "/00c_auto_5v/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/fb86fa2c-fcba-5dec-96f3-d757501c73ea",
+            "violations": []
+        },
+        {
+            "path": "/01_usb_c/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/7c624ae8-5f0b-5909-af7f-eefe17ebe63c",
+            "violations": []
+        },
+        {
+            "path": "/01a_usb_cc_supply/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/f0c1edb8-badb-53c6-a0af-d313c7c8b0b2",
+            "violations": []
+        },
+        {
+            "path": "/01b_usb_limit/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/6107aef8-508b-53d9-a9ad-dab40a65832b",
+            "violations": []
+        },
+        {
+            "path": "/02_system_power/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/33e675d3-fad7-5964-bd40-d17137f77f98",
+            "violations": []
+        },
+        {
+            "path": "/03_reset/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/b0c65eb6-8613-514f-ac78-8647e9d40bec",
+            "violations": []
+        },
+        {
+            "path": "/03b_phy_power/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/c78ff2fd-4760-5e50-b6e0-9a24e1c0eae7",
+            "violations": []
+        },
+        {
+            "path": "/03c_auto_qualification/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/ad992787-e82e-5370-ad04-08436fc5c52d",
+            "violations": []
+        },
+        {
+            "path": "/19_gps_power/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/1f111898-addb-5e50-812f-b62538831c43",
+            "violations": []
+        },
+        {
+            "path": "/04_stm32/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/23f15fba-5552-5cc9-bab1-2615b721631d",
+            "violations": []
+        },
+        {
+            "path": "/05_debug_clock_uart/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/3450400d-087d-5659-b1f4-e2e471cde01d",
+            "violations": []
+        },
+        {
+            "path": "/06_esp32/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/7d2a19a8-f6e3-55c6-b2b0-a8300957e8c4",
+            "violations": []
+        },
+        {
+            "path": "/07_esp_service/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/5c7d6f70-4127-517d-a353-66a0ef2da52d",
+            "violations": []
+        },
+        {
+            "path": "/08_can_fd/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/4041c5a5-53a2-52af-b571-8062037409af",
+            "violations": []
+        },
+        {
+            "path": "/09_can_ft/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/e4abf987-cce2-5321-924b-155df7105007",
+            "violations": []
+        },
+        {
+            "path": "/10_tx_gate/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/35a0722e-22e5-54cd-82c5-032ecfb7de9f",
+            "violations": []
+        },
+        {
+            "path": "/11_phy_modes/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/b6f15b90-8f25-5f05-b470-a22f12126907",
+            "violations": []
+        },
+        {
+            "path": "/12_watchdog_latch/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/30ce8ee1-efea-5e67-a581-8279d7770fd7",
+            "violations": []
+        },
+        {
+            "path": "/12b_latch_clear/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/de6ce08b-810c-5dad-9219-b6ed2b65a363",
+            "violations": []
+        },
+        {
+            "path": "/13_arm_switch/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/868ce650-4fcd-5c83-a6e4-41eb61c666d6",
+            "violations": []
+        },
+        {
+            "path": "/14_can_connectors/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/b960944c-ea0d-5489-82d8-f0145875aa3e",
+            "violations": []
+        },
+        {
+            "path": "/15_gnss_ins/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/2560a015-273c-5fdd-b7b0-721839892db8",
+            "violations": []
+        },
+        {
+            "path": "/16_barometer/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/ba4727b2-cb38-5c92-94fb-646f2fe923d6",
+            "violations": []
+        },
+        {
+            "path": "/17_gps_ports/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/2d3cb695-fe4e-5dbf-b3a5-23b8a5b83343",
+            "violations": []
+        },
+        {
+            "path": "/18_gps_protection/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/463ec372-39e9-56c1-a41f-ada528ed9f79",
+            "violations": []
+        },
+        {
+            "path": "/20_test_points/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/4f63211f-ed62-58cf-b954-befba3d75c4e",
+            "violations": []
+        },
+        {
+            "path": "/21_ota_reset/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/b47c9a04-f8e4-5b31-8ad2-78bb8bcc58b9",
+            "violations": []
+        },
+        {
+            "path": "/22_ota_interlock/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/188bbe36-1bba-5e1e-a50d-7eb3b159f51f",
+            "violations": []
+        },
+        {
+            "path": "/23_ota_recovery/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/7281999b-b58f-5dad-b3a0-258f593284c0",
+            "violations": []
+        },
+        {
+            "path": "/24_ota_test_points/",
+            "uuid_path": "/c8ff26d1-0b80-520e-ae3f-45aa29bfe092/a846c043-6622-5c1a-abd8-392984d27f50",
+            "violations": []
+        }
+    ],
+    "source": "communicator.kicad_sch"
+}

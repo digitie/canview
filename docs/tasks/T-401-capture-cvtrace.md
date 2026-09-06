@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P1`
 - Gate: `G2/G3`
-- 선행: `T-203`, `T-400`, `T-103`
+- 선행: `T-203`, `T-400`, `T-103`, `T-204`
 - 후속: `T-402`, `T-501`
 
 ## 목표
@@ -45,6 +45,11 @@ zip 안에 `manifest.json`, `frames.bin`, `markers.jsonl`, `inventory.json`, `ca
 - [ ] required-byte preflight 실패 capture는 쓰기를 시작하지 않고 허용 capture는 metadata까지 완주한다.
 - [ ] incomplete export는 `partial=true`이며 VERIFIED evidence로 승격되지 않는다.
 
+## 계획 보완 수용 기준
+
+- [ ] capture/reference/export 수명을 storage writer가 소유하고 active/pinned/exporting/후보 참조 capture를 retention에서 보호한다. delete·export·power cut 경쟁에 dangling evidence 참조가 없다.
+- [ ] `.cvtrace`와 OTA 데이터가 동일 Flash를 사용할 때 T-204의 실제 free partition에서 admission한다. manifest/진행 journal/finalize 임시 공간을 포함하고 중간 ENOSPC는 partial/GAP로 끝난다.
+
 ## 검증
 
 ```bash
@@ -57,3 +62,8 @@ python tests/hil/capture_powerloss.py --iterations 500
 ## 개인정보·증거
 
 public fixture는 VIN, 위치, MAC, installation ID를 제거한다. 원본 capture는 승인된 private storage에 두고 manifest의 opaque evidence ID와 SHA-256만 commit한다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 Bridge storage/capture component, `schema/cvtrace-v1.schema.json`와 format/HIL validators다. signal 승격·vehicle replay·SD 없는 긴 capture는 범위 밖이다.
+- 불완전 export/CRC/digest·단전 손상은 partial 또는 invalid로 표시하고 complete capture와 섞지 않는다.

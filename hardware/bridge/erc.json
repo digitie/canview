@@ -1,0 +1,71 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-09-06T08:36:37",
+    "ignored_checks": [
+        {
+            "description": "Global label only appears once in the schematic",
+            "key": "single_global_label"
+        },
+        {
+            "description": "Four connection points are joined together",
+            "key": "four_way_junction"
+        },
+        {
+            "description": "SPICE model issue",
+            "key": "simulation_model_issue"
+        },
+        {
+            "description": "Assigned footprint doesn't match footprint filters",
+            "key": "footprint_filter"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.6",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6",
+            "violations": []
+        },
+        {
+            "path": "/01_usb_c/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/ef614bba-2e85-5911-b09d-88e92816b14e",
+            "violations": []
+        },
+        {
+            "path": "/01a_usb_cc_supply/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/995a09c3-898c-5194-9624-895684d0cdc5",
+            "violations": []
+        },
+        {
+            "path": "/01b_usb_limit/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/5fa017d9-5285-54d3-94d1-bc40cf16f77e",
+            "violations": []
+        },
+        {
+            "path": "/02_system_power/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/e5c7eae0-4cf6-5e62-8a35-e31a14090a64",
+            "violations": []
+        },
+        {
+            "path": "/03_reset/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/7ded663d-8fba-56a2-80cd-53907fe8a829",
+            "violations": []
+        },
+        {
+            "path": "/02_esp32/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/234d7795-fc3a-5f3e-8372-5430bb736c95",
+            "violations": []
+        },
+        {
+            "path": "/03_service/",
+            "uuid_path": "/695535dc-1835-5369-a035-dbad415d33c6/f45837cc-a8bb-5c7e-bc52-15102e8ffa7d",
+            "violations": []
+        }
+    ],
+    "source": "bridge.kicad_sch"
+}

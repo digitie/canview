@@ -1,0 +1,4298 @@
+(export
+	(version "E")
+	(design
+		(source "F:\\dev\\canview\\hardware\\microphone\\kicad\\microphone.kicad_sch")
+		(date "2026-09-06T08:36:41")
+		(tool "Eeschema 10.0.6")
+		(sheet
+			(number "1")
+			(name "/")
+			(tstamps "/")
+			(title_block
+				(title "CANView / microphone")
+				(company "digitie/canview")
+				(rev "R1 REVIEW")
+				(date "2026-09-05")
+				(source "microphone.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "2")
+			(name "/01_receiver_power/")
+			(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			(title_block
+				(title "CANView / 01_receiver_power")
+				(company "digitie/canview")
+				(rev "R1 REVIEW")
+				(date "2026-09-05")
+				(source "01_receiver_power.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "3")
+			(name "/02_i2s_link/")
+			(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			(title_block
+				(title "CANView / 02_i2s_link")
+				(company "digitie/canview")
+				(rev "R1 REVIEW")
+				(date "2026-09-05")
+				(source "02_i2s_link.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+		(sheet
+			(number "4")
+			(name "/03_mems_microphone/")
+			(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			(title_block
+				(title "CANView / 03_mems_microphone")
+				(company "digitie/canview")
+				(rev "R1 REVIEW")
+				(date "2026-09-05")
+				(source "03_mems_microphone.kicad_sch")
+				(comment
+					(number "1")
+					(value "SCHEMATIC REVIEW ONLY - PCB/HIL release gates remain open")
+				)
+				(comment
+					(number "2")
+					(value "")
+				)
+				(comment
+					(number "3")
+					(value "")
+				)
+				(comment
+					(number "4")
+					(value "")
+				)
+				(comment
+					(number "5")
+					(value "")
+				)
+				(comment
+					(number "6")
+					(value "")
+				)
+				(comment
+					(number "7")
+					(value "")
+				)
+				(comment
+					(number "8")
+					(value "")
+				)
+				(comment
+					(number "9")
+					(value "")
+				)
+			)
+		)
+	)
+	(components
+		(comp
+			(ref "C1")
+			(value "1u")
+			(footprint "CANView:Capacitor_SMD__C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0603-1u-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0603-1u-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "50810b5b-b735-51b0-9eab-3940900a69c5")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C2")
+			(value "2.2u")
+			(footprint "CANView:Capacitor_SMD__C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0603-2.2u-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0603-2.2u-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "aebfca32-fd13-5fe8-86c7-1651036456ee")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C3")
+			(value "1u")
+			(footprint "CANView:Capacitor_SMD__C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0603-1u-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0603-1u-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "fbf1f0ee-1fa4-56e1-bbd1-9abffe424601")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C4")
+			(value "2.2u")
+			(footprint "CANView:Capacitor_SMD__C_0603_1608Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0603-2.2u-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C4")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0603-2.2u-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "50b40a4a-f8ff-584d-a7fa-fff451952485")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D1")
+			(value "TPD2E2U06DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+			(fields
+				(field
+					(name "MPN") "TPD2E2U06DCKR")
+				(field
+					(name "Specification") "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+				(field
+					(name "Source") "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_D1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPD2E2U06DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+			)
+			(property
+				(name "Source")
+				(value "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "ebcda6bb-4305-5c7b-a486-0c6f2b1928df")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D2")
+			(value "TPD2E2U06DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+			(fields
+				(field
+					(name "MPN") "TPD2E2U06DCKR")
+				(field
+					(name "Specification") "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+				(field
+					(name "Source") "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_D2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPD2E2U06DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+			)
+			(property
+				(name "Source")
+				(value "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "47b7bac9-1601-5782-bdb5-c46785f21613")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "D3")
+			(value "TPD2E2U06DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+			(fields
+				(field
+					(name "MPN") "TPD2E2U06DCKR")
+				(field
+					(name "Specification") "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+				(field
+					(name "Source") "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_D3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPD2E2U06DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection")
+			)
+			(property
+				(name "Source")
+				(value "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "9000fa85-2de9-5b07-b2f2-b0ca9e14f0e3")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "J1")
+			(value "REMOTE MIC / NOT ETHERNET")
+			(footprint "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal")
+			(fields
+				(field
+					(name "MPN") "SM08B-GHS-TB(LF)(SN)")
+				(field
+					(name "Specification") "8-wire4twisted-pairs; keyed GH8 both ends;1:1 cable <=3m design target, SI qualification required")
+				(field
+					(name "Source") "jst-gh")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_J1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SM08B-GHS-TB(LF)(SN)")
+			)
+			(property
+				(name "Specification")
+				(value "8-wire4twisted-pairs; keyed GH8 both ends;1:1 cable <=3m design target, SI qualification required")
+			)
+			(property
+				(name "Source")
+				(value "jst-gh")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "9912c76b-27de-5ab9-9381-a8eab3fd3b9b")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+						(pin
+							(num "MP")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U1")
+			(value "TPS7A2033PDBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "TPS7A2033PDBVR")
+				(field
+					(name "Specification") "300mA LDO; fixed 3.3V; 1uF effective output minimum")
+				(field
+					(name "Source") "tps7a20: p4 DBV pins, input/output capacitor requirements")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPS7A2033PDBVR")
+			)
+			(property
+				(name "Specification")
+				(value "300mA LDO; fixed 3.3V; 1uF effective output minimum")
+			)
+			(property
+				(name "Source")
+				(value "tps7a20: p4 DBV pins, input/output capacitor requirements")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "f5accd91-a873-5f2a-a38e-415895f9e58a")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U2")
+			(value "TPS7A2018PDBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "TPS7A2018PDBVR")
+				(field
+					(name "Specification") "300mA LDO; fixed 1.8V; 1uF effective output minimum")
+				(field
+					(name "Source") "tps7a20: p4 DBV pins, input/output capacitor requirements")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "TPS7A2018PDBVR")
+			)
+			(property
+				(name "Specification")
+				(value "300mA LDO; fixed 1.8V; 1uF effective output minimum")
+			)
+			(property
+				(name "Source")
+				(value "tps7a20: p4 DBV pins, input/output capacitor requirements")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "01_receiver_power")
+			)
+			(property
+				(name "Sheetfile")
+				(value "01_receiver_power.kicad_sch")
+			)
+			(sheetpath
+				(names "/01_receiver_power/")
+				(tstamps "/c3c8f5f5-e0ee-5b6a-8b86-933e4890f2a1/")
+			)
+			(tstamps "d9420028-fd7f-5b4b-9f4b-9fabebf97b09")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C5")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C5")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "6b07b0ff-b56c-5186-a3a1-d4cf3367cf00")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C6")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C6")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "35f658b0-842e-53c6-93ff-e66f69165db8")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C7")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C7")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "0c30b1cb-e136-5419-98f7-951a707c74db")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R1")
+			(value "100")
+			(footprint "CANView:Resistor_SMD__R_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-R-0402-100-1%")
+				(field
+					(name "Specification") "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_R1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-R-0402-100-1%")
+			)
+			(property
+				(name "Specification")
+				(value "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "0d8549fd-27be-5c40-9ee7-3435f34f7df2")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R2")
+			(value "100")
+			(footprint "CANView:Resistor_SMD__R_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-R-0402-100-1%")
+				(field
+					(name "Specification") "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_R2")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-R-0402-100-1%")
+			)
+			(property
+				(name "Specification")
+				(value "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "e9eebc86-7703-5f3d-baca-2e1e29329aad")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U3")
+			(value "SN65LVDS2DBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "SN65LVDS2DBVR")
+				(field
+					(name "Specification") "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+				(field
+					(name "Source") "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN65LVDS2DBVR")
+			)
+			(property
+				(name "Specification")
+				(value "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+			)
+			(property
+				(name "Source")
+				(value "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "f46d8103-bdc2-528d-b7cd-703e15bacda3")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U4")
+			(value "SN65LVDS2DBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "SN65LVDS2DBVR")
+				(field
+					(name "Specification") "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+				(field
+					(name "Source") "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U4")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN65LVDS2DBVR")
+			)
+			(property
+				(name "Specification")
+				(value "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+			)
+			(property
+				(name "Source")
+				(value "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "892f2c1a-b72f-5a0d-b5fa-cd3b8c888ee5")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U5")
+			(value "SN65LVDS1DBVR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-23-5")
+			(fields
+				(field
+					(name "MPN") "SN65LVDS1DBVR")
+				(field
+					(name "Specification") "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+				(field
+					(name "Source") "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U5")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN65LVDS1DBVR")
+			)
+			(property
+				(name "Specification")
+				(value "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required")
+			)
+			(property
+				(name "Source")
+				(value "sn65lvds1: pp3-4 DBV pin functions, timing tables")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "02_i2s_link")
+			)
+			(property
+				(name "Sheetfile")
+				(value "02_i2s_link.kicad_sch")
+			)
+			(sheetpath
+				(names "/02_i2s_link/")
+				(tstamps "/987a09cb-c6b3-50eb-aa32-74bdfdaa7eba/")
+			)
+			(tstamps "afabea50-ca10-5aa1-8cd5-e881d2f50067")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C8")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C8")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "61d77a31-7736-5bbc-b088-f4213a553289")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C9")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C9")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "9180e833-324b-5788-a4cd-ae5e423dc419")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C10")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C10")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "21fa7ba4-4742-5074-919f-f5fd37fcd8c8")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C11")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C11")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "60bf9d1a-6c2f-5a88-8770-825d6ce4f9bf")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C12")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C12")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "715ebced-18cc-5f9f-b7eb-5b4622524f7e")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C13")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C13")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "50999f2c-a2bf-51bd-b342-499995f4ba9b")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "C14")
+			(value "100n")
+			(footprint "CANView:Capacitor_SMD__C_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-C-0402-100n-16V-X7R")
+				(field
+					(name "Specification") "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_C14")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-C-0402-100n-16V-X7R")
+			)
+			(property
+				(name "Specification")
+				(value "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "a20bfcdc-843a-58d9-9483-c053478892b7")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "MK1")
+			(value "MMICT5848-00-012")
+			(footprint "CANView:TDK_T5848_LGA8")
+			(fields
+				(field
+					(name "MPN") "MMICT5848-00-012")
+				(field
+					(name "Specification") "1.62..1.98V; HQ BCLK2.0..3.7MHz; SD valid<=75ns; 24bit I2S with20bit precision")
+				(field
+					(name "Source") "t5848: pp7-10,30-31,35,37,39")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:TDK_T5848_LGA8")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_MK1")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "MMICT5848-00-012")
+			)
+			(property
+				(name "Specification")
+				(value "1.62..1.98V; HQ BCLK2.0..3.7MHz; SD valid<=75ns; 24bit I2S with20bit precision")
+			)
+			(property
+				(name "Source")
+				(value "t5848: pp7-10,30-31,35,37,39")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "30a178f2-9f19-5cc1-bb56-c711a22b537e")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+						(pin
+							(num "7")
+						)
+						(pin
+							(num "8")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "R3")
+			(value "100k")
+			(footprint "CANView:Resistor_SMD__R_0402_1005Metric")
+			(fields
+				(field
+					(name "MPN") "GEN-R-0402-100k-1%")
+				(field
+					(name "Specification") "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+				(field
+					(name "Source")
+				)
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_R3")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "GEN-R-0402-100k-1%")
+			)
+			(property
+				(name "Specification")
+				(value "0.1W; 50V; ±1%; ±100ppm/K; -55..155C")
+			)
+			(property
+				(name "Source")
+				(value "")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "cc669dcc-07ba-5d3d-a7e2-112f4f318986")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U6")
+			(value "SN74AXC1T45DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+			(fields
+				(field
+					(name "MPN") "SN74AXC1T45DCKR")
+				(field
+					(name "Specification") "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter")
+				(field
+					(name "Source") "sn74axc1t45: p3, direction and VCC isolation")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U6")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN74AXC1T45DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter")
+			)
+			(property
+				(name "Source")
+				(value "sn74axc1t45: p3, direction and VCC isolation")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "ffddcf68-6c9a-529d-8fca-543e4f7d6148")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U7")
+			(value "SN74AXC1T45DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+			(fields
+				(field
+					(name "MPN") "SN74AXC1T45DCKR")
+				(field
+					(name "Specification") "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter")
+				(field
+					(name "Source") "sn74axc1t45: p3, direction and VCC isolation")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U7")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN74AXC1T45DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter")
+			)
+			(property
+				(name "Source")
+				(value "sn74axc1t45: p3, direction and VCC isolation")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "9459ed9f-77e7-57de-9f8c-2797d6105857")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+					)
+				)
+			)
+		)
+		(comp
+			(ref "U8")
+			(value "SN74AXC1T45DCKR")
+			(footprint "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+			(fields
+				(field
+					(name "MPN") "SN74AXC1T45DCKR")
+				(field
+					(name "Specification") "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter")
+				(field
+					(name "Source") "sn74axc1t45: p3, direction and VCC isolation")
+				(field
+					(name "Assembly") "FIT")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(libsource
+				(lib "CANView")
+				(part "CANView_microphone_U8")
+				(description "")
+			)
+			(property
+				(name "MPN")
+				(value "SN74AXC1T45DCKR")
+			)
+			(property
+				(name "Specification")
+				(value "A=1.8V/B=3.3V; fixed direction, no auto-direction level shifter")
+			)
+			(property
+				(name "Source")
+				(value "sn74axc1t45: p3, direction and VCC isolation")
+			)
+			(property
+				(name "Assembly")
+				(value "FIT")
+			)
+			(property
+				(name "Sheetname")
+				(value "03_mems_microphone")
+			)
+			(property
+				(name "Sheetfile")
+				(value "03_mems_microphone.kicad_sch")
+			)
+			(sheetpath
+				(names "/03_mems_microphone/")
+				(tstamps "/6b1eabc2-4049-5218-bda8-efb6c72c8efc/")
+			)
+			(tstamps "9b0b7d13-1860-5147-9f56-2441d7af7bcf")
+			(units
+				(unit
+					(name "A")
+					(pins
+						(pin
+							(num "1")
+						)
+						(pin
+							(num "2")
+						)
+						(pin
+							(num "3")
+						)
+						(pin
+							(num "4")
+						)
+						(pin
+							(num "5")
+						)
+						(pin
+							(num "6")
+						)
+					)
+				)
+			)
+		)
+	)
+	(groups)
+	(variants)
+	(libparts
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C1")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "1u")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C10")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C11")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C12")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C13")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C14")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C2")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "2.2u")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C3")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "1u")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C4")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "2.2u")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0603_1608Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C5")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C6")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C7")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C8")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_C9")
+			(fields
+				(field
+					(name "Reference") "C")
+				(field
+					(name "Value") "100n")
+				(field
+					(name "Footprint") "CANView:Capacitor_SMD__C_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_D1")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "TPD2E2U06DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_D2")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "TPD2E2U06DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_D3")
+			(fields
+				(field
+					(name "Reference") "D")
+				(field
+					(name "Value") "TPD2E2U06DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-323_SC-70")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IO1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "IO2")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_J1")
+			(fields
+				(field
+					(name "Reference") "J")
+				(field
+					(name "Value") "REMOTE MIC / NOT ETHERNET")
+				(field
+					(name "Footprint") "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "5V")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "passive")
+				)
+				(pin
+					(num "3")
+					(name "BCLK_P")
+					(type "passive")
+				)
+				(pin
+					(num "4")
+					(name "BCLK_N")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "WS_P")
+					(type "passive")
+				)
+				(pin
+					(num "6")
+					(name "WS_N")
+					(type "passive")
+				)
+				(pin
+					(num "7")
+					(name "DATA_P")
+					(type "passive")
+				)
+				(pin
+					(num "8")
+					(name "DATA_N")
+					(type "passive")
+				)
+				(pin
+					(num "MP")
+					(name "MECHANICAL_NC")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_MK1")
+			(fields
+				(field
+					(name "Reference") "M")
+				(field
+					(name "Value") "MMICT5848-00-012")
+				(field
+					(name "Footprint") "CANView:TDK_T5848_LGA8")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "WS")
+					(type "input")
+				)
+				(pin
+					(num "2")
+					(name "LR")
+					(type "input")
+				)
+				(pin
+					(num "3")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "4")
+					(name "WAKE")
+					(type "output")
+				)
+				(pin
+					(num "5")
+					(name "THSEL")
+					(type "input")
+				)
+				(pin
+					(num "6")
+					(name "SCK")
+					(type "input")
+				)
+				(pin
+					(num "7")
+					(name "VDD")
+					(type "power_in")
+				)
+				(pin
+					(num "8")
+					(name "SD")
+					(type "output")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_R1")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "100")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_R2")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "100")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_R3")
+			(fields
+				(field
+					(name "Reference") "R")
+				(field
+					(name "Value") "100k")
+				(field
+					(name "Footprint") "CANView:Resistor_SMD__R_0402_1005Metric")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "1")
+					(type "passive")
+				)
+				(pin
+					(num "2")
+					(name "2")
+					(type "passive")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U1")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "TPS7A2033PDBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IN")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "EN")
+					(type "input")
+				)
+				(pin
+					(num "4")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "OUT")
+					(type "power_out")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U2")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "TPS7A2018PDBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "IN")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "EN")
+					(type "input")
+				)
+				(pin
+					(num "4")
+					(name "NC")
+					(type "passive")
+				)
+				(pin
+					(num "5")
+					(name "OUT")
+					(type "power_out")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U3")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN65LVDS2DBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "A_P")
+					(type "input")
+				)
+				(pin
+					(num "4")
+					(name "B_N")
+					(type "input")
+				)
+				(pin
+					(num "5")
+					(name "R")
+					(type "output")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U4")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN65LVDS2DBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "A_P")
+					(type "input")
+				)
+				(pin
+					(num "4")
+					(name "B_N")
+					(type "input")
+				)
+				(pin
+					(num "5")
+					(name "R")
+					(type "output")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U5")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN65LVDS1DBVR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-23-5")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCC")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "Z_N")
+					(type "output")
+				)
+				(pin
+					(num "4")
+					(name "Y_P")
+					(type "output")
+				)
+				(pin
+					(num "5")
+					(name "D")
+					(type "input")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U6")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN74AXC1T45DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCCA")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "A")
+					(type "bidirectional")
+				)
+				(pin
+					(num "4")
+					(name "B")
+					(type "bidirectional")
+				)
+				(pin
+					(num "5")
+					(name "DIR")
+					(type "input")
+				)
+				(pin
+					(num "6")
+					(name "VCCB")
+					(type "power_in")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U7")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN74AXC1T45DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCCA")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "A")
+					(type "bidirectional")
+				)
+				(pin
+					(num "4")
+					(name "B")
+					(type "bidirectional")
+				)
+				(pin
+					(num "5")
+					(name "DIR")
+					(type "input")
+				)
+				(pin
+					(num "6")
+					(name "VCCB")
+					(type "power_in")
+				)
+			)
+		)
+		(libpart
+			(lib "CANView")
+			(part "CANView_microphone_U8")
+			(fields
+				(field
+					(name "Reference") "U")
+				(field
+					(name "Value") "SN74AXC1T45DCKR")
+				(field
+					(name "Footprint") "CANView:Package_TO_SOT_SMD__SOT-363_SC-70-6")
+				(field
+					(name "Datasheet")
+				)
+				(field
+					(name "Description")
+				)
+			)
+			(pins
+				(pin
+					(num "1")
+					(name "VCCA")
+					(type "power_in")
+				)
+				(pin
+					(num "2")
+					(name "GND")
+					(type "power_in")
+				)
+				(pin
+					(num "3")
+					(name "A")
+					(type "bidirectional")
+				)
+				(pin
+					(num "4")
+					(name "B")
+					(type "bidirectional")
+				)
+				(pin
+					(num "5")
+					(name "DIR")
+					(type "input")
+				)
+				(pin
+					(num "6")
+					(name "VCCB")
+					(type "power_in")
+				)
+			)
+		)
+	)
+	(libraries
+		(library
+			(logical "CANView")
+			(uri "${KIPRJMOD}/../../libraries/CANView.kicad_sym")
+		)
+	)
+	(nets
+		(net
+			(code "1")
+			(name "1V8")
+			(class "Default")
+			(node
+				(ref "C11")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C13")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C4")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C8")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C9")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "MK1")
+				(pin "7")
+				(pinfunction "VDD_7")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U2")
+				(pin "5")
+				(pinfunction "OUT_5")
+				(pintype "power_out")
+			)
+			(node
+				(ref "U6")
+				(pin "1")
+				(pinfunction "VCCA_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U7")
+				(pin "1")
+				(pinfunction "VCCA_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U8")
+				(pin "1")
+				(pinfunction "VCCA_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U8")
+				(pin "5")
+				(pinfunction "DIR_5")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "2")
+			(name "3V3")
+			(class "Default")
+			(node
+				(ref "C10")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C12")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C14")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C6")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "C7")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "5")
+				(pinfunction "OUT_5")
+				(pintype "power_out")
+			)
+			(node
+				(ref "U2")
+				(pin "1")
+				(pinfunction "IN_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U2")
+				(pin "3")
+				(pinfunction "EN_3")
+				(pintype "input")
+			)
+			(node
+				(ref "U3")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U4")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U5")
+				(pin "1")
+				(pinfunction "VCC_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U6")
+				(pin "6")
+				(pinfunction "VCCB_6")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U7")
+				(pin "6")
+				(pinfunction "VCCB_6")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U8")
+				(pin "6")
+				(pinfunction "VCCB_6")
+				(pintype "power_in")
+			)
+		)
+		(net
+			(code "3")
+			(name "BCLK_1V8")
+			(class "Default")
+			(node
+				(ref "MK1")
+				(pin "6")
+				(pinfunction "SCK_6")
+				(pintype "input")
+			)
+			(node
+				(ref "U6")
+				(pin "3")
+				(pinfunction "A_3")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "4")
+			(name "BCLK_3V3")
+			(class "Default")
+			(node
+				(ref "U3")
+				(pin "5")
+				(pinfunction "R_5")
+				(pintype "output")
+			)
+			(node
+				(ref "U6")
+				(pin "4")
+				(pinfunction "B_4")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "5")
+			(name "CLK_N")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "2")
+				(pinfunction "IO2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "4")
+				(pinfunction "BCLK_N_4")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "4")
+				(pinfunction "B_N_4")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "6")
+			(name "CLK_P")
+			(class "Default")
+			(node
+				(ref "D1")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "3")
+				(pinfunction "BCLK_P_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "R1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U3")
+				(pin "3")
+				(pinfunction "A_P_3")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "7")
+			(name "DATA_1V8")
+			(class "Default")
+			(node
+				(ref "MK1")
+				(pin "8")
+				(pinfunction "SD_8")
+				(pintype "output")
+			)
+			(node
+				(ref "R3")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U8")
+				(pin "3")
+				(pinfunction "A_3")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "8")
+			(name "DATA_3V3")
+			(class "Default")
+			(node
+				(ref "U5")
+				(pin "5")
+				(pinfunction "D_5")
+				(pintype "input")
+			)
+			(node
+				(ref "U8")
+				(pin "4")
+				(pinfunction "B_4")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "9")
+			(name "DATA_N")
+			(class "Default")
+			(node
+				(ref "D3")
+				(pin "2")
+				(pinfunction "IO2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "8")
+				(pinfunction "DATA_N_8")
+				(pintype "passive")
+			)
+			(node
+				(ref "U5")
+				(pin "3")
+				(pinfunction "Z_N_3")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "10")
+			(name "DATA_P")
+			(class "Default")
+			(node
+				(ref "D3")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "7")
+				(pinfunction "DATA_P_7")
+				(pintype "passive")
+			)
+			(node
+				(ref "U5")
+				(pin "4")
+				(pinfunction "Y_P_4")
+				(pintype "output")
+			)
+		)
+		(net
+			(code "11")
+			(name "GND")
+			(class "Default")
+			(node
+				(ref "C1")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C10")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C11")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C12")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C13")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C14")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C4")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C5")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C6")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C7")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C8")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "C9")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "D1")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "D2")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "D3")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "MK1")
+				(pin "2")
+				(pinfunction "LR_2")
+				(pintype "input")
+			)
+			(node
+				(ref "MK1")
+				(pin "3")
+				(pinfunction "GND_3")
+				(pintype "power_in")
+			)
+			(node
+				(ref "R3")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U2")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U3")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U4")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U5")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U6")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U6")
+				(pin "5")
+				(pinfunction "DIR_5")
+				(pintype "input")
+			)
+			(node
+				(ref "U7")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U7")
+				(pin "5")
+				(pinfunction "DIR_5")
+				(pintype "input")
+			)
+			(node
+				(ref "U8")
+				(pin "2")
+				(pinfunction "GND_2")
+				(pintype "power_in")
+			)
+		)
+		(net
+			(code "12")
+			(name "MIC5V")
+			(class "Default")
+			(node
+				(ref "C1")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "1")
+				(pinfunction "5V_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U1")
+				(pin "1")
+				(pinfunction "IN_1")
+				(pintype "power_in")
+			)
+			(node
+				(ref "U1")
+				(pin "3")
+				(pinfunction "EN_3")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "13")
+			(name "WS_1V8")
+			(class "Default")
+			(node
+				(ref "MK1")
+				(pin "1")
+				(pinfunction "WS_1")
+				(pintype "input")
+			)
+			(node
+				(ref "U7")
+				(pin "3")
+				(pinfunction "A_3")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "14")
+			(name "WS_3V3")
+			(class "Default")
+			(node
+				(ref "U4")
+				(pin "5")
+				(pinfunction "R_5")
+				(pintype "output")
+			)
+			(node
+				(ref "U7")
+				(pin "4")
+				(pinfunction "B_4")
+				(pintype "bidirectional")
+			)
+		)
+		(net
+			(code "15")
+			(name "WS_N")
+			(class "Default")
+			(node
+				(ref "D2")
+				(pin "2")
+				(pinfunction "IO2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "6")
+				(pinfunction "WS_N_6")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "2")
+				(pinfunction "2_2")
+				(pintype "passive")
+			)
+			(node
+				(ref "U4")
+				(pin "4")
+				(pinfunction "B_N_4")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "16")
+			(name "WS_P")
+			(class "Default")
+			(node
+				(ref "D2")
+				(pin "1")
+				(pinfunction "IO1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "J1")
+				(pin "5")
+				(pinfunction "WS_P_5")
+				(pintype "passive")
+			)
+			(node
+				(ref "R2")
+				(pin "1")
+				(pinfunction "1_1")
+				(pintype "passive")
+			)
+			(node
+				(ref "U4")
+				(pin "3")
+				(pinfunction "A_P_3")
+				(pintype "input")
+			)
+		)
+		(net
+			(code "17")
+			(name "unconnected-(J1-MECHANICAL_NC-PadMP)")
+			(class "Default")
+			(node
+				(ref "J1")
+				(pin "MP")
+				(pinfunction "MECHANICAL_NC_MP")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "18")
+			(name "unconnected-(MK1-THSEL-Pad5)")
+			(class "Default")
+			(node
+				(ref "MK1")
+				(pin "5")
+				(pinfunction "THSEL_5")
+				(pintype "input+no_connect")
+			)
+		)
+		(net
+			(code "19")
+			(name "unconnected-(MK1-WAKE-Pad4)")
+			(class "Default")
+			(node
+				(ref "MK1")
+				(pin "4")
+				(pinfunction "WAKE_4")
+				(pintype "output+no_connect")
+			)
+		)
+		(net
+			(code "20")
+			(name "unconnected-(U1-NC-Pad4)")
+			(class "Default")
+			(node
+				(ref "U1")
+				(pin "4")
+				(pinfunction "NC_4")
+				(pintype "passive+no_connect")
+			)
+		)
+		(net
+			(code "21")
+			(name "unconnected-(U2-NC-Pad4)")
+			(class "Default")
+			(node
+				(ref "U2")
+				(pin "4")
+				(pinfunction "NC_4")
+				(pintype "passive+no_connect")
+			)
+		)
+	)
+)

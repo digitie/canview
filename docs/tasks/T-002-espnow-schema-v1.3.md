@@ -20,8 +20,8 @@
 - runtime quality와 evidence grade를 별도 enum으로 생성한다.
 - diagnostic `0x28–0x2D`, remote config `0x43–0x45`를 v1.3에 포함한다.
 - 모든 reserved bit/byte는 송신 0, 수신 nonzero 거부다.
-- command request에 immutable `issued_at_sender_ms`와 `time_sync_generation`을 넣어 retry가 TTL을 늘리지 못하게 한다.
-- pairing transcript는 양쪽 device ID/MAC, locally approved role/scope, channel, version과 nonce를 bind한다. requested role은 권한 부여 근거가 아니다.
+- command request에 immutable `issued_at_controller_ms`와 `control_sync_generation`을 넣어 retry가 TTL을 늘리지 못하게 한다. 정본 필드명과 canonical control_tag 입력을 모든 hop에서 유지한다.
+- pairing transcript는 최신 ESP-NOW 정본의 단계별 prefix를 서명한다. DISCOVERY는 pair binding·발신 nonce·제안 range, REQUEST는 discovery digest·상대 nonce, CHALLENGE는 full transcript·locally authorized 값, CONFIRM은 transcript hash를 bind한다. 첫 DISCOVERY에 아직 없는 상대 nonce/선택 version을 요구하지 않으며 requested role은 권한 부여 근거가 아니다.
 - 설치 전체 공유 secret은 금지한다. 장치 로컬 PMK와 직접 두 endpoint만 가진 pair별 `link_root`/LMK를 사용한다.
 - `CAN_EVENT_MARKER`만 marker를 표현하며 `CAN_CAPTURE_CONTROL`에는 MARK action을 두지 않는다.
 - stage/status는 `u8`, reason/error는 `u16`, revision은 `u32`, boot 누적 counter는 saturating `u64`로 고정한다.
@@ -42,7 +42,7 @@ duplicate/idempotency key
 sensitive-log policy
 ```
 
-payload 범위는 [통합 설계 §7](../implementation-readiness.md#7-protocol-구현-기준)의 모든 계열을 포함한다. control scope가 CAPABILITIES wire에 실제로 존재해야 하고, snapshot에는 STM boot ID·TX build mode·hard gate·profile digest·safety inhibit가 있어야 한다.
+payload 범위는 [통합 설계 §7](../architecture/implementation-readiness.md#7-protocol-구현-기준)의 모든 계열을 포함한다. control scope가 CAPABILITIES wire에 실제로 존재해야 하고, snapshot에는 STM boot ID·TX build mode·hard gate·profile digest·safety inhibit가 있어야 한다.
 
 ## 예상 변경 파일
 
@@ -53,7 +53,7 @@ protocol/golden/espnow-v1.3/*.json
 protocol/golden/espnow-v1.3/*.bin
 tools/generate_protocol.py
 tests/protocol/test_schema.py
-docs/esp-now-protocol.md
+docs/architecture/protocols/esp-now.md
 ```
 
 ## 구현 순서
@@ -84,6 +84,12 @@ docs/esp-now-protocol.md
 - [ ] Bridge/read-only schema state에서는 control root/tag 생성 API와 nonzero control scope가 존재하지 않는다.
 - [ ] C, Python에서 모든 golden binary size/field 값이 일치한다.
 
+## 계획 보완 수용 기준
+
+- [ ] navigation-v1.json의 ESP-NOW 1.4 확장을 companion schema로 연결하고 1.3 peer에는 새 sensor message/capability가 노출되지 않는다. 1.3 기본 ABI를 1.4로 조용히 재정의하지 않는다.
+- [ ] bulk의 object/fragment/window/timeout/digest·config schema 16 KiB 제한, config owner/revision/status를 전 메시지 golden vector로 검사한다. 최신 정본의 wireless_session_id:u32와 공통 header/boot binding, capture STATUS의 reason:u16·구 reserved 0B·총44B를 exact offset/size vector로 대조한다.
+- [ ] pairing 각 phase의 canonical prefix/domain·필드 순서·nonce/digest·authorized role/range 변경 negative vector를 독립적으로 고정한다. 권위 key record는 보호된 provisioning A/B, normal NVS는 cache로 구분한다. 이 문서 변경은 schema/codec/golden 구현 완료가 아니다.
+
 ## 검증 명령
 
 ```bash
@@ -96,3 +102,9 @@ ctest --preset host-debug -R protocol-schema --output-on-failure
 ## 안전·rollback
 
 schema migration 전후 숫자표를 PR에 첨부한다. 이미 배포된 firmware가 없으므로 임시 alias를 추가하지 않는다. compatibility를 위해 불완전한 1.2 parser를 유지하면 task 실패다.
+
+
+## 산출물·범위 경계
+
+- 상기 schema 필수 항목과 예상 변경 파일이 구현 범위다. runtime codec/board 통합(T-003/T-201)은 범위 밖이다.
+- ABI 동결 증거는 message별 golden·malformed·version/capability 결과와 generator digest로 남긴다.

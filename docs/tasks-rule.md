@@ -41,4 +41,6 @@ docs/tasks.md에는 다음 정도만 둔다.
 
 ## 6. 완료 처리
 
-모든 수용 기준과 검증을 확인한 뒤 docs/tasks-done.md에 날짜와 결과를 newest-first로 추가하고, docs/journal.md와 docs/resume.md를 갱신한다. 실패한 검증을 남긴 채 DONE으로 바꾸지 않는다.
+모든 수용 기준과 검증을 확인하고 비단순 변경이면 전문 리뷰어 서브에이전트 2인 gate를 통과한 뒤 docs/tasks-done.md에 날짜와 결과를 newest-first로 추가한다. 현재 상태가 바뀌면 docs/journal.md와 docs/resume.md도 갱신한다. 실패한 검증이나 미해결 P0/P1 finding을 남긴 채 DONE으로 바꾸지 않는다.
+
+리뷰를 수행한 경우 기존 리뷰 문서에 append하지 않고 [review archive](reviews/README.md) 규칙에 따라 새 report를 만든다.

@@ -1,6 +1,5 @@
 /* LVGL eBike 데모의 계기판 계층과 현대 표준형 5W 내비게이션의 남청색 화면을 참고한 320×480 prototype. */
 @import url("../../tokens.css");
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap");
 
 * { box-sizing: border-box; }
 
@@ -38,7 +37,7 @@ button { cursor: pointer; }
   height: min(480px, 100dvh);
   min-height: 420px;
   display: grid;
-  grid-template-rows: 40px minmax(0, 1fr) 72px;
+  grid-template-rows: 40px minmax(0, 1fr) 64px;
   overflow: clip;
   position: relative;
   isolation: isolate;
@@ -48,7 +47,9 @@ button { cursor: pointer; }
   transition: filter 300ms var(--ease-in-out);
 }
 
-.app.is-idle:not(.is-speed-warning) { filter: brightness(.42); }
+.app { filter: brightness(var(--preview-brightness, 1)); }
+.app.is-idle:not(.is-speed-warning) { filter: brightness(calc(var(--preview-brightness, 1) * .35)); }
+.app.is-speed-warning { filter: brightness(1); }
 
 .status-bar {
   min-width: 0;
@@ -157,8 +158,8 @@ button { cursor: pointer; }
   height: 51px;
   position: absolute;
   z-index: 20;
-  top: 10px;
-  right: 12px;
+  top: -36px;
+  right: 10px;
   display: grid;
   place-content: center;
   justify-items: center;
@@ -250,7 +251,7 @@ button { cursor: pointer; }
 }
 
 .drive-panel.is-active {
-  grid-template-rows: 264px 34px 38px;
+  grid-template-rows: minmax(250px, 1fr) 32px 56px;
   gap: 8px;
 }
 
@@ -274,7 +275,7 @@ button { cursor: pointer; }
 
 .card-kicker {
   position: absolute;
-  inset: 9px 66px auto 10px;
+  inset: 9px 10px auto 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -356,7 +357,7 @@ button { cursor: pointer; }
   font-weight: 500;
 }
 
-.wheel-meter small { color: var(--color-muted); font-size: 6px; font-weight: 500; }
+.wheel-meter small { color: var(--color-muted); font-size: 9px; font-weight: 500; }
 
 .vehicle-plan {
   width: 122px;
@@ -417,8 +418,8 @@ button { cursor: pointer; }
   line-height: 1;
 }
 
-.vehicle-instant strong { color: var(--color-ink); font-size: 14px; font-weight: 500; line-height: 1; }
-.vehicle-instant small { color: var(--color-muted); font-size: 5px; padding-bottom: 1px; }
+.vehicle-instant strong { color: var(--color-ink); font-size: 18px; font-weight: 600; line-height: 1; }
+.vehicle-instant small { color: var(--color-muted); font-size: 9px; padding-bottom: 1px; }
 
 .rear-coupling {
   position: absolute;
@@ -452,7 +453,7 @@ button { cursor: pointer; }
 .compact-round-gauges {
   min-width: 0;
   display: grid;
-  grid-template-columns: 38px 38px minmax(0, 1fr);
+  grid-template-columns: 56px 56px minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -468,9 +469,9 @@ button { cursor: pointer; }
   font-family: var(--font-display);
 }
 
-.round-gauge span { color: var(--color-muted); font-size: 6px; letter-spacing: .07em; }
-.round-gauge strong { font-size: 12px; font-weight: 500; line-height: 1; }
-.round-gauge small { display: none; }
+.round-gauge span { color: var(--color-muted); font-size: 8px; letter-spacing: .04em; }
+.round-gauge strong { font-size: 17px; font-weight: 600; line-height: 1.1; }
+.round-gauge small { color: var(--color-muted); font-size: 8px; }
 
 .drive-mode-readout {
   display: flex;
@@ -484,14 +485,14 @@ button { cursor: pointer; }
 .mode-line { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; }
 .mode-line strong { font-family: var(--font-display); font-size: 14px; font-weight: 500; }
 .drive-aux-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 2px; }
-.drive-aux-metrics span { display: flex; align-items: baseline; gap: 2px; min-width: 0; }
-.drive-aux-metrics i { color: var(--color-muted); font-family: var(--font-display); font-size: 6px; font-style: normal; letter-spacing: .04em; }
-.drive-aux-metrics b { color: var(--color-ink-2); font-family: var(--font-display); font-size: 8px; font-weight: 500; white-space: nowrap; }
-.drive-aux-metrics small { color: var(--color-muted); font-size: 6px; }
+.drive-aux-metrics span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.drive-aux-metrics i { color: var(--color-muted); font-family: var(--font-display); font-size: 8px; font-style: normal; }
+.drive-aux-metrics b { color: var(--color-ink-2); font-family: var(--font-display); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.drive-aux-metrics small { color: var(--color-muted); font-size: 8px; }
 .mode-normal { color: var(--color-accent); }
 
 .audio-panel.is-active {
-  grid-template-rows: 76px 70px 190px;
+  grid-template-rows: 76px 70px minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -572,7 +573,7 @@ button { cursor: pointer; }
 
 .chart-metrics > div { display: flex; flex-direction: column; gap: 2px; }
 .chart-metrics > div:last-child { text-align: right; }
-.chart-metrics span { color: var(--color-muted); font-family: var(--font-display); font-size: 7px; letter-spacing: .09em; }
+.chart-metrics span { color: var(--color-muted); font-family: var(--font-display); font-size: 10px; letter-spacing: .09em; }
 .chart-metrics strong { color: var(--color-ink); font-family: var(--font-display); font-size: 12px; font-weight: 500; }
 
 .cabin-spectrum .spectrum-chart { height: 137px; margin-top: 27px; }
@@ -585,10 +586,9 @@ button { cursor: pointer; }
 
 .spectrum-axis { display: flex; justify-content: space-between; color: var(--color-muted); font-family: var(--font-display); font-size: 7px; }
 
-.fft-panel.is-active { display: block; }
-.spectrum-card--full { height: 352px; padding-top: 50px; }
-.spectrum-card--full .chart-metrics > div:last-child { margin-right: 52px; }
-.spectrum-card--full .spectrum-chart { height: 263px; }
+.fft-panel.is-active { grid-template-rows: minmax(0, 1fr) 52px; gap: 8px; }
+.spectrum-card--full { height: 100%; padding-top: 48px; }
+.spectrum-card--full .spectrum-chart { height: calc(100% - 15px); }
 
 .fft-live {
   position: absolute;
@@ -616,7 +616,7 @@ button { cursor: pointer; }
   background: var(--color-rule-2);
 }
 
-.sport-head { display: flex; justify-content: space-between; align-items: center; padding-right: 54px; }
+.sport-head { display: flex; justify-content: space-between; align-items: center; }
 .sport-head b { color: var(--color-mode-sport); font-size: 10px; font-weight: 600; }
 
 .mode-field {
@@ -634,7 +634,7 @@ button { cursor: pointer; }
 .mode-field strong {
   color: var(--color-mode-sport);
   font-family: var(--font-display);
-  font-size: 62px;
+  font-size: 52px;
   font-weight: 500;
   letter-spacing: -.06em;
   line-height: 1;
@@ -696,11 +696,11 @@ button { cursor: pointer; }
 .rtc-status { display: flex; justify-content: space-between; align-items: center; height: 27px; padding: 0 4px; color: var(--color-muted); font-size: 9px; }
 .rtc-status strong { color: var(--color-ink-2); font-family: var(--font-display); font-size: 9px; font-weight: 500; }
 
-.display-settings .group-heading { padding-right: 54px; }
+.display-settings .group-heading { padding-right: 2px; }
 .brightness-value { color: var(--color-accent); font-family: var(--font-display); font-size: 12px; }
 
 .slider-row {
-  height: 68px;
+  height: 80px;
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 8px;
@@ -711,7 +711,7 @@ button { cursor: pointer; }
 
 .brightness-slider {
   width: 100%;
-  height: 28px;
+  height: 44px;
   margin: 0;
   accent-color: var(--color-accent);
 }
@@ -728,7 +728,7 @@ button { cursor: pointer; }
 
 .setting-option strong { color: var(--color-ink-2); font-size: 12px; font-weight: 600; }
 .setting-option button,
-.setting-option select { min-width: 92px; min-height: 42px; }
+.setting-option select { min-width: 92px; min-height: 44px; }
 
 .setting-option button { padding: 0 12px; }
 
@@ -783,4 +783,55 @@ input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2p
 @media (max-height: 479px) {
   body { place-items: start center; }
   .app { transform-origin: top center; }
+}
+
+/* 숫자는 읽기 쉽게, 조작은 44 px 이상. 사진 같은 효과보다 순정 계기판 위계를 유지한다. */
+.brand small { font-size: 8px; color: var(--color-muted); letter-spacing: .03em; }
+.persistent-speed span, .link-summary { font-size: 10px; }
+.speed-limit-overlay:not([hidden]) ~ .screen-panel { --limit-visible: 1; }
+.speed-limit-overlay { width: 32px; height: 32px; border-width: 3px; }
+.speed-limit-overlay strong { font-size: 17px; }
+.speed-limit-overlay span { display: none; }
+.app.has-limit .link-summary { visibility: hidden; }
+.app.is-speed-warning .speed-limit-overlay span { display: block; }
+.wheel-meter strong { font-size: 12px; }
+.wheel-meter em { font-size: 10px; }
+.wheel-meter em, .rear-coupling { display: none; }
+.vehicle-plan { top: 0; }
+.vehicle-plan .vehicle-roof { stroke: var(--color-rule); stroke-width: 1.2; }
+.vehicle-instant { width: 56px; height: 48px; grid-template-columns: 1fr; grid-template-rows: 10px 1fr 10px; text-align: center; padding: 3px; }
+.vehicle-instant span { grid-column: 1; font-size: 9px; }
+.vehicle-instant small { line-height: 1; }
+.mode-line .micro-label { display: none; }
+.mode-line { justify-content: flex-start; }
+.drive-mode-readout { padding-inline: 7px; }
+.mode-sport { color: var(--color-mode-sport); }
+.mode-eco { color: var(--color-mode-eco); }
+.fft-live { top: 45px; font-size: 9px; }
+.spectrum-axis { font-size: 9px; }
+.spectrum-axis { position: relative; }
+.spectrum-axis span:nth-child(2) { position: absolute; left: 59%; transform: translateX(-50%); }
+.fft-telemetry { display: grid; grid-template-columns: 1fr 1fr; border-block: 1px solid var(--color-rule); }
+.fft-telemetry > div { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 8px; }
+.fft-telemetry > div + div { border-left: 1px solid var(--color-rule); }
+.fft-telemetry span { color: var(--color-muted); font-size: 9px; }
+.fft-telemetry small { display: block; font-size: 9px; }
+.fft-telemetry strong { font-size: 23px; font-weight: 600; }
+.time-picker select { min-height: 44px; }
+.date-picker { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 6px; margin-block: 4px; }
+.date-picker select { min-width: 0; height: 44px; border: 1px solid var(--color-rule); border-radius: 7px; color: var(--color-ink); background: var(--color-paper-3); padding-inline: 6px; }
+.settings-lock { margin: 0 0 8px; padding: 8px; color: var(--color-warning); text-align: center; font-size: 12px; }
+.setting-option > span { font-size: 10px; color: var(--color-muted); }
+.time-settings .setting-option button { min-width: 64px; }
+.setting-option button { min-height: 44px; }
+button:disabled, select:disabled, input:disabled { cursor: not-allowed; opacity: .5; }
+.nav-button { font-size: 11px; }
+.feedback { position: absolute; z-index: 25; bottom: 72px; left: 20px; right: 20px; padding: 12px; border: 1px solid var(--color-accent-line); border-radius: 8px; background: var(--color-paper-3); color: var(--color-ink); text-align: center; pointer-events: none; font-size: 12px; }
+[data-quality="unavailable"] { color: var(--color-muted) !important; }
+.wheel-meter[data-quality="unavailable"] { --wheel-drive: 0% !important; }
+.spectrum-card[data-quality="unavailable"] .spectrum-bars, .spectrum-card[data-quality="unavailable"] .peak-marker { visibility: hidden; }
+.is-touch-screen .headlamp-warning-overlay { opacity: .62; }
+@media (max-height: 479px) {
+  .screen-panel { overflow-y: auto; }
+  .drive-panel.is-active { grid-template-rows: 250px 32px 56px; }
 }

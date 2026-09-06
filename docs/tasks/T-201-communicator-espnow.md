@@ -62,3 +62,9 @@ python tests/hil/run_espnow_faults.py --roles primary,readonly,bridge --seed 1
 ## evidence
 
 각 role의 capability snapshot, packet loss 결과, queue high-water, NVS power-loss key rotation 결과를 G2 bundle에 넣는다. 실제 secret은 artifact에서 redaction한다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 Communicator의 ESP-NOW provisioning/session/QoS component, device-local crypto adapter와 이 문서의 `tests/security/`·RF fault fixture다. DBC decode·STM control_tag 생성은 범위 밖이다.
+- pair 추가/rotation/delete와 callback-pool 소유권, 재부팅/탈퇴 후 timer·queue 정리를 기록한다. 실패한 pair만 격리하되 다른 peer의 P0/P1 예약을 보존한다.

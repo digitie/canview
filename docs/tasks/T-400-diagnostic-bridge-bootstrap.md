@@ -12,7 +12,7 @@
 
 ## 고정 target
 
-- ESP-IDF 5.5.2, 8 MB Flash, 2 MB PSRAM
+- ESP-IDF 6.0.3, 8 MB Flash, 2 MB PSRAM
 - `WIFI_MODE_APSTA`; STA는 ESP-NOW, AP는 휴대폰 한 대
 - external infrastructure AP credential와 NAPT 없음
 - ESP-NOW와 SoftAP는 같은 고정 KR channel
@@ -23,7 +23,7 @@
 
 - top-level IDF project, partitions, encrypted NVS
 - Bridge role provisioning과 encrypted peer 두 개까지
-- SoftAP/DNS landing, session cookie/CSRF, request limits
+- SoftAP/DNS landing, §14.2의 memory-only bearer token·REST Authorization/WS subprotocol, CSRF/Origin 검사와 request limits
 - HTTP/WS shell과 static asset embedding
 - service button/LED state machine
 - fixed pools, watchdog, heap/queue counters
@@ -42,17 +42,29 @@
 - [ ] 이동·active control lease·P0/P1 deadline miss에서 upload/download throughput이 0이고 status UI만 bounded 유지된다.
 - [ ] authenticated HTTP/ESP-NOW flood에서도 Primary heartbeat/control ACK deadline과 fixed pool이 보존된다.
 
+## 계획 보완 수용 기준
+
+- [ ] [OTA §4·6](../architecture/ota.md)의 Bridge layout/복구 버튼을 T-204와 공유한다. 최소 R1은 SD 없음이며 긴 capture를 SD 탑재로 가정하지 않는다.
+- [ ] firmware task/queue의 owner·주기·stack·WCET·callback 수명·종료·재접속을 해당 README에 기록한다. 긴 버튼 동작의 현행 commissioning/OTA 구분은 구현 전 정본과 교차 확인한다.
+
 ## 검증
 
-```bash
-cd firmware/diagnostic-bridge
+```powershell
+# T-400에서 firmware/diagnostic-bridge project를 추가한 뒤 실행한다.
+Push-Location firmware/diagnostic-bridge
 idf.py set-target esp32s3
 idf.py build
 idf.py size-components
-python ../../tests/security/bridge_http.py
-python ../../tests/ui/bridge_offline_browser.py
+Pop-Location
+py -3 tests/security/bridge_http.py
+py -3 tests/ui/bridge_offline_browser.py
 ```
 
 ## 보안 경계
 
 local HTTP 사용을 이유로 vehicle command를 추가하지 않는다. PIN, password, pair root/LMK와 raw vehicle identifiers는 log나 screenshot artifact에서 redaction한다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 `firmware/diagnostic-bridge/` project·role/session/SoftAP shell과 security/browser scripts다. capture/Signal Lab/API 전체·control lease·raw replay는 범위 밖이다.
+- 세션 만료·button 취소·role fault에서 worker 자원을 해제하고 재인증 상태로 남는다. 인증 transport 변경은 정본을 먼저 갱신한다.

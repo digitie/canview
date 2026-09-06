@@ -2,7 +2,7 @@
 
 - 상태: accepted
 - 날짜: 2026-09-04
-- 근거 문서: implementation-readiness.md, adversarial-design-review.md
+- 근거 문서: `docs/architecture/implementation-readiness.md`, `docs/reviews/adversarial/2026-09-04-baseline-design.md`
 
 ## 컨텍스트
 

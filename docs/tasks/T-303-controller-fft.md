@@ -39,6 +39,11 @@
 - [ ] external microphone 미연결 상태에서 onboard path가 정상이고 같은 GPIO 병렬 연결을 요구하지 않는다.
 - [ ] 250 ms를 넘긴 feature가 valid automation evidence로 전달되지 않고 scheduler gap에서 dwell이 초기화된다.
 
+## 계획 보완 수용 기준
+
+- [ ] source별 실제 sample rate/slot/word 정렬·FFT window·calibration generation을 API에 보존한다. 원격 T5848은 T-100b의 32 kHz/64fs이며 온보드 16 kHz 설정을 그대로 적용하지 않는다.
+- [ ] PCM/DMA view 수명·버퍼 반환·FFT 종료/재시작·source 교체를 명시하고 원음 저장 없이 합성 입력으로 경계를 검증한다.
+
 ## 검증
 
 ```bash
@@ -50,3 +55,8 @@ python tests/hil/controller_audio_soak.py --hours 8
 ## evidence
 
 입력 WAV digest, expected/actual spectrum, CPU/heap/DMA drop, calibration 상태를 저장한다. 저작권 있는 음악 원본은 repo에 넣지 않는다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 Controller I2S adapter·DSP component와 FFT/HIL calibration scripts다. 원격 32kHz 물리 SI(T-100b)·vehicle volume TX release(T-504)는 범위 밖이다.
+- drop/clipping/calibration 소실·source 교체 시 FFT invalid와 volume-up 차단을 검증한다. 원음 대신 합성 spectrum·sample count·latency/heap evidence를 남긴다.

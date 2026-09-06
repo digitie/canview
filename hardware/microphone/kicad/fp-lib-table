@@ -1,0 +1,1 @@
+(fp_lib_table (version 7) (lib (name "CANView") (type "KiCad") (uri "${KIPRJMOD}/../../libraries/CANView.pretty") (options "") (descr "Vendored KiCad 10 footprints and reviewed custom patterns")))

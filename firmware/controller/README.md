@@ -1,13 +1,14 @@
 # Controller firmware
 
-Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF project가 들어갈 위치다.
+Waveshare `ESP32-S3-Touch-LCD-3.5`용 ESP-IDF application이다. 현재는 IDF build와 public protocol/component 경계를 검증하는 안전한 bootstrap 단계다.
 
-- 기준 ESP-IDF: `v5.5.2`
+- 기준 ESP-IDF: `v6.0.3` (`esp32s3`)
+- Flash/PSRAM: 16 MB / 8 MB Octal PSRAM
 - UI: [`../../ui/lvgl/`](../../ui/lvgl/)
-- hardware/pinmap: [`../../docs/hardware-and-development.md`](../../docs/hardware-and-development.md)
-- 개발환경: [`../../docs/development-environments.md`](../../docs/development-environments.md)
-- ESP-NOW: [`../../docs/esp-now-protocol.md`](../../docs/esp-now-protocol.md)
-- CAN 수신·DBC 파이프라인: [`../../docs/controller-can-pipeline.md`](../../docs/controller-can-pipeline.md)
+- hardware/pinmap: [Controller hardware](../../docs/hardware/controller.md)
+- 개발환경: [장치별 toolchain](../../docs/development/toolchains.md)
+- ESP-NOW: [ESP-NOW protocol](../../docs/architecture/protocols/esp-now.md)
+- CAN 수신·DBC 파이프라인: [Controller CAN pipeline](../../docs/architecture/controller-can-pipeline.md)
 
 Controller 펌웨어가 Controller 로컬 CAN 수신 필터와 DBC signal catalog/decoder를 소유한다. Communicator는 raw CAN record만 보내므로 새 signal이나 차량 profile은 필요할 때 Controller catalog와 allow-list만 바꿔 추가할 수 있으며 Communicator firmware는 바꾸지 않는다.
 
@@ -22,6 +23,19 @@ Primary Controller는 read-only 장치가 아니며, 활성 차량 profile에서
 - `표준/보통/자연스럽게` preset은 160–1,250 Hz, +5.0/+2.5 dB 문턱, 5초/12초 dwell로 매핑한다.
 - 실제 LEDC write와 ESP-NOW command enqueue는 component 호출자가 담당한다.
 
-통합 수치와 실패 처리는 [`../../docs/automation-control.md`](../../docs/automation-control.md)를 따른다.
+통합 수치와 실패 처리는 [자동 제어 로직](../../docs/architecture/automation.md)을 따른다.
 
-Waveshare BSP와 실제 보드 bring-up 설정을 고정하기 전에는 placeholder project를 양산 firmware로 사용하지 않는다.
+## Windows build
+
+저장소 루트에서 ESP-IDF와 공통 toolchain을 먼저 준비한다.
+
+```powershell
+. .\tools\environment\setup-windows.ps1
+idf.py -C firmware/controller set-target esp32s3
+idf.py -C firmware/controller build
+idf.py -C firmware/controller size-components
+```
+
+`set-target`이 생성하는 `sdkconfig`와 `build/`는 로컬 산출물이며 Git에 커밋하지 않는다. `sdkconfig.defaults`와 `partitions.csv`가 이 프로젝트의 기본 target 설정이며 NVS encryption key partition도 예약한다. 현재 bootstrap은 단일 factory image다. OTA A/B는 실제 UI image 크기와 secure provisioning을 측정한 뒤 별도 partition 설계로 추가한다.
+
+현재 `app_main()`은 protocol v1.3 통합 전용 대기 상태를 log한다. 현재 저장된 v1.2 incomplete header는 application dependency로 연결하지 않는다. Waveshare BSP, LVGL task, RTC/audio, UART/ESP-NOW transport와 실제 보드 bring-up은 후속 task에서 추가하며 그 전에는 양산 firmware로 사용하지 않는다.

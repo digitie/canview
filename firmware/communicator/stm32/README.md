@@ -4,29 +4,35 @@
 
 ## dependency
 
-STM32CubeG4 `v1.6.3`을 repository 밖에 clone한다.
+STM32CubeG4 `v1.6.3`을 repository 밖에 clone한다. 전체 버전과 commit은 [`tools/toolchain-versions.json`](../../../tools/toolchain-versions.json)에 고정되어 있다.
 
-```bash
-git clone --recursive --depth 1 --branch v1.6.3 \
-  https://github.com/STMicroelectronics/STM32CubeG4.git /opt/STM32CubeG4
-export STM32CUBE_G4_ROOT=/opt/STM32CubeG4
+```powershell
+. .\tools\environment\setup-windows.ps1
+Push-Location firmware/communicator/stm32
+cmake --preset debug
+cmake --build --preset debug
+Pop-Location
 ```
 
-GNU Arm Embedded compiler, CMake 3.22+, Ninja가 `PATH`에 있어야 한다. STM32CubeCLT를 사용해도 된다.
+Arm GNU Toolchain `15.3.Rel1` (`arm-none-eabi-gcc` 15.3.x), CMake `4.4.3`, Ninja `1.13.2`가 필요하다. `ARM_GNU_TOOLCHAIN_ROOT`를 설정하면 toolchain file이 해당 `bin`을 먼저 검색한다.
 
 ## build
 
-```bash
+```powershell
+Push-Location firmware/communicator/stm32
 cmake --preset debug
 cmake --build --preset debug
 arm-none-eabi-size build/debug/canview-communicator-stm32.elf
+Pop-Location
 ```
 
 release build는 다음과 같다.
 
-```bash
+```powershell
+Push-Location firmware/communicator/stm32
 cmake --preset release
 cmake --build --preset release
+Pop-Location
 ```
 
 `build/<preset>/`에 ELF, HEX, BIN, MAP이 생성된다.
@@ -44,7 +50,7 @@ cmake --build --preset release
 
 상세 설계는 다음 문서를 따른다.
 
-- [`../../../docs/communicator-hardware.md`](../../../docs/communicator-hardware.md)
-- [`../../../docs/communicator-uart-protocol.md`](../../../docs/communicator-uart-protocol.md)
-- [`../../../docs/automation-control.md`](../../../docs/automation-control.md)
-- [`../../../docs/development-environments.md`](../../../docs/development-environments.md)
+- [Communicator hardware](../../../docs/hardware/communicator.md)
+- [Communicator UART protocol](../../../docs/architecture/protocols/communicator-uart.md)
+- [자동 제어 로직](../../../docs/architecture/automation.md)
+- [장치별 toolchain](../../../docs/development/toolchains.md)

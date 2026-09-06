@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P0`
 - Gate: `G3/G4`
-- 선행: `T-006`, `T-104`
+- 선행: `T-006`, `T-103`, `T-104`
 - 병렬 가능: Controller read-only pipeline
 
 ## 목표
@@ -50,3 +50,9 @@ ctest --preset host-sanitize -R 'safety-profile|state-revision' --output-on-fail
 ## evidence
 
 각 inhibit reason의 golden vector와 profile report를 저장한다. 실차 capture가 없으면 runtime framework까지 merge할 수 있지만 Tucson command enable은 별도 blocked 상태로 남긴다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 STM generated profile adapter·safety store·snapshot serializer와 `tests/profile/` safety/state fixture다. 범용 DBC runtime·vehicle TX와 실제 source evidence 승격은 범위 밖이다.
+- T-006의 합성 dev fixture로 framework를 검증하는 것과 실제 Tucson source approval을 구분한다. evidence 부재에도 framework 개발은 가능하되 실제 profile enable은 차단한다.

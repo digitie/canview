@@ -1,0 +1,10 @@
+hardware/**/*.kicad_sch text eol=lf
+hardware/**/*.kicad_pro text eol=lf
+hardware/**/*.kicad_mod text eol=lf
+hardware/**/*.kicad_sym text eol=lf
+hardware/**/*.json text eol=lf
+hardware/**/*.xml text eol=lf
+hardware/**/*.net text eol=lf
+hardware/**/*.csv text eol=lf
+hardware/**/*.pdf binary
+hardware/**/*.png binary

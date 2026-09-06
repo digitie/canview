@@ -1,0 +1,1 @@
+(sym_lib_table (version 7) (lib (name "CANView") (type "KiCad") (uri "${KIPRJMOD}/../../libraries/CANView.kicad_sym") (options "") (descr "CANView pin-verified functional symbols")))

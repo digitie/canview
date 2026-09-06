@@ -1,0 +1,1555 @@
+{
+  "revision": "R1-review",
+  "board": "bridge",
+  "sheets": {
+    "01_usb_c": "USB-C sink: requires CC advertisement >=1.5A. Default-current ports DO NOT power the board. No USB PD/high-voltage request.",
+    "01a_usb_cc_supply": "Pre-limiter USB-only3.3V powers CC detector and its inverter. TUSB320LAI VDD maximum5.0V: NEVER connect it directly to USB VBUS. No SYS rail dependency.",
+    "01b_usb_limit": "USB load current limit about1A, below the minimum1.5A CC advertisement. Input<=6.5V; no PD sink negotiation.",
+    "02_system_power": "Bridge USB-only3.3V buck. No CAN transceiver or vehicle-control output on this board.",
+    "03_reset": "MCU supervisor3.08V with130..270ms release. Communicator also has an independent PHY-domain supervisor.",
+    "02_esp32": "ESP32-S3-WROOM-1. Keep antenna clearance. USB native serial/JTAG. PSRAM pins reserved.",
+    "03_service": "BOOT GPIO0 selects ROM download, not recovery app. Independent reset outputs on Communicator. Bridge PAIR GPIO4 held at reset selects signed recovery."
+  },
+  "components": [
+    {
+      "sheet": "01_usb_c",
+      "ref": "J1",
+      "value": "USB4105-GF-A",
+      "footprint": "CANView:Connector_USB__USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+      "original_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+      "pins": {
+        "A1": [
+          "A1",
+          "power_out",
+          "GND"
+        ],
+        "A4": [
+          "A4",
+          "power_out",
+          "USB_VBUS"
+        ],
+        "A5": [
+          "A5",
+          "passive",
+          "CC1"
+        ],
+        "A6": [
+          "A6",
+          "passive",
+          "USB_DP_CONN"
+        ],
+        "A7": [
+          "A7",
+          "passive",
+          "USB_DM_CONN"
+        ],
+        "A8": [
+          "A8",
+          "passive",
+          null
+        ],
+        "A9": [
+          "A9",
+          "passive",
+          "USB_VBUS"
+        ],
+        "A12": [
+          "A12",
+          "passive",
+          "GND"
+        ],
+        "B1": [
+          "B1",
+          "passive",
+          "GND"
+        ],
+        "B4": [
+          "B4",
+          "passive",
+          "USB_VBUS"
+        ],
+        "B5": [
+          "B5",
+          "passive",
+          "CC2"
+        ],
+        "B6": [
+          "B6",
+          "passive",
+          "USB_DP_CONN"
+        ],
+        "B7": [
+          "B7",
+          "passive",
+          "USB_DM_CONN"
+        ],
+        "B8": [
+          "B8",
+          "passive",
+          null
+        ],
+        "B9": [
+          "B9",
+          "passive",
+          "USB_VBUS"
+        ],
+        "B12": [
+          "B12",
+          "passive",
+          "GND"
+        ],
+        "SH": [
+          "SH",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "USB4105-GF-A",
+      "spec": "16contactUSB2 receptacle; shield bonded at entry; 5V only; C-to-C >=1.5A source required",
+      "source": "gct-usb4105: mechanical drawing, contact assignments",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_J1"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "C1",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_VBUS"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "Keep total pre-switch VBUS capacitance below10uF",
+      "libname": "CANView_bridge_C1"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "D1",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "USB_DP_CONN"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "USB_DM_CONN"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_D1"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "D2",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "CC1"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "CC2"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_D2"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "U1",
+      "value": "TUSB320LAIRWBR",
+      "footprint": "CANView:Package_DFN_QFN__Texas_X2QFN-12_1.6x1.6mm_P0.4mm",
+      "original_footprint": "Package_DFN_QFN:Texas_X2QFN-12_1.6x1.6mm_P0.4mm",
+      "pins": {
+        "1": [
+          "CC1",
+          "bidirectional",
+          "CC1"
+        ],
+        "2": [
+          "CC2",
+          "bidirectional",
+          "CC2"
+        ],
+        "3": [
+          "PORT",
+          "input",
+          "GND"
+        ],
+        "4": [
+          "VBUS_DET",
+          "input",
+          "VBUS_DET"
+        ],
+        "5": [
+          "ADDR",
+          "input",
+          null
+        ],
+        "6": [
+          "OUT3",
+          "open_collector",
+          null
+        ],
+        "7": [
+          "OUT1",
+          "open_collector",
+          "USB_DEFAULT_N"
+        ],
+        "8": [
+          "OUT2",
+          "open_collector",
+          null
+        ],
+        "9": [
+          "ID",
+          "open_collector",
+          null
+        ],
+        "10": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "11": [
+          "EN_N",
+          "input",
+          "GND"
+        ],
+        "12": [
+          "VDD",
+          "power_in",
+          "USB_CC3V3"
+        ]
+      },
+      "mpn": "TUSB320LAIRWBR",
+      "spec": "PORT=GND UFP; ADDR NC GPIO mode; internal Rd, NO external5.1k; OUT1 low only attached1.5/3A",
+      "source": "tusb320lai:pp3,12 Table3,23 application,36 land",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U1"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "R1",
+      "value": "900k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_VBUS"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "VBUS_DET"
+        ]
+      },
+      "mpn": "GEN-R-0402-900k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R1"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "R2",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "USB_DEFAULT_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R2"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "C2",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C2"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "U2",
+      "value": "SN74LVC1G04DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "A",
+          "input",
+          "USB_DEFAULT_N"
+        ],
+        "3": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "4": [
+          "Y",
+          "output",
+          "USB_POWER_ALLOWED"
+        ],
+        "5": [
+          "VCC",
+          "power_in",
+          "USB_CC3V3"
+        ]
+      },
+      "mpn": "SN74LVC1G04DBVR",
+      "spec": "USB-domain inverter, default/unattached => limiter disabled",
+      "source": "sn74lvc1g04",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U2"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "C3",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C3"
+    },
+    {
+      "sheet": "01_usb_c",
+      "ref": "R3",
+      "value": "100k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_POWER_ALLOWED"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-100k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R3"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "U16",
+      "value": "TPS7A2033PDBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "IN",
+          "power_in",
+          "USB_VBUS"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "USB_VBUS"
+        ],
+        "4": [
+          "NC",
+          "passive",
+          null
+        ],
+        "5": [
+          "OUT",
+          "power_out",
+          "USB_CC3V3"
+        ]
+      },
+      "mpn": "TPS7A2033PDBVR",
+      "spec": "300mA LDO; fixed 3.3V; 1uF effective output minimum",
+      "source": "tps7a20: p4 DBV pins, input/output capacitor requirements",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U16"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "C4",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_VBUS"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C4"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "C5",
+      "value": "2.2u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-2.2u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C5"
+    },
+    {
+      "sheet": "01a_usb_cc_supply",
+      "ref": "R4",
+      "value": "3k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_CC3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-3k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": ">=1mA minimum load for LDO specified output accuracy; include in pre-attach/suspend current budget",
+      "libname": "CANView_bridge_R4"
+    },
+    {
+      "sheet": "01b_usb_limit",
+      "ref": "U3",
+      "value": "TPS2553QDBVRQ1",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-6",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-6",
+      "pins": {
+        "1": [
+          "IN",
+          "power_in",
+          "USB_VBUS"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "USB_POWER_ALLOWED"
+        ],
+        "4": [
+          "FAULT_N",
+          "open_collector",
+          "USB_FAULT_N"
+        ],
+        "5": [
+          "ILIM",
+          "passive",
+          "USB_ILIM"
+        ],
+        "6": [
+          "OUT",
+          "power_out",
+          "USB_LIMITED"
+        ]
+      },
+      "mpn": "TPS2553QDBVRQ1",
+      "spec": "2.5..6.5V; programmable current limit; thermal shutdown; finite trip response",
+      "source": "tps2553:pp3,13",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U3"
+    },
+    {
+      "sheet": "01b_usb_limit",
+      "ref": "R5",
+      "value": "26.7k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_ILIM"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-26.7k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R5"
+    },
+    {
+      "sheet": "01b_usb_limit",
+      "ref": "R6",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_VBUS"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "USB_FAULT_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R6"
+    },
+    {
+      "sheet": "01b_usb_limit",
+      "ref": "C6",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_VBUS"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C6"
+    },
+    {
+      "sheet": "01b_usb_limit",
+      "ref": "C7",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_LIMITED"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C7"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "R7",
+      "value": "0",
+      "footprint": "CANView:Resistor_SMD__R_0805_2012Metric",
+      "original_footprint": "Resistor_SMD:R_0805_2012Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_LIMITED"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "SYS5V"
+        ]
+      },
+      "mpn": "GEN-R-0805-0-1%",
+      "spec": "0.25W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "Current>=1A zero-ohm jumper",
+      "libname": "CANView_bridge_R7"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "#FLG1",
+      "value": "PWR_FLAG",
+      "footprint": "",
+      "original_footprint": "",
+      "pins": {
+        "1": [
+          "pwr",
+          "power_out",
+          "SYS5V"
+        ]
+      },
+      "mpn": "PWR_FLAG",
+      "spec": "ERC source declaration, NOT a physical component",
+      "source": "USB limiter through0ohm link",
+      "dnp": false,
+      "note": "External source or regulator output after a passive filter",
+      "libname": "CANView_bridge_#FLG1"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "U5",
+      "value": "TPS629210DRLR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-583-8",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-583-8",
+      "pins": {
+        "1": [
+          "FB_VSET",
+          "passive",
+          "VSET_3V3"
+        ],
+        "2": [
+          "PG",
+          "open_collector",
+          null
+        ],
+        "3": [
+          "VOS",
+          "input",
+          "3V3"
+        ],
+        "4": [
+          "SW",
+          "output",
+          "SYS_SW"
+        ],
+        "5": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "6": [
+          "VIN",
+          "power_in",
+          "SYS5V"
+        ],
+        "7": [
+          "EN",
+          "input",
+          "SYS5V"
+        ],
+        "8": [
+          "MODE",
+          "passive",
+          "SYS_MODE"
+        ]
+      },
+      "mpn": "TPS629210DRLR",
+      "spec": "1A buck; VSET249k=3.3V; MODE27.4k=autoPFM/PWM and output discharge",
+      "source": "tps629210:pp3,11-13,20-22",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U5"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "R8",
+      "value": "249k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "VSET_3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-249k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R8"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "R9",
+      "value": "27.4k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SYS_MODE"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-R-0402-27.4k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R9"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "L1",
+      "value": "2.2uH",
+      "footprint": "CANView:Murata_DFE252012PD",
+      "original_footprint": "CANView:Murata_DFE252012PD",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SYS_SW"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "3V3"
+        ]
+      },
+      "mpn": "DFE252012PD-2R2M=P2",
+      "spec": "2.2uH±20%;2.5x2.0x1.2mm;Isat2.8A/Itemp2.2A;DCR84mohm;20VDC;-40..125C",
+      "source": "murata-dfe252012:p1; tps629210 p22",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_L1"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "C8",
+      "value": "4.7u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SYS5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-4.7u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C8"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "C9",
+      "value": "22u",
+      "footprint": "CANView:Capacitor_SMD__C_0805_2012Metric",
+      "original_footprint": "Capacitor_SMD:C_0805_2012Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0805-22u-10V-X7R",
+      "spec": "10V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "Verify effective capacitance with ALL downstream bypass; no extra100uF bulk without stability analysis",
+      "libname": "CANView_bridge_C9"
+    },
+    {
+      "sheet": "02_system_power",
+      "ref": "#FLG2",
+      "value": "PWR_FLAG",
+      "footprint": "",
+      "original_footprint": "",
+      "pins": {
+        "1": [
+          "pwr",
+          "power_out",
+          "3V3"
+        ]
+      },
+      "mpn": "PWR_FLAG",
+      "spec": "ERC source declaration, NOT a physical component",
+      "source": "TPS629210 SW through output inductor",
+      "dnp": false,
+      "note": "External source or regulator output after a passive filter",
+      "libname": "CANView_bridge_#FLG2"
+    },
+    {
+      "sheet": "03_reset",
+      "ref": "U6",
+      "value": "TLV803EA30DPWR",
+      "footprint": "CANView:Package_SON__Texas_X2SON-5_0.8x0.8mm_P0.48mm",
+      "original_footprint": "Package_SON:Texas_X2SON-5_0.8x0.8mm_P0.48mm",
+      "pins": {
+        "1": [
+          "RESET_N",
+          "open_collector",
+          "SYS_RESET_N"
+        ],
+        "2": [
+          "MR_N",
+          "input",
+          "3V3"
+        ],
+        "3": [
+          "PAD",
+          "passive",
+          "GND"
+        ],
+        "4": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "5": [
+          "VDD",
+          "power_in",
+          "3V3"
+        ]
+      },
+      "mpn": "TLV803EA30DPWR",
+      "spec": "3.08V threshold;130..270ms release delay; active-low open-drain",
+      "source": "tlv803e:pp4-5,9; DPW pin3 PAD may be grounded",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U6"
+    },
+    {
+      "sheet": "03_reset",
+      "ref": "R10",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "SYS_RESET_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R10"
+    },
+    {
+      "sheet": "03_reset",
+      "ref": "C10",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C10"
+    },
+    {
+      "sheet": "03_reset",
+      "ref": "SW1",
+      "value": "RESET",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "SYS_RESET_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Momentary normally-open; Communicator drives both supervisor MR inputs, never joins reset outputs",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_SW1"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "U11",
+      "value": "ESP32-S3-WROOM-1-N8R2",
+      "footprint": "CANView:RF_Module__ESP32-S3-WROOM-1",
+      "original_footprint": "RF_Module:ESP32-S3-WROOM-1",
+      "pins": {
+        "1": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "2": [
+          "3V3",
+          "power_in",
+          "3V3"
+        ],
+        "3": [
+          "EN",
+          "input",
+          "SYS_RESET_N"
+        ],
+        "4": [
+          "IO4",
+          "bidirectional",
+          "PAIR_BUTTON_N"
+        ],
+        "5": [
+          "IO5",
+          "bidirectional",
+          "STATUS_LED"
+        ],
+        "6": [
+          "IO6",
+          "bidirectional",
+          null
+        ],
+        "7": [
+          "IO7",
+          "bidirectional",
+          null
+        ],
+        "8": [
+          "IO15",
+          "bidirectional",
+          null
+        ],
+        "9": [
+          "IO16",
+          "bidirectional",
+          null
+        ],
+        "10": [
+          "IO17",
+          "bidirectional",
+          null
+        ],
+        "11": [
+          "IO18",
+          "bidirectional",
+          null
+        ],
+        "12": [
+          "IO8",
+          "bidirectional",
+          null
+        ],
+        "13": [
+          "USB_D-",
+          "bidirectional",
+          "USB_DM"
+        ],
+        "14": [
+          "USB_D+",
+          "bidirectional",
+          "USB_DP"
+        ],
+        "15": [
+          "IO3",
+          "bidirectional",
+          null
+        ],
+        "16": [
+          "IO46",
+          "bidirectional",
+          null
+        ],
+        "17": [
+          "IO9",
+          "bidirectional",
+          null
+        ],
+        "18": [
+          "IO10",
+          "bidirectional",
+          null
+        ],
+        "19": [
+          "IO11",
+          "bidirectional",
+          null
+        ],
+        "20": [
+          "IO12",
+          "bidirectional",
+          null
+        ],
+        "21": [
+          "IO13",
+          "bidirectional",
+          null
+        ],
+        "22": [
+          "IO14",
+          "bidirectional",
+          null
+        ],
+        "23": [
+          "IO21",
+          "bidirectional",
+          null
+        ],
+        "24": [
+          "IO47",
+          "bidirectional",
+          null
+        ],
+        "25": [
+          "IO48",
+          "bidirectional",
+          null
+        ],
+        "26": [
+          "IO45",
+          "bidirectional",
+          null
+        ],
+        "27": [
+          "IO0",
+          "bidirectional",
+          "ESP_BOOT_N"
+        ],
+        "28": [
+          "IO35",
+          "bidirectional",
+          null
+        ],
+        "29": [
+          "IO36",
+          "bidirectional",
+          null
+        ],
+        "30": [
+          "IO37",
+          "bidirectional",
+          null
+        ],
+        "31": [
+          "IO38",
+          "bidirectional",
+          null
+        ],
+        "32": [
+          "IO39",
+          "bidirectional",
+          null
+        ],
+        "33": [
+          "IO40",
+          "bidirectional",
+          null
+        ],
+        "34": [
+          "IO41",
+          "bidirectional",
+          null
+        ],
+        "35": [
+          "IO42",
+          "bidirectional",
+          null
+        ],
+        "36": [
+          "RXD0",
+          "bidirectional",
+          null
+        ],
+        "37": [
+          "TXD0",
+          "bidirectional",
+          null
+        ],
+        "38": [
+          "IO2",
+          "bidirectional",
+          null
+        ],
+        "39": [
+          "IO1",
+          "bidirectional",
+          null
+        ],
+        "40": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "41": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "ESP32-S3-WROOM-1-N8R2",
+      "spec": "8MiB Quad flash + 2MiB Quad PSRAM; 3.0..3.6V; -40..85C",
+      "source": "esp32s3-wroom: ordering table, pin definitions, R8 reserved GPIO35/36/37; PSRAM ECC temperature note",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_U11"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "C11",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C11"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "C12",
+      "value": "10u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-10u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C12"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "C13",
+      "value": "10u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-10u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_C13"
+    },
+    {
+      "sheet": "02_esp32",
+      "ref": "R11",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "ESP_BOOT_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R11"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "SW2",
+      "value": "BOOT",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "ESP_BOOT_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Momentary normally open; logic signal only",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_SW2"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "R12",
+      "value": "22",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_DM_CONN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "USB_DM"
+        ]
+      },
+      "mpn": "GEN-R-0402-22-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R12"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "R13",
+      "value": "22",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "USB_DP_CONN"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "USB_DP"
+        ]
+      },
+      "mpn": "GEN-R-0402-22-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R13"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "R14",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "PAIR_BUTTON_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R14"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "SW3",
+      "value": "PAIR",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "PAIR_BUTTON_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Momentary normally open; hold >=3s commissioning",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_SW3"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "R15",
+      "value": "2.2k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "STATUS_LED"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "LED_A"
+        ]
+      },
+      "mpn": "GEN-R-0402-2.2k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_R15"
+    },
+    {
+      "sheet": "03_service",
+      "ref": "D3",
+      "value": "BLUE",
+      "footprint": "CANView:LED_SMD__LED_0603_1608Metric",
+      "original_footprint": "LED_SMD:LED_0603_1608Metric",
+      "pins": {
+        "1": [
+          "K",
+          "passive",
+          "GND"
+        ],
+        "2": [
+          "A",
+          "passive",
+          "LED_A"
+        ]
+      },
+      "mpn": "GEN-LED-0603-BLUE",
+      "spec": "Blue LED; pad1 cathode, pad2 anode; If<=1mA; Vf<=3.2V",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_bridge_D3"
+    }
+  ]
+}

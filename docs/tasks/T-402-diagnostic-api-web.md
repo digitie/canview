@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P1`
 - Gate: `G2/G3`
-- 선행: `T-401`
+- 선행: `T-401`, `T-304`, `T-305`
 - 병렬 가능: Controller UI after model contract
 
 ## 목표
@@ -44,6 +44,14 @@
 - [ ] MARK가 capture-control action과 marker endpoint 두 경로로 생성되지 않는다.
 - [ ] worst RSSI+raw 200 record/s+HTTP 64 kB/s+authenticated flood에서 P0/P1 deadline miss가 나면 bulk가 즉시 정지된다.
 
+## 계획 보완 수용 기준
+
+- [ ] API 문서에 있는 filter CRUD·capture stop·candidate/history·operation 취소와 실제 route/권한이 일치한다. 누락 DELETE/CLEAR/cancel의 method/path는 OpenAPI로 먼저 고정하고 구현되지 않은 버튼은 동작 성공으로 보이지 않는다.
+- [ ] WS는 boot/session/revision/sequence에 묶고 slow client·bounded buffer 포화·탭 변경·닫기·abort/reconnect 후 subscription과 listener를 해제한다. reconnect 때 snapshot 이전 delta가 적용되지 않는다.
+- [ ] candidate/import/name/label은 text로만 출력하고 XSS·과대 JSON·53 bit 초과 CAN 값·malformed 64-bit decoder 입력을 시험한다. 64-bit 값은 JSON 정밀도 손실 없는 표현을 schema에서 정한다.
+- [ ] auth 만료·PIN 실패·offline/empty/loading/error·불명 속도·moving lock·pending/timeout·effective quota·다운로드 실패를 360–430 px 양방향/키보드/확대에서 확인한다.
+- [ ] Bridge 없는 Controller 진단 웹 fallback은 선택 기능이다. 제공 시 §21의 lease 없음·50 record/s·10 Hz·resource 자동 중단을 별도 evidence로 검증하며 자체 OTA의 필수성으로 잘못 합치지 않는다.
+
 ## 검증
 
 ```bash
@@ -56,3 +64,8 @@ python tests/security/bridge_api_fuzz.py --seed 1
 ## evidence
 
 OpenAPI diff, browser screenshots, accessibility report, WS reconnect trace와 operation lifecycle trace를 남긴다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 `api/diagnostic-v1.openapi.yaml`, Bridge route/client·mobile assets와 API/browser tests다. 자체 OTA UI(T-306), vehicle command/raw replay는 범위 밖이다.
+- API/WS 실패 시 session/revision을 재조회하고 optimistic 성공 표시를 취소한다. 정적 prototype을 실제 backend 완료로 집계하지 않는다.

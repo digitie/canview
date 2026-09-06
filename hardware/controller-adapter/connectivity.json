@@ -1,0 +1,752 @@
+{
+  "revision": "R1-review",
+  "board": "controller-adapter",
+  "sheets": {
+    "01_waveshare_header": "Controller adapter ONLY: use onboard RTC0x51. Camera disabled/disconnected. GPIO38=BCLK,39=WS,40=I2S1 DIN.",
+    "02_i2s_differential": "32kHz / 64fs / 2.048MHz BCLK; two32-bit slots, 24-bit I2S words. Raw I2S is not routed down the long cable.",
+    "03_mic_cable": "Four twisted pairs; no RJ45 to avoid Ethernet/PoE misconnection. Power switch/current limit protects host header.",
+    "04_ota_recovery": "Camera must be disconnected. Header pin13 GPIO41 selects recovery; pin22 RESET resets host. GPIO38..40 microphone remains independent; onboard BOOT GPIO0 is ROM only."
+  },
+  "components": [
+    {
+      "sheet": "01_waveshare_header",
+      "ref": "J1",
+      "value": "Waveshare 2x16 mating male",
+      "footprint": "CANView:Connector_PinHeader_2.54mm__PinHeader_2x16_P2.54mm_Vertical",
+      "original_footprint": "Connector_PinHeader_2.54mm:PinHeader_2x16_P2.54mm_Vertical",
+      "pins": {
+        "1": [
+          "BAT_NC",
+          "passive",
+          null
+        ],
+        "2": [
+          "5V_IN",
+          "power_out",
+          "HOST5V"
+        ],
+        "3": [
+          "GND",
+          "power_out",
+          "GND"
+        ],
+        "4": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "5": [
+          "GPIO21_NC",
+          "passive",
+          null
+        ],
+        "6": [
+          "USB_DM_NC",
+          "passive",
+          null
+        ],
+        "7": [
+          "GPIO38",
+          "passive",
+          "MIC_BCLK"
+        ],
+        "8": [
+          "USB_DP_NC",
+          "passive",
+          null
+        ],
+        "9": [
+          "GPIO39",
+          "passive",
+          "MIC_WS"
+        ],
+        "10": [
+          "GPIO11_NC",
+          "passive",
+          null
+        ],
+        "11": [
+          "GPIO40",
+          "passive",
+          "MIC_SD"
+        ],
+        "12": [
+          "GPIO10_NC",
+          "passive",
+          null
+        ],
+        "13": [
+          "GPIO41",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ],
+        "14": [
+          "GPIO9_NC",
+          "passive",
+          null
+        ],
+        "15": [
+          "GPIO42_NC",
+          "passive",
+          null
+        ],
+        "16": [
+          "GPIO17_NC",
+          "passive",
+          null
+        ],
+        "17": [
+          "GPIO45_NC",
+          "passive",
+          null
+        ],
+        "18": [
+          "GPIO18_NC",
+          "passive",
+          null
+        ],
+        "19": [
+          "GPIO46_NC",
+          "passive",
+          null
+        ],
+        "20": [
+          "BOOT_NC",
+          "passive",
+          null
+        ],
+        "21": [
+          "GPIO47_NC",
+          "passive",
+          null
+        ],
+        "22": [
+          "RESET",
+          "passive",
+          "HOST_RESET_N"
+        ],
+        "23": [
+          "GPIO48_NC",
+          "passive",
+          null
+        ],
+        "24": [
+          "PWR_NC",
+          "passive",
+          null
+        ],
+        "25": [
+          "TXD43_NC",
+          "passive",
+          null
+        ],
+        "26": [
+          "SCL7_NC",
+          "passive",
+          null
+        ],
+        "27": [
+          "RXD44_NC",
+          "passive",
+          null
+        ],
+        "28": [
+          "SDA8_NC",
+          "passive",
+          null
+        ],
+        "29": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "30": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "31": [
+          "3V3_IN",
+          "power_out",
+          "3V3"
+        ],
+        "32": [
+          "3V3_IN",
+          "passive",
+          "3V3"
+        ]
+      },
+      "mpn": "GEN-2x16-MALE-2.54",
+      "spec": "Mates with board female socket;2.54mm pitch verified, insertion height/board-side orientation require mechanical check;5V only when host source provides it",
+      "source": "waveshare-controller schematic and official STEP HEADER-SMD-F-2_54-2X16PIN",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_J1"
+    },
+    {
+      "sheet": "01_waveshare_header",
+      "ref": "C1",
+      "value": "4.7u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HOST5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-4.7u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_C1"
+    },
+    {
+      "sheet": "01_waveshare_header",
+      "ref": "C2",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_C2"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "U1",
+      "value": "SN65LVDS1DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "Z_N",
+          "output",
+          "CLK_N"
+        ],
+        "4": [
+          "Y_P",
+          "output",
+          "CLK_P"
+        ],
+        "5": [
+          "D",
+          "input",
+          "MIC_BCLK"
+        ]
+      },
+      "mpn": "SN65LVDS1DBVR",
+      "spec": "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required",
+      "source": "sn65lvds1: pp3-4 DBV pin functions, timing tables",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_U1"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "C3",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_C3"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "U2",
+      "value": "SN65LVDS1DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "Z_N",
+          "output",
+          "WS_N"
+        ],
+        "4": [
+          "Y_P",
+          "output",
+          "WS_P"
+        ],
+        "5": [
+          "D",
+          "input",
+          "MIC_WS"
+        ]
+      },
+      "mpn": "SN65LVDS1DBVR",
+      "spec": "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required",
+      "source": "sn65lvds1: pp3-4 DBV pin functions, timing tables",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_U2"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "C4",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_C4"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "R1",
+      "value": "100",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "DATA_P"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "DATA_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-100-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "100ohm receiver-end differential termination; do not add at transmitter",
+      "libname": "CANView_controller-adapter_R1"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "U3",
+      "value": "SN65LVDS2DBVR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-23-5",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-23-5",
+      "pins": {
+        "1": [
+          "VCC",
+          "power_in",
+          "3V3"
+        ],
+        "2": [
+          "GND",
+          "power_in",
+          "GND"
+        ],
+        "3": [
+          "A_P",
+          "input",
+          "DATA_P"
+        ],
+        "4": [
+          "B_N",
+          "input",
+          "DATA_N"
+        ],
+        "5": [
+          "R",
+          "output",
+          "MIC_SD"
+        ]
+      },
+      "mpn": "SN65LVDS2DBVR",
+      "spec": "3.3V LVDS endpoint; 100ohm twisted pair; shared ground required",
+      "source": "sn65lvds1: pp3-4 DBV pin functions, timing tables",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_U3"
+    },
+    {
+      "sheet": "02_i2s_differential",
+      "ref": "C5",
+      "value": "100n",
+      "footprint": "CANView:Capacitor_SMD__C_0402_1005Metric",
+      "original_footprint": "Capacitor_SMD:C_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0402-100n-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_C5"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "J2",
+      "value": "REMOTE MIC / NOT ETHERNET",
+      "footprint": "CANView:Connector_JST__JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal",
+      "original_footprint": "Connector_JST:JST_GH_SM08B-GHS-TB_1x08-1MP_P1.25mm_Horizontal",
+      "pins": {
+        "1": [
+          "5V",
+          "passive",
+          "MIC5V"
+        ],
+        "2": [
+          "GND",
+          "passive",
+          "GND"
+        ],
+        "3": [
+          "BCLK_P",
+          "passive",
+          "CLK_P"
+        ],
+        "4": [
+          "BCLK_N",
+          "passive",
+          "CLK_N"
+        ],
+        "5": [
+          "WS_P",
+          "passive",
+          "WS_P"
+        ],
+        "6": [
+          "WS_N",
+          "passive",
+          "WS_N"
+        ],
+        "7": [
+          "DATA_P",
+          "passive",
+          "DATA_P"
+        ],
+        "8": [
+          "DATA_N",
+          "passive",
+          "DATA_N"
+        ],
+        "MP": [
+          "MECHANICAL_NC",
+          "passive",
+          null
+        ]
+      },
+      "mpn": "SM08B-GHS-TB(LF)(SN)",
+      "spec": "8-wire4twisted-pairs; keyed GH8 both ends;1:1 cable <=3m design target, SI qualification required",
+      "source": "jst-gh",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_J2"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "F1",
+      "value": "0.10A PTC",
+      "footprint": "CANView:Fuse__Fuse_0805_2012Metric",
+      "original_footprint": "Fuse:Fuse_0805_2012Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HOST5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "MIC5V"
+        ]
+      },
+      "mpn": "MF-PSMF010X-2",
+      "spec": "15V;Ihold0.1A@23C;Itrip0.3A;R1max7.5ohm;trip<=1.5s@0.5A; -40..85C; not a precision limiter",
+      "source": "bourns-psmf:pp1-3",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_F1"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "C6",
+      "value": "1u",
+      "footprint": "CANView:Capacitor_SMD__C_0603_1608Metric",
+      "original_footprint": "Capacitor_SMD:C_0603_1608Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "MIC5V"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "GEN-C-0603-1u-16V-X7R",
+      "spec": "16V; ±10%; X7R; -55..125C; verify effective capacitance under DC bias",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_C6"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "D1",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "CLK_P"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "CLK_N"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_D1"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "D2",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "WS_P"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "WS_N"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_D2"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "D3",
+      "value": "TPD2E2U06DCKR",
+      "footprint": "CANView:Package_TO_SOT_SMD__SOT-323_SC-70",
+      "original_footprint": "Package_TO_SOT_SMD:SOT-323_SC-70",
+      "pins": {
+        "1": [
+          "IO1",
+          "passive",
+          "DATA_P"
+        ],
+        "2": [
+          "IO2",
+          "passive",
+          "DATA_N"
+        ],
+        "3": [
+          "GND",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TPD2E2U06DCKR",
+      "spec": "5.5V standoff;1.5pF typical; ESD only, not DC overvoltage protection",
+      "source": "tpd2e2u06:p3 DCK pins1/2=IO,pin3=GND",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_D3"
+    },
+    {
+      "sheet": "04_ota_recovery",
+      "ref": "R2",
+      "value": "10k",
+      "footprint": "CANView:Resistor_SMD__R_0402_1005Metric",
+      "original_footprint": "Resistor_SMD:R_0402_1005Metric",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "3V3"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ]
+      },
+      "mpn": "GEN-R-0402-10k-1%",
+      "spec": "0.1W; 50V; ±1%; ±100ppm/K; -55..155C",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_R2"
+    },
+    {
+      "sheet": "04_ota_recovery",
+      "ref": "SW1",
+      "value": "RECOVERY",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "RECOVERY_BUTTON_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Normally-open momentary; host reset is sink-only; hold recovery5s across reset",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_SW1"
+    },
+    {
+      "sheet": "04_ota_recovery",
+      "ref": "SW2",
+      "value": "HOST_RESET",
+      "footprint": "CANView:Button_Switch_SMD__SW_SPST_TL3342",
+      "original_footprint": "Button_Switch_SMD:SW_SPST_TL3342",
+      "pins": {
+        "1": [
+          "1",
+          "passive",
+          "HOST_RESET_N"
+        ],
+        "2": [
+          "2",
+          "passive",
+          "GND"
+        ]
+      },
+      "mpn": "TL3342F160QG",
+      "spec": "Normally-open momentary; host reset is sink-only; hold recovery5s across reset",
+      "source": "",
+      "dnp": false,
+      "note": "",
+      "libname": "CANView_controller-adapter_SW2"
+    },
+    {
+      "sheet": "03_mic_cable",
+      "ref": "#FLG1",
+      "value": "PWR_FLAG",
+      "footprint": "",
+      "original_footprint": "",
+      "pins": {
+        "1": [
+          "pwr",
+          "power_out",
+          "MIC5V"
+        ]
+      },
+      "mpn": "PWR_FLAG",
+      "spec": "ERC source declaration, NOT a physical component",
+      "source": "Waveshare5V output through cable fuse",
+      "dnp": false,
+      "note": "External source or regulator output after a passive filter",
+      "libname": "CANView_controller-adapter_#FLG1"
+    }
+  ]
+}

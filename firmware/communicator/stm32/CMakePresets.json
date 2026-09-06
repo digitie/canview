@@ -1,8 +1,8 @@
 {
-  "version": 3,
+  "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 22,
+    "minor": 25,
     "patch": 0
   },
   "configurePresets": [
@@ -12,7 +12,8 @@
       "generator": "Ninja",
       "toolchainFile": "${sourceDir}/cmake/arm-none-eabi-gcc.cmake",
       "cacheVariables": {
-        "STM32CUBE_G4_ROOT": "$env{STM32CUBE_G4_ROOT}"
+        "STM32CUBE_G4_ROOT": "$env{STM32CUBE_G4_ROOT}",
+        "CMAKE_MAKE_PROGRAM": "$env{CANVIEW_NINJA_EXECUTABLE}"
       }
     },
     {

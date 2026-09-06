@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P2`
 - Gate: `G4/G5`
-- 선행: `T-303`, `T-305`, `T-503`
+- 선행: `T-303`, `T-305`, `T-503a`
 - 병렬 가능: `T-505`
 
 ## 목표
@@ -55,3 +55,8 @@ python tests/hil/run_adaptive_volume.py --bench-only --all-inhibits
 ## release
 
 기본값은 off다. G5 차량 평가 전에는 최대 offset을 2 step으로 제한하고 설정 확장은 별도 evidence로 승인한다.
+
+## 산출물·범위 경계
+
+- 산출물은 adaptive-volume calibration/response 통합·replay/HIL scripts·feature report다. raw volume 버튼·calibration 없는 speed-only 증폭·unverified SDVC 변경은 범위 밖이다.
+- host monitor와 실제 head-unit feedback/운전자 평가를 구분한다. 실패 시 기능 off·검증된 baseline restore만 허용하고 무조건 복원 성공으로 표시하지 않는다.
