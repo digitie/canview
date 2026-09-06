@@ -12,8 +12,8 @@
 |---|---|---|
 | 순수 C 자동화 알고리즘·수신 필터·DBC bit decoder | host 시험 가능 | 제한된 구현과 단위시험이 존재함 |
 | Controller LVGL 화면 구조 | 정적 통합 준비 | 화면 계층은 있으나 BSP·thread-safe model adapter가 없음 |
-| Communicator STM32 | T-102a boot/clock/watchdog bench 구현·검증 중 | 실물 G1, DMA UART, FDCAN, 안전 profile과 command executor가 없음 |
-| Controller·Communicator ESP32 | bootstrap 준비 | ESP-IDF top-level project·기본 component·partition은 있으나 v1.3 protocol 전까지 application dependency·BSP·transport task가 없음 |
+| Communicator STM32 | T-102a boot/clock/watchdog bench 소프트웨어 merge·검증 완료 | 실물 G1, DMA UART, FDCAN, 안전 profile과 command executor가 없음 |
+| Controller·Communicator ESP32 | foundation safe-idle/BSP·C99 codec binary 검증, T-200a core 구현 중 | 실제 transport task·장치별 통합 기능과 실물 BSP 검증이 없음 |
 | Diagnostic Bridge | prototype 설계만 존재 | firmware, REST/WS backend, capture storage가 없음 |
 | ESP-NOW·UART wire | 기본 통합 미완료 | v1.3/v1.0 전체 schema·codec·golden gate가 없음. navigation companion v1.4/v1.1의 별도 schema/host fixture만으로 기본 경로를 통과시키지 않음 |
 | 2017 Tucson TL 신호 | 후보 단계 | 저장 DBC의 대상 차량 적합성을 입증한 capture가 없음 |
