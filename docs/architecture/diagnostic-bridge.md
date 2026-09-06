@@ -306,7 +306,8 @@ frame의 유일 식별자는 다음 tuple이다.
 |---|---|---|
 | `candidate_id` | UUID | 예 |
 | `name` | UTF-8, 1–48자 | 예 |
-| `status` | `CANDIDATE/OBSERVED/VERIFIED/REJECTED` | 예 |
+| `evidence_grade` | [공통 evidence 등급](implementation-readiness.md#92-evidence와-품질) | 예 |
+| `review_status` | 같은 정본의 candidate revision 심사 상태 | 예 |
 | `bus_id`, `can_id`, `extended`, `dlc` | frame identity | 예 |
 | `start_bit`, `bit_length` | 0–63, 1–64 | 예 |
 | `byte_order` | `INTEL/MOTOROLA` | 예 |
@@ -324,7 +325,9 @@ Browser decoder는 Controller decoder와 같은 Intel/Motorola bit 규칙, sign 
 
 ### 9.4 evidence와 등급
 
-다음 C/B/A/X는 이 진단 문서의 과거 표시 등급이다. 차량 catalog의 문자 등급을 이 표로 자동 변환하지 않는다. 구현 정본은 [T-005](../tasks/T-005-canonical-model.md)의 `CANDIDATE/OBSERVED/VERIFIED/REJECTED` evidence enum이며 freshness는 별도 축이다.
+다음 C/B/A/X는 이 진단 문서의 과거 표시 등급이다. 차량 catalog의 문자 등급을 이 표로 자동 변환하지 않는다. 공통 enum은 [구현 준비 §9.2](implementation-readiness.md#92-evidence와-품질)가 정본이고 [T-005](../tasks/T-005-canonical-model.md)가 생성·변환한다. evidence 등급·runtime 품질·candidate 심사 상태는 서로 다른 축이다. 제외(`REJECTED`)는 심사 상태이지 evidence 등급이 아니다.
+
+과거 단일 `status` descriptor와 로컬 DEMO export의 `status/grade`는 위 공통 model이 아니다. T-403의 버전 명시 migration·부정 fixture 이전에는 operational 입력으로 import하지 않으며 문자열/숫자만 같다고 암묵 변환하지 않는다.
 
 | UI 상태 | 문서 등급 | 필요한 증거 |
 |---|---|---|

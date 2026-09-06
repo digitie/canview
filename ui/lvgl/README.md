@@ -44,7 +44,7 @@ CAN/ESP-NOW task에서 `canview_ui_update()`를 직접 호출하지 않는다. �
 - FFT: 상단 `PEAK`·`LEVEL`, signed digital `dBFS`, 50Hz–8kHz spectrum, 하부 차속·RPM strip. 두 telemetry는 FFT 품질과 독립적으로 표시한다.
 - 자동화: 원 장식 없는 mode 상태. SPORT red, NORMAL blue, ECO green
 - 설정: UTC+09:00 기준 RTC 연도 2000–2099·월·일·시·분 0–59 dropdown과 `적용 요청`, 밝기 slider, toggle, 제한된 preset dropdown. 존재하지 않는 날짜는 요청을 막는다. RTC 원천/품질이 invalid이면 현재값과 초기 선택은 미확정으로 표시한다. 선택 초안은 현재 RTC가 아니며 수신 확인 전 현재값으로 승격하지 않는다. 자유 숫자 text input과 속도 단위 설정은 없다.
-- 전역: 현재 속도와 speed-limit overlay, 일몰 후 미등/전조등 경고. 주행 경고는 중앙, 다른 모든 화면은 작은 반투명 표시다. overlay와 label은 touch를 가로채지 않는다. 초기 모델에는 경고나 실차 성공 데모값을 넣지 않는다.
+- 전역: 현재 속도와 speed-limit overlay, 일몰 후 실제 전조등 미점등 경고. 과속/전조등 경고는 모든 화면 중앙의 128px 영역이며 주행 이외 탭은 반투명이다. 과속이 아닌 유효 제한 표지는 36px header 영역에 두고 연결 요약과 겹치지 않는다. overlay와 label은 touch를 가로채지 않는다. 초기 모델에는 경고나 실차 성공 데모값을 넣지 않는다.
 
 실행 중 arc·DPF는 현재 보간값에서 180–300ms animation으로 이어지고 screen은 160ms fade한다. 같은 목표값은 animation을 재시작하지 않는다. invalid 전환은 animation을 즉시 취소하고 표시를 지운다. 숨긴 화면의 fade도 취소한다. idle 진입 에지에서 한 번만 주행으로 복귀하며 popup을 닫는다. warning overlay는 검증된 속도·제한값이 있을 때만 model의 blink 상태를 따른다. PWM·과속 지속시간·SPORT 상태기계와 OTA는 이 adapter에서 구현하지 않는다.
 

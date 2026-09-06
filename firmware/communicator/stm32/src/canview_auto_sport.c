@@ -214,7 +214,8 @@ canview_auto_sport_output_t canview_auto_sport_update(
         return make_output(state);
     }
 
-    if (!tick_gap && input->signals_fresh && state->owns_sport_mode &&
+    /* fresh 외부 mode 관찰은 권한 철회다. gap의 새 명령/승격 금지와 독립이다. */
+    if (input->signals_fresh && state->owns_sport_mode &&
         mode_can_be_restored(input->current_mode)) {
         enter_manual_hold(state);
         return make_output(state);

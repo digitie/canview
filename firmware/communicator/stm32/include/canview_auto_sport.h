@@ -107,6 +107,7 @@ int16_t canview_longitudinal_accel_filter_update(
  * @note 호출자는 상태를 직렬화한다. signals_fresh는 mode를 포함한 모든 입력의
  * 검증된 freshness를 뜻한다. ACK나 UI preview 값을 current_mode에 넣지 않는다.
  * 250 ms 초과 gap은 dwell을 초기화하고 해당 tick의 새 명령/feedback 승격을 금지한다.
+ * gap에서도 fresh 비-SPORT 관찰은 기존 자동화 소유권을 철회한다.
  */
 canview_auto_sport_output_t canview_auto_sport_update(
     canview_auto_sport_state_t *state,

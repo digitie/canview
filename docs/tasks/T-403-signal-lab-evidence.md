@@ -24,7 +24,7 @@
 
 ## 고정 evidence 등급
 
-`UNKNOWN → CANDIDATE → OBSERVED → VERIFIED`다. UI는 score만으로 승격하지 않는다. VERIFIED는 code review와 T-501/T-502 또는 T-503의 별도 acceptance가 필요하다.
+[구현 준비 §9.2](../architecture/implementation-readiness.md#92-evidence와-품질)의 공통 evidence 등급을 따른다. 심사 결과 `REJECTED`는 별도 `review_status`이며 audit grade를 보존해도 operational export에는 사용할 수 없다. UI는 score만으로 승격하지 않는다. VERIFIED는 code review와 T-501/T-502 또는 T-503의 별도 acceptance가 필요하다.
 
 ## 수용 기준
 
@@ -36,6 +36,7 @@
 - [ ] 새 ID/bit/scale이 Communicator firmware 변경을 요구하지 않는다.
 - [ ] profile patch가 command section을 자동 생성하지 않는다.
 - [ ] maintainer-signed evidence approval 없이 VERIFIED grade를 export하지 않는다.
+- [ ] UNKNOWN·REJECTED·APPROVED 여부와 grade의 교차 fixture를 검사한다. 구 단일 status descriptor/DEMO export는 versioned migration 전 operational import를 거절하고, 제외된 candidate를 재심사하면 새 revision·approval을 요구한다.
 
 ## 계획 보완 수용 기준
 

@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "automation_test_ticks.h"
 
 static void test_can_brightness_debounce_and_stale_hold(void)
@@ -500,6 +501,10 @@ static void test_headlamp_warning_uses_rtc_sunset_and_hysteresis(void)
 
 int main(void)
 {
+#ifdef _MSC_VER
+    (void)_set_error_mode(_OUT_TO_STDERR);
+    (void)_set_abort_behavior(0U, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
     assert(CANVIEW_PROTOCOL_MINOR == 2U);
     assert(sizeof(canview_config_record_t) == 8U);
     test_can_brightness_debounce_and_stale_hold();

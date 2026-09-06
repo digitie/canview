@@ -223,7 +223,7 @@ ARMED
 - `MANUAL_HOLD`는 자동 기능을 껐다 다시 켜는 명시적 재arm 또는 ignition cycle까지 유지한다.
 - 기어·브레이크·ABS/TCS/ESC·mode·link·lease 중 하나라도 유효하지 않으면 `INHIBITED`이며 새 command를 만들지 않는다.
 - pending 완료에는 freshness와 local safety가 필요하다. stale mode가 SPORT/previous_mode와 같아도 완료나 소유권 확보로 승격하지 않는다. deadline 이상 경과한 tick은 feedback보다 timeout을 먼저 판정하고 `MANUAL_HOLD`로 가며, 명시적 재arm 없이 재시도하지 않는다.
-- 자동화가 소유하던 SPORT와 다른 유효 mode가 관찰되면 물리 버튼 이벤트가 누락됐어도 소유권·previous snapshot을 버리고 `MANUAL_HOLD`로 간다. 그 tick에 복귀 pulse를 만들지 않는다.
+- 자동화가 소유하던 SPORT와 다른 유효 mode가 관찰되면 물리 버튼 이벤트가 누락됐어도 소유권·previous snapshot을 버리고 `MANUAL_HOLD`로 간다. 이는 권한 철회이므로 scheduler gap에도 수행하며 새 명령/feedback 승격 금지와 혼동하지 않는다. 그 tick과 이후 사용자가 선택한 SPORT에서 오래된 snapshot으로 복귀 pulse를 만들지 않는다.
 - link loss나 bus fault 중에는 복귀를 시도하지 않는다. 상태가 다시 신뢰 가능해진 뒤 현재 mode와 snapshot을 대조한다.
 
 현재 core의 1,500 ms pending timer는 action 생성 다음 tick부터 계산하는 host 상태기계 시간이다. target executor의 첫 성공한 physical TX-complete 시각과 transaction feedback 연결은 T-106/T-305에서 구현해야 한다. core의 `ACTIVE`를 인증된 wire `COMPLETED`나 차량 TX gate 통과로 표시하지 않는다.

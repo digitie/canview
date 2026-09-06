@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "automation_test_ticks.h"
 #include <string.h>
 
@@ -437,6 +438,48 @@ static void test_sport_ownership(void)
     assert(output.action == CANVIEW_SPORT_ACTION_NONE);
 }
 
+static void test_sport_gap_revocation(void)
+{
+    const uint32_t gaps[] = {100U, 250U, 251U, 5000U, UINT32_MAX};
+    const canview_drive_mode_t external_modes[] = {
+        CANVIEW_DRIVE_MODE_NORMAL, CANVIEW_DRIVE_MODE_ECO,
+        CANVIEW_DRIVE_MODE_COMFORT, CANVIEW_DRIVE_MODE_SMART,
+    };
+    const canview_auto_sport_config_t config = canview_auto_sport_default_config();
+    for (size_t gap = 0U; gap < sizeof(gaps) / sizeof(gaps[0]); ++gap) {
+        for (size_t mode = 0U; mode < sizeof(external_modes) / sizeof(external_modes[0]); ++mode) {
+            canview_auto_sport_state_t state = {0};
+            canview_auto_sport_input_t input = sport_input();
+            /* 임의 state 주입 없이 ECO에서 정상 진입·feedback으로 소유권을 얻는다. */
+            canview_auto_sport_output_t output =
+                sport_update_for(&state, &config, &input, config.speed_confirm_ms);
+            assert(output.action == CANVIEW_SPORT_ACTION_ENTER);
+            input.current_mode = CANVIEW_DRIVE_MODE_SPORT;
+            output = canview_auto_sport_update(&state, &config, &input, 100U);
+            assert(output.status == CANVIEW_SPORT_ACTIVE);
+            assert(state.owns_sport_mode);
+            assert(state.previous_mode == CANVIEW_DRIVE_MODE_ECO);
+
+            /* 권한 철회는 gap에서도 유효하다. 물리 버튼 이벤트는 누락시킨다. */
+            input.current_mode = external_modes[mode];
+            output = canview_auto_sport_update(&state, &config, &input, gaps[gap]);
+            assert(output.status == CANVIEW_SPORT_MANUAL_HOLD);
+            assert(output.action == CANVIEW_SPORT_ACTION_NONE);
+            assert(!state.owns_sport_mode);
+            assert(state.previous_mode == CANVIEW_DRIVE_MODE_UNKNOWN);
+            input.current_mode = CANVIEW_DRIVE_MODE_SPORT;
+            input.enabled = false;
+            output = canview_auto_sport_update(&state, &config, &input, 100U);
+            assert(output.action == CANVIEW_SPORT_ACTION_NONE);
+            assert(!state.owns_sport_mode);
+            input.enabled = true;
+            output = sport_update_for(&state, &config, &input, config.exit_confirm_ms);
+            assert(output.action == CANVIEW_SPORT_ACTION_NONE);
+            assert(!state.owns_sport_mode);
+        }
+    }
+}
+
 static void test_time_gaps(void)
 {
     const uint32_t gaps[] = {251U, 5000U, UINT32_MAX};
@@ -531,6 +574,11 @@ typedef struct {
 
 int main(int argc, char **argv)
 {
+#ifdef _MSC_VER
+    /* Windows headless CI에서도 실패를 stderr로 기록하고 dialog에서 멈추지 않는다. */
+    (void)_set_error_mode(_OUT_TO_STDERR);
+    (void)_set_abort_behavior(0U, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+#endif
     static const regression_case_t cases[] = {
         {"brightness-stale", test_stale_base},
         {"brightness-ramp", test_stale_warning_restore_ramp},
@@ -540,6 +588,7 @@ int main(int argc, char **argv)
         {"headlamp-freshness", test_headlamp_freshness},
         {"sport-feedback", test_sport_feedback},
         {"sport-ownership", test_sport_ownership},
+        {"sport-gap-revocation", test_sport_gap_revocation},
         {"automation-time-gap", test_time_gaps},
         {"command-double-ack", test_command_double_ack},
     };

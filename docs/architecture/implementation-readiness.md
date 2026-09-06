@@ -386,8 +386,13 @@ runtime 품질과 검증 증거를 하나의 enum으로 섞지 않는다.
 
 - `signal_quality`: `VALID`, `STALE`, `UNAVAILABLE`, `OUT_OF_RANGE`, `FAULT`
 - `evidence_grade`: `UNKNOWN`, `CANDIDATE`, `OBSERVED`, `VERIFIED`
+- candidate 저장소의 별도 `review_status`: `PENDING`, `APPROVED`, `REJECTED`
 
 운전자 UI에 숫자를 표시하려면 `quality == VALID && evidence_grade == VERIFIED`여야 한다. `OBSERVED` 이하 값은 Signal Lab에서만 볼 수 있다. derived signal의 quality는 dependency 중 가장 나쁜 runtime 품질을 따르고 evidence는 가장 낮은 dependency grade보다 높아질 수 없다.
+
+위 `evidence_grade` 네 값이 공통 정본이며 `REJECTED`를 다섯 번째 등급이나 `UNKNOWN`의 별칭으로 추가하지 않는다. `UNKNOWN`은 아직 근거가 없는 상태다. `review_status`는 특정 candidate revision의 심사 결과로, `PENDING`이 기본이고 `APPROVED`도 검증 등급·서명 profile gate를 대신하지 않는다. `REJECTED`는 반대 evidence/제외 사유를 남긴 심사 결과이며 audit에는 기존 grade를 보존할 수 있지만 operational export/adapter 입력으로 사용할 수 없다. 재심사는 새 revision과 새 승인 근거가 필요하다.
+
+schema의 unknown enum 또는 승인되지 않은 descriptor는 exhaustive adapter에서 `UNAVAILABLE`로 닫는다. 심사 상태를 wire quality/evidence로 숫자 cast하지 않는다. derived 입력 하나라도 `UNKNOWN`이거나 사용할 수 없는 revision이면 VERIFIED 값이 생성되지 않는다. `REJECTED` 후보에서 derived 값을 만들거나 기존 서명을 새 revision에 재사용하는 것도 거절한다. 이 규칙은 승인된 profile에서 데이터를 소비하는 경계이며 Diagnostic Bridge가 기존 차량 profile·lease를 직접 수정할 권한을 뜻하지 않는다.
 
 `VERIFIED` 승격에는 서로 다른 ignition cycle의 반복 capture, marker/evidence, DBC/decoder golden vector, 단위·방향·range·stale 기준, 반례 검토가 필요하다. drop/gap이 수용 한도를 넘는 capture는 승격 증거가 될 수 없다.
 

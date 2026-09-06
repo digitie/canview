@@ -1276,10 +1276,10 @@ static void render_overlays(void)
                        ui.model.speed_limit_kph > 0U && ui.model.speed_limit_kph <= 240U;
     const bool warning = limit && speed_valid() && ui.model.speed_limit_warning_active;
     const bool lights = ui.model.headlamp_warning_active && !warning;
-    const bool prominent = drive && warning;
-    lv_obj_set_pos(ui.speed_limit_overlay, prominent ? 96 : 252, prominent ? 156 : 50);
-    lv_obj_set_size(ui.speed_limit_overlay, prominent ? 128 : 56, prominent ? 128 : 56);
-    lv_obj_set_style_border_width(ui.speed_limit_overlay, prominent ? 6 : 4, 0);
+    const bool prominent = warning;
+    lv_obj_set_pos(ui.speed_limit_overlay, prominent ? 96 : 272, prominent ? 156 : 0);
+    lv_obj_set_size(ui.speed_limit_overlay, prominent ? 128 : 36, prominent ? 128 : 36);
+    lv_obj_set_style_border_width(ui.speed_limit_overlay, prominent ? 6 : 3, 0);
     /* 작은 표지에는 숫자만 두어 LIMIT/3자리 수치가 겹치지 않는다. */
     if (prominent) {
         lv_obj_clear_flag(ui.speed_limit_caption, LV_OBJ_FLAG_HIDDEN);
@@ -1300,11 +1300,12 @@ static void render_overlays(void)
     const lv_opa_t opacity = drive ? LV_OPA_COVER : LV_OPA_60;
     lv_obj_set_style_opa(ui.speed_limit_overlay,
         warning && !ui.model.speed_limit_warning_visible ? LV_OPA_30 : opacity, 0);
-    lv_obj_set_pos(ui.headlamp_warning_overlay, drive ? 96 : 212, drive ? 156 : 112);
-    lv_obj_set_size(ui.headlamp_warning_overlay, drive ? 128 : 96, drive ? 128 : 48);
-    lv_obj_set_style_border_width(ui.headlamp_warning_overlay, drive ? 6 : 2, 0);
+    /* 경고는 어느 탭에서도 같은 중앙 면적을 사용하고 touch만 통과시킨다. */
+    lv_obj_set_pos(ui.headlamp_warning_overlay, 96, 156);
+    lv_obj_set_size(ui.headlamp_warning_overlay, 128, 128);
+    lv_obj_set_style_border_width(ui.headlamp_warning_overlay, 6, 0);
     lv_obj_set_style_text_font(ui.headlamp_warning_label,
-        drive && ui.config.metric_font != NULL ? ui.config.metric_font :
+        ui.config.metric_font != NULL ? ui.config.metric_font :
         ui.config.font != NULL ? ui.config.font : LV_FONT_DEFAULT, 0);
     lv_obj_set_style_opa(ui.headlamp_warning_overlay, opacity, 0);
     if (lights) {
@@ -1314,6 +1315,12 @@ static void render_overlays(void)
     }
     lv_obj_set_style_text_color(ui.header_speed_label,
         warning || lights ? CANVIEW_COLOR_WARNING : CANVIEW_COLOR_INK, 0);
+    /* 정상 제한 표지는 header 안에 둔다. 연결 요약과 겹쳐 그리지 않는다. */
+    if (limit && !warning) {
+        lv_obj_add_flag(lv_obj_get_parent(ui.link_label), LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_clear_flag(lv_obj_get_parent(ui.link_label), LV_OBJ_FLAG_HIDDEN);
+    }
     lv_obj_move_foreground(ui.speed_limit_overlay);
     lv_obj_move_foreground(ui.headlamp_warning_overlay);
 }

@@ -484,11 +484,17 @@ static void test_overlays_and_idle(void)
     for (uint32_t screen = 0U; screen < CANVIEW_UI_SCREEN_COUNT; ++screen) {
         canview_ui_show_screen((canview_ui_screen_t)screen);
         lv_obj_update_layout(ui.root);
-        assert(lv_obj_get_width(ui.speed_limit_overlay) == (screen == 0U ? 128 : 56));
+        assert(lv_obj_get_width(ui.speed_limit_overlay) == 128);
+        assert(lv_obj_get_x(ui.speed_limit_overlay) == 96);
+        assert(lv_obj_get_style_opa(ui.speed_limit_overlay, 0) ==
+               (screen == 0U ? LV_OPA_COVER : LV_OPA_60));
         assert(lv_obj_has_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_HIDDEN));
-        lv_point_t point = {.x = 280, .y = 72};
+        lv_point_t point = {.x = 160, .y = 220};
         lv_obj_t *hit = lv_indev_search_obj(lv_scr_act(), &point);
         assert(hit != ui.speed_limit_overlay && hit != ui.speed_limit_label);
+        lv_obj_add_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
+        assert(hit == lv_indev_search_obj(lv_scr_act(), &point));
+        lv_obj_clear_flag(ui.speed_limit_overlay, LV_OBJ_FLAG_HIDDEN);
         const uint32_t activities = commands[CANVIEW_UI_CMD_USER_ACTIVITY];
         event_send(ui.nav_buttons[screen], LV_EVENT_PRESSED);
         assert(commands[CANVIEW_UI_CMD_USER_ACTIVITY] == activities + 1U);
@@ -524,8 +530,16 @@ static void test_overlays_and_idle(void)
     assert(canview_ui_current_screen() == CANVIEW_UI_SCREEN_FFT);
     model.speed_quality = CANVIEW_UI_QUALITY_STALE;
     canview_ui_update(&model);
+    lv_obj_update_layout(ui.root);
     assert(!lv_obj_has_flag(ui.headlamp_warning_overlay, LV_OBJ_FLAG_HIDDEN));
     assert(lv_obj_get_style_opa(ui.headlamp_warning_overlay, 0) == LV_OPA_60);
+    assert(lv_obj_get_width(ui.headlamp_warning_overlay) == 128);
+    assert(lv_obj_get_width(ui.speed_limit_overlay) == 36);
+    assert(lv_obj_get_y(ui.speed_limit_overlay) == 0);
+    assert(lv_obj_has_flag(lv_obj_get_parent(ui.link_label), LV_OBJ_FLAG_HIDDEN));
+    model.speed_limit_active = false;
+    canview_ui_update(&model);
+    assert(!lv_obj_has_flag(lv_obj_get_parent(ui.link_label), LV_OBJ_FLAG_HIDDEN));
     puts("PASS: neutral default, warning priority, per-screen transparency/touch, single idle edge, popup activity");
 }
 

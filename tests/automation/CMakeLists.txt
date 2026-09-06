@@ -25,6 +25,7 @@ target_include_directories(canview-automation-tests PRIVATE
 )
 
 add_test(NAME automation-state-machines COMMAND canview-automation-tests)
+set_tests_properties(automation-state-machines PROPERTIES TIMEOUT 30)
 
 add_executable(canview-automation-regressions
     test_automation_regressions.c
@@ -48,6 +49,7 @@ foreach(target canview-automation-tests canview-automation-regressions)
 endforeach()
 foreach(scenario brightness-stale brightness-ramp brightness-speed
                  volume-pending volume-invalid headlamp-freshness
-                 sport-feedback sport-ownership automation-time-gap command-double-ack)
+                 sport-feedback sport-ownership sport-gap-revocation automation-time-gap command-double-ack)
     add_test(NAME automation-${scenario} COMMAND canview-automation-regressions ${scenario})
+    set_tests_properties(automation-${scenario} PROPERTIES TIMEOUT 30)
 endforeach()

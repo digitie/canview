@@ -35,10 +35,10 @@ async function run() {
         return box.width && box.height && (box.width < 44 || box.height < 44);
       }).map((node) => node.id || node.className));
       check(badTargets.length === 0, "44px 조작 영역: " + badTargets.join(","));
-      await page.screenshot({path: path.join(output, "ui-" + screen + ".png")});
+      await page.screenshot({path: path.join(output, "ui-" + screen + ".png"), animations: "disabled"});
       if (screen === "settings") {
         await page.locator(".settings-panel").evaluate((node) => { node.scrollTop = node.scrollHeight; });
-        await page.screenshot({path: path.join(output, "ui-settings-automation.png")});
+        await page.screenshot({path: path.join(output, "ui-settings-automation.png"), animations: "disabled"});
       }
     }
     await open("screen=fft");
@@ -72,7 +72,11 @@ async function run() {
     check(await page.locator("[data-profile][aria-pressed='true']").count() === 1, "프로필 상호 배타");
     await page.locator("[data-target='drive']").click();
     check(await page.locator("#screen-drive").isVisible(), "경고 중 탐색");
-    await page.screenshot({path: path.join(output, "ui-drive-warning.png")});
+    check(await page.locator("[data-target='drive']").getAttribute("aria-selected") === "true", "경고 중 주행 탭 선택");
+    // 조작 toast와 가상 clock의 탭 진입 animation을 검토용 사진에 섞지 않는다.
+    await open("screen=drive&warning=1");
+    await page.screenshot({path: path.join(output, "ui-drive-warning.png"), animations: "disabled"});
+    check(await page.locator("#screen-drive").evaluate((node) => getComputedStyle(node).opacity) === "1", "경고 뒤 본문 불투명 표시");
     await open("screen=drive&warning=1&stale=speed");
     check(!(await page.locator(".app").getAttribute("class")).includes("is-speed-warning"), "stale 차속 과속 금지");
     await open("screen=settings&parked=1");
