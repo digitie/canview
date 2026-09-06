@@ -284,6 +284,9 @@ typedef struct
     void *context;
 } canview_uart_command_admission_context_t;
 
+typedef canview_status_t (*canview_uart_command_enqueue_fn)(
+    const canview_uart_message_view_t *request, void *context);
+
 typedef struct
 {
     canview_sequence_window_t sequence;
@@ -311,33 +314,45 @@ bool canview_uart_command_admission_allowed(
     const canview_uart_message_view_t *request,
     const canview_uart_command_admission_context_t *context, uint64_t now_ms);
 
-/** @brief Final command admission boundary before a queue owner dispatches. */
+/** @brief Validate a command, reserve its queue slot, then commit its sequence.
+ *
+ * The enqueue callback owns the bounded safety/control queue reservation. The
+ * replay window is committed only after that callback returns CANVIEW_OK; a
+ * busy/full queue leaves the sequence retryable.
+ */
 canview_status_t canview_uart_command_dispatch_admit(
     const canview_uart_link_t *link, const canview_uart_message_view_t *request,
     const canview_uart_command_admission_context_t *authorization,
+    canview_uart_command_enqueue_fn enqueue, void *enqueue_context,
     canview_uart_replay_context_t *replay, uint64_t now_ms);
 
-/** @brief Atomically clear link, pending observer state and command cache. */
+/** @brief Atomically clear link, pending observer state, command cache and replay window. */
 canview_status_t canview_uart_session_reset(canview_uart_link_t *link,
                                              canview_uart_plan_context_t *plan,
-                                             canview_uart_command_cache_t *cache);
+                                             canview_uart_command_cache_t *cache,
+                                             canview_uart_replay_context_t *replay);
 
-/** @brief Note HELLO and invalidate state when a new UART session is observed. */
+/** @brief Note HELLO and invalidate state when a new UART session is observed.
+ *
+ * The replay window is part of the same caller-owned session transaction and
+ * must not be shared with another UART direction or task.
+ */
 canview_status_t canview_uart_session_note_hello(
     canview_uart_link_t *link, canview_uart_plan_context_t *plan,
-    canview_uart_command_cache_t *cache, uint64_t peer_boot_id, uint64_t now_ms,
-    bool *boot_changed);
+    canview_uart_command_cache_t *cache, canview_uart_replay_context_t *replay,
+    uint64_t peer_boot_id, uint64_t now_ms, bool *boot_changed);
 
 /** @brief Note heartbeat and invalidate state when its boot epoch changes. */
 canview_status_t canview_uart_session_note_heartbeat(
     canview_uart_link_t *link, canview_uart_plan_context_t *plan,
-    canview_uart_command_cache_t *cache, uint64_t peer_boot_id,
-    uint32_t safety_revision, uint64_t now_ms, bool *boot_changed);
+    canview_uart_command_cache_t *cache, canview_uart_replay_context_t *replay,
+    uint64_t peer_boot_id, uint32_t safety_revision, uint64_t now_ms, bool *boot_changed);
 
-/** @brief Tick link and atomically discard command/plan state on offline transition. */
+/** @brief Tick link and atomically discard session state on offline transition. */
 canview_status_t canview_uart_session_tick(canview_uart_link_t *link,
                                             canview_uart_plan_context_t *plan,
                                             canview_uart_command_cache_t *cache,
+                                            canview_uart_replay_context_t *replay,
                                             uint64_t now_ms);
 
 #ifdef __cplusplus

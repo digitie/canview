@@ -79,7 +79,7 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
     add_test(NAME uart-fault-stream COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
-    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 180)
+    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 300)
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)

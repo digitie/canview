@@ -501,13 +501,15 @@ canview_status_t canview_uart_replay_reset(canview_uart_replay_context_t *contex
     return canview_sequence_window_reset(&context->sequence);
 }
 
-canview_status_t canview_uart_message_admit(
+static canview_status_t canview_uart_message_prepare(
     const canview_uart_message_view_t *view, canview_uart_endpoint_t endpoint,
-    canview_uart_flow_t flow, canview_uart_replay_context_t *replay,
-    const canview_uart_command_admission_context_t *authorization, uint64_t now_ms)
+    canview_uart_flow_t flow, const canview_uart_replay_context_t *replay,
+    const canview_uart_command_admission_context_t *authorization, uint64_t now_ms,
+    canview_uart_message_view_t *validated_out, canview_uart_replay_context_t *candidate_out)
 {
     if (view == NULL || view->policy == NULL || replay == NULL || !replay->configured ||
-        endpoint > CANVIEW_UART_ENDPOINT_STM32 || flow > CANVIEW_UART_FLOW_OUTBOUND)
+        validated_out == NULL || candidate_out == NULL || endpoint > CANVIEW_UART_ENDPOINT_STM32 ||
+        flow > CANVIEW_UART_FLOW_OUTBOUND)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -518,23 +520,40 @@ canview_status_t canview_uart_message_admit(
     {
         return validation;
     }
-    view = &validated;
-    if (!canview_uart_message_direction_allowed(view, endpoint, flow))
+    if (!canview_uart_message_direction_allowed(&validated, endpoint, flow))
     {
         return CANVIEW_MALFORMED;
     }
-    if (message_requires_authorization(view->wire.header.message_type) &&
+    if (message_requires_authorization(validated.wire.header.message_type) &&
         (authorization == NULL || authorization->authorize == NULL ||
-         !authorization->authorize(view, now_ms, authorization->context)))
+         !authorization->authorize(&validated, now_ms, authorization->context)))
     {
         return CANVIEW_AUTH_FAILED;
     }
     canview_uart_replay_context_t candidate = *replay;
-    const canview_status_t sequence_status =
-        canview_sequence_window_accept(&candidate.sequence, view->wire.header.sequence);
+    const canview_status_t sequence_status = canview_sequence_window_accept(
+        &candidate.sequence, validated.wire.header.sequence);
     if (sequence_status != CANVIEW_OK)
     {
         return sequence_status;
+    }
+    *validated_out = validated;
+    *candidate_out = candidate;
+    return CANVIEW_OK;
+}
+
+canview_status_t canview_uart_message_admit(
+    const canview_uart_message_view_t *view, canview_uart_endpoint_t endpoint,
+    canview_uart_flow_t flow, canview_uart_replay_context_t *replay,
+    const canview_uart_command_admission_context_t *authorization, uint64_t now_ms)
+{
+    canview_uart_message_view_t validated;
+    canview_uart_replay_context_t candidate;
+    const canview_status_t status = canview_uart_message_prepare(
+        view, endpoint, flow, replay, authorization, now_ms, &validated, &candidate);
+    if (status != CANVIEW_OK)
+    {
+        return status;
     }
     *replay = candidate;
     return CANVIEW_OK;
@@ -1552,9 +1571,11 @@ bool canview_uart_command_admission_allowed(
 canview_status_t canview_uart_command_dispatch_admit(
     const canview_uart_link_t *link, const canview_uart_message_view_t *request,
     const canview_uart_command_admission_context_t *authorization,
+    canview_uart_command_enqueue_fn enqueue, void *enqueue_context,
     canview_uart_replay_context_t *replay, uint64_t now_ms)
 {
-    if (link == NULL || request == NULL || authorization == NULL || replay == NULL)
+    if (link == NULL || request == NULL || authorization == NULL || enqueue == NULL ||
+        replay == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -1562,14 +1583,33 @@ canview_status_t canview_uart_command_dispatch_admit(
     {
         return CANVIEW_TIMEOUT;
     }
-    return canview_uart_message_admit(request, CANVIEW_UART_ENDPOINT_STM32,
-                                      CANVIEW_UART_FLOW_INBOUND, replay, authorization, now_ms);
+    canview_uart_message_view_t validated;
+    canview_uart_replay_context_t candidate;
+    const canview_status_t status = canview_uart_message_prepare(
+        request, CANVIEW_UART_ENDPOINT_STM32, CANVIEW_UART_FLOW_INBOUND, replay, authorization,
+        now_ms, &validated, &candidate);
+    if (status != CANVIEW_OK)
+    {
+        return status;
+    }
+    if (validated.wire.header.message_type != CANVIEW_UART_MSG_COMMAND_REQUEST)
+    {
+        return CANVIEW_MALFORMED;
+    }
+    const canview_status_t enqueue_status = enqueue(&validated, enqueue_context);
+    if (enqueue_status != CANVIEW_OK)
+    {
+        return enqueue_status;
+    }
+    *replay = candidate;
+    return CANVIEW_OK;
 }
 
 static canview_status_t session_invalidate_state(canview_uart_plan_context_t *plan,
-                                                 canview_uart_command_cache_t *cache)
+                                                 canview_uart_command_cache_t *cache,
+                                                 canview_uart_replay_context_t *replay)
 {
-    if (plan == NULL || cache == NULL)
+    if (plan == NULL || cache == NULL || replay == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -1578,7 +1618,12 @@ static canview_status_t session_invalidate_state(canview_uart_plan_context_t *pl
     {
         return cache_status;
     }
-    return canview_uart_plan_reset(plan);
+    const canview_status_t plan_status = canview_uart_plan_reset(plan);
+    if (plan_status != CANVIEW_OK)
+    {
+        return plan_status;
+    }
+    return canview_uart_replay_reset(replay);
 }
 
 static bool link_session_expired(const canview_uart_link_t *link, uint64_t now_ms)
@@ -1603,13 +1648,14 @@ static bool link_has_stale_session(const canview_uart_link_t *link)
 
 canview_status_t canview_uart_session_reset(canview_uart_link_t *link,
                                              canview_uart_plan_context_t *plan,
-                                             canview_uart_command_cache_t *cache)
+                                             canview_uart_command_cache_t *cache,
+                                             canview_uart_replay_context_t *replay)
 {
-    if (link == NULL || plan == NULL || cache == NULL)
+    if (link == NULL || plan == NULL || cache == NULL || replay == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
-    const canview_status_t state_status = session_invalidate_state(plan, cache);
+    const canview_status_t state_status = session_invalidate_state(plan, cache, replay);
     if (state_status != CANVIEW_OK)
     {
         return state_status;
@@ -1620,10 +1666,10 @@ canview_status_t canview_uart_session_reset(canview_uart_link_t *link,
 
 canview_status_t canview_uart_session_note_hello(
     canview_uart_link_t *link, canview_uart_plan_context_t *plan,
-    canview_uart_command_cache_t *cache, uint64_t peer_boot_id, uint64_t now_ms,
-    bool *boot_changed)
+    canview_uart_command_cache_t *cache, canview_uart_replay_context_t *replay,
+    uint64_t peer_boot_id, uint64_t now_ms, bool *boot_changed)
 {
-    if (link == NULL || plan == NULL || cache == NULL || boot_changed == NULL)
+    if (link == NULL || plan == NULL || cache == NULL || replay == NULL || boot_changed == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -1635,7 +1681,7 @@ canview_status_t canview_uart_session_note_hello(
                              link->peer_boot_id != peer_boot_id;
     if (new_session)
     {
-        const canview_status_t state_status = session_invalidate_state(plan, cache);
+        const canview_status_t state_status = session_invalidate_state(plan, cache, replay);
         if (state_status != CANVIEW_OK)
         {
             return state_status;
@@ -1646,10 +1692,10 @@ canview_status_t canview_uart_session_note_hello(
 
 canview_status_t canview_uart_session_note_heartbeat(
     canview_uart_link_t *link, canview_uart_plan_context_t *plan,
-    canview_uart_command_cache_t *cache, uint64_t peer_boot_id, uint32_t safety_revision,
-    uint64_t now_ms, bool *boot_changed)
+    canview_uart_command_cache_t *cache, canview_uart_replay_context_t *replay,
+    uint64_t peer_boot_id, uint32_t safety_revision, uint64_t now_ms, bool *boot_changed)
 {
-    if (link == NULL || plan == NULL || cache == NULL || boot_changed == NULL)
+    if (link == NULL || plan == NULL || cache == NULL || replay == NULL || boot_changed == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -1661,7 +1707,7 @@ canview_status_t canview_uart_session_note_heartbeat(
     if (peer_epoch_changed || link_session_expired(link, now_ms) ||
         link_has_stale_session(link))
     {
-        const canview_status_t state_status = session_invalidate_state(plan, cache);
+        const canview_status_t state_status = session_invalidate_state(plan, cache, replay);
         if (state_status != CANVIEW_OK)
         {
             return state_status;
@@ -1672,17 +1718,18 @@ canview_status_t canview_uart_session_note_heartbeat(
 }
 
 canview_status_t canview_uart_session_tick(canview_uart_link_t *link,
-                                            canview_uart_plan_context_t *plan,
-                                            canview_uart_command_cache_t *cache,
-                                            uint64_t now_ms)
+                                           canview_uart_plan_context_t *plan,
+                                           canview_uart_command_cache_t *cache,
+                                           canview_uart_replay_context_t *replay,
+                                           uint64_t now_ms)
 {
-    if (link == NULL || plan == NULL || cache == NULL)
+    if (link == NULL || plan == NULL || cache == NULL || replay == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
     if (link_session_expired(link, now_ms) || link_has_stale_session(link))
     {
-        const canview_status_t state_status = session_invalidate_state(plan, cache);
+        const canview_status_t state_status = session_invalidate_state(plan, cache, replay);
         if (state_status != CANVIEW_OK)
         {
             return state_status;

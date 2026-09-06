@@ -137,14 +137,14 @@ static canview_status_t test_link_note_heartbeat_with_revision(
 
 static canview_status_t test_session_note_heartbeat_default(
     canview_uart_link_t *link, canview_uart_plan_context_t *plan,
-    canview_uart_command_cache_t *cache, uint64_t peer_boot_id, uint64_t now_ms,
-    bool *boot_changed)
+    canview_uart_command_cache_t *cache, canview_uart_replay_context_t *replay,
+    uint64_t peer_boot_id, uint64_t now_ms, bool *boot_changed)
 {
     const uint32_t revision = link != NULL && link->safety_snapshot_valid
                                   ? link->safety_revision
                                   : 1U;
-    return canview_uart_session_note_heartbeat(link, plan, cache, peer_boot_id, revision,
-                                               now_ms, boot_changed);
+    return canview_uart_session_note_heartbeat(link, plan, cache, replay, peer_boot_id,
+                                               revision, now_ms, boot_changed);
 }
 
 #define canview_uart_message_validate test_message_validate
@@ -1274,6 +1274,13 @@ static bool test_authorize_command(const canview_uart_message_view_t *view, uint
     return view != NULL && context != NULL && *(const bool *)context;
 }
 
+static canview_status_t test_enqueue_command(const canview_uart_message_view_t *request,
+                                             void *context)
+{
+    const bool *accept = (const bool *)context;
+    return request != NULL && accept != NULL && *accept ? CANVIEW_OK : CANVIEW_RESOURCE_BUSY;
+}
+
 static int test_link(void)
 {
     canview_uart_link_t link;
@@ -1398,6 +1405,7 @@ static int test_session(void)
     canview_uart_link_t link;
     canview_uart_plan_context_t plan;
     canview_uart_command_cache_t cache = {0};
+    canview_uart_replay_context_t replay = {0};
     bool boot_changed = true;
     uint8_t begin[32];
     uint8_t digest[CANVIEW_UART_COMMAND_DIGEST_SIZE] = {0x41U};
@@ -1407,11 +1415,11 @@ static int test_session(void)
     const uint8_t *stored = NULL;
     size_t stored_size = 0U;
 
-    CHECK(canview_uart_session_reset(&link, &plan, &cache) == CANVIEW_OK);
+    CHECK(canview_uart_session_reset(&link, &plan, &cache, &replay) == CANVIEW_OK);
     build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
     CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     CHECK(canview_uart_command_cache_admit(&cache, &key, 10U, &handle) == CANVIEW_OK);
-    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 1U, 20U, &boot_changed) ==
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, &replay, 1U, 20U, &boot_changed) ==
           CANVIEW_OK);
     CHECK(!boot_changed && !plan.pending && !link.hello_ack_complete);
     CHECK(canview_uart_command_cache_lookup(&cache, &key, 20U, &ignored_handle, &stored,
@@ -1420,15 +1428,20 @@ static int test_session(void)
     build_plan_begin(begin, 2U, 1U, 0U, 1U, 0U);
     CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     CHECK(canview_uart_command_cache_admit(&cache, &key, 25U, &handle) == CANVIEW_OK);
-    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 1U, 30U, &boot_changed) ==
+    replay.sequence.initialized = true;
+    replay.sequence.newest = 200U;
+    replay.sequence.seen = 1U;
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, &replay, 1U, 30U, &boot_changed) ==
           CANVIEW_OK);
     CHECK(!boot_changed && plan.pending && !link.hello_ack_complete);
+    CHECK(replay.sequence.initialized && replay.sequence.newest == 200U);
     CHECK(canview_uart_command_cache_lookup(&cache, &key, 30U, &ignored_handle, &stored,
                                             &stored_size) == CANVIEW_DUPLICATE);
 
     key.request_token = 2U;
     CHECK(canview_uart_command_cache_admit(&cache, &key, 35U, &handle) == CANVIEW_OK);
-    CHECK(canview_uart_session_note_heartbeat(&link, &plan, &cache, 1U, 40U, &boot_changed) ==
+    CHECK(canview_uart_session_note_heartbeat(&link, &plan, &cache, &replay, 1U, 40U,
+                                              &boot_changed) ==
           CANVIEW_OK);
     CHECK(!boot_changed);
     CHECK(canview_uart_command_cache_lookup(&cache, &key, 40U, &ignored_handle, &stored,
@@ -1437,9 +1450,11 @@ static int test_session(void)
     CHECK(canview_uart_plan_discard_pending(&plan) == CANVIEW_OK);
     build_plan_begin(begin, 3U, 1U, 0U, 1U, 0U);
     CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
-    CHECK(canview_uart_session_note_heartbeat(&link, &plan, &cache, 2U, 50U, &boot_changed) ==
+    CHECK(canview_uart_session_note_heartbeat(&link, &plan, &cache, &replay, 2U, 50U,
+                                              &boot_changed) ==
           CANVIEW_OK);
     CHECK(boot_changed && !plan.pending && !link.hello_complete);
+    CHECK(!replay.sequence.initialized);
     CHECK(canview_uart_command_cache_lookup(&cache, &key, 50U, &ignored_handle, &stored,
                                             &stored_size) == CANVIEW_STALE);
 
@@ -1455,7 +1470,7 @@ static int test_session(void)
     CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     key.request_token = 4U;
     CHECK(canview_uart_command_cache_admit(&cache, &key, 70U, &handle) == CANVIEW_OK);
-    CHECK(canview_uart_session_tick(&link, &plan, &cache, 1060U) == CANVIEW_OK);
+    CHECK(canview_uart_session_tick(&link, &plan, &cache, &replay, 1060U) == CANVIEW_OK);
     CHECK(!link.hello_complete && !plan.pending);
     CHECK(canview_uart_command_cache_lookup(&cache, &key, 1060U, &ignored_handle, &stored,
                                             &stored_size) == CANVIEW_STALE);
@@ -1467,10 +1482,10 @@ static int test_session(void)
     cache.next_generation = UINT64_MAX;
     const uint64_t peer_boot_before = link.peer_boot_id;
     const bool pending_before = plan.pending;
-    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 3U, 70U, &boot_changed) ==
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, &replay, 3U, 70U, &boot_changed) ==
           CANVIEW_RESOURCE_BUSY);
     CHECK(link.peer_boot_id == peer_boot_before && plan.pending == pending_before);
-    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 0U, 70U, &boot_changed) ==
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, &replay, 0U, 70U, &boot_changed) ==
           CANVIEW_INVALID_ARGUMENT);
     return 0;
 }
@@ -1592,12 +1607,22 @@ static int test_replay(void)
     CHECK(!canview_uart_command_admission_allowed(&link, &forged_view, &authorization, 10U));
     canview_uart_replay_context_t dispatch_replay = {0};
     CHECK(canview_uart_replay_reset(&dispatch_replay) == CANVIEW_OK);
-    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization, &dispatch_replay,
-                                              10U) == CANVIEW_OK);
-    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization, &dispatch_replay,
-                                              10U) == CANVIEW_DUPLICATE);
+    bool queue_accept = false;
+    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization,
+                                              test_enqueue_command, &queue_accept,
+                                              &dispatch_replay, 10U) == CANVIEW_RESOURCE_BUSY);
+    CHECK(!dispatch_replay.sequence.initialized);
+    queue_accept = true;
+    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization,
+                                              test_enqueue_command, &queue_accept,
+                                              &dispatch_replay, 10U) == CANVIEW_OK);
+    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization,
+                                              test_enqueue_command, &queue_accept,
+                                              &dispatch_replay, 10U) == CANVIEW_DUPLICATE);
     CHECK(canview_uart_link_tick(&link, CANVIEW_UART_HEARTBEAT_ONLINE_MS) == CANVIEW_OK);
-    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization, &dispatch_replay,
+    CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization,
+                                              test_enqueue_command, &queue_accept,
+                                              &dispatch_replay,
                                               CANVIEW_UART_HEARTBEAT_ONLINE_MS) ==
           CANVIEW_TIMEOUT);
     return 0;

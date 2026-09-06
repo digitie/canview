@@ -10,7 +10,8 @@ $taskManifest = Get-Content -Raw -LiteralPath (Join-Path $taskRoot "tools/founda
 function Invoke-VerifiedDownload {
     param(
         [Parameter(Mandatory = $true)][string]$Url,
-        [Parameter(Mandatory = $true)][string]$Destination
+        [Parameter(Mandatory = $true)][string]$Destination,
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256
     )
 
     $partial = "$Destination.partial"
@@ -34,8 +35,11 @@ function Invoke-VerifiedDownload {
             (Test-Path -LiteralPath $partial -PathType Leaf) -and
             ((Get-Item -LiteralPath $partial).Length -gt 0)
         if ($valid) {
-            Move-Item -LiteralPath $partial -Destination $Destination
-            return
+            $actualSha256 = (Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha256 -eq $ExpectedSha256.ToLowerInvariant()) {
+                Move-Item -LiteralPath $partial -Destination $Destination
+                return
+            }
         }
         if ($attempt -lt 5) {
             Start-Sleep -Seconds $attempt
@@ -52,7 +56,7 @@ foreach ($name in $names) {
     New-Item -ItemType Directory -Force $directory | Out-Null
     $archive = Join-Path $directory $item.archive
     if (-not (Test-Path -LiteralPath $archive)) {
-        Invoke-VerifiedDownload -Url $item.url -Destination $archive
+        Invoke-VerifiedDownload -Url $item.url -Destination $archive -ExpectedSha256 $item.sha256
     } elseif ((Get-Item -LiteralPath $archive).Length -le 0) {
         throw "Cached archive is empty: $archive. Remove it and rerun the setup script."
     }
