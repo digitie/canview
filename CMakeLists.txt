@@ -27,8 +27,8 @@ add_subdirectory(shared/app)
 include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests/foundation)
-    # Protocol ABI is generated from the v1.3 schema and tested independently
-    # before any runtime transport integration is enabled.
+    # ESP-NOW v1.3 and Communicator UART v1.0 ABIs are generated separately and
+    # tested independently before runtime transport integration is enabled.
     add_executable(canview-protocol-header-c11 tests/protocol/header_c11.c)
     set_target_properties(canview-protocol-header-c11 PROPERTIES
         C_STANDARD 11
@@ -63,7 +63,7 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/shared/protocol/include
         ${PROJECT_SOURCE_DIR}/shared/interface)
     target_link_libraries(canview-uart-tests PRIVATE canview_wire canview_warnings)
-    foreach(scenario matrix direction malformed stream long-stream plan plan-boundaries command command-boundaries link link-boundaries limits session)
+    foreach(scenario matrix direction malformed stream long-stream plan plan-boundaries command command-boundaries link link-boundaries limits session replay)
         add_test(NAME uart-${scenario} COMMAND canview-uart-tests ${scenario})
         set_tests_properties(uart-${scenario} PROPERTIES TIMEOUT 60)
     endforeach()
@@ -78,8 +78,8 @@ if(BUILD_TESTING)
     add_test(NAME uart-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
     add_test(NAME uart-fault-stream COMMAND ${Python3_EXECUTABLE} -X utf8 -B
-        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 3600)
-    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 60)
+        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
+    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 180)
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)

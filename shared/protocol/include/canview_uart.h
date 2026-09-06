@@ -27,6 +27,7 @@ extern "C"
 #define CANVIEW_UART_PLAN_DIGEST_SIZE (32U)
 #define CANVIEW_UART_HEARTBEAT_ONLINE_MS (300U)
 #define CANVIEW_UART_HEARTBEAT_OFFLINE_MS (1000U)
+#define CANVIEW_UART_SAFETY_SNAPSHOT_MAX_AGE_MS (300U)
 #define CANVIEW_UART_CTS_COMMAND_STOP_MS (100U)
 #define CANVIEW_UART_CTS_OFFLINE_MS (1000U)
 
@@ -36,29 +37,10 @@ typedef struct
     const canview_uart_message_policy_t *policy;
 } canview_uart_message_view_t;
 
-typedef struct
-{
-    canview_uart_stream_t stream;
-    uint32_t packets_ok;
-    uint32_t malformed_packets;
-    uint32_t unsupported_messages;
-    uint32_t crc_failures;
-    uint32_t oversize_packets;
-} canview_uart_codec_t;
-
 /** @brief Find the generated policy for a message ID. */
 canview_status_t canview_uart_message_policy(uint8_t message_type,
                                              const canview_uart_message_policy_t **policy);
 
-/** @brief Validate UART envelope semantics after structural framing/CRC. */
-canview_status_t canview_uart_message_validate(const canview_wire_view_t *wire,
-                                               canview_uart_message_view_t *view);
-
-/** @brief Return whether a decoded message is legal for the local endpoint role.
- *
- * Structural validation is deliberately separate from this direction check. This
- * function is still not an authentication, lease, safety or CAN-TX permission.
- */
 typedef enum
 {
     CANVIEW_UART_ENDPOINT_ESP32 = 0,
@@ -71,20 +53,45 @@ typedef enum
     CANVIEW_UART_FLOW_OUTBOUND = 1
 } canview_uart_flow_t;
 
+/** @brief Validate an envelope and enforce its endpoint/flow direction. */
+canview_status_t canview_uart_message_validate_for_endpoint(
+    const canview_wire_view_t *wire, canview_uart_endpoint_t endpoint,
+    canview_uart_flow_t flow, canview_uart_message_view_t *view);
+
+/** @brief Return whether a decoded message is legal for the local endpoint role.
+ *
+ * This helper is used by the endpoint-aware validator and is not an
+ * authentication, lease, safety or CAN-TX permission.
+ */
 bool canview_uart_message_direction_allowed(const canview_uart_message_view_t *view,
                                             canview_uart_endpoint_t endpoint,
                                             canview_uart_flow_t flow);
 
-/** @brief Encode one validated semantic UART message into COBS + delimiter. */
+/** @brief Encode one endpoint-authorized semantic UART message into COBS + delimiter. */
 canview_status_t canview_uart_message_encode(uint8_t message_type, uint8_t flags,
                                              uint32_t sequence, uint32_t correlation_id,
                                              uint64_t sender_time_us, const uint8_t *payload,
-                                             size_t payload_size, uint8_t *scratch,
+                                             size_t payload_size, canview_uart_endpoint_t endpoint,
+                                             canview_uart_flow_t flow, uint8_t *scratch,
                                              size_t scratch_size, uint8_t *out, size_t capacity,
                                              size_t *written);
 
-/** @brief Reset a caller-owned worker-context decoder and its counters. */
-canview_status_t canview_uart_codec_reset(canview_uart_codec_t *codec);
+typedef struct
+{
+    canview_uart_stream_t stream;
+    canview_uart_endpoint_t endpoint;
+    canview_uart_flow_t flow;
+    uint32_t packets_ok;
+    uint32_t malformed_packets;
+    uint32_t unsupported_messages;
+    uint32_t crc_failures;
+    uint32_t oversize_packets;
+} canview_uart_codec_t;
+
+/** @brief Reset a caller-owned worker-context decoder with a fixed endpoint flow. */
+canview_status_t canview_uart_codec_reset(canview_uart_codec_t *codec,
+                                          canview_uart_endpoint_t endpoint,
+                                          canview_uart_flow_t flow);
 
 /** @brief Feed one byte; successful views borrow codec storage until next feed. */
 canview_status_t canview_uart_codec_feed(canview_uart_codec_t *codec, uint8_t byte,
@@ -168,6 +175,7 @@ typedef struct
     bool acknowledged;
     bool terminal;
     uint64_t generation;
+    uint64_t request_expires_at_ms;
     uint64_t expires_at_ms;
     uint16_t result_size;
     canview_uart_command_key_t key;
@@ -186,12 +194,13 @@ canview_status_t canview_uart_command_cache_reset(canview_uart_command_cache_t *
 
 /** @brief Admit a command or identify a duplicate/conflicting token. */
 canview_status_t canview_uart_command_cache_admit(
-    canview_uart_command_cache_t *cache, const canview_uart_command_key_t *key, uint64_t now_ms,
-    canview_uart_command_handle_t *handle);
+    canview_uart_command_cache_t *cache, const canview_uart_command_key_t *key,
+    uint16_t request_ttl_ms, uint64_t now_ms, canview_uart_command_handle_t *handle);
 
-/** @brief Mark the queue ACK without changing a terminal result. */
+/** @brief Mark the queue ACK without changing a terminal result or bypassing TTL. */
 canview_status_t canview_uart_command_cache_mark_ack(canview_uart_command_cache_t *cache,
-                                                     const canview_uart_command_handle_t *handle);
+                                                     const canview_uart_command_handle_t *handle,
+                                                     uint64_t now_ms);
 
 /** @brief Store a terminal result, including when it arrives before ACK. */
 canview_status_t canview_uart_command_cache_record_result(
@@ -224,6 +233,8 @@ typedef struct
     bool cts_known;
     uint64_t peer_boot_id;
     uint64_t last_heartbeat_ms;
+    uint64_t safety_snapshot_time_ms;
+    uint32_t safety_revision;
     uint64_t cts_blocked_since_ms;
     canview_uart_link_state_t state;
 } canview_uart_link_t;
@@ -244,11 +255,13 @@ canview_status_t canview_uart_link_note_hello_ack(canview_uart_link_t *link,
 /** @brief Mark the current local/peer safety snapshot as fresh for admission. */
 canview_status_t canview_uart_link_note_safety_snapshot(canview_uart_link_t *link,
                                                         uint64_t peer_boot_id,
+                                                        uint32_t safety_revision,
                                                         uint64_t now_ms);
 
 /** @brief Note heartbeat and report a boot epoch replacement to the caller. */
 canview_status_t canview_uart_link_note_heartbeat(canview_uart_link_t *link,
-                                                  uint64_t peer_boot_id, uint64_t now_ms,
+                                                  uint64_t peer_boot_id,
+                                                  uint32_t safety_revision, uint64_t now_ms,
                                                   bool *boot_changed);
 
 /** @brief Update CTS state; a block lasting at least the stop threshold halts commands. */
@@ -262,23 +275,47 @@ canview_status_t canview_uart_link_tick(canview_uart_link_t *link, uint64_t now_
 bool canview_uart_link_command_admission_allowed(const canview_uart_link_t *link,
                                                  uint64_t now_ms);
 
+typedef bool (*canview_uart_command_authorize_fn)(
+    const canview_uart_message_view_t *view, uint64_t now_ms, void *context);
+
 typedef struct
 {
-    bool authenticated;
-    bool control_lease_valid;
-    bool safety_snapshot_current;
-    bool build_mode_allows_tx;
-    bool hardware_tx_gate_ready;
+    canview_uart_command_authorize_fn authorize;
+    void *context;
 } canview_uart_command_admission_context_t;
+
+typedef struct
+{
+    canview_sequence_window_t sequence;
+    bool configured;
+} canview_uart_replay_context_t;
+
+/** @brief Reset the single-owner sequence window for one UART direction/session. */
+canview_status_t canview_uart_replay_reset(canview_uart_replay_context_t *context);
+
+/** @brief Authenticate, direction-check and atomically commit one decoded sequence. */
+canview_status_t canview_uart_message_admit(
+    const canview_uart_message_view_t *view, canview_uart_endpoint_t endpoint,
+    canview_uart_flow_t flow, canview_uart_replay_context_t *replay,
+    const canview_uart_command_admission_context_t *authorization, uint64_t now_ms);
 
 /** @brief Combine transport readiness with STM32-owned command safety results.
  *
- * The booleans must come from the local authenticated/safety owner. UART CRC or
- * this helper never authenticates a peer and never creates a vehicle CAN frame.
+ * The callback must be owned by the local authenticated/safety owner. It must
+ * verify the exact decoded request's control tag, canonical digest, identity,
+ * lease, build mode, state revision and hardware gate. UART CRC or this helper
+ * never authenticates a peer and never creates a vehicle CAN frame.
  */
 bool canview_uart_command_admission_allowed(
     const canview_uart_link_t *link,
+    const canview_uart_message_view_t *request,
     const canview_uart_command_admission_context_t *context, uint64_t now_ms);
+
+/** @brief Final command admission boundary before a queue owner dispatches. */
+canview_status_t canview_uart_command_dispatch_admit(
+    const canview_uart_link_t *link, const canview_uart_message_view_t *request,
+    const canview_uart_command_admission_context_t *authorization,
+    canview_uart_replay_context_t *replay, uint64_t now_ms);
 
 /** @brief Atomically clear link, pending observer state and command cache. */
 canview_status_t canview_uart_session_reset(canview_uart_link_t *link,
@@ -294,8 +331,14 @@ canview_status_t canview_uart_session_note_hello(
 /** @brief Note heartbeat and invalidate state when its boot epoch changes. */
 canview_status_t canview_uart_session_note_heartbeat(
     canview_uart_link_t *link, canview_uart_plan_context_t *plan,
-    canview_uart_command_cache_t *cache, uint64_t peer_boot_id, uint64_t now_ms,
-    bool *boot_changed);
+    canview_uart_command_cache_t *cache, uint64_t peer_boot_id,
+    uint32_t safety_revision, uint64_t now_ms, bool *boot_changed);
+
+/** @brief Tick link and atomically discard command/plan state on offline transition. */
+canview_status_t canview_uart_session_tick(canview_uart_link_t *link,
+                                            canview_uart_plan_context_t *plan,
+                                            canview_uart_command_cache_t *cache,
+                                            uint64_t now_ms);
 
 #ifdef __cplusplus
 }
