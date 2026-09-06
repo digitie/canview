@@ -40,7 +40,6 @@ py -3 tools/validate_document_links.py
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-002](tasks/T-002-espnow-schema-v1.3.md) | DONE | P0 | ESP-NOW v1.3 schema와 생성 header 동결 | T-001 |
 | [T-003](tasks/T-003-espnow-codec-session.md) | IN_PROGRESS | P0 | ESP-NOW codec, parser, session과 QoS | T-002 |
 | [T-004](tasks/T-004-uart-schema-codec.md) | BLOCKED | P0 | Communicator UART v1.0 schema와 codec | T-001, T-002 |
 | [T-005](tasks/T-005-canonical-model.md) | BLOCKED | P0 | 공통 quality, evidence, time과 owner model | T-002 |
