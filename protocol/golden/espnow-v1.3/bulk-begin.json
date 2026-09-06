@@ -1,0 +1,42 @@
+{
+  "crc32": "20b44f58",
+  "frame_hex": "4356010320600104040302014e000000112700000000000048000000584fb420080706050403020100112233445566778899aabbccddeeff0100010000400000b4000400aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa30750000",
+  "frame_size": 104,
+  "header": {
+    "correlation_id": 0,
+    "crc32": 548687704,
+    "flags": 1,
+    "header_len": 32,
+    "magic": 22083,
+    "major": 1,
+    "message_type": 96,
+    "minor": 3,
+    "payload_len": 72,
+    "priority": 4,
+    "reserved": 0,
+    "sender_time_ms": 10001,
+    "sequence": 78,
+    "session_id": 16909060
+  },
+  "message": "BULK_BEGIN",
+  "message_id": 96,
+  "name": "bulk-begin",
+  "payload": {
+    "flags": 1,
+    "fragment_size": 180,
+    "object_id": "00112233445566778899aabbccddeeff",
+    "object_type": 1,
+    "request_token": 72623859790382856,
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "timeout_ms": 30000,
+    "total_size": 16384,
+    "window_size": 4
+  },
+  "payload_hex": "080706050403020100112233445566778899aabbccddeeff0100010000400000b4000400aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa30750000",
+  "payload_size": 72,
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}

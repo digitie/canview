@@ -87,9 +87,9 @@ docs/architecture/protocols/esp-now.md
 
 ## 계획 보완 수용 기준
 
-- [ ] navigation-v1.json의 ESP-NOW 1.4 확장을 companion schema로 연결하고 1.3 peer에는 새 sensor message/capability가 노출되지 않는다. 1.3 기본 ABI를 1.4로 조용히 재정의하지 않는다.
-- [ ] bulk의 object/fragment/window/timeout/digest·config schema 16 KiB 제한, config owner/revision/status를 전 메시지 golden vector로 검사한다. 최신 정본의 wireless_session_id:u32와 공통 header/boot binding, capture STATUS의 reason:u16·구 reserved 0B·총44B를 exact offset/size vector로 대조한다.
-- [ ] pairing 각 phase의 canonical prefix/domain·필드 순서·nonce/digest·authorized role/range 변경 negative vector를 독립적으로 고정한다. 권위 key record는 보호된 provisioning A/B, normal NVS는 cache로 구분한다. 이 문서 변경은 schema/codec/golden 구현 완료가 아니다.
+- [x] navigation-v1.json의 ESP-NOW 1.4 확장을 companion schema로 연결하고 1.3 peer에는 새 sensor message/capability가 노출되지 않는다. 1.3 기본 ABI를 1.4로 조용히 재정의하지 않는다.
+- [x] bulk의 object/fragment/window/timeout/digest·config schema 16 KiB 제한, config owner/revision/status를 전 메시지 golden vector로 검사한다. 최신 정본의 wireless_session_id:u32와 공통 header/boot binding, capture STATUS의 reason:u16·구 reserved 0B·총44B를 exact offset/size vector로 대조한다.
+- [x] pairing 각 phase의 canonical prefix/domain·필드 순서·nonce/digest·authorized role/range 변경 negative vector를 독립적으로 고정한다. 권위 key record는 보호된 provisioning A/B, normal NVS는 cache로 구분한다. 이 문서 변경은 schema/codec/golden 구현 완료가 아니다.
 
 ## 검증 명령
 
@@ -100,7 +100,7 @@ cmake --build --preset host-debug
 ctest --preset host-debug -R protocol-schema --output-on-failure
 ```
 
-현재 실행 결과: `python -B tools/generate_protocol.py --check`, `python -B tests/protocol/test_schema.py` 17/17, host-debug CTest는 protocol/generator/legacy automation을 포함해 37/37 PASS였다. Windows checkout의 CRLF에도 generator digest가 동일하도록 canonical LF 회귀시험을 포함한다. Release/sanitize/coverage와 두 전문 reviewer의 독립 검증은 T-002 PR closure 전에 다시 실행한다.
+현재 실행 결과: `python -B tools/generate_protocol.py --check`, `python -B tests/protocol/test_schema.py` 20/20, host-debug CTest는 protocol/generator/legacy automation을 포함해 37/37 PASS였다. 생성물은 15개 정상 frame, 6개 malformed, 4개 compatibility와 pairing contract를 포함한다. Windows checkout의 CRLF에도 generator digest와 text artifact가 동일하도록 canonical LF 회귀시험과 `.gitattributes` 정책을 포함한다. Release/sanitize/coverage와 두 전문 reviewer의 독립 검증은 T-002 PR closure 전에 다시 실행한다.
 
 ## 안전·rollback
 

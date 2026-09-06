@@ -16,6 +16,15 @@
       "check_123456789": 3421780262
     }
   },
+  "companion_schemas": [
+    {
+      "path": "protocol/schema/navigation-v1.json",
+      "transport": "esp_now",
+      "minimum_version": [1, 4],
+      "message_ids": [112, 113, 114, 115, 116, 117, 118, 119],
+      "capabilities": ["sensor.discovery.v1", "sensor.nav.v1", "sensor.imu.v1", "sensor.baro.v1", "sensor.utc.v1"]
+    }
+  ],
   "header": {
     "c_type": "canview_frame_header_t",
     "fields": [
@@ -122,6 +131,32 @@
     "terminal_result_retention_ms": 60000,
     "max_live_entries": 256
   },
+  "config_policy": {
+    "schema_max_bytes": 16384,
+    "max_records": 25,
+    "authoritative_store": "OTA_AB",
+    "cache_store": "NVS_CACHE",
+    "owner_roles": {
+      "SPORT_AUTOMATION_ENABLED": "PRIMARY_CONTROLLER",
+      "SPORT_ENTRY_SPEED_TENTH_KPH": "PRIMARY_CONTROLLER",
+      "SPORT_ACCELERATION_ENABLED": "PRIMARY_CONTROLLER",
+      "RTC_LOCAL_TIME": "PRIMARY_CONTROLLER",
+      "SUNRISE_MINUTES": "PRIMARY_CONTROLLER",
+      "SUNSET_MINUTES": "PRIMARY_CONTROLLER",
+      "HEADLAMP_WARNING_ENABLED": "PRIMARY_CONTROLLER",
+      "CAN_RX_STREAM_PERIOD_MS": "COMMUNICATOR",
+      "CAN_RX_STREAM_MAX_RECORDS": "COMMUNICATOR",
+      "CAN_RX_BYTES_PER_SECOND": "COMMUNICATOR"
+    }
+  },
+  "pairing_negative_vectors": [
+    {"name": "discovery-peer-nonce", "phase": "DISCOVERY", "mutation": "bind_peer_nonce", "expected": "must_not_bind"},
+    {"name": "discovery-selected-version", "phase": "DISCOVERY", "mutation": "bind_selected_version", "expected": "must_not_bind"},
+    {"name": "request-authorizes-role", "phase": "PAIR_REQUEST", "mutation": "authorize_requested_role", "expected": "must_not_authorize"},
+    {"name": "challenge-unauthorized-scope", "phase": "PAIR_CHALLENGE", "mutation": "accept_untrusted_scope", "expected": "reject_without_local_authorization"},
+    {"name": "confirm-transcript-order", "phase": "PAIR_CONFIRM", "mutation": "reorder_transcript_fields", "expected": "bad_canonical_order"},
+    {"name": "result-transcript-digest", "phase": "PAIR_RESULT", "mutation": "change_transcript_hash", "expected": "bad_transcript"}
+  ],
   "tlv": {
     "header_size": 4,
     "critical_bit": 32768,
@@ -188,7 +223,16 @@
     {"name": "pair-discovery", "message": "DISCOVERY", "header": {"flags": 32, "priority": 0, "session_id": 0, "sequence": 1, "sender_time_ms": 1000, "correlation_id": 0}, "payload": {"installation_id": 72623859790382856, "endpoint_id": 1230066625199609624, "mac": "aabbccddeeff", "nonce": "000102030405060708090a0b0c0d0e0f", "channel": 6, "proposed_major": 1, "proposed_minor_min": 3, "proposed_minor_max": 3, "link_key_generation": 7, "expires_at_ms": 120000, "hmac_tag": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"}},
     {"name": "command-retry", "message": "COMMAND_REQUEST", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 10, "sender_time_ms": 5000, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "command_id": 257, "ttl_ms": 2000, "origin_device_id": 1230066625199609624, "origin_boot_id": 72623859790382856, "wireless_session_id": 16909060, "control_generation": 9, "issued_at_controller_ms": 4000, "control_sync_generation": 3, "expected_state_revision": 17, "precondition_flags": 65, "argument_tlv_length": 8, "argument_tlv": "0100040001000000", "control_tag": "000102030405060708090a0b0c0d0e0f"}},
     {"name": "capture-status", "message": "CAN_CAPTURE_STATUS", "header": {"flags": 2, "priority": 2, "session_id": 16909060, "sequence": 55, "sender_time_ms": 9000, "correlation_id": 10}, "payload": {"request_token": 72623859790382856, "capture_id": 1230066625199609624, "state": 2, "reason": 0, "bus_mask": 7, "accepted_records": 120, "dropped_records": 3, "stored_bytes": 4096, "remaining_ms": 10000, "effective_filter_revision": 17}},
-    {"name": "bulk-fragment", "message": "BULK_FRAGMENT", "header": {"flags": 9, "priority": 4, "session_id": 16909060, "sequence": 77, "sender_time_ms": 10000, "correlation_id": 0}, "payload": {"object_id": "00112233445566778899aabbccddeeff", "fragment_index": 2, "total_fragments": 4, "payload_len": 6, "flags": 1, "fragment_bytes": "deadbeef0102"}}
+    {"name": "bulk-fragment", "message": "BULK_FRAGMENT", "header": {"flags": 9, "priority": 4, "session_id": 16909060, "sequence": 77, "sender_time_ms": 10000, "correlation_id": 0}, "payload": {"object_id": "00112233445566778899aabbccddeeff", "fragment_index": 2, "total_fragments": 4, "payload_len": 6, "flags": 1, "fragment_bytes": "deadbeef0102"}},
+    {"name": "bulk-begin", "message": "BULK_BEGIN", "header": {"flags": 1, "priority": 4, "session_id": 16909060, "sequence": 78, "sender_time_ms": 10001, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "object_id": "00112233445566778899aabbccddeeff", "object_type": 1, "flags": 1, "total_size": 16384, "fragment_size": 180, "window_size": 4, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "timeout_ms": 30000}},
+    {"name": "bulk-ack", "message": "BULK_ACK", "header": {"flags": 2, "priority": 4, "session_id": 16909060, "sequence": 79, "sender_time_ms": 10002, "correlation_id": 78}, "payload": {"object_id": "00112233445566778899aabbccddeeff", "base_fragment": 2, "received_bitmap": 15, "received_bytes": 360, "window_size": 4, "status": 0}},
+    {"name": "bulk-end", "message": "BULK_END", "header": {"flags": 1, "priority": 4, "session_id": 16909060, "sequence": 80, "sender_time_ms": 10003, "correlation_id": 78}, "payload": {"object_id": "00112233445566778899aabbccddeeff", "status": 3, "total_size": 16384, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "reason": 0}},
+    {"name": "config-get", "message": "CONFIG_GET", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 81, "sender_time_ms": 10004, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "expected_state_revision": 17, "schema_version": 6, "key": 513, "known_revision": 4}},
+    {"name": "config-set", "message": "CONFIG_SET", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 82, "sender_time_ms": 10005, "correlation_id": 0}, "payload": {"schema_version": 6, "records": [{"key": 513, "value_type": 4, "value_bits": 1}, {"key": 514, "value_type": 2, "value_bits": 550}] }},
+    {"name": "config-result", "message": "CONFIG_RESULT", "header": {"flags": 2, "priority": 1, "session_id": 16909060, "sequence": 83, "sender_time_ms": 10006, "correlation_id": 82}, "payload": {"request_token": 72623859790382856, "stage": 2, "applied_count": 2, "pending_count": 0, "reason": 0, "state_revision": 18, "completed_time_ms": 10006, "detail": 0}},
+    {"name": "config-schema-request", "message": "CONFIG_SCHEMA_REQUEST", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 84, "sender_time_ms": 10007, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "known_schema_version": 6, "known_digest_prefix": 3735928559}},
+    {"name": "remote-config-request", "message": "REMOTE_CONFIG_REQUEST", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 85, "sender_time_ms": 10008, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "expected_state_revision": 18, "schema_version": 6, "flags": 1, "ttl_ms": 30000, "records": [{"key": 515, "value_type": 4, "value_bits": 1}]}},
+    {"name": "remote-config-status", "message": "REMOTE_CONFIG_STATUS", "header": {"flags": 2, "priority": 1, "session_id": 16909060, "sequence": 86, "sender_time_ms": 10009, "correlation_id": 85}, "payload": {"request_token": 72623859790382856, "stage": 2, "applied_count": 1, "pending_count": 0, "reason": 0, "state_revision": 19, "completed_time_ms": 10009, "detail": 0}}
   ],
   "negative_vectors": [
     {"name": "truncated-header", "base": "hello", "mutation": "truncate", "length": 31, "expected": "bad_length"},

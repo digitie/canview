@@ -71,6 +71,18 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertIn("origin_boot_id", self.schema["control_envelope"]["retry_immutable_fields"])
         self.assertIn("wireless_session_id", self.schema["control_envelope"]["idempotency_key"])
 
+    def test_navigation_companion_is_version_gated(self) -> None:
+        companion = self.schema["companion_schemas"][0]
+        navigation = json.loads((ROOT / companion["path"]).read_text(encoding="utf-8"))
+        self.assertEqual(companion["minimum_version"], [1, 4])
+        self.assertEqual(navigation["esp_now_min_version"], [1, 4])
+        self.assertEqual(set(companion["message_ids"]), {
+            message["id"] for message in navigation["messages"].values() if message["transport"] == "esp_now"
+        })
+        self.assertTrue(set(companion["message_ids"]).isdisjoint({message["id"] for message in self.messages.values()}))
+        self.assertNotIn("SENSOR_CAPABILITIES", self.messages)
+        self.assertNotIn("sensor.nav.v1", json.dumps(self.schema["messages"]))
+
     def test_message_contract_metadata_is_complete(self) -> None:
         contracts = self.schema["message_contracts"]
         self.assertEqual(set(contracts), set(self.messages))
@@ -92,6 +104,61 @@ class EspNowSchemaTests(unittest.TestCase):
                     self.assertEqual(field["type"], "u64")
                 if field["name"] == "reason":
                     self.assertEqual(field["type"], "u16")
+
+    def test_bulk_capture_and_config_contracts_have_exact_bounds(self) -> None:
+        config = self.schema["config_policy"]
+        self.assertEqual(config["schema_max_bytes"], 16384)
+        self.assertEqual(config["max_records"], 25)
+        config_keys = next(enum["values"] for enum in self.schema["enums"] if enum["name"] == "config_key")
+        self.assertEqual(set(config["owner_roles"]), set(config_keys))
+        self.assertEqual(config["authoritative_store"], "OTA_AB")
+        self.assertEqual(config["cache_store"], "NVS_CACHE")
+
+        expected_sizes = {
+            "BULK_BEGIN": 72,
+            "BULK_FRAGMENT": 28,
+            "BULK_ACK": 32,
+            "BULK_END": 60,
+            "CAN_CAPTURE_STATUS": 44,
+        }
+        for name, expected_size in expected_sizes.items():
+            with self.subTest(message=name):
+                low, high = generator.payload_size_bounds(self.messages[name])
+                self.assertEqual(low, expected_size if name != "BULK_FRAGMENT" else 28)
+                self.assertLessEqual(high, 208)
+
+        capture_fields = {field["name"]: field for field in self.messages["CAN_CAPTURE_STATUS"]["payload"]["fields"]}
+        self.assertEqual(capture_fields["reason"]["type"], "u16")
+        self.assertEqual(capture_fields["reason"]["offset"], 17)
+        self.assertEqual(capture_fields["reserved1"]["offset"], 40)
+        self.assertEqual(capture_fields["reserved1"]["type"], "u32")
+        command_fields = {field["name"]: field for field in self.messages["COMMAND_REQUEST"]["payload"]["prefix"]["fields"]}
+        self.assertEqual(command_fields["wireless_session_id"]["type"], "u32")
+        self.assertEqual(command_fields["wireless_session_id"]["offset"], 28)
+
+        golden_names = {vector["name"] for vector in self.schema["golden_vectors"]}
+        self.assertTrue({
+            "bulk-begin", "bulk-fragment", "bulk-ack", "bulk-end",
+            "config-get", "config-set", "config-result", "config-schema-request",
+            "remote-config-request", "remote-config-status",
+        }.issubset(golden_names))
+
+    def test_pairing_phase_order_and_negative_vectors_are_complete(self) -> None:
+        phases = {phase["message"]: phase for phase in self.schema["pairing_phases"]}
+        negatives = self.schema["pairing_negative_vectors"]
+        rendered = json.loads(generator.PAIRING_VECTOR_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(rendered["schema_version"], self.schema["schema_version"])
+        self.assertEqual({item["name"] for item in rendered["vectors"]}, {item["name"] for item in negatives})
+        self.assertEqual({vector["phase"] for vector in negatives}, set(phases))
+        for phase_name, phase in phases.items():
+            with self.subTest(phase=phase_name):
+                self.assertTrue(phase["domain"].startswith("CV-"))
+                self.assertGreaterEqual(len(phase["canonical_fields"]), 3)
+                self.assertTrue(any(vector["phase"] == phase_name for vector in negatives))
+                self.assertTrue(any(item["domain"] == phase["domain"] for item in rendered["vectors"]))
+        self.assertIn("peer_nonce", phases["DISCOVERY"]["must_not_bind"])
+        self.assertIn("selected_version", phases["DISCOVERY"]["must_not_bind"])
+        self.assertIn("requested_role", phases["PAIR_REQUEST"]["must_not_authorize"])
 
     def test_tlv_extension_policy(self) -> None:
         tlv = self.schema["tlv"]

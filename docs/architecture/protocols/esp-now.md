@@ -13,10 +13,12 @@
 `protocol/schema/espnow-v1.3.yaml`이 유일한 ABI 입력이다. `tools/generate_protocol.py`가 다음 산출물을 결정적으로 생성하고 `--check`에서 drift를 거부한다.
 
 - [`protocol/canview_protocol.h`](../../../protocol/canview_protocol.h): C packed wire layout, field offset/size assertion, message ID와 enum
-- [`protocol/golden/espnow-v1.3/`](../../../protocol/golden/espnow-v1.3/): 정상 frame, malformed frame, same-major/future-minor와 TLV compatibility vector
+- [`protocol/golden/espnow-v1.3/`](../../../protocol/golden/espnow-v1.3/): 정상 frame, malformed frame, same-major/future-minor와 TLV compatibility vector 및 pairing negative contract
 - [`tests/protocol/test_schema.py`](../../../tests/protocol/test_schema.py): Python little-endian encoder/decoder oracle와 schema/security/범위 회귀시험
 
 각 message의 `since`, response, idempotency key와 sensitive-log policy는 schema의 `message_contracts` companion map에서 같은 이름으로 관리한다. `SIGNAL_BATCH`는 catalog revision을 `u32`로 유지하고, boot 누적 상태 counter는 `u64`, 공통 reason은 `u16`이다. `READ_ONLY_CONTROLLER`와 `DIAGNOSTIC_BRIDGE`는 capability control scope를 0으로 광고하며 control root를 갖지 않는다.
+
+`protocol/schema/navigation-v1.json`은 ESP-NOW `1.4` 이상에서만 활성화되는 companion schema다. `1.3`의 message catalog에는 `0x70–0x77` 센서 message와 sensor capability 이름을 넣지 않으며, generator가 companion 경로·version gate·ID·capability disjoint를 검사한다. config schema는 최대 16 KiB, OTA A/B를 권위 저장소, NVS를 cache로 고정하고 key별 owner role을 둔다. pairing phase canonical field 순서와 domain은 별도 generated pairing negative contract로 고정한다.
 
 설계 원칙은 다음과 같다.
 

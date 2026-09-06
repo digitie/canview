@@ -1,0 +1,41 @@
+{
+  "crc32": "292494f5",
+  "frame_hex": "4356010320450201040302015600000019270000550000001c000000f594242908070605040302010201000000000000130000001927000000000000",
+  "frame_size": 60,
+  "header": {
+    "correlation_id": 85,
+    "crc32": 690263285,
+    "flags": 2,
+    "header_len": 32,
+    "magic": 22083,
+    "major": 1,
+    "message_type": 69,
+    "minor": 3,
+    "payload_len": 28,
+    "priority": 1,
+    "reserved": 0,
+    "sender_time_ms": 10009,
+    "sequence": 86,
+    "session_id": 16909060
+  },
+  "message": "REMOTE_CONFIG_STATUS",
+  "message_id": 69,
+  "name": "remote-config-status",
+  "payload": {
+    "applied_count": 1,
+    "completed_time_ms": 10009,
+    "detail": 0,
+    "pending_count": 0,
+    "reason": 0,
+    "request_token": 72623859790382856,
+    "stage": 2,
+    "state_revision": 19
+  },
+  "payload_hex": "08070605040302010201000000000000130000001927000000000000",
+  "payload_size": 28,
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}

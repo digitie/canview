@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "vectors": [
+    {
+      "canonical_fields": [
+        "installation_id",
+        "endpoint_id",
+        "mac",
+        "nonce",
+        "channel",
+        "proposed_major",
+        "proposed_minor_min",
+        "proposed_minor_max",
+        "link_key_generation"
+      ],
+      "domain": "CV-DISCOVERY-1",
+      "expected": "must_not_bind",
+      "mutation": "bind_peer_nonce",
+      "name": "discovery-peer-nonce",
+      "phase": "DISCOVERY"
+    },
+    {
+      "canonical_fields": [
+        "installation_id",
+        "endpoint_id",
+        "mac",
+        "nonce",
+        "channel",
+        "proposed_major",
+        "proposed_minor_min",
+        "proposed_minor_max",
+        "link_key_generation"
+      ],
+      "domain": "CV-DISCOVERY-1",
+      "expected": "must_not_bind",
+      "mutation": "bind_selected_version",
+      "name": "discovery-selected-version",
+      "phase": "DISCOVERY"
+    },
+    {
+      "canonical_fields": [
+        "discovery_digest",
+        "requester_endpoint_id",
+        "requester_mac",
+        "controller_nonce",
+        "requested_role",
+        "requested_major",
+        "requested_minor"
+      ],
+      "domain": "CV-PAIR-REQUEST-1",
+      "expected": "must_not_authorize",
+      "mutation": "authorize_requested_role",
+      "name": "request-authorizes-role",
+      "phase": "PAIR_REQUEST"
+    },
+    {
+      "canonical_fields": [
+        "discovery_digest",
+        "request_digest",
+        "endpoint0_id",
+        "endpoint1_id",
+        "nonce0",
+        "nonce1",
+        "selected_major",
+        "selected_minor",
+        "channel",
+        "authorized_role",
+        "authorized_scope",
+        "allowed_message_classes",
+        "link_key_generation"
+      ],
+      "domain": "CV-PAIR-CHALLENGE-1",
+      "expected": "reject_without_local_authorization",
+      "mutation": "accept_untrusted_scope",
+      "name": "challenge-unauthorized-scope",
+      "phase": "PAIR_CHALLENGE"
+    },
+    {
+      "canonical_fields": [
+        "transcript_hash",
+        "selected_major",
+        "selected_minor",
+        "authorized_role",
+        "link_key_generation",
+        "confirm_nonce"
+      ],
+      "domain": "CV-PAIR-CONFIRM-1",
+      "expected": "bad_canonical_order",
+      "mutation": "reorder_transcript_fields",
+      "name": "confirm-transcript-order",
+      "phase": "PAIR_CONFIRM"
+    },
+    {
+      "canonical_fields": [
+        "request_token",
+        "status",
+        "assigned_role",
+        "link_key_generation",
+        "peer_id",
+        "transcript_hash",
+        "expires_at_ms"
+      ],
+      "domain": "CV-PAIR-RESULT-1",
+      "expected": "bad_transcript",
+      "mutation": "change_transcript_hash",
+      "name": "result-transcript-digest",
+      "phase": "PAIR_RESULT"
+    }
+  ]
+}

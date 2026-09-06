@@ -26,6 +26,7 @@ HEADER_PATH = ROOT / "protocol" / "canview_protocol.h"
 GOLDEN_DIR = ROOT / "protocol" / "golden" / "espnow-v1.3"
 MALFORMED_DIR = GOLDEN_DIR / "malformed"
 COMPATIBILITY_DIR = GOLDEN_DIR / "compatibility"
+PAIRING_VECTOR_PATH = GOLDEN_DIR / "pairing-negative.json"
 
 TYPE_INFO: dict[str, tuple[str, int, bool]] = {
     "u8": ("uint8_t", 1, False),
@@ -169,6 +170,94 @@ def _layout_entries(schema: Mapping[str, Any]) -> Iterable[tuple[str, int, Seque
             if entry[0] not in seen:
                 seen.add(entry[0])
                 yield entry
+
+
+def _validate_companion_schemas(schema: Mapping[str, Any], message_ids: set[int]) -> None:
+    companions = schema.get("companion_schemas")
+    if not isinstance(companions, Sequence) or isinstance(companions, (str, bytes)) or not companions:
+        raise SchemaError("companion_schemas must be a non-empty list")
+    for companion in companions:
+        if not isinstance(companion, Mapping):
+            raise SchemaError("companion schema entry must be an object")
+        relative_path = companion.get("path")
+        if not isinstance(relative_path, str) or not relative_path:
+            raise SchemaError("companion schema path is required")
+        companion_path = (ROOT / relative_path).resolve()
+        try:
+            companion_path.relative_to(ROOT)
+        except ValueError as exc:
+            raise SchemaError("companion schema path escapes the repository") from exc
+        if not companion_path.is_file():
+            raise SchemaError(f"companion schema is missing: {relative_path}")
+        if companion.get("transport") != "esp_now":
+            raise SchemaError(f"unsupported companion transport: {companion.get('transport')}")
+        minimum_version = companion.get("minimum_version")
+        if minimum_version != [1, 4]:
+            raise SchemaError("navigation companion must require ESP-NOW 1.4")
+        companion_schema = load_schema(companion_path)
+        if companion_schema.get("esp_now_min_version") != minimum_version:
+            raise SchemaError("companion schema version gate disagrees with its metadata")
+        companion_messages = companion_schema.get("messages")
+        if not isinstance(companion_messages, Mapping):
+            raise SchemaError("companion schema messages must be an object")
+        actual_ids = {
+            int(message.get("id"))
+            for message in companion_messages.values()
+            if isinstance(message, Mapping) and message.get("transport") == "esp_now"
+        }
+        declared_ids = companion.get("message_ids")
+        if not isinstance(declared_ids, Sequence) or set(declared_ids) != actual_ids:
+            raise SchemaError("companion message IDs do not match the companion schema")
+        if message_ids.intersection(actual_ids):
+            raise SchemaError("v1.3 message IDs overlap a version-gated companion schema")
+        declared_capabilities = companion.get("capabilities")
+        actual_capabilities = {
+            str(message.get("capability"))
+            for message in companion_messages.values()
+            if isinstance(message, Mapping)
+            and message.get("transport") == "esp_now"
+            and message.get("capability") is not None
+        }
+        if not isinstance(declared_capabilities, Sequence) or set(declared_capabilities) != actual_capabilities:
+            raise SchemaError("companion capabilities do not match the companion schema")
+
+
+def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
+    config_policy = schema.get("config_policy")
+    if not isinstance(config_policy, Mapping):
+        raise SchemaError("config_policy is required")
+    if config_policy.get("schema_max_bytes") != 16384 or config_policy.get("max_records") != 25:
+        raise SchemaError("config schema limits changed")
+    if config_policy.get("authoritative_store") != "OTA_AB" or config_policy.get("cache_store") != "NVS_CACHE":
+        raise SchemaError("config ownership storage policy changed")
+    config_enum = next((enum for enum in schema["enums"] if enum.get("name") == "config_key"), None)
+    owners = config_policy.get("owner_roles")
+    if not isinstance(config_enum, Mapping) or not isinstance(owners, Mapping):
+        raise SchemaError("config owner roles are required")
+    if set(owners) != set(config_enum["values"]):
+        raise SchemaError("every config key must have exactly one owner role")
+    if not set(owners.values()).issubset({"PRIMARY_CONTROLLER", "COMMUNICATOR"}):
+        raise SchemaError("config owner role is not authorized")
+
+    phases = schema.get("pairing_phases")
+    negatives = schema.get("pairing_negative_vectors")
+    phase_names = {str(phase.get("message")) for phase in phases} if isinstance(phases, Sequence) else set()
+    if phase_names != {"DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"}:
+        raise SchemaError("pairing phases are incomplete")
+    if not isinstance(negatives, Sequence) or isinstance(negatives, (str, bytes)):
+        raise SchemaError("pairing_negative_vectors must be a list")
+    seen_names: set[str] = set()
+    for vector in negatives:
+        if not isinstance(vector, Mapping):
+            raise SchemaError("pairing negative vector must be an object")
+        name = vector.get("name")
+        if not isinstance(name, str) or name in seen_names:
+            raise SchemaError("pairing negative vector names must be unique")
+        if vector.get("phase") not in phase_names or not vector.get("mutation") or not vector.get("expected"):
+            raise SchemaError(f"invalid pairing negative vector: {vector!r}")
+        seen_names.add(name)
+    if {str(vector.get("phase")) for vector in negatives} != phase_names:
+        raise SchemaError("each pairing phase needs an independent negative vector")
 
 
 def validate_schema(schema: Mapping[str, Any]) -> None:
@@ -332,6 +421,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
     required = schema.get("required_message_ids")
     if sorted(required) != sorted(message_ids):
         raise SchemaError("required_message_ids must exactly match declared message IDs")
+    _validate_companion_schemas(schema, message_ids)
     contracts = schema.get("message_contracts")
     if not isinstance(contracts, Mapping) or set(contracts) != message_names:
         raise SchemaError("message_contracts must describe every declared message exactly once")
@@ -369,6 +459,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         "origin_device_id", "origin_boot_id", "wireless_session_id", "control_generation", "request_token"
     ]:
         raise SchemaError("control idempotency key lost its boot/session binding")
+    _validate_config_and_pairing_policy(schema)
 
 
 def _c_literal(value: int, type_name: str) -> str:
@@ -883,6 +974,19 @@ def _render_compatibility(schema: Mapping[str, Any], base_frames: Mapping[str, b
     return output
 
 
+def _render_pairing_vectors(schema: Mapping[str, Any]) -> str:
+    phases = {str(phase["message"]): phase for phase in schema["pairing_phases"]}
+    vectors = []
+    for vector in schema["pairing_negative_vectors"]:
+        phase = phases[str(vector["phase"])]
+        vectors.append({
+            **vector,
+            "domain": phase["domain"],
+            "canonical_fields": phase["canonical_fields"],
+        })
+    return json.dumps({"schema_version": schema["schema_version"], "vectors": vectors}, indent=2, sort_keys=True) + "\n"
+
+
 def _canonical_schema_bytes(path: Path = SCHEMA_PATH) -> bytes:
     """Return schema bytes with platform line endings removed from the digest."""
 
@@ -890,7 +994,7 @@ def _canonical_schema_bytes(path: Path = SCHEMA_PATH) -> bytes:
     return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
-def _expected_outputs(schema: Mapping[str, Any]) -> tuple[str, dict[str, tuple[bytes, str]], dict[str, tuple[bytes, str]], dict[str, str]]:
+def _expected_outputs(schema: Mapping[str, Any]) -> tuple[str, dict[str, tuple[bytes, str]], dict[str, tuple[bytes, str]], dict[str, str], str]:
     digest = hashlib.sha256(_canonical_schema_bytes()).hexdigest()
     header = render_header(schema, digest)
     golden: dict[str, tuple[bytes, str]] = {}
@@ -901,7 +1005,8 @@ def _expected_outputs(schema: Mapping[str, Any]) -> tuple[str, dict[str, tuple[b
         golden[str(vector["name"])] = (frame, json.dumps(rendered, indent=2, sort_keys=True) + "\n")
     negative = _render_negative(schema, base_frames)
     compatibility = _render_compatibility(schema, base_frames)
-    return header, golden, negative, compatibility
+    pairing = _render_pairing_vectors(schema)
+    return header, golden, negative, compatibility, pairing
 
 
 def _check_or_write_file(path: Path, content: bytes, write: bool) -> None:
@@ -916,7 +1021,7 @@ def _check_or_write_file(path: Path, content: bytes, write: bool) -> None:
 def generate(write: bool) -> None:
     schema = load_schema()
     validate_schema(schema)
-    header, golden, negative, compatibility = _expected_outputs(schema)
+    header, golden, negative, compatibility, pairing = _expected_outputs(schema)
     _check_or_write_file(HEADER_PATH, header.encode("utf-8"), write)
     for name, (frame, metadata) in golden.items():
         _check_or_write_file(GOLDEN_DIR / f"{name}.bin", frame, write)
@@ -925,8 +1030,9 @@ def generate(write: bool) -> None:
         for name, (frame, metadata) in vectors.items():
             _check_or_write_file(directory / f"{name}.bin", frame, write)
             _check_or_write_file(directory / f"{name}.json", metadata.encode("utf-8"), write)
+    _check_or_write_file(PAIRING_VECTOR_PATH, pairing.encode("utf-8"), write)
     mode = "generated" if write else "verified"
-    print(f"protocol {mode}: header + {len(golden)} golden + {len(negative)} malformed + {len(compatibility)} compatibility")
+    print(f"protocol {mode}: header + {len(golden)} golden + {len(negative)} malformed + {len(compatibility)} compatibility + pairing")
 
 
 def main(argv: Sequence[str] | None = None) -> int:

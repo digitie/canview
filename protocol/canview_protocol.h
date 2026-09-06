@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define CANVIEW_PROTOCOL_SCHEMA_SHA256 "88275ca2ef0f12d521bd19ac163a54684602414dbba01f52d0cd4d82a01e377b"
+#define CANVIEW_PROTOCOL_SCHEMA_SHA256 "f65b6167698be2811b1bc80ddc28e1128e550ace1a256fc7c7a714c8a090c6f1"
 #define CANVIEW_PROTOCOL_WIRE_NAME "ESP-NOW v1.3"
 
 #ifdef __cplusplus
