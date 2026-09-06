@@ -8,3 +8,8 @@ hardware/**/*.net text eol=lf
 hardware/**/*.csv text eol=lf
 hardware/**/*.pdf binary
 hardware/**/*.png binary
+
+# Protocol schema and generated text must retain byte-stable LF endings on every host.
+protocol/schema/**/*.yaml text eol=lf
+protocol/**/*.h text eol=lf
+protocol/**/*.json text eol=lf
