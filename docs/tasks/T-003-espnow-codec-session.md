@@ -1,10 +1,12 @@
 # T-003 ESP-NOW codec, parser, session과 QoS
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-002`
 - 병렬 가능: `T-004`, `T-005`
+- 작업 branch: `agent/codex-t003-espnow-codec-session`
+- PR: draft 생성 후 기록
 
 ## 목표
 
@@ -85,3 +87,11 @@ golden vector count, fuzz seed corpus, branch coverage, sequence/session state g
 
 - 예상 산출물은 `shared/protocol/` 공통 codec·session API와 이 문서의 `tests/protocol/` reference/fault script다. IDF callback·radio/Flash adapter 구현은 범위 밖이다.
 - API context는 caller 소유이며 session reset/destroy 전에 pending retry와 borrowed payload를 해제한다. 실패 시 ONLINE/control을 닫고 이전 session queue를 재사용하지 않는다.
+
+## 구현 순서
+
+1. 기존 foundation framing과 분리된 byte reader/writer, v1.3 message contract table, C/Python reference round-trip을 추가한다.
+2. transport metadata·peer/session context·anti-replay·link state를 고정 pool과 함께 추가한다.
+3. pairing transcript와 control tag는 crypto primitive를 재구현하지 않고 caller-owned HMAC/HKDF adapter에 연결한다. unencrypted metadata에서는 control path를 열지 않는다.
+4. ACK/retry와 resource reservation을 bounded scheduler로 구현하고 loss·delay·duplicate·reorder fault 시험을 추가한다.
+5. host sanitizer/coverage와 Arm/ESP target warning gate를 실행하고, 독립 전문 리뷰어 2명의 finding을 반영한 뒤 merge한다.

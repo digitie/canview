@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-06 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 acceptance·local target build·2인 적대적 리뷰·원격 CI를 통과해 PR #17이 main(`74d43ff`)에 merge되었고 `DONE`이다.
+2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 schema/generator/header/golden·target CI·2인 적대적 리뷰 후 PR #18(`c18a8a5`)로 main에 merge되어 `DONE`이다.
 
 2026-09-06 전체 계획 재점검: 1차 전체 읽기와 2차 요구/task/정본 대조로 [42개 요구 추적표](architecture/requirements-coverage.md)와 46개 상세 task를 정리했다. OTA 8개 구현 단계, PCB 제작 gate와 오디오/SPORT의 수신 조사→bench 송신 순환 의존성을 보완했다. 운전자·진단 웹 각 5뷰와 LVGL을 개선하고 밝기/음량/SPORT host 결함을 수정했다. 작성자 검증과 최종 독립 2인 리뷰의 범위는 새 review 기록으로 추적한다. 이는 제품 전체 구현 완료가 아니다.
 
@@ -16,11 +16,11 @@
 
 ## 다음 한 작업
 
-T-001 PR #17 merge가 완료됐다. 다음으로 T-002 ESP-NOW v1.3 schema와 생성 header 동결을 진행한다. target SDK와 build scaffold는 manifest digest까지 고정했다.
+T-002 PR #18 merge(`c18a8a5`) 후 T-003 ESP-NOW codec/session/QoS 구현을 시작했다. 현재 branch는 `agent/codex-t003-espnow-codec-session`이며 draft PR과 구현 커밋을 원격에 단계적으로 올린다.
 
-- 현재 문서: docs/tasks/T-002-espnow-schema-v1.3.md, docs/architecture/protocols/esp-now.md, docs/development/windows.md
-- 확인 대상: schema/generator/header drift, message별 field/role/state/QoS, golden/malformed/version/capability vector, C/Python size agreement
-- 완료 조건: 모든 v1.3 message ABI와 생성 header, golden·negative vector, 문서 대조, host CTest/CI gate를 실제 실행하고 2인 적대적 리뷰 disposition을 남긴다.
+- 현재 문서: docs/tasks/T-003-espnow-codec-session.md, docs/architecture/protocols/esp-now.md, docs/architecture/implementation-readiness.md, docs/development/windows.md
+- 구현 순서: byte-safe frame codec와 generated message policy → session/anti-replay/link state → pairing/control-tag adapter → fixed resource/QoS scheduler → C/Python 교차시험·fault/fuzz evidence
+- 완료 조건: T-003 acceptance 전부, host sanitizer/coverage, target STM32·ESP32 warning-free build, 2인 적대적 리뷰 finding disposition과 재시험을 실제 실행한다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
@@ -31,7 +31,7 @@ T-001 PR #17 merge가 완료됐다. 다음으로 T-002 ESP-NOW v1.3 schema와 �
 ## 알려진 차단 조건
 
 - 검토 schematic/BOM과 firmware 독립 TX gate 회로는 있으나 승인 PCB·실물 fault evidence가 없음
-- ESP-NOW/UART v1.3/v1.0 전체 ABI와 생성 codec이 아직 동결되지 않음
+- T-003 runtime codec/session/QoS와 T-004 UART codec이 아직 구현·target 통합되지 않음
 - 2017 Tucson TL의 실제 bus 종류·bitrate·connector·신호가 미확정
 - 완성 target firmware와 HIL/fault evidence가 없음
 - 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. foundation-windows.ps1와 setup-windows.ps1을 dot-source하면 Clang23.1.0/CMake4.4.3/Ninja1.13.2 및 직접 설치된 Arm15.3.Rel1/IDF6.0.3/CubeG4 1.6.3을 검증한다. target compile gate는 통과했지만 실제 보드/HIL은 미실행이다.
