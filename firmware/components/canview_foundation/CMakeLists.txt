@@ -1,5 +1,6 @@
 idf_component_register(
     SRCS "../../../shared/protocol/src/canview_wire.c"
+         "../../../shared/protocol/src/canview_uart.c"
          "../../../shared/protocol/src/canview_espnow.c"
          "../../../shared/protocol/src/canview_espnow_contract.c"
          "../../../shared/app/src/canview_app.c"

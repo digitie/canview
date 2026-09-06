@@ -1,5 +1,6 @@
 add_library(canview_wire STATIC
     src/canview_wire.c
+    src/canview_uart.c
     src/canview_espnow.c
     src/canview_espnow_contract.c)
 target_include_directories(canview_wire PUBLIC
