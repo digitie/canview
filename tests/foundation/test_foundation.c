@@ -278,6 +278,9 @@ static int test_can(void)
         for (size_t i = 0U; i < count; ++i)
         {
             CHECK(decoded.records[i].can_id == 0x7FFU && decoded.records[i].delta_us == i * 100U);
+            CHECK(decoded.records[i].bus_id == batch.records[i].bus_id);
+            CHECK(decoded.records[i].flags == batch.records[i].flags);
+            CHECK(decoded.records[i].dlc == batch.records[i].dlc);
             CHECK(memcmp(decoded.records[i].data, batch.records[i].data, 8U) == 0);
         }
         CHECK(canview_wire_can_batch_decode(bytes, size - 1U, &decoded) == CANVIEW_MALFORMED &&

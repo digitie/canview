@@ -105,7 +105,7 @@ Waveshare의 Arduino 예제와 ESP-IDF 예제에서 확인한 기본 점유는 �
 | onboard I2C SCL/SDA | `GPIO7` / `GPIO8` | 400 kHz 예제; 여러 장치가 공유 |
 | LCD reset/확장 | `TCA9554`, I2C address `0x20` | 예제는 TCA9554 output 1로 LCD reset 제어 |
 | TF card | `GPIO9`, `GPIO10`, `GPIO11` | 보드 저장장치와 충돌 |
-| audio I²S | `GPIO12` MCLK, `GPIO13` BCLK, `GPIO14` playback DIN, `GPIO15` LRCLK, `GPIO16` recording DOUT | ES8311·speaker·SMD microphone; Arduino 예제 기준 |
+| audio I²S | `GPIO12` MCLK, `GPIO13` BCLK, `GPIO14` MCU DIN(녹음), `GPIO15` LRCLK, `GPIO16` MCU DOUT(재생) | [고정 Waveshare IDF의 실제 gpio_cfg](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/blob/283ec84c566c096f8c30493b93dcd4b0bb608de7/ESP-IDF/01_factory/components/esp_port/esp_es8311_port.cpp#L20) 기준. 예제의 혼동되는 녹음/재생 주석 대신 MCU 데이터 방향을 사용 |
 | camera | `GPIO17`, `18`, `21`, `38`–`42`, `45`–`48` | 카메라 사용 시 외부 GPIO로 사용 금지 |
 | USB | `GPIO19`, `GPIO20` | USB D−/D+ |
 | UART | `GPIO43`, `GPIO44` | TX/RX |

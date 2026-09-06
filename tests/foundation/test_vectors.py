@@ -40,9 +40,21 @@ def main():
             expected.append(packet.hex())
             if transport:
                 expected.append(cobs(packet).hex())
-    if len(actual) != 2195 or actual != expected:
-        raise AssertionError("independent golden frame/COBS mismatch")
-    print("PASS: 2195 independent Python/C vectors (all legal payload lengths)")
+    for count in range(13):
+        for variant in range(16):
+            packet = struct.pack("<QBBH", 0x123456789ABC0000 + variant * 0x123,
+                                 count, variant * 13, 0)
+            for i in range(count):
+                flags, dlc = (i + variant) % 16, (i + variant) % 9
+                can_id = 0x1234567 + i * 257 if flags & 1 else 0x321 + i * 7
+                data = bytes((17 + i * 29 + j * 37 + variant) % 256
+                             if j < dlc and not flags & 2 else 0 for j in range(8))
+                packet += struct.pack("<HBBI8s", 0x102 + i * 0x101, (i + variant) % 3,
+                                      flags * 16 + dlc, can_id, data)
+            expected.append(packet.hex())
+    if len(actual) != 2403 or actual != expected:
+        raise AssertionError("independent golden frame/COBS/CAN mismatch")
+    print("PASS: 2195 envelope/COBS + 208 independent CAN batch vectors")
 
 
 if __name__ == "__main__":

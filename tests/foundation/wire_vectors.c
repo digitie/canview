@@ -2,6 +2,7 @@
 #include "canview_wire.h"
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 static void print_hex(const uint8_t *bytes, size_t size)
 {
@@ -10,6 +11,60 @@ static void print_hex(const uint8_t *bytes, size_t size)
         (void)printf("%02x", (unsigned int)bytes[index]);
     }
     (void)putchar('\n');
+}
+
+static int print_can_vectors(void)
+{
+    /* Independent Python struct reference covers every packed field and flag. */
+    for (uint8_t count = 0U; count <= 12U; ++count)
+    {
+        for (uint8_t variant = 0U; variant < 16U; ++variant)
+        {
+            canview_wire_can_batch_t batch = {0}, decoded;
+            uint8_t bytes[204];
+            size_t written = 0U;
+            batch.count = count;
+            batch.base_time_us = UINT64_C(0x123456789abc0000) + (uint64_t)variant * 0x123U;
+            batch.dropped_since_last = (uint8_t)(variant * 13U);
+            for (size_t i = 0U; i < count; ++i)
+            {
+                canview_wire_can_record_t *record = &batch.records[i];
+                record->delta_us = (uint16_t)(0x102U + i * 0x101U);
+                record->bus_id = (uint8_t)((i + variant) % 3U);
+                record->flags = (uint8_t)((i + variant) % 16U);
+                record->dlc = (uint8_t)((i + variant) % 9U);
+                record->can_id = (record->flags & 1U) != 0U
+                                     ? UINT32_C(0x1234567) + (uint32_t)i * 257U
+                                     : 0x321U + (uint32_t)i * 7U;
+                if ((record->flags & 2U) == 0U)
+                {
+                    for (size_t j = 0U; j < record->dlc; ++j)
+                    {
+                        record->data[j] = (uint8_t)(17U + i * 29U + j * 37U + variant);
+                    }
+                }
+            }
+            if (canview_wire_can_batch_encode(&batch, bytes, sizeof(bytes), &written) !=
+                    CANVIEW_OK ||
+                canview_wire_can_batch_decode(bytes, written, &decoded) != CANVIEW_OK ||
+                decoded.count != batch.count || decoded.base_time_us != batch.base_time_us ||
+                decoded.dropped_since_last != batch.dropped_since_last)
+            {
+                return 1;
+            }
+            for (size_t i = 0U; i < count; ++i)
+            {
+                const canview_wire_can_record_t *a = &batch.records[i], *b = &decoded.records[i];
+                if (a->delta_us != b->delta_us || a->bus_id != b->bus_id || a->flags != b->flags ||
+                    a->dlc != b->dlc || a->can_id != b->can_id || memcmp(a->data, b->data, 8U) != 0)
+                {
+                    return 1;
+                }
+            }
+            print_hex(bytes, written);
+        }
+    }
+    return 0;
 }
 
 int main(void)
@@ -52,5 +107,5 @@ int main(void)
             }
         }
     }
-    return ferror(stdout) != 0 ? 1 : 0;
+    return print_can_vectors() != 0 || ferror(stdout) != 0 ? 1 : 0;
 }

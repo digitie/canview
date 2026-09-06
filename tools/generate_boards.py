@@ -11,6 +11,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "firmware/boards/boards.json"
 
+# Fixed ESP-IDF GPIO contract and reviewed module pad exposure; not a generic SoC BSP.
+# docs/en/api-reference/peripherals/gpio/esp32s3.inc at IDF 76f5dedd.
+ESP_GPIO_VALID = frozenset(range(22)) | frozenset(range(26, 49))
+ESP_MODULE_GPIO = {
+    "ESP32-S3R8": ESP_GPIO_VALID - frozenset(range(26, 38)),
+    "ESP32-S3-WROOM-1-N16R8": frozenset(range(22)) | frozenset(range(38, 49)),
+    "ESP32-S3-WROOM-1-N8R2": frozenset(range(22)) | frozenset(range(35, 49)),
+}
+
 
 def canonical(path: Path) -> bytes:
     return path.read_bytes().replace(b"\r\n", b"\n")
@@ -105,15 +114,18 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
     for net, (port, pin) in sorted(nets.items()):
         if not re.fullmatch(r"[A-Z][A-Z0-9_]*", net):
             raise ValueError("invalid C signal")
+        if type(pin) is not int:
+            raise ValueError("GPIO number must be an integer, not bool/float")
         if (port, pin) in used:
             raise ValueError("duplicate GPIO")
         used.add((port, pin))
         if port == "GPIO":
-            if not 0 <= pin <= 48 or (board.get("psram_mode") == "octal" and pin in (35, 36, 37)):
+            if (board["kind"] != "esp32s3" or pin not in ESP_GPIO_VALID or
+                    pin not in ESP_MODULE_GPIO[board["module"]]):
                 raise ValueError("reserved/unavailable ESP GPIO")
             lines.append(f"#define {prefix}{net}_GPIO ({pin}U)")
         else:
-            if not 0 <= pin <= 15:
+            if board["kind"] != "stm32g474" or not 0 <= pin <= 15:
                 raise ValueError("invalid STM pin")
             lines += [f"#define {prefix}{net}_PORT ({ord(port) - ord('A')}U)",
                       f"#define {prefix}{net}_PIN ({pin}U)"]

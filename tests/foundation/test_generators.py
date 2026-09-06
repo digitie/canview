@@ -1,6 +1,8 @@
 """생성물 drift, 입력 손상, 메모리/pin 계약을 실제 source로 검증한다."""
 import copy
+import csv
 import importlib.util
+import io
 import json
 from pathlib import Path
 import unittest
@@ -97,6 +99,45 @@ class GeneratorTests(unittest.TestCase):
         manifest = json.loads((ROOT / "tools/toolchain-versions.json").read_text())
         for sdk in manifest["sdk"].values():
             self.assertRegex(sdk["gitCommit"], r"^[0-9a-f]{40}$")
+
+    def test_controller_audio_direction(self):
+        source = json.loads((ROOT / "firmware/boards/waveshare35-pins.json").read_bytes())
+        # Waveshare 283ec84c: gpio_cfg.dout=16, gpio_cfg.din=14 (MCU perspective).
+        self.assertEqual(source["pins"]["I2S_PLAY_DATA"], 16)
+        self.assertEqual(source["pins"]["I2S_REC_DATA"], 14)
+
+    def test_esp_pin_allowlist_json_and_csv(self):
+        manifest = BOARDS.canonical(BOARDS.SOURCE)
+        boards = json.loads(manifest)["boards"][:3]
+        for board in boards:
+            raw = BOARDS.canonical(ROOT / board["source"])
+            # N8R2 exposes 35..37; R8 reserves all 26..37 for memory.
+            forbidden = [-1, *range(22, 35 if board["psram_mode"] == "quad" else 38), 49]
+            for pin in forbidden:
+                with self.subTest(board=board["id"], pin=pin):
+                    if board["reference"] is None:
+                        data = json.loads(raw)
+                        data["pins"]["LCD_BL"] = pin
+                        changed = json.dumps(data).encode()
+                    else:
+                        rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8-sig"))))
+                        signal = "STATUS_LED" if board["psram_mode"] == "quad" else "ESP_RUN_OK"
+                        row = next(row for row in rows if row["reference"] == board["reference"]
+                                   and row["net"] == signal)
+                        row["pin_name"] = f"IO{pin}" if pin >= 0 else "IO49"
+                        buffer = io.StringIO()
+                        writer = csv.DictWriter(buffer, fieldnames=rows[0].keys())
+                        writer.writeheader()
+                        writer.writerows(rows)
+                        changed = buffer.getvalue().encode()
+                    with self.assertRaises(ValueError):
+                        BOARDS.board_outputs(board, manifest, changed)
+        board = boards[0]
+        for pin in (True, 6.0):
+            data = json.loads(BOARDS.canonical(ROOT / board["source"]))
+            data["pins"]["LCD_BL"] = pin
+            with self.assertRaises(ValueError):
+                BOARDS.board_outputs(board, manifest, json.dumps(data).encode())
 
 
 if __name__ == "__main__":

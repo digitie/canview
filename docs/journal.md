@@ -12,6 +12,10 @@
 - tools/build_docs.py 실제 통과. 작성 중 Doxygen output parent 부재와 Sphinx 함수 pointer 표기 경고를 발견하고 builder 및 명시적인 함수 type typedef로 수정한 뒤 재검증했다.
 - tools/environment/setup-windows.ps1 -VerifyOnly: 일반 shell CMake 부재, 고정 host shell에서는 arm-none-eabi-gcc 부재로 실패. target SDK build/실보드/단전/차량 gate는 NOT_RUN이다.
 - T-001은 IN_PROGRESS이고 전체 ABI·SDK target CI·HIL acceptance는 열어 둔다. 새 2인 독립 리뷰와 remote CI 결과는 후속 review closure에 기록한다.
+- 최초 remote CI에서 Windows cp1252 한글 출력 오류와 GCC 정수 승격 경고를 확인했다. CTest Python -X utf8/host PYTHONUTF8, byte version 손상의 XOR 복원과 기존 brightness 시험 비교 상수 한 곳을 수정했다. v1.2 runtime 동작은 변경하지 않았다. beae8a9의 [CI34009610099](https://github.com/digitie/canview/actions/runs/34009610099)는 Windows 전체 gate와 Linux GCC Release/Clang ASan+UBSan 모두 PASS다.
+- 새 .tools/api-venv의 hash-locked 설치가 끝나기 전에 문서 생성을 실행한 한 차례는 Sphinx 미설치로 실패했다. 설치 완료 후 동일 명령의 strict build 및 pip check를 통과했으며 이 초기 순서 오류를 성공으로 집계하지 않았다. 기존 plan validator 부정 fixture35개도 별도로 통과했다.
+- 59ac404의 독립 리뷰 A(P2 세 건)·B(P2 두 건) 원문을 각각 보존한 뒤 비교했다. GPIO 검증 finding은 중복이며, 오디오 PLAY16/REC14 교정·SoC/module allowlist·IDF GNU adapter 분리·startup4역할 C99 compile·CAN 전체 필드/독립208 golden을 반영했다. core runtime byte 알고리즘은 변경하지 않았다.
+- 수정 후 Windows Debug/Release 각31/31, generator7그룹, envelope/COBS2195+CAN208 vector, coverage546/546·295/296, API strict14계약 PASS. bus 상수0·bus offset 오기·encode/decode 동시 delta endian 반전의 시험용 변이3종은 새 golden gate가 모두 검출했다. 원문에 포함된 임시 worktree 링크는 literal evidence로 보존했다. post-fix 재검토와 최종 CI는 closure report에서 추적한다.
 
 ## 2026-09-06 (codex, 전체 계획 두 차례 점검·UI 개선)
 

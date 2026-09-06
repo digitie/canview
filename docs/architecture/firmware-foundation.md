@@ -59,6 +59,7 @@ transaction ID, timeout, 중복 결과 캐시, 상태 재조회, 전원 재부�
 핀의 제작/전기적 정본은 hardware/*/pinmap.csv와 하드웨어 문서다.
 BSP header와 sdkconfig.defaults/partition은 `python tools/generate_boards.py`로 생성하고 `--check`로 drift를 검출한다.
 Controller 본체 핀은 고정 Waveshare commit과 adapter 계약을 기록한 waveshare35-pins.json을 입력으로 쓴다.
+I²S 데이터 방향은 MCU 기준 재생 DOUT16/녹음 DIN14다. SoC 유효 GPIO와 실제 모듈 외부 pad·메모리 점유 범위를 구분해 JSON/CSV 양쪽을 검사한다. Controller S3R8 및 N16R8은 GPIO22..37을, N8R2는 GPIO22..34를 허용하지 않는다. 근거는 [고정 IDF GPIO 계약](https://github.com/espressif/esp-idf/blob/76f5dedd9950a3012fee8fb7d5586df21fc67802/docs/en/api-reference/peripherals/gpio/esp32s3.inc)과 해당 보드 pinmap이다.
 
 | MCU | 메모리 | 기반 안전 초기화 |
 |---|---|---|
@@ -93,6 +94,7 @@ partition 변경은 데이터 손실/boot 불가 위험이 있어 T-007·T-204·
 실행 명령과 실제 검증 결과는 [기반 개발 절차](../development/foundation.md)에 한 번만 둔다.
 공용 코드는 strict C99, 경고를 오류로 처리하며 C99 typedef 기반 정적 검사를 유지한다.
 IDF platform adapter는 SDK GNU 언어 모드를 유지하고 자체 코드의 -Wall/-Wextra/-Werror를 적용한다.
+별도 canview_esp32_platform component만 SDK adapter를 소유한다. main의 startup/BSP 및 canview_foundation은 strict C99이고 startup 네 역할은 host object compile gate에도 포함한다.
 기존 C11 자동화 prototype 시험은 별도 target이다. 이를 C99 gate나 새 firmware 기능으로 합산하지 않는다.
 
 .clang-format은 formatting만 설정하며 C++ 언어 전환을 의미하지 않는다.

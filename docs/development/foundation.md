@@ -46,9 +46,10 @@ BSP mock, SDK/driver, Python generator, legacy 자동화는 이 분모에 포함
 | CAN batch | 0..12 record, 11/29-bit ID 한계, 3bus/DLC/flags/RTR/padding/time overflow |
 | sequence | 중복, 재정렬, 63/64 경계, modulo32 wrap, half-range, 큰 점프 |
 | null/noise/app | 공개 API null, 결정적 잡음5000회, 역할4개, 초기화 실패 고정·반복 시작 거부 |
-| 독립 golden | Python struct/zlib/독립 COBS와 C의 2195개 frame 직렬화 대조 |
+| 독립 golden | Python struct/zlib/독립 COBS와 C의 envelope/COBS2195개 + CAN batch208개 바이트 대조. bus0/1/2·flags16종·DLC0..8·비대칭 data·11/29-bit ID 포함, decode 전체 필드도 비교 |
 | BSP4종 | 순서·실제 pin·safe level·open-drain, 각 GPIO 호출 실패에서 중단 |
-| generator | source/output drift, BOM, 중복 pin, PSRAM 금지 pin, partition overlap/크기, clock, SDK SHA 길이 |
+| startup4종 | 네 역할의 실제 startup.c를 strict C99 object로 build. 무한 main loop 실행은 하지 않음 |
+| generator | source/output drift, BOM, 중복 pin, JSON/CSV의 SoC·모듈별 금지 pin, I²S 재생16/녹음14 방향, partition overlap/크기, clock, SDK SHA 길이 |
 
 임의 잡음 시험은 sanitizer/지속 fuzzing의 대체가 아니다. Linux 보조 CI에서 GCC Release와 Clang ASan+UBSan을 별도 실행한다.
 GitHub workflow는 .github/workflows/foundation.yml이며 Windows job과 Linux job을 구분한다. SDK/target 성공을 나타내는 job은 아직 없다.
@@ -74,7 +75,7 @@ pip-compile --generate-hashes --strip-extras --output-file tools/requirements-do
 
 고정 SDK 환경을 준비한 뒤 각 ESP 프로젝트에서 idf.py build, STM32 프로젝트에서 cmake --preset debug와 cmake --build --preset debug를 실행한다.
 대상 경로는 firmware/controller, firmware/communicator/esp32, firmware/diagnostic-bridge, firmware/communicator/stm32다.
-새 IDF main component는 canview_foundation/esp_driver_gpio/esp_psram에만 의존하고 legacy component를 image에서 제외한다.
+새 IDF main은 strict C99 startup/BSP만 포함하며 canview_foundation/canview_esp32_platform/esp_psram에 의존한다. GPIO SDK adapter는 별도 canview_esp32_platform의 GNU 모드로 격리한다. legacy component는 image에서 제외한다.
 
 현재 세션에서 target SDK/Arm toolchain이 준비되지 않아 실제 target build와 HIL은 미실행이다.
 기존 setup-windows.ps1 -VerifyOnly는 일반 shell에서 CMake 검색 실패, 새 고정 host 도구 활성화 뒤에는 arm-none-eabi-gcc 부재로 실패했다. 새 host 도구 활성화는 Arm/IDF 설치 완료가 아니다.
@@ -86,4 +87,6 @@ STM32CubeG4 commit의 기존 39자리 오기를 공식 v1.6.3 전체40자리로 
 - 공용 core 측정: 실행 line100%, function100%, branch99.66% (protocol99.63%, app100%).
 - API: Doxygen XML 계약14개 PASS, Sphinx strict warning0.
 - 새 profile로 coverage gate를 재실행했고 hash lock 설치 및 API strict build도 통과했다. 독립 리뷰 결과는 review record에서 별도로 추적한다.
+- 초기 CI는 영문 Windows cp1252 출력과 GCC의 정수 승격 경고로 실패했다. UTF-8 진입점과 테스트 피연산자 형식을 수정한 beae8a9에서 [Windows 전체 gate와 Linux GCC/Clang ASan+UBSan](https://github.com/digitie/canview/actions/runs/34009610099)이 모두 PASS다. Linux는 보조 이식성 검증이며 target 또는 Windows 결과로 합산하지 않는다.
+- 별도 깨끗한 .tools/api-venv에서 hash lock 설치, pip check 및 API strict build를 다시 통과했다. 기존 plan validator의 부정 fixture35개도 별도로 통과했다.
 - 실제 보드의 pin 파형/PSRAM/clock/DMA/UART4 Mbps/전원 단전/CAN 송신 안전은 미검증이다.
