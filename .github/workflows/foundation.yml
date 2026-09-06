@@ -128,7 +128,8 @@ jobs:
             $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
             if (-not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) { throw "Arm provenance marker is missing: $provenancePath" }
             Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance.json") -Force
-            "CANVIEW_TARGET_TOOLROOT=$armRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CANVIEW_TARGET_TOOLROOT=$toolchainBase" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CANVIEW_TARGET_ARM_GNU_ROOT=$armRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             "CANVIEW_TARGET_ARM_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           } catch {
             $_ | Out-String | Out-File -LiteralPath (Join-Path $logRoot "toolchain-install-error.log") -Encoding utf8
@@ -142,7 +143,7 @@ jobs:
           New-Item -ItemType Directory -Force $logRoot | Out-Null
           try {
             . tools/environment/foundation-windows.ps1
-            $armRoot = $env:CANVIEW_TARGET_TOOLROOT
+            $armRoot = $env:CANVIEW_TARGET_ARM_GNU_ROOT
             . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
             $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
             Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance-after-setup.json") -Force
