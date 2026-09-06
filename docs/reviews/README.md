@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-06 | T-001 host·target toolchain·CI 최종 post-fix | `68cac2b` → `9cb76e2`, Arm archive provenance·Windows SDK checkout·STM32/ESP32 target gate | embedded safety·target runtime / CI·재현성·evidence integrity | [report·최종 원문·target evidence](adversarial/2026-09-06-T-001.md), 최종 finding 0건·양 reviewer PASS·Draft PR/실차 gate 별도 |
 | 2026-09-06 | C99 펌웨어 기반·protocol·시험/API | `59ac404` → `b084720`, 네 MCU 구조·MCU 독립 codec·pin 생성기·Windows/Linux CI | embedded runtime/board/reset / protocol/security/build quality | [report·원문·변이 재현](adversarial/2026-09-06-firmware-foundation.md), 원 P2 5건 전부 FIXED·양 reviewer PASS·target/HIL/차량 승인 아님 |
 | 2026-09-06 | 전체 계획 두 차례 감사·UI | `d078437` → `1f93b8a`, 42요구/46task·웹5+5뷰·LVGL·자동화 | 임베디드/운전자 안전 / 프로토콜/계획/웹 통합 | [report·원문·재현](adversarial/2026-09-06-plan-ui.md), 원 finding 전부 FIXED·양 reviewer PASS·제품/차량 승인 아님 |
 | 2026-09-06 | 독립 OTA·N16R8 회로 | `5abeae4` 및 post-fix, reset/CAN 인터록·Flash·OTA 계약 | 하드웨어 복구 / OTA 보안·상태기계 | 사용자 단일 MD 요청에 따른 예외: [설계 내 원문·수정·재검토](../architecture/ota.md#14-독립-적대적-리뷰-기록) |

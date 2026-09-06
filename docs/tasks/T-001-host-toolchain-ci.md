@@ -31,7 +31,7 @@
 - `config/budgets/*.yaml`과 map/stack/runtime evidence checker skeleton
 - `tests/fixtures/idf-public-component`의 외부 `canview_controller_can.h` compile fixture
 - 기존 `tests/automation`을 root test suite에 편입
-- generated protocol을 host `INTERFACE` target과 ESP-IDF public component로 노출하고 consumer는 `REQUIRES canview_protocol`을 사용
+- generated protocol은 host `INTERFACE` target과 ESP-IDF public component로 노출한다. T-002 schema가 동결되기 전 application main은 직접 의존하지 않으며, public component fixture의 `canview_can → canview_protocol` transitive 경계만 compile로 검증한다.
 
 ## 범위 밖
 
@@ -103,3 +103,13 @@ idf.py -C tests/fixtures/idf-public-component build
 ## 증거와 rollback
 
 PR에 tool version, 전체 CI URL, test 수를 남긴다. 기존 직접 GCC test가 새 CMake target과 같은 source를 빌드하는지 한 번 비교한다. CI가 불안정하면 검사를 삭제하지 말고 job을 분리하고 원인을 기록한다.
+
+## 현재 closure evidence
+
+- 상태는 `IN_PROGRESS`를 유지한다. 수용 기준·evidence·리뷰는 닫혔지만, 이 저장소의 `DONE` 정의가 main merge까지 요구하므로 Draft PR 단계에서 임의로 `DONE`으로 바꾸지 않는다.
+- branch/PR: `agent/codex-firmware-foundation`, [Draft PR #17](https://github.com/digitie/canview/pull/17)
+- 최종 구현 head: `9cb76e2`; 최종 local target binary와 SHA-256은 [target evidence](../reviews/adversarial/evidence/2026-09-06-T-001-target-final.md)에 둔다.
+- 독립 적대적 리뷰 최종 report: [T-001 report](../reviews/adversarial/2026-09-06-T-001.md). 최종 reviewer A/B P0–P3 finding은 0건이며 두 verdict는 `PASS`다.
+- 직접 설치 SDK: Arm GNU `15.3.Rel1`, ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`; Arm archive와 설치 root 전체 file inventory를 검증했다.
+- local 검증: host Debug/Release/Coverage CTest 각각 35/35, Python unittest 35, coverage gate, generated/budget/negative/plan/document/API gate PASS; STM32 debug/release와 ESP32-S3 세 이미지·public fixture clean build 및 warning/error scan PASS.
+- 제한: 실제 GitHub Actions 최종 run, 보드 flash, HIL, 차량 CAN TX, production OTA signing/provisioning은 별도 gate다.

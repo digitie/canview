@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-06 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 부분 구현 IN_PROGRESS다.
+2026-09-06 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 acceptance·local target build·2인 적대적 리뷰를 통과했지만 Draft PR #17이 main에 merge되지 않아 task 정의상 `IN_PROGRESS`로 유지한다.
 
 2026-09-06 전체 계획 재점검: 1차 전체 읽기와 2차 요구/task/정본 대조로 [42개 요구 추적표](architecture/requirements-coverage.md)와 46개 상세 task를 정리했다. OTA 8개 구현 단계, PCB 제작 gate와 오디오/SPORT의 수신 조사→bench 송신 순환 의존성을 보완했다. 운전자·진단 웹 각 5뷰와 LVGL을 개선하고 밝기/음량/SPORT host 결함을 수정했다. 작성자 검증과 최종 독립 2인 리뷰의 범위는 새 review 기록으로 추적한다. 이는 제품 전체 구현 완료가 아니다.
 
@@ -16,11 +16,11 @@
 
 ## 다음 한 작업
 
-T-001 재현 가능한 host toolchain과 CI의 독립 gate를 마감하고, 다음으로 T-002 ESP-NOW v1.3 schema를 시작한다. target SDK와 build scaffold는 manifest digest까지 고정했다.
+Draft PR #17의 최신 Windows host/target CI 확인과 main merge가 먼저다. merge 후 다음으로 T-002 ESP-NOW v1.3 schema를 시작한다. target SDK와 build scaffold는 manifest digest까지 고정했다.
 
-- 시작 문서: docs/tasks/T-001-host-toolchain-ci.md, docs/development/windows.md
+- 현재 문서: docs/tasks/T-001-host-toolchain-ci.md, docs/reviews/adversarial/2026-09-06-T-001.md, docs/development/windows.md
 - 확인 대상: 고정 CMake/Ninja/Clang 기반 C99와 별도 C11 legacy 회귀, Arm GNU/IDF target build, Python validator, Node static checks, 생성물 검사
-- 완료 조건: host/target build, 35개 host CTest, coverage, negative fixture, budget, public component compile과 CI job 정의를 실제 실행하고 리뷰 disposition을 남김
+- 완료 조건: host/target build, 35개 host CTest, coverage, negative fixture, budget, public component compile과 CI job 정의를 실제 실행하고 리뷰 disposition을 남김. 현재 local gate와 review는 통과했고 main merge만 남았다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
