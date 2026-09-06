@@ -1,5 +1,15 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-003 ESP-NOW codec/session/QoS closure)
+
+T-002 merge `c18a8a5` 이후 branch `agent/codex-t003-espnow-codec-session`에서 T-003을 구현했다. 사용자 변경은 보존했으며, target SDK를 직접 설치·검증했다: ESP-IDF `6.0.3` (`C:\cv\esp-idf-6.0.3`), STM32CubeG4 `1.6.3` (`C:\cv\STM32CubeG4-1.6.3`), Arm GNU `15.3.Rel1`, CMake `4.4.3`, Ninja `1.13.2`.
+
+- generated ESP-NOW contract/TLV table, byte-safe C codec, session lifecycle cookie·secure binding·anti-replay·pairing/control adapter, fixed pool/rate limiter/QoS1 scheduler와 C/Python reference/fault tests를 추가했다. generated output check와 source/header byte stability gate를 유지했다.
+- 최신 local 재검증: host Debug/Release 각각 CTest `49/49`, Coverage core `9/9`와 line/function `100%`, branch `99.63%`, Python unit `35`, generated/negative/budget/plan/link/API docs gate PASS. hash-locked docs dependency는 `tools/requirements-docs.lock` 경로로 strict install PASS했다.
+- STM32 Debug/Release와 communicator/diagnostic bridge/controller/public IDF fixture ESP32-S3를 current source commit `6a076a3`에서 clean build했다. 모두 exit code `0`, strict `warning:|error:|CMake Error|ninja: error` scan `0`이다. 결과와 SHA-256은 [target evidence](reviews/adversarial/evidence/2026-09-07-T-003-target-final.md)에 둔다.
+- 최초 B 리뷰의 P1은 stale target evidence(`1780e0a`)였다. 전 target image를 재빌드하고 evidence를 `6a076a3`에 bind한 commit `67ccee9`를 push한 뒤 A/B post-fix 재검토가 모두 PASS했다. 원본·disposition은 [T-003 review](reviews/adversarial/2026-09-07-T-003.md)에 보존했다.
+- PR #19는 draft 상태에서 시작해 최종 gate 이후 merge한다. board flash/boot, reset/brownout, RF/CCMP·mbedTLS runtime, CAN/HIL·차량, production OTA signing/provisioning은 장비·승인 범위 밖이라 `NOT_RUN`으로 유지한다.
+
 ## 2026-09-06 (codex, C99 기반 코드·넓은 시험·생성 API)
 
 기준선 b529a722fb813d5b60ab667675d73996895ea3fc에서 agent/codex-firmware-foundation을 만들었다. 사용자 dirty 변경 없이 시작했으며 기존 v1.2 prototype은 수정하지 않고 별도 host 회귀로 보존했다. embedded-architecture/cstyle/documentation 원칙으로 SDK-free codec/app, BSP/platform, caller ownership, API 오류·수명 계약을 분리했다.

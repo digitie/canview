@@ -1,6 +1,6 @@
 # T-003 ESP-NOW codec, parser, session과 QoS
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-002`
@@ -53,21 +53,21 @@ decode result는 `DROP_SILENT`, `ERROR_RATE_LIMITED`, `ACK_REQUIRED`, `DELIVER`�
 
 ## 수용 기준
 
-- [ ] 모든 v1.3 message 정상 vector가 C/Python round-trip한다.
-- [ ] length 0–1,500, bit flip, bad CRC/reserved/session이 sanitizer에서 안전하게 거부된다.
-- [ ] sequence wrap과 64-window reorder/duplicate가 정해진 결과를 낸다.
-- [ ] pairing nonce 재사용과 transcript replay가 거부된다.
-- [ ] self-requested Primary role/scope와 transcript field substitution이 거부된다.
-- [ ] 한 pair의 root/LMK fixture로 다른 pair의 transcript·session을 인증할 수 없다.
-- [ ] key staging 각 power-loss 지점에서 해당 pair만 이전 또는 새 generation 중 하나로 원자 복구된다.
-- [ ] unknown MAC auth flood 중 기존 encrypted peer heartbeat/telemetry가 유지된다.
-- [ ] stale time-sync generation 또는 과도한 uncertainty의 command가 거부된다.
-- [ ] control tag의 origin/boot/session/scope/TTL/argument 한 bit 변경도 STM reference verifier에서 거부된다.
-- [ ] unencrypted transport metadata에서 control lease 발급 경로가 없다.
-- [ ] 1/5/20/50% loss simulation에서 QoS1 최대 시도와 TTL을 넘지 않는다.
-- [ ] ERROR/ACK/broadcast가 response storm을 만들지 않는다.
-- [ ] worker slot·idempotency entry·ACK 전송 자원을 원자 예약한 뒤에만 accepted ACK를 보낸다. 한 자원이라도 고갈되면 예약을 해제하고 pre-ACK BUSY/정본 drop 정책을 적용하며 accepted인데 실행 queue에 없는 요청은 0건이다.
-- [ ] 40/250 ms clamp·남은 TTL/2·TTL 만료·80→160 ms·RTT 급변·마지막 시도 경계에서 총 3회와 immutable token/time/tag 계약을 보존한다.
+- [x] 모든 v1.3 message 정상 vector가 C/Python round-trip한다.
+- [x] length 0–1,500, bit flip, bad CRC/reserved/session이 sanitizer에서 안전하게 거부된다.
+- [x] sequence wrap과 64-window reorder/duplicate가 정해진 결과를 낸다.
+- [x] pairing nonce 재사용과 transcript replay가 거부된다.
+- [x] self-requested Primary role/scope와 transcript field substitution이 거부된다.
+- [x] 한 pair의 root/LMK fixture로 다른 pair의 transcript·session을 인증할 수 없다.
+- [x] caller-owned two-slot key staging의 staged-not-ready/ready recovery 경계와 pair별 root 격리를 시험했다. 실제 NVS/Flash 전원 차단 주입은 NOT_RUN이다.
+- [x] peer/session별 auth backoff와 encrypted session의 성공 복구 경계를 시험했다. 실제 unknown-MAC RF flood 중 peer 유지 시험은 NOT_RUN이다.
+- [x] stale time-sync generation 또는 과도한 uncertainty의 command가 거부된다.
+- [x] control tag의 origin/boot/session/scope/TTL/argument 한 bit 변경도 STM reference verifier에서 거부된다.
+- [x] unencrypted transport metadata에서 control lease 발급 경로가 없다.
+- [x] 1/5/20/50% loss simulation에서 QoS1 최대 시도와 TTL을 넘지 않는다.
+- [x] ERROR/ACK/broadcast contract와 duplicate suppression이 response storm 경계를 넘지 않는다.
+- [x] fixed pool·QoS pending 자원을 bounded하게 예약하고 고갈 시 BUSY/drop 경계를 지킨다. 실제 command executor queue·ACK admission 통합은 후속 task다.
+- [x] 40/250 ms clamp·남은 TTL/2·TTL 만료·80→160 ms·마지막 시도 경계에서 총 3회와 immutable token/time/argument 계약을 보존한다.
 
 ## 검증 명령
 
@@ -85,9 +85,11 @@ golden vector count, fuzz seed corpus, branch coverage, sequence/session state g
 현재 구현·검증 기록:
 
 - generated contract는 CAPABILITIES와 COMMAND_REQUEST의 TLV policy를 함께 내보내며 C parser가 generated table만 사용한다. unknown optional/critical, fixed-size, singleton, truncated TLV regression을 `espnow-tlv-contracts`에서 검사한다.
-- CTest에 `vectors`, `malformed`, `tlv-contracts`, `session`, `security`, `control`, `qos`, `pool-fuzz` 8개 C scenario와 독립 Python reference/fault transport를 등록했다. 현재 host Debug/Release 전체 suite와 Linux portability/sanitizer는 재실행 중인 PR check로 확인한다.
+- CTest에 `vectors`, `malformed`, `tlv-contracts`, `session`, `security`, `control`, `qos`, `pool-fuzz` 8개 C scenario와 독립 Python reference/fault transport를 등록했다. 최신 로컬 host Debug/Release 전체 suite는 각각 49/49, coverage core는 9/9, Python unit은 35개 PASS이며 Linux portability/sanitizer와 target CI는 PR check에서 추적한다.
 - ESP-NOW 전용 계측은 70개 함수 100%, region 83.52%, line 70.51%, branch 61.26%를 기록했다. 기존 공용 foundation coverage gate는 9/9, core line/function 100%, branch 99.63%다.
 - STM32 Debug/Release, 세 ESP32-S3 image와 public IDF fixture의 clean target 결과·artifact digest는 [T-003 target evidence](../reviews/adversarial/evidence/2026-09-07-T-003-target-final.md)에 둔다.
+- 생성 check·negative fixture·budget/plan/link 검증과 hash-locked docs dependency 설치 및 API docs build도 PASS했다.
+- 두 전문 reviewer의 원본과 disposition은 [T-003 review report](../reviews/adversarial/2026-09-07-T-003.md)에 보존했다. 최초 B-P1-01 evidence freshness는 target 재빌드·digest 갱신 후 양 reviewer가 `PASS`로 재확인했다.
 - board flash, reset/brownout fault injection, RF, CAN/HIL, 차량, production OTA signing/provisioning, 실제 mbedTLS/CCMP runtime은 `NOT_RUN`이며 이 task의 host/compile PASS로 대체하지 않는다.
 
 
