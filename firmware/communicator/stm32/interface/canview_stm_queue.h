@@ -12,12 +12,12 @@
 #include "canview_status.h"
 #define CANVIEW_STM_QUEUE_RECORD_MAX (64U)
 #define CANVIEW_STM_QUEUE_CAPACITY_MAX (256U)
-typedef uint32_t (*canview_stm_lock_fn)(void *context);
-typedef void (*canview_stm_unlock_fn)(void *context, uint32_t saved_mask);
+typedef uint32_t canview_stm_lock_fn(void *context);
+typedef void canview_stm_unlock_fn(void *context, uint32_t saved_mask);
 typedef struct
 {
-    canview_stm_lock_fn enter;
-    canview_stm_unlock_fn leave;
+    canview_stm_lock_fn *enter;
+    canview_stm_unlock_fn *leave;
     void *context;
 } canview_stm_critical_t;
 typedef struct

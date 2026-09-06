@@ -30,19 +30,19 @@ typedef enum
     CANVIEW_STM_FAULT_PORT
 } canview_stm_fault_t;
 
-typedef canview_status_t (*canview_stm_action_fn)(void *context);
-typedef uint32_t (*canview_stm_time_fn)(void *context);
-typedef void (*canview_stm_fault_fn)(void *context, canview_stm_fault_t reason);
+typedef canview_status_t canview_stm_action_fn(void *context);
+typedef uint32_t canview_stm_time_fn(void *context);
+typedef void canview_stm_fault_fn(void *context, canview_stm_fault_t reason);
 
 /** boot callback은 bounded이며 반환 전 완료한다. fault는 안전 출력을 재설정하고
  * health 갱신을 금지한다. context와 callback의 수명은 boot context보다 길어야 한다. */
 typedef struct
 {
-    canview_stm_action_fn safe;
-    canview_stm_action_fn watchdog_start;
-    canview_stm_action_fn clock_start;
-    canview_stm_action_fn time_start;
-    canview_stm_fault_fn fault;
+    canview_stm_action_fn *safe;
+    canview_stm_action_fn *watchdog_start;
+    canview_stm_action_fn *clock_start;
+    canview_stm_action_fn *time_start;
+    canview_stm_fault_fn *fault;
     void *context;
 } canview_stm_boot_port_t;
 
@@ -73,7 +73,7 @@ canview_status_t canview_stm_boot_start(canview_stm_boot_t *boot,
  * RESOURCE_BUSY는 진척 없음이다. 단순 호출 횟수만으로 진척을 허위 보고하지 않는다. */
 typedef struct
 {
-    canview_stm_action_fn run;
+    canview_stm_action_fn *run;
     void *context;
     uint32_t period_ms;
     uint32_t deadline_ms;
@@ -83,9 +83,9 @@ typedef struct
 
 typedef struct
 {
-    canview_stm_time_fn now_us;
-    canview_stm_action_fn feed;
-    canview_stm_fault_fn fault;
+    canview_stm_time_fn *now_us;
+    canview_stm_action_fn *feed;
+    canview_stm_fault_fn *fault;
     void *context;
 } canview_stm_scheduler_port_t;
 
