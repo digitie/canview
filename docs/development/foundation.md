@@ -77,7 +77,7 @@ pip-compile --generate-hashes --strip-extras --output-file tools/requirements-do
 대상 경로는 firmware/controller, firmware/communicator/esp32, firmware/diagnostic-bridge, firmware/communicator/stm32다.
 새 IDF main은 strict C99 startup/BSP만 포함하며 canview_foundation/canview_esp32_platform/esp_psram에 의존한다. GPIO SDK adapter는 별도 canview_esp32_platform의 GNU 모드로 격리한다. legacy component는 image에서 제외한다.
 
-2026-09-06에 직접 설치한 Arm GNU `15.3.Rel1` archive(SHA-256 `b85669d3408e2ae713b17b0cc59bc4ea26369a7f2bd19108fd11df7095f159e6`)와 고정 ESP-IDF/STM32CubeG4 checkout으로 target build를 실행했다. `setup-windows.ps1 -VerifyOnly -ToolRoot C:\cv`가 직접 설치된 Arm toolchain을 자동 탐색했고, ESP-IDF의 `tools\idf.py` 경로도 확인한다.
+2026-09-06에 직접 설치한 Arm GNU `15.3.Rel1` archive(SHA-256 `b85669d3408e2ae713b17b0cc59bc4ea26369a7f2bd19108fd11df7095f159e6`)와 고정 ESP-IDF/STM32CubeG4 checkout으로 target build를 실행했다. `setup-windows.ps1 -VerifyOnly -ToolRoot C:\cv`가 직접 설치된 Arm toolchain을 자동 탐색했고, ESP-IDF의 `tools\idf.py` 경로도 확인한다. CI target job은 같은 Arm root를 명시하고 각 native command의 exit code, artifact 존재, warning/error log를 fail-closed로 검사한다.
 STM32 debug/release와 Communicator ESP32, Diagnostic Bridge, Controller, `canview_controller_can.h` public component fixture가 모두 binary까지 생성됐다. target build log의 컴파일·링커 warning/error scan은 0개였다. 실제 보드 flash·HIL·PSRAM/clock/DMA/UART4 Mbps/전원 단전/CAN 송신 안전은 여전히 미검증이다.
 
 ## 작성자 측정 기록

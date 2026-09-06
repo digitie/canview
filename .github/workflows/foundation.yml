@@ -112,19 +112,48 @@ jobs:
         shell: pwsh
         run: |
           . tools/environment/foundation-windows.ps1
-          . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT
+          $armRoot = Join-Path $env:CANVIEW_TARGET_TOOLROOT "arm-gnu-toolchain-15.3.rel1"
+          . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot
           $ErrorActionPreference = 'Stop'
-          Push-Location firmware/communicator/stm32
-          cmake --preset debug
-          cmake --build --preset debug --clean-first
-          cmake --preset release
-          cmake --build --preset release --clean-first
-          Pop-Location
-          foreach ($project in @('firmware/communicator/esp32', 'firmware/diagnostic-bridge', 'firmware/controller')) {
-            idf.py -C $project build
+          $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
+          New-Item -ItemType Directory -Force $logRoot | Out-Null
+          function Invoke-TargetCommand {
+            param([string]$Name, [scriptblock]$Command)
+            $log = Join-Path $logRoot "$Name.log"
+            & $Command *> $log
+            if ($LASTEXITCODE -ne 0) {
+              Get-Content -LiteralPath $log
+              throw "$Name failed with exit code $LASTEXITCODE"
+            }
+            $diagnostics = @(Select-String -LiteralPath $log -Pattern 'warning:|CMake Warning|ld\.exe: warning|error:' -CaseSensitive:$false)
+            if ($diagnostics.Count -gt 0) {
+              $diagnostics | ForEach-Object { $_.Line }
+              throw "$Name emitted compiler/linker warning or error diagnostics"
+            }
           }
-          idf.py -C tests/fixtures/idf-public-component set-target esp32s3
-          idf.py -C tests/fixtures/idf-public-component build
+          function Assert-TargetArtifact {
+            param([string]$Name, [string]$Path)
+            if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Missing target artifact: $Name ($Path)" }
+          }
+          Push-Location firmware/communicator/stm32
+          try {
+            Invoke-TargetCommand "stm32-debug-configure" { cmake --preset debug }
+            Invoke-TargetCommand "stm32-debug-build" { cmake --build --preset debug --clean-first }
+            Invoke-TargetCommand "stm32-release-configure" { cmake --preset release }
+            Invoke-TargetCommand "stm32-release-build" { cmake --build --preset release --clean-first }
+          } finally { Pop-Location }
+          Assert-TargetArtifact "stm32 debug" "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin"
+          Assert-TargetArtifact "stm32 release" "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin"
+          foreach ($project in @('firmware/communicator/esp32', 'firmware/diagnostic-bridge', 'firmware/controller')) {
+            $name = ($project -replace '[^A-Za-z0-9]+', '-')
+            Invoke-TargetCommand "$name-build" { idf.py -C $project build }
+          }
+          Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
+          Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
+          Assert-TargetArtifact "communicator esp32" "firmware/communicator/esp32/build/canview_communicator_esp32.bin"
+          Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
+          Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
+          Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -132,6 +161,17 @@ jobs:
           path: |
             firmware/communicator/stm32/build/debug/*.bin
             firmware/communicator/stm32/build/release/*.bin
+            firmware/communicator/stm32/build/debug/*.elf
+            firmware/communicator/stm32/build/release/*.elf
+            firmware/communicator/stm32/build/debug/*.map
+            firmware/communicator/stm32/build/release/*.map
             firmware/communicator/esp32/build/*.bin
+            firmware/communicator/esp32/build/*.elf
+            firmware/communicator/esp32/build/*.map
             firmware/diagnostic-bridge/build/*.bin
+            firmware/diagnostic-bridge/build/*.elf
+            firmware/diagnostic-bridge/build/*.map
             firmware/controller/build/*.bin
+            firmware/controller/build/*.elf
+            firmware/controller/build/*.map
+            ${{ runner.temp }}/canview-target-logs/*.log

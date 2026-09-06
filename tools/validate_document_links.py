@@ -13,6 +13,7 @@ def validate(root: Path) -> tuple[list[str], int, int]:
     errors = []
     count = 0
     files = list((root/'docs').rglob('*.md')) + list((root/'hardware').rglob('*.md'))
+    files += list((root/'firmware').rglob('README.md'))
     files += list(root.glob('*.md'))
     tools_readme = root/'tools/README.md'
     if tools_readme.exists():

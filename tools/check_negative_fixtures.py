@@ -49,6 +49,53 @@ def main() -> int:
             print("FAIL: budget overflow fixture was accepted")
             return 1
 
+        bad_stack = root / "bad.su"
+        bad_stack.write_text(
+            "firmware/app/startup.c:20:1:canview_startup\t9000\tstatic\n",
+            encoding="utf-8",
+        )
+        errors = budgets.validate(stack_path=bad_stack)
+        if not any("budget exceeded" in error for error in errors):
+            print("FAIL: stack overflow fixture was accepted")
+            return 1
+
+        bad_latency = root / "bad-latency.json"
+        bad_latency.write_text(
+            '{"boot_to_safe_state_ms": 999, "control_round_trip_ms": 40}\n',
+            encoding="utf-8",
+        )
+        errors = budgets.validate(latency_path=bad_latency)
+        if not any("budget exceeded" in error for error in errors):
+            print("FAIL: latency overflow fixture was accepted")
+            return 1
+
+        duplicate_latency = root / "duplicate-latency.json"
+        duplicate_latency.write_text(
+            '{"boot_to_safe_state_ms": 999, "boot_to_safe_state_ms": 12, '
+            '"control_round_trip_ms": 40}\n',
+            encoding="utf-8",
+        )
+        try:
+            budgets.validate(latency_path=duplicate_latency)
+        except ValueError:
+            pass
+        else:
+            print("FAIL: duplicate latency key fixture was accepted")
+            return 1
+
+        malformed_map = root / "malformed.map"
+        malformed_map.write_text(
+            "CANVIEW_BUDGET_METRIC flash_used_bytes = 1348\nnot-a-map-record\n",
+            encoding="utf-8",
+        )
+        try:
+            budgets.validate(map_path=malformed_map)
+        except ValueError:
+            pass
+        else:
+            print("FAIL: malformed map fixture was accepted")
+            return 1
+
     print("PASS: negative generated/link/budget fixtures rejected")
     return 0
 
