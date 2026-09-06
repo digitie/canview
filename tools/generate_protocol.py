@@ -51,6 +51,73 @@ SCALAR_FORMAT = {
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 KNOWN_QOS = {"NONE", "Q0", "Q1", "Q1_WINDOW"}
 KNOWN_ACK = {"none", "required"}
+PAIRING_MESSAGES = frozenset({
+    "DISCOVERY",
+    "PAIR_REQUEST",
+    "PAIR_CHALLENGE",
+    "PAIR_CONFIRM",
+    "PAIR_RESULT",
+})
+EXPECTED_PAIRING_PHASES: dict[str, dict[str, Any]] = {
+    "DISCOVERY": {
+        "domain": "CV-DISCOVERY-1",
+        "canonical_fields": (
+            "installation_id", "endpoint_id", "mac", "nonce", "channel",
+            "proposed_major", "proposed_minor_min", "proposed_minor_max",
+            "link_key_generation", "expires_at_ms",
+        ),
+        "must_not_bind": ("peer_nonce", "selected_version"),
+    },
+    "PAIR_REQUEST": {
+        "domain": "CV-PAIR-REQUEST-1",
+        "canonical_fields": (
+            "request_token", "discovery_digest", "requester_endpoint_id",
+            "requester_mac", "controller_nonce", "requested_role",
+            "requested_major", "requested_minor", "expires_at_ms",
+        ),
+        "must_not_authorize": ("requested_role", "requested_scope"),
+    },
+    "PAIR_CHALLENGE": {
+        "domain": "CV-PAIR-CHALLENGE-1",
+        "canonical_fields": (
+            "discovery_digest", "request_digest", "endpoint0_id", "endpoint1_id",
+            "nonce0", "nonce1", "selected_major", "selected_minor", "channel",
+            "authorized_role", "authorized_scope", "allowed_message_classes",
+            "link_key_generation",
+        ),
+    },
+    "PAIR_CONFIRM": {
+        "domain": "CV-PAIR-CONFIRM-1",
+        "canonical_fields": (
+            "transcript_hash", "selected_major", "selected_minor",
+            "authorized_role", "link_key_generation", "confirm_nonce",
+        ),
+    },
+    "PAIR_RESULT": {
+        "domain": "CV-PAIR-RESULT-1",
+        "canonical_fields": (
+            "request_token", "status", "assigned_role", "link_key_generation",
+            "peer_id", "transcript_hash", "expires_at_ms",
+        ),
+    },
+}
+EXPECTED_PAIRING_NEGATIVES = {
+    "discovery-peer-nonce": ("DISCOVERY", "bind_peer_nonce", "must_not_bind"),
+    "discovery-selected-version": ("DISCOVERY", "bind_selected_version", "must_not_bind"),
+    "request-authorizes-role": ("PAIR_REQUEST", "authorize_requested_role", "must_not_authorize"),
+    "challenge-unauthorized-scope": (
+        "PAIR_CHALLENGE", "accept_untrusted_scope", "reject_without_local_authorization"
+    ),
+    "confirm-transcript-order": ("PAIR_CONFIRM", "reorder_transcript_fields", "bad_canonical_order"),
+    "result-transcript-digest": ("PAIR_RESULT", "change_transcript_hash", "bad_transcript"),
+}
+EXPECTED_RESPONSE_MESSAGES = frozenset({
+    "HELLO", "CAPABILITIES", "TIME_SYNC_RESPONSE", "ACK", "ERROR",
+    "STATE_SNAPSHOT", "CAN_FILTER_RESULT", "CAN_STREAM_STATUS", "CAN_ID_STATS",
+    "CAN_CAPTURE_STATUS", "COMMAND_RESULT", "CONTROL_LEASE_STATUS", "CONFIG_RESULT",
+    "REMOTE_CONFIG_STATUS", "BULK_ACK",
+})
+EXPECTED_FRAGMENT_MESSAGES = frozenset({"BULK_FRAGMENT"})
 
 
 class SchemaError(ValueError):
@@ -292,26 +359,39 @@ def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
     phase_names = {str(phase.get("message")) for phase in phases} if isinstance(phases, Sequence) else set()
     if phase_names != {"DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"}:
         raise SchemaError("pairing phases are incomplete")
-    allowed_mutations = {
-        "bind_peer_nonce": "must_not_bind",
-        "bind_selected_version": "must_not_bind",
-        "authorize_requested_role": "must_not_authorize",
-        "accept_untrusted_scope": "reject_without_local_authorization",
-        "reorder_transcript_fields": "bad_canonical_order",
-        "change_transcript_hash": "bad_transcript",
-    }
     messages_by_name = {str(message["name"]): message for message in schema["messages"]}
+    if phase_names != set(EXPECTED_PAIRING_PHASES):
+        raise SchemaError("pairing phase set changed")
     for phase in phases if isinstance(phases, Sequence) else ():
         if not isinstance(phase, Mapping) or phase.get("message") not in messages_by_name:
             raise SchemaError(f"pairing phase references an unknown message: {phase!r}")
+        message_name = str(phase["message"])
+        expected_phase = EXPECTED_PAIRING_PHASES[message_name]
+        if phase.get("domain") != expected_phase["domain"]:
+            raise SchemaError(f"pairing domain changed for {message_name}")
+        if tuple(phase.get("canonical_fields", ())) != expected_phase["canonical_fields"]:
+            raise SchemaError(f"pairing canonical order changed for {message_name}")
+        expected_optional = {
+            key: value for key, value in expected_phase.items()
+            if key not in {"domain", "canonical_fields"}
+        }
+        actual_optional = {
+            key: tuple(phase.get(key, ()))
+            for key in expected_optional
+        }
+        if actual_optional != expected_optional:
+            raise SchemaError(f"pairing mutation contract changed for {message_name}")
+        unexpected_keys = set(phase) - {"message", "domain", "canonical_fields", *expected_optional}
+        if unexpected_keys:
+            raise SchemaError(f"pairing phase has unexpected keys: {unexpected_keys}")
         canonical_fields = phase.get("canonical_fields")
         if (
             not isinstance(canonical_fields, Sequence)
             or isinstance(canonical_fields, (str, bytes))
             or len(canonical_fields) != len(set(canonical_fields))
-            or not set(canonical_fields).issubset(_message_field_names(messages_by_name[str(phase["message"])]))
+            or not set(canonical_fields).issubset(_message_field_names(messages_by_name[message_name]))
         ):
-            raise SchemaError(f"pairing canonical fields do not match {phase.get('message')}")
+            raise SchemaError(f"pairing canonical fields do not match {message_name}")
     if not isinstance(negatives, Sequence) or isinstance(negatives, (str, bytes)):
         raise SchemaError("pairing_negative_vectors must be a list")
     seen_names: set[str] = set()
@@ -321,15 +401,101 @@ def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
         name = vector.get("name")
         if not isinstance(name, str) or name in seen_names:
             raise SchemaError("pairing negative vector names must be unique")
-        if (
-            vector.get("phase") not in phase_names
-            or vector.get("mutation") not in allowed_mutations
-            or vector.get("expected") != allowed_mutations[vector.get("mutation")]
-        ):
+        expected_vector = EXPECTED_PAIRING_NEGATIVES.get(name)
+        if expected_vector is None or (
+            vector.get("phase"), vector.get("mutation"), vector.get("expected")
+        ) != expected_vector:
             raise SchemaError(f"invalid pairing negative vector: {vector!r}")
+        if set(vector) != {"name", "phase", "mutation", "expected"}:
+            raise SchemaError(f"pairing negative vector has unexpected keys: {vector!r}")
         seen_names.add(name)
+    if seen_names != set(EXPECTED_PAIRING_NEGATIVES):
+        raise SchemaError("pairing negative vector catalog changed")
     if {str(vector.get("phase")) for vector in negatives} != phase_names:
         raise SchemaError("each pairing phase needs an independent negative vector")
+
+
+def _validate_frame_and_semantic_policy(
+    schema: Mapping[str, Any],
+    messages_by_name: Mapping[str, Mapping[str, Any]],
+) -> None:
+    frame_policy = schema.get("frame_policy")
+    if not isinstance(frame_policy, Mapping):
+        raise SchemaError("frame_policy is required")
+    if set(frame_policy) != {
+        "response_messages", "fragment_messages", "session_zero_messages", "secure_messages"
+    }:
+        raise SchemaError("frame_policy keys changed")
+    response_messages = frame_policy.get("response_messages")
+    fragment_messages = frame_policy.get("fragment_messages")
+    session_zero_messages = frame_policy.get("session_zero_messages")
+    secure_messages = frame_policy.get("secure_messages")
+    for label, values in (
+        ("response_messages", response_messages),
+        ("fragment_messages", fragment_messages),
+        ("session_zero_messages", session_zero_messages),
+        ("secure_messages", secure_messages),
+    ):
+        if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+            raise SchemaError(f"frame_policy.{label} must be a list")
+        if len(values) != len(set(values)) or not set(values).issubset(messages_by_name):
+            raise SchemaError(f"frame_policy.{label} has invalid message names")
+    if set(response_messages) != EXPECTED_RESPONSE_MESSAGES:
+        raise SchemaError("response message policy changed")
+    if set(fragment_messages) != EXPECTED_FRAGMENT_MESSAGES:
+        raise SchemaError("fragment message policy changed")
+    if set(session_zero_messages) != PAIRING_MESSAGES:
+        raise SchemaError("session-zero message policy changed")
+    if set(secure_messages) != set(messages_by_name) - PAIRING_MESSAGES:
+        raise SchemaError("secure message policy does not cover the message catalog")
+    if set(session_zero_messages) & set(secure_messages):
+        raise SchemaError("session-zero and secure message policies overlap")
+
+    semantic_policy = schema.get("semantic_policy")
+    if not isinstance(semantic_policy, Mapping):
+        raise SchemaError("semantic_policy is required")
+    expected_role_fields = {
+        ("HELLO", "role"),
+        ("CAPABILITIES", "role"),
+        ("PAIR_REQUEST", "requested_role"),
+        ("PAIR_CHALLENGE", "authorized_role"),
+        ("PAIR_CONFIRM", "authorized_role"),
+        ("PAIR_RESULT", "assigned_role"),
+    }
+    expected_scope_fields = {("CAPABILITIES", "control_scope"), ("PAIR_CHALLENGE", "authorized_scope")}
+    expected_command_fields = {("COMMAND_REQUEST", "command_id")}
+
+    def policy_pairs(key: str) -> set[tuple[str, str]]:
+        entries = semantic_policy.get(key)
+        if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
+            raise SchemaError(f"semantic_policy.{key} must be a list")
+        pairs: set[tuple[str, str]] = set()
+        for entry in entries:
+            if not isinstance(entry, Mapping) or set(entry) != {"message", "field"}:
+                raise SchemaError(f"semantic_policy.{key} entry is invalid")
+            pair = (str(entry["message"]), str(entry["field"]))
+            if pair in pairs or pair[0] not in messages_by_name:
+                raise SchemaError(f"semantic_policy.{key} contains an invalid message")
+            if pair[1] not in _message_field_names(messages_by_name[pair[0]]):
+                raise SchemaError(f"semantic_policy.{key} references a missing field")
+            pairs.add(pair)
+        return pairs
+
+    if policy_pairs("role_fields") != expected_role_fields:
+        raise SchemaError("role semantic field policy changed")
+    if policy_pairs("scope_fields") != expected_scope_fields:
+        raise SchemaError("scope semantic field policy changed")
+    if policy_pairs("command_id_fields") != expected_command_fields:
+        raise SchemaError("command semantic field policy changed")
+    capability = semantic_policy.get("capability_authorization")
+    if not isinstance(capability, Mapping) or capability != {
+        "message": "CAPABILITIES",
+        "role_field": "role",
+        "scope_field": "control_scope",
+        "zero_scope_roles": ["READ_ONLY_CONTROLLER", "DIAGNOSTIC_BRIDGE"],
+        "authorized_scope_roles": ["PRIMARY_CONTROLLER", "COMMUNICATOR"],
+    }:
+        raise SchemaError("capability authorization policy changed")
 
 
 def validate_schema(schema: Mapping[str, Any]) -> None:
@@ -411,6 +577,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         if c_type in enum_types:
             raise SchemaError(f"duplicate enum type {c_type}")
         enum_types.add(c_type)
+        enum_values: set[int] = set()
         for name, value in values.items():
             enum_name = f"{prefix}_{name}"
             _validate_identifier(enum_name, "enum value")
@@ -418,7 +585,10 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
                 raise SchemaError(f"duplicate enumerator {enum_name}")
             if not isinstance(value, int):
                 raise SchemaError(f"enum value must be an integer: {enum_name}")
+            if value in enum_values:
+                raise SchemaError(f"duplicate enum numeric value in {c_type}: {value}")
             enumerators.add(enum_name)
+            enum_values.add(value)
     enum_by_name = {str(enum["name"]): enum for enum in enums}
     role_enum = enum_by_name.get("role")
     state_enum = enum_by_name.get("link_state")
@@ -522,6 +692,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         raise SchemaError("required_message_ids must exactly match declared message IDs")
     _validate_companion_schemas(schema, message_ids)
     messages_by_name = {str(message["name"]): message for message in schema["messages"]}
+    _validate_frame_and_semantic_policy(schema, messages_by_name)
     contracts = schema.get("message_contracts")
     if not isinstance(contracts, Mapping) or set(contracts) != message_names:
         raise SchemaError("message_contracts must describe every declared message exactly once")
@@ -599,13 +770,26 @@ def _render_struct(c_type: str, size: int, fields: Sequence[Mapping[str, Any]]) 
     return lines
 
 
-def _render_enum(enum: Mapping[str, Any]) -> list[str]:
+def _render_enum(enum: Mapping[str, Any], macro_prefix: str | None = None) -> list[str]:
     lines = ["typedef enum {"]
     values = list(enum["values"].items())
     for index, (name, value) in enumerate(values):
         comma = "," if index < len(values) - 1 else ","
         lines.append(f"    {enum['c_prefix']}_{name} = {_c_literal(int(value), 'u32')}{comma}")
     lines.extend([f"}} {enum['c_type']};", ""])
+    numeric_values = [int(value) for _, value in values]
+    known_prefix = macro_prefix or str(enum["c_prefix"])
+    lines.append(
+        f"#define {known_prefix}_KNOWN_VALUE_COUNT "
+        f"UINT16_C({len(numeric_values)})"
+    )
+    if numeric_values and max(numeric_values) <= 31 and min(numeric_values) >= 0:
+        known_mask = sum(1 << value for value in numeric_values)
+        lines.append(
+            f"#define {known_prefix}_KNOWN_MASK "
+            f"UINT32_C(0x{known_mask:08X})"
+        )
+    lines.append("")
     return lines
 
 
@@ -659,8 +843,18 @@ def render_header(schema: Mapping[str, Any], schema_digest: str) -> str:
         f"#define CANVIEW_MESSAGE_COUNT UINT8_C({len(schema['messages'])})",
         "",
     ])
+    enum_prefix_counts: dict[str, int] = {}
     for enum in schema["enums"]:
-        lines.extend(_render_enum(enum))
+        enum_prefix = str(enum["c_prefix"])
+        enum_prefix_counts[enum_prefix] = enum_prefix_counts.get(enum_prefix, 0) + 1
+    for enum in schema["enums"]:
+        enum_prefix = str(enum["c_prefix"])
+        macro_prefix = (
+            enum_prefix
+            if enum_prefix_counts[enum_prefix] == 1
+            else f"{enum_prefix}_{str(enum['name']).upper()}"
+        )
+        lines.extend(_render_enum(enum, macro_prefix))
 
     layouts = list(_layout_entries(schema))
     for c_type, size, fields in layouts:
@@ -789,18 +983,116 @@ def _decode_fields(fields: Sequence[Mapping[str, Any]], data: bytes, *, reject_r
     return values
 
 
-def encode_payload(message: Mapping[str, Any], values: Mapping[str, Any]) -> bytes:
+def _enum_values(schema: Mapping[str, Any], name: str) -> set[int]:
+    enum = next((item for item in schema["enums"] if item.get("name") == name), None)
+    if not isinstance(enum, Mapping):
+        raise SchemaError(f"missing enum {name}")
+    return {int(value) for value in enum["values"].values()}
+
+
+def _flatten_payload_values(values: Mapping[str, Any]) -> dict[str, Any]:
+    flattened: dict[str, Any] = {}
+    prefix = values.get("prefix")
+    if isinstance(prefix, Mapping):
+        flattened.update(prefix)
+    flattened.update(values)
+    return flattened
+
+
+def _semantic_error(
+    decode: bool,
+    code: str,
+    message: str,
+) -> None:
+    if decode:
+        raise ProtocolDecodeError(code, message)
+    raise ValueError(message)
+
+
+def _validate_payload_semantics(
+    schema: Mapping[str, Any],
+    message: Mapping[str, Any],
+    values: Mapping[str, Any],
+    *,
+    decode: bool,
+) -> None:
+    message_name = str(message["name"])
+    flattened = _flatten_payload_values(values)
+    semantic_policy = schema["semantic_policy"]
+    for entry in semantic_policy["role_fields"]:
+        if entry["message"] != message_name or entry["field"] not in flattened:
+            continue
+        try:
+            role = int(flattened[entry["field"]])
+        except (TypeError, ValueError) as exc:
+            _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} is not an integer")
+            raise AssertionError from exc
+        if role not in _enum_values(schema, "role"):
+            _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown role")
+
+    for entry in semantic_policy["command_id_fields"]:
+        if entry["message"] != message_name or entry["field"] not in flattened:
+            continue
+        if int(flattened[entry["field"]]) not in _enum_values(schema, "command_id"):
+            _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown command")
+
+    scope_values: dict[str, int] = {}
+    for entry in semantic_policy["scope_fields"]:
+        if entry["message"] != message_name or entry["field"] not in flattened:
+            continue
+        scope = int(flattened[entry["field"]])
+        known_mask = _constant_value(schema, "CANVIEW_CONTROL_SCOPE_KNOWN_MASK")
+        if scope & ~known_mask:
+            _semantic_error(decode, "bad_scope", f"{message_name}.{entry['field']} has unknown scope bits")
+        scope_values[entry["field"]] = scope
+
+    capability = semantic_policy["capability_authorization"]
+    if message_name == capability["message"]:
+        role = int(flattened[capability["role_field"]])
+        scope = int(flattened[capability["scope_field"]])
+        if role in _enum_values(schema, "role"):
+            role_enum = next(item for item in schema["enums"] if item.get("name") == "role")
+            role_name = next(name for name, value in role_enum["values"].items() if int(value) == role)
+            if role_name in capability["zero_scope_roles"] and scope != 0:
+                _semantic_error(decode, "unauthorized_scope", "read-only capability advertises control scope")
+            if role_name not in capability["authorized_scope_roles"] and scope != 0:
+                _semantic_error(decode, "unauthorized_scope", "role is not authorized for control scope")
+    if message_name == "PAIR_CHALLENGE" and "authorized_role" in flattened and "authorized_scope" in flattened:
+        role = int(flattened["authorized_role"])
+        scope = int(flattened["authorized_scope"])
+        role_enum = next(item for item in schema["enums"] if item.get("name") == "role")
+        role_name = next(name for name, value in role_enum["values"].items() if int(value) == role)
+        if role_name in {"READ_ONLY_CONTROLLER", "DIAGNOSTIC_BRIDGE"} and scope != 0:
+            _semantic_error(decode, "unauthorized_scope", "pairing challenge grants scope to a read-only role")
+
+
+def _validate_tlv_bytes(policy: Mapping[str, Any], data: bytes) -> None:
+    _decode_tlvs(policy, data)
+
+
+def encode_payload(
+    message: Mapping[str, Any],
+    values: Mapping[str, Any],
+    *,
+    schema: Mapping[str, Any] | None = None,
+) -> bytes:
+    if schema is None:
+        schema = load_schema()
     payload = message["payload"]
     kind = payload["kind"]
     if kind == "fixed":
-        return _encode_fields(payload["fields"], values)
+        output = _encode_fields(payload["fields"], values)
+        _validate_payload_semantics(schema, message, values, decode=False)
+        return output
     if kind == "variants":
         variant_name = values.get("variant") or values.get("_variant")
         if not isinstance(variant_name, str):
             raise ValueError(f"{message['name']} requires variant")
         for variant in payload["variants"]:
             if variant["name"] == variant_name:
-                return _encode_fields(variant["fields"], values)
+                output = _encode_fields(variant["fields"], values)
+                _validate_payload_semantics(schema, message, values, decode=False)
+                return output
         raise ValueError(f"unknown {message['name']} variant {variant_name}")
     if kind == "bounded":
         records = values.get("records", [])
@@ -819,6 +1111,7 @@ def encode_payload(message: Mapping[str, Any], values: Mapping[str, Any]) -> byt
             if not isinstance(record, Mapping):
                 raise ValueError(f"{message['name']} record must be an object")
             output.extend(_encode_fields(payload["record"]["fields"], record))
+        _validate_payload_semantics(schema, message, values, decode=False)
         return bytes(output)
     if kind == "suffix":
         prefix_values = dict(values.get("prefix", values))
@@ -835,7 +1128,10 @@ def encode_payload(message: Mapping[str, Any], values: Mapping[str, Any]) -> byt
         )
         if length_field is not None and int(values.get(length_field["name"], len(suffix))) != len(suffix):
             raise ValueError(f"{message['name']} suffix length field mismatch")
+        if message["name"] == "COMMAND_REQUEST":
+            _validate_tlv_bytes(schema["command_argument_tlv"], suffix)
         output.extend(suffix)
+        _validate_payload_semantics(schema, message, values, decode=False)
         return bytes(output)
     if kind == "tlv":
         prefix_values = dict(values.get("prefix", values))
@@ -851,6 +1147,8 @@ def encode_payload(message: Mapping[str, Any], values: Mapping[str, Any]) -> byt
             output.extend(raw)
         if len(output) - int(payload["prefix_size"]) > int(payload["max_tlv_bytes"]):
             raise ValueError(f"{message['name']} TLVs exceed maximum")
+        _validate_tlv_bytes(schema["tlv"], bytes(output[int(payload["prefix_size"]):]))
+        _validate_payload_semantics(schema, message, values, decode=False)
         return bytes(output)
     raise SchemaError(f"unknown payload kind {kind}")
 
@@ -893,12 +1191,15 @@ def decode_payload(schema: Mapping[str, Any], message: Mapping[str, Any], data: 
     if kind == "fixed":
         if len(data) != int(payload["size"]):
             raise ProtocolDecodeError("bad_length", "fixed payload has unexpected length")
-        return _decode_fields(payload["fields"], data)
+        result = _decode_fields(payload["fields"], data)
+        _validate_payload_semantics(schema, message, result, decode=True)
+        return result
     if kind == "variants":
         for variant in payload["variants"]:
             if len(data) == int(variant["size"]):
                 result = _decode_fields(variant["fields"], data)
                 result["variant"] = variant["name"]
+                _validate_payload_semantics(schema, message, result, decode=True)
                 return result
         raise ProtocolDecodeError("bad_length", "no variant matches payload length")
     if kind == "bounded":
@@ -917,6 +1218,7 @@ def decode_payload(schema: Mapping[str, Any], message: Mapping[str, Any], data: 
             records.append(_decode_fields(payload["record"]["fields"], data[cursor:end]))
             cursor = end
         prefix["records"] = records
+        _validate_payload_semantics(schema, message, prefix, decode=True)
         return prefix
     if kind == "suffix":
         prefix_size = int(payload["prefix_size"])
@@ -933,11 +1235,13 @@ def decode_payload(schema: Mapping[str, Any], message: Mapping[str, Any], data: 
         if message["name"] == "COMMAND_REQUEST":
             _decode_tlvs(schema["command_argument_tlv"], suffix)
         result[str(payload["suffix_name"])] = suffix.hex()
+        _validate_payload_semantics(schema, message, result, decode=True)
         return result
     if kind == "tlv":
         prefix_size = int(payload["prefix_size"])
         result = _decode_fields(payload["prefix"]["fields"], data[:prefix_size])
         result["tlvs"] = _decode_tlvs(schema["tlv"], data[prefix_size:])
+        _validate_payload_semantics(schema, message, result, decode=True)
         return result
     raise SchemaError(f"unknown payload kind {kind}")
 
@@ -946,8 +1250,84 @@ def _header_bytes(schema: Mapping[str, Any], values: Mapping[str, Any]) -> bytes
     return _encode_fields(schema["header"]["fields"], values)
 
 
+def _allowed_frame_flags(schema: Mapping[str, Any], message: Mapping[str, Any]) -> int:
+    flags = 0
+    if message["ack"] == "required":
+        flags |= 0x01
+    if message["broadcast"]:
+        flags |= 0x20
+    if message["name"] in schema["frame_policy"]["response_messages"]:
+        flags |= 0x02
+    if message["name"] == "ERROR":
+        flags |= 0x04
+    if message["name"] in schema["frame_policy"]["fragment_messages"]:
+        flags |= 0x08 | 0x10
+    read_only_roles = set(schema["security"]["control_scope_zero_roles"])
+    if read_only_roles.intersection(message["senders"]):
+        flags |= 0x40
+    return flags
+
+
+def _validate_frame_flags(
+    schema: Mapping[str, Any],
+    message: Mapping[str, Any],
+    flags: int,
+    *,
+    sender_role: str | None,
+    decode: bool,
+) -> None:
+    allowed = _allowed_frame_flags(schema, message)
+    if flags & ~allowed:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", f"flags are not allowed for {message['name']}")
+        raise ValueError(f"flags are not allowed for {message['name']}")
+    if message["name"] == "ERROR" and not flags & 0x04:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "ERROR message must set ERROR")
+        raise ValueError("ERROR message must set ERROR")
+    if message["name"] in schema["frame_policy"]["fragment_messages"] and not flags & 0x08:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "fragment message must set FRAGMENT")
+        raise ValueError("fragment message must set FRAGMENT")
+    if flags & 0x10 and not flags & 0x08:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "LAST_FRAGMENT requires FRAGMENT")
+        raise ValueError("LAST_FRAGMENT requires FRAGMENT")
+    read_only_roles = set(schema["security"]["control_scope_zero_roles"])
+    if flags & 0x40:
+        if sender_role is None:
+            if decode:
+                raise ProtocolDecodeError("context_required", "READ_ONLY requires sender role context")
+            raise ValueError("READ_ONLY requires sender role context")
+        if sender_role not in read_only_roles:
+            if decode:
+                raise ProtocolDecodeError("unauthorized_sender", "READ_ONLY flag conflicts with sender role")
+            raise ValueError("READ_ONLY flag conflicts with sender role")
+    elif sender_role in read_only_roles:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "read-only sender must set READ_ONLY")
+        raise ValueError("read-only sender must set READ_ONLY")
+
+
+def default_decode_context(
+    schema: Mapping[str, Any],
+    message: Mapping[str, Any],
+    header: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Return an explicit test/vector context for a declared message direction."""
+
+    secure = message["name"] in set(schema["frame_policy"]["secure_messages"])
+    return {
+        "authenticated": secure,
+        "expected_session_id": int(header.get("session_id", 0)) if secure else None,
+        "sender_role": message["senders"][0],
+        "receiver_role": message["receivers"][0],
+        "link_state": message["states"][0],
+    }
+
+
 def encode_frame(schema: Mapping[str, Any], message: Mapping[str, Any], header: Mapping[str, Any], payload_values: Mapping[str, Any]) -> bytes:
-    payload = encode_payload(message, payload_values)
+    payload = encode_payload(message, payload_values, schema=schema)
     if len(payload) > int(schema["encoding"]["max_payload_size"]):
         raise ValueError("payload exceeds maximum")
     header_values = {
@@ -968,6 +1348,21 @@ def encode_frame(schema: Mapping[str, Any], message: Mapping[str, Any], header: 
     }
     if header_values["flags"] & ~int(schema["header"]["flags_known_mask"]):
         raise ValueError("unknown frame flag")
+    _validate_frame_flags(
+        schema,
+        message,
+        header_values["flags"],
+        sender_role=message["senders"][0],
+        decode=False,
+    )
+    if message["name"] in set(schema["frame_policy"]["session_zero_messages"]):
+        if header_values["session_id"] != 0:
+            raise ValueError(f"{message['name']} must use session_id=0")
+    elif header_values["session_id"] == 0:
+        raise ValueError(f"{message['name']} requires a non-zero session_id")
+    decoded_payload = decode_payload(schema, message, payload)
+    if "wireless_session_id" in decoded_payload and header_values["session_id"] != int(decoded_payload["wireless_session_id"]):
+        raise ValueError("header and command session IDs differ")
     zero_crc_header = _header_bytes(schema, header_values)
     crc = zlib.crc32(zero_crc_header + payload) & 0xFFFFFFFF
     header_values["crc32"] = crc
@@ -988,6 +1383,8 @@ def decode_frame(
     sender_role: str | None = None,
     receiver_role: str | None = None,
     link_state: str | None = None,
+    authenticated: bool = False,
+    expected_session_id: int | None = None,
 ) -> dict[str, Any]:
     if len(frame) < int(schema["encoding"]["header_size"]):
         raise ProtocolDecodeError("bad_length", "frame is shorter than header")
@@ -1023,6 +1420,25 @@ def decode_frame(
     broadcast = bool(int(header["flags"]) & 0x20)
     if broadcast != bool(message["broadcast"]):
         raise ProtocolDecodeError("bad_flags", "BROADCAST does not match message policy")
+    _validate_frame_flags(
+        schema,
+        message,
+        int(header["flags"]),
+        sender_role=sender_role,
+        decode=True,
+    )
+    if message["name"] in set(schema["frame_policy"]["session_zero_messages"]):
+        if int(header["session_id"]) != 0:
+            raise ProtocolDecodeError("bad_session", "pairing message must use session_id=0")
+    else:
+        if int(header["session_id"]) == 0:
+            raise ProtocolDecodeError("session_required", "secure message requires a non-zero session_id")
+        if not authenticated:
+            raise ProtocolDecodeError("unauthenticated", "secure message requires authenticated transport context")
+        if expected_session_id is None or sender_role is None or receiver_role is None or link_state is None:
+            raise ProtocolDecodeError("context_required", "secure message requires complete peer/session context")
+        if int(expected_session_id) != int(header["session_id"]):
+            raise ProtocolDecodeError("session_mismatch", "frame session differs from transport session")
     if sender_role is not None and sender_role not in set(message["senders"]):
         raise ProtocolDecodeError("unauthorized_sender", "sender role is not allowed for this message")
     if receiver_role is not None and receiver_role not in set(message["receivers"]):
@@ -1038,7 +1454,11 @@ def decode_frame(
 def _vector_frame(schema: Mapping[str, Any], vector: Mapping[str, Any]) -> tuple[bytes, dict[str, Any]]:
     message = message_by_name(schema, str(vector["message"]))
     frame = encode_frame(schema, message, vector.get("header", {}), vector.get("payload", {}))
-    header = decode_frame(schema, frame)["header"]
+    header = decode_frame(
+        schema,
+        frame,
+        **default_decode_context(schema, message, vector.get("header", {})),
+    )["header"]
     payload = frame[32:]
     rendered = {
         "schema_version": schema["version"],
@@ -1130,10 +1550,19 @@ def _render_pairing_vectors(schema: Mapping[str, Any]) -> str:
     vectors = []
     for vector in schema["pairing_negative_vectors"]:
         phase = phases[str(vector["phase"])]
+        canonical_contract = {
+            "message": phase["message"],
+            "domain": phase["domain"],
+            "canonical_fields": phase["canonical_fields"],
+        }
         vectors.append({
             **vector,
             "domain": phase["domain"],
             "canonical_fields": phase["canonical_fields"],
+            "phase_binding": canonical_contract,
+            "canonical_contract_sha256": hashlib.sha256(
+                json.dumps(canonical_contract, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+            ).hexdigest(),
         })
     return json.dumps({"schema_version": schema["schema_version"], "vectors": vectors}, indent=2, sort_keys=True) + "\n"
 

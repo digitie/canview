@@ -25,6 +25,14 @@ class EspNowSchemaTests(unittest.TestCase):
         generator.validate_schema(cls.schema)
         cls.messages = {message["name"]: message for message in cls.schema["messages"]}
 
+    def _context_for(self, message_name: str) -> dict[str, object]:
+        vector = next(vector for vector in self.schema["golden_vectors"] if vector["message"] == message_name)
+        return generator.default_decode_context(
+            self.schema,
+            self.messages[message_name],
+            vector.get("header", {}),
+        )
+
     def test_version_and_transport_limits_are_frozen(self) -> None:
         self.assertEqual(self.schema["version"], {"major": 1, "minor": 3, "wire_name": "ESP-NOW v1.3"})
         self.assertEqual(self.schema["encoding"]["byte_order"], "little")
@@ -106,42 +114,88 @@ class EspNowSchemaTests(unittest.TestCase):
         hello = bytearray((generator.GOLDEN_DIR / "hello.bin").read_bytes())
         hello[7] = 1
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, recalculate_crc(hello))
+            generator.decode_frame(self.schema, recalculate_crc(hello), **self._context_for("HELLO"))
         self.assertEqual(context.exception.code, "bad_priority")
 
         discovery = bytearray((generator.GOLDEN_DIR / "pair-discovery.bin").read_bytes())
         discovery[6] = 0
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, recalculate_crc(discovery))
+            generator.decode_frame(self.schema, recalculate_crc(discovery), **self._context_for("DISCOVERY"))
         self.assertEqual(context.exception.code, "bad_flags")
         discovery = (generator.GOLDEN_DIR / "pair-discovery.bin").read_bytes()
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, discovery, sender_role="PRIMARY_CONTROLLER")
+            generator.decode_frame(self.schema, discovery, **{**self._context_for("DISCOVERY"), "sender_role": "PRIMARY_CONTROLLER"})
         self.assertEqual(context.exception.code, "unauthorized_sender")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, discovery, receiver_role="COMMUNICATOR")
+            generator.decode_frame(self.schema, discovery, **{**self._context_for("DISCOVERY"), "receiver_role": "COMMUNICATOR"})
         self.assertEqual(context.exception.code, "unauthorized_receiver")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, discovery, link_state="ONLINE")
+            generator.decode_frame(self.schema, discovery, **{**self._context_for("DISCOVERY"), "link_state": "ONLINE"})
         self.assertEqual(context.exception.code, "invalid_state")
 
         command = bytearray((generator.GOLDEN_DIR / "command-retry.bin").read_bytes())
         command[32 + 28:32 + 32] = (0xDEADBEEF).to_bytes(4, "little")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, recalculate_crc(command))
+            generator.decode_frame(self.schema, recalculate_crc(command), **self._context_for("COMMAND_REQUEST"))
         self.assertEqual(context.exception.code, "session_mismatch")
 
         bulk = bytearray((generator.GOLDEN_DIR / "bulk-fragment.bin").read_bytes())
         bulk[32 + 24:32 + 26] = (int.from_bytes(bulk[32 + 24:32 + 26], "little") + 1).to_bytes(2, "little")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, recalculate_crc(bulk))
+            generator.decode_frame(self.schema, recalculate_crc(bulk), **self._context_for("BULK_FRAGMENT"))
         self.assertEqual(context.exception.code, "bad_length")
+
+        hello_frame = (generator.GOLDEN_DIR / "hello.bin").read_bytes()
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, hello_frame)
+        self.assertEqual(context.exception.code, "unauthenticated")
+
+        zero_session = bytearray(hello_frame)
+        zero_session[8:12] = b"\x00\x00\x00\x00"
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(
+                self.schema,
+                recalculate_crc(zero_session),
+                **{**self._context_for("HELLO"), "expected_session_id": 0},
+            )
+        self.assertEqual(context.exception.code, "session_required")
+
+        response_on_command = bytearray((generator.GOLDEN_DIR / "command-retry.bin").read_bytes())
+        response_on_command[6] |= 0x02
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(response_on_command), **self._context_for("COMMAND_REQUEST"))
+        self.assertEqual(context.exception.code, "bad_flags")
+
+        last_without_fragment = bytearray(hello_frame)
+        last_without_fragment[6] |= 0x10
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(last_without_fragment), **self._context_for("HELLO"))
+        self.assertEqual(context.exception.code, "bad_flags")
+
+        read_only_command = bytearray((generator.GOLDEN_DIR / "command-retry.bin").read_bytes())
+        read_only_command[6] |= 0x40
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(read_only_command), **self._context_for("COMMAND_REQUEST"))
+        self.assertEqual(context.exception.code, "bad_flags")
+
+        capability = bytearray((generator.GOLDEN_DIR / "capabilities.bin").read_bytes())
+        capability[32 + 16] = 2
+        capability[32 + 24:32 + 26] = (1).to_bytes(2, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(capability), **self._context_for("CAPABILITIES"))
+        self.assertEqual(context.exception.code, "unauthorized_scope")
+
+        invalid_command = bytearray((generator.GOLDEN_DIR / "command-retry.bin").read_bytes())
+        invalid_command[32 + 8:32 + 10] = (0xFFFF).to_bytes(2, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(invalid_command), **self._context_for("COMMAND_REQUEST"))
+        self.assertEqual(context.exception.code, "bad_enum")
 
         malformed_command = bytearray(command[:32 + 72])
         malformed_command.extend(b"\xff")
         malformed_command[24:26] = (73).to_bytes(2, "little")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, recalculate_crc(malformed_command))
+            generator.decode_frame(self.schema, recalculate_crc(malformed_command), **self._context_for("COMMAND_REQUEST"))
         self.assertEqual(context.exception.code, "bad_length")
 
     def test_singleton_tlv_and_pairing_canonical_contracts_are_enforced(self) -> None:
@@ -161,6 +215,9 @@ class EspNowSchemaTests(unittest.TestCase):
                     phase["domain"],
                     next(item["domain"] for item in rendered["vectors"] if item["phase"] == message_name),
                 )
+                vector = next(item for item in rendered["vectors"] if item["phase"] == message_name)
+                self.assertEqual(vector["phase_binding"]["message"], message_name)
+                self.assertEqual(len(vector["canonical_contract_sha256"]), 64)
 
     def test_schema_validator_rejects_semantic_drift(self) -> None:
         invalid_cases = []
@@ -178,12 +235,32 @@ class EspNowSchemaTests(unittest.TestCase):
         invalid_cases.append(("pairing canonical field", changed))
 
         changed = copy.deepcopy(self.schema)
+        changed["pairing_phases"][0]["canonical_fields"].reverse()
+        invalid_cases.append(("pairing canonical order", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["pairing_phases"][0]["domain"] = "CV-OTHER-1"
+        invalid_cases.append(("pairing domain", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["pairing_negative_vectors"][0]["phase"] = "PAIR_RESULT"
+        invalid_cases.append(("pairing negative phase", changed))
+
+        changed = copy.deepcopy(self.schema)
         changed["messages"][0]["senders"] = ["NOT_A_ROLE"]
         invalid_cases.append(("message sender role", changed))
 
         changed = copy.deepcopy(self.schema)
         changed["command_argument_tlv"]["header_size"] = 8
         invalid_cases.append(("command argument policy", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["frame_policy"]["response_messages"].append("COMMAND_REQUEST")
+        invalid_cases.append(("message flag policy", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["enums"][0]["values"]["PRIMARY_CONTROLLER"] = 0
+        invalid_cases.append(("enum numeric alias", changed))
 
         for name, invalid_schema in invalid_cases:
             with self.subTest(case=name):
@@ -275,6 +352,8 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertEqual(generator.HEADER_PATH.read_text(encoding="utf-8"), expected)
         self.assertIn("GENERATED FILE - DO NOT EDIT", expected)
         self.assertIn("CANVIEW_MSG_CAN_EVENT_MARKER", expected)
+        self.assertIn("CANVIEW_ROLE_KNOWN_MASK", expected)
+        self.assertIn("CANVIEW_LINK_KNOWN_MASK", expected)
 
     def test_schema_digest_is_platform_independent(self) -> None:
         canonical = generator._canonical_schema_bytes()
@@ -292,7 +371,11 @@ class EspNowSchemaTests(unittest.TestCase):
                 metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
                 self.assertEqual(frame.hex(), metadata["frame_hex"])
                 self.assertEqual(len(frame), metadata["frame_size"])
-                decoded = generator.decode_frame(self.schema, frame)
+                decoded = generator.decode_frame(
+                    self.schema,
+                    frame,
+                    **generator.default_decode_context(self.schema, self.messages[vector["message"]], vector.get("header", {})),
+                )
                 self.assertEqual(decoded["message"], vector["message"])
                 self.assertEqual(decoded["message_id"], self.messages[vector["message"]]["id"])
                 self.assertEqual(decoded["header"]["crc32"], int(metadata["crc32"], 16))
@@ -315,7 +398,12 @@ class EspNowSchemaTests(unittest.TestCase):
                 raw = (generator.MALFORMED_DIR / f"{vector['name']}.bin").read_bytes()
                 self.assertEqual(raw.hex(), metadata["frame_hex"])
                 with self.assertRaises(generator.ProtocolDecodeError) as context:
-                    generator.decode_frame(self.schema, raw)
+                    base = next(item for item in self.schema["golden_vectors"] if item["name"] == vector["base"])
+                    generator.decode_frame(
+                        self.schema,
+                        raw,
+                        **generator.default_decode_context(self.schema, self.messages[base["message"]], base.get("header", {})),
+                    )
                 self.assertEqual(context.exception.code, vector["expected"])
 
     def test_compatibility_vectors_cover_major_minor_and_tlv_rules(self) -> None:
@@ -323,11 +411,21 @@ class EspNowSchemaTests(unittest.TestCase):
             with self.subTest(vector=vector["name"]):
                 raw = (generator.COMPATIBILITY_DIR / f"{vector['name']}.bin").read_bytes()
                 if vector["expected"] == "accepted":
-                    decoded = generator.decode_frame(self.schema, raw)
+                    base = next(item for item in self.schema["golden_vectors"] if item["name"] == vector["base"])
+                    decoded = generator.decode_frame(
+                        self.schema,
+                        raw,
+                        **generator.default_decode_context(self.schema, self.messages[base["message"]], base.get("header", {})),
+                    )
                     self.assertIn(decoded["message"], {"HELLO", "CAPABILITIES"})
                 else:
                     with self.assertRaises(generator.ProtocolDecodeError) as context:
-                        generator.decode_frame(self.schema, raw)
+                        base = next(item for item in self.schema["golden_vectors"] if item["name"] == vector["base"])
+                        generator.decode_frame(
+                            self.schema,
+                            raw,
+                            **generator.default_decode_context(self.schema, self.messages[base["message"]], base.get("header", {})),
+                        )
                     self.assertEqual(context.exception.code, vector["expected"])
 
     def test_bounded_payload_limits_and_count_binding(self) -> None:
@@ -358,12 +456,12 @@ class EspNowSchemaTests(unittest.TestCase):
             "control_sync_generation": 7,
             "expected_state_revision": 8,
             "precondition_flags": 0,
-            "argument_tlv_length": 2,
-            "argument_tlv": "aabb",
+            "argument_tlv_length": 6,
+            "argument_tlv": "01000200aabb",
             "control_tag": "00" * 16,
         }
         encoded = generator.encode_payload(command, common)
-        self.assertEqual(len(encoded), 74)
+        self.assertEqual(len(encoded), 78)
         with self.assertRaises(ValueError):
             generator.encode_payload(command, {**common, "argument_tlv_length": 1})
 
@@ -399,7 +497,7 @@ class EspNowSchemaTests(unittest.TestCase):
         raw[28:32] = b"\x00\x00\x00\x00"
         raw[28:32] = (zlib.crc32(raw) & 0xFFFFFFFF).to_bytes(4, "little")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
-            generator.decode_frame(self.schema, bytes(raw))
+            generator.decode_frame(self.schema, bytes(raw), **self._context_for("HELLO"))
         self.assertEqual(context.exception.code, "bad_reserved")
 
 

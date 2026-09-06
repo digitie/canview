@@ -47,6 +47,34 @@
     "flags_known_mask": 127,
     "crc_field": "crc32"
   },
+  "frame_policy": {
+    "response_messages": ["HELLO", "CAPABILITIES", "TIME_SYNC_RESPONSE", "ACK", "ERROR", "STATE_SNAPSHOT", "CAN_FILTER_RESULT", "CAN_STREAM_STATUS", "CAN_ID_STATS", "CAN_CAPTURE_STATUS", "COMMAND_RESULT", "CONTROL_LEASE_STATUS", "CONFIG_RESULT", "REMOTE_CONFIG_STATUS", "BULK_ACK"],
+    "fragment_messages": ["BULK_FRAGMENT"],
+    "session_zero_messages": ["DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"],
+    "secure_messages": ["HELLO", "CAPABILITIES", "TIME_SYNC_REQUEST", "TIME_SYNC_RESPONSE", "HEARTBEAT", "ACK", "ERROR", "STATE_SNAPSHOT_REQUEST", "STATE_SNAPSHOT", "CAN_BATCH", "SIGNAL_BATCH", "BUS_STATUS", "CAN_FILTER_GET", "CAN_FILTER_SET", "CAN_FILTER_RESULT", "CAN_STREAM_CONFIG", "CAN_STREAM_STATUS", "CAN_OBSERVER_CONFIG", "CAN_ID_STATS", "CAN_CAPTURE_CONTROL", "CAN_CAPTURE_STATUS", "CAN_EVENT_MARKER", "DIAGNOSTIC_LEASE", "COMMAND_REQUEST", "COMMAND_RESULT", "CONTROL_LEASE_REQUEST", "CONTROL_LEASE_STATUS", "CONFIG_GET", "CONFIG_SET", "CONFIG_RESULT", "CONFIG_SCHEMA_REQUEST", "REMOTE_CONFIG_REQUEST", "REMOTE_CONFIG_STATUS", "DIAGNOSTIC_COUNTERS", "BULK_BEGIN", "BULK_FRAGMENT", "BULK_ACK", "BULK_END"]
+  },
+  "semantic_policy": {
+    "role_fields": [
+      {"message": "HELLO", "field": "role"},
+      {"message": "CAPABILITIES", "field": "role"},
+      {"message": "PAIR_REQUEST", "field": "requested_role"},
+      {"message": "PAIR_CHALLENGE", "field": "authorized_role"},
+      {"message": "PAIR_CONFIRM", "field": "authorized_role"},
+      {"message": "PAIR_RESULT", "field": "assigned_role"}
+    ],
+    "command_id_fields": [{"message": "COMMAND_REQUEST", "field": "command_id"}],
+    "scope_fields": [
+      {"message": "CAPABILITIES", "field": "control_scope"},
+      {"message": "PAIR_CHALLENGE", "field": "authorized_scope"}
+    ],
+    "capability_authorization": {
+      "message": "CAPABILITIES",
+      "role_field": "role",
+      "scope_field": "control_scope",
+      "zero_scope_roles": ["READ_ONLY_CONTROLLER", "DIAGNOSTIC_BRIDGE"],
+      "authorized_scope_roles": ["PRIMARY_CONTROLLER", "COMMUNICATOR"]
+    }
+  },
   "constants": [
     {"c_name": "CANVIEW_PROTOCOL_MAJOR", "type": "u8", "value": 1},
     {"c_name": "CANVIEW_PROTOCOL_MINOR", "type": "u8", "value": 3},
@@ -236,8 +264,8 @@
     {"name": "config-get", "message": "CONFIG_GET", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 81, "sender_time_ms": 10004, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "expected_state_revision": 17, "schema_version": 6, "key": 513, "known_revision": 4}},
     {"name": "config-set", "message": "CONFIG_SET", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 82, "sender_time_ms": 10005, "correlation_id": 0}, "payload": {"schema_version": 6, "records": [{"key": 513, "value_type": 4, "value_bits": 1}, {"key": 514, "value_type": 2, "value_bits": 550}] }},
     {"name": "config-result", "message": "CONFIG_RESULT", "header": {"flags": 2, "priority": 1, "session_id": 16909060, "sequence": 83, "sender_time_ms": 10006, "correlation_id": 82}, "payload": {"request_token": 72623859790382856, "stage": 2, "applied_count": 2, "pending_count": 0, "reason": 0, "state_revision": 18, "completed_time_ms": 10006, "detail": 0}},
-    {"name": "config-schema-request", "message": "CONFIG_SCHEMA_REQUEST", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 84, "sender_time_ms": 10007, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "known_schema_version": 6, "known_digest_prefix": 3735928559}},
-    {"name": "remote-config-request", "message": "REMOTE_CONFIG_REQUEST", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 85, "sender_time_ms": 10008, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "expected_state_revision": 18, "schema_version": 6, "flags": 1, "ttl_ms": 30000, "records": [{"key": 515, "value_type": 4, "value_bits": 1}]}},
+    {"name": "config-schema-request", "message": "CONFIG_SCHEMA_REQUEST", "header": {"flags": 65, "priority": 1, "session_id": 16909060, "sequence": 84, "sender_time_ms": 10007, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "known_schema_version": 6, "known_digest_prefix": 3735928559}},
+    {"name": "remote-config-request", "message": "REMOTE_CONFIG_REQUEST", "header": {"flags": 65, "priority": 1, "session_id": 16909060, "sequence": 85, "sender_time_ms": 10008, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "expected_state_revision": 18, "schema_version": 6, "flags": 1, "ttl_ms": 30000, "records": [{"key": 515, "value_type": 4, "value_bits": 1}]}},
     {"name": "remote-config-status", "message": "REMOTE_CONFIG_STATUS", "header": {"flags": 2, "priority": 1, "session_id": 16909060, "sequence": 86, "sender_time_ms": 10009, "correlation_id": 85}, "payload": {"request_token": 72623859790382856, "stage": 2, "applied_count": 1, "pending_count": 0, "reason": 0, "state_revision": 19, "completed_time_ms": 10009, "detail": 0}}
   ],
   "negative_vectors": [
