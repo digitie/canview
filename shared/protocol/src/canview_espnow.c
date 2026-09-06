@@ -23,6 +23,7 @@
 #define ESPNOW_AUTH_BACKOFF_BASE_MS (1000U)
 #define ESPNOW_AUTH_BACKOFF_MAX_MS (60000U)
 #define ESPNOW_TIME_SYNC_SAMPLE_TARGET (3U)
+#define ESPNOW_SESSION_LIFECYCLE_COOKIE UINT32_C(0x43565353)
 
 static uint16_t read_le16(const uint8_t *bytes)
 {
@@ -551,7 +552,7 @@ static canview_decode_reason_t validate_policy(
     const canview_transport_meta_t *meta, const canview_peer_session_t *session,
     const canview_espnow_message_contract_t *contract,
     const canview_wire_header_t *header, const uint8_t *payload, size_t payload_size,
-    uint8_t variant_index)
+    uint8_t variant_index, bool enforce_session_security)
 {
     if (meta == NULL || contract == NULL || header == NULL || payload == NULL ||
         !valid_role(meta->sender_role) || !valid_role(meta->receiver_role) ||
@@ -596,14 +597,18 @@ static canview_decode_reason_t validate_policy(
     {
         return CANVIEW_DECODE_REASON_ROLE_MISMATCH;
     }
+    const bool secure_transport = enforce_session_security
+                                      ? session != NULL && session->initialized &&
+                                            meta->encrypted && session->encrypted &&
+                                            meta->peer_authenticated && session->authenticated
+                                      : meta->encrypted && meta->peer_authenticated;
     if (contract->session_zero)
     {
         if (header->session_id != 0U)
         {
             return CANVIEW_DECODE_REASON_SESSION_MISMATCH;
         }
-        if (contract->authenticated_session_zero &&
-            (!meta->encrypted || !meta->peer_authenticated))
+        if (contract->authenticated_session_zero && !secure_transport)
         {
             return CANVIEW_DECODE_REASON_ENCRYPTION_REQUIRED;
         }
@@ -618,7 +623,7 @@ static canview_decode_reason_t validate_policy(
             return CANVIEW_DECODE_REASON_SESSION_MISMATCH;
         }
     }
-    if (contract->encrypted && (!meta->encrypted || !meta->peer_authenticated || !meta->peer_known))
+    if (contract->encrypted && (!secure_transport || !meta->peer_known))
     {
         return CANVIEW_DECODE_REASON_ENCRYPTION_REQUIRED;
     }
@@ -681,10 +686,10 @@ canview_decode_result_t canview_frame_decode(
     {
         return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_INVALID_ARGUMENT);
     }
-    if (session->rx_resource_limit == 0U)
+    if (session->lifecycle_cookie != ESPNOW_SESSION_LIFECYCLE_COOKIE ||
+        session->rx_resource_limit == 0U)
     {
-        session->rx_resource_limit = CANVIEW_ESPNOW_RX_RESOURCE_LIMIT;
-        (void)canview_error_rate_limiter_reset(&session->error_limiter, ESPNOW_DEFAULT_ERROR_RATE_LIMIT);
+        return CANVIEW_DECODE_DROP_SILENT;
     }
     if (!canview_peer_session_auth_allowed(session, meta->now_ms))
     {
@@ -732,7 +737,8 @@ canview_decode_result_t canview_frame_decode(
         return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_BAD_LENGTH);
     }
     const canview_decode_reason_t policy_reason = validate_policy(
-        meta, session, out->contract, &out->header, out->payload, payload_size, out->variant_index);
+        meta, session, out->contract, &out->header, out->payload, payload_size, out->variant_index,
+        true);
     if (policy_reason != CANVIEW_DECODE_REASON_NONE)
     {
         if (policy_reason == CANVIEW_DECODE_REASON_ENCRYPTION_REQUIRED)
@@ -756,7 +762,18 @@ canview_decode_result_t canview_frame_decode(
     {
         return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_STALE);
     }
-    if (sequence_status != CANVIEW_OK || canview_peer_session_reserve_rx(session) != CANVIEW_OK)
+    if (sequence_status != CANVIEW_OK)
+    {
+        return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_RESOURCE_BUSY);
+    }
+    canview_peer_session_t transition = *session;
+    if (session->initialized &&
+        canview_peer_session_on_message(&transition, out->header.message_type, meta->now_ms) !=
+            CANVIEW_OK)
+    {
+        return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_STATE_MISMATCH);
+    }
+    if (canview_peer_session_reserve_rx(session) != CANVIEW_OK)
     {
         return decode_failure(meta, session, out, CANVIEW_DECODE_REASON_RESOURCE_BUSY);
     }
@@ -765,7 +782,9 @@ canview_decode_result_t canview_frame_decode(
     canview_peer_session_auth_success(session);
     if (session->initialized)
     {
-        (void)canview_peer_session_on_message(session, out->header.message_type, meta->now_ms);
+        session->state = transition.state;
+        session->heartbeat_misses = transition.heartbeat_misses;
+        session->time_sync_samples = transition.time_sync_samples;
     }
     out->reason = CANVIEW_DECODE_REASON_NONE;
     return effective_ack_required(out->contract, out->variant_index) != 0U
@@ -826,7 +845,7 @@ canview_encode_result_t canview_frame_encode(
     }
     const canview_decode_reason_t policy_reason = validate_policy(
         &request->meta, NULL, contract, &request->header, request->payload,
-        request->payload_size, variant_index);
+        request->payload_size, variant_index, false);
     if (policy_reason != CANVIEW_DECODE_REASON_NONE)
     {
         return encode_error(policy_reason);
@@ -853,6 +872,7 @@ canview_status_t canview_peer_session_reset(canview_peer_session_t *session)
         return CANVIEW_INVALID_ARGUMENT;
     }
     memset(session, 0, sizeof(*session));
+    session->lifecycle_cookie = ESPNOW_SESSION_LIFECYCLE_COOKIE;
     session->state = CANVIEW_LINK_DISABLED;
     session->rx_resource_limit = CANVIEW_ESPNOW_RX_RESOURCE_LIMIT;
     session->next_sequence = 1U;

@@ -438,6 +438,21 @@ static int test_session(void)
     CHECK(canview_peer_session_reset(&uninitialized) == CANVIEW_OK);
     CHECK(canview_peer_session_on_message(&uninitialized, CANVIEW_MSG_HELLO, 0U) ==
           CANVIEW_INVALID_ARGUMENT);
+    canview_transport_meta_t secure_meta;
+    metadata_for("hello", &secure_meta);
+    canview_peer_session_t raw_session = {0};
+    canview_decoded_frame_t raw_decoded;
+    CHECK(canview_frame_decode(&secure_meta, hello, hello_length, &raw_session, &raw_decoded) ==
+          CANVIEW_DECODE_DROP_SILENT);
+    CHECK(raw_decoded.reason == CANVIEW_DECODE_REASON_INVALID_ARGUMENT);
+    canview_peer_session_t insecure_session;
+    CHECK(canview_peer_session_start(&insecure_session, secure_meta.receiver_role,
+                                     secure_meta.expected_session_id, false, false,
+                                     secure_meta.now_ms) == CANVIEW_OK);
+    CHECK(canview_frame_decode(&secure_meta, hello, hello_length, &insecure_session,
+                               &raw_decoded) == CANVIEW_DECODE_ERROR_RATE_LIMITED);
+    CHECK(raw_decoded.reason == CANVIEW_DECODE_REASON_ENCRYPTION_REQUIRED);
+    CHECK(insecure_session.rx_reserved == 0U);
     canview_control_time_sync_invalidate(&session.control_time_sync);
     CHECK(!canview_control_time_sync_is_valid(&session.control_time_sync, 0U));
     canview_control_time_sync_invalidate(NULL);

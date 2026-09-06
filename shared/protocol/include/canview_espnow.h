@@ -138,9 +138,15 @@ typedef struct
     uint16_t per_second_limit;
 } canview_error_rate_limiter_t;
 
+/**
+ * Caller-owned session state. Reset/start, decode, and all session mutations
+ * must be serialized by the owning task; this portable core is not an ISR or
+ * multi-task synchronization primitive.
+ */
 typedef struct
 {
     bool initialized;
+    uint32_t lifecycle_cookie;
     uint32_t session_id;
     uint64_t peer_device_id;
     uint64_t peer_boot_id;
@@ -195,7 +201,10 @@ typedef struct
     uint8_t link_root[CANVIEW_ESPNOW_LINK_ROOT_BYTES];
 } canview_link_key_record_t;
 
-/** Caller-owned two-slot model for an atomic per-pair key rotation. */
+/**
+ * Caller-owned two-slot model for an atomic per-pair key rotation. The
+ * production NVS/flash adapter owns persistence and must serialize access.
+ */
 typedef struct
 {
     canview_link_key_record_t active;
@@ -203,6 +212,7 @@ typedef struct
     bool staging_ready;
 } canview_link_key_store_t;
 
+/** Caller-owned, single-owner scheduler; transport tasks must serialize calls. */
 typedef struct
 {
     bool in_use;
