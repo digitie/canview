@@ -108,7 +108,20 @@ jobs:
           $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
           try {
             New-Item -ItemType Directory -Force $toolchainBase | Out-Null
-            Invoke-WebRequest -Uri $manifest.tools.armGnuToolchain.archiveUrl -OutFile $archive
+            $partialArchive = "$archive.partial"
+            $downloaded = $false
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
+              & curl.exe --fail --location --retry 3 --retry-delay 2 --retry-all-errors --silent --show-error --output $partialArchive $manifest.tools.armGnuToolchain.archiveUrl
+              $downloadExitCode = $LASTEXITCODE
+              if (($downloadExitCode -eq 0) -and (Test-Path -LiteralPath $partialArchive -PathType Leaf) -and ((Get-Item -LiteralPath $partialArchive).Length -gt 0)) {
+                Move-Item -LiteralPath $partialArchive -Destination $archive
+                $downloaded = $true
+                break
+              }
+              if ($attempt -lt 5) { Start-Sleep -Seconds $attempt }
+            }
+            if (-not $downloaded) { throw "Arm GNU archive download failed or returned an empty response after retries" }
             & pwsh -NoProfile -File tools/environment/install-arm-gnu.ps1 -Destination $toolchainBase -ArchivePath $archive
             if ($LASTEXITCODE -ne 0) { throw "install-arm-gnu.ps1 failed with exit code $LASTEXITCODE" }
             $armRoot = Join-Path $toolchainBase "arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())"

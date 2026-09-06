@@ -6,6 +6,44 @@ $ErrorActionPreference = "Stop"
 $env:PYTHONUTF8 = "1"
 $taskRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $taskManifest = Get-Content -Raw -LiteralPath (Join-Path $taskRoot "tools/foundation-tools.json") | ConvertFrom-Json
+
+function Invoke-VerifiedDownload {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    $partial = "$Destination.partial"
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        if (Test-Path -LiteralPath $partial) {
+            Remove-Item -LiteralPath $partial -Force
+        }
+        $downloadExitCode = 0
+        if ($null -ne $curl) {
+            & $curl.Source --fail --location --retry 3 --retry-delay 2 --retry-all-errors --silent --show-error --output $partial $Url
+            $downloadExitCode = $LASTEXITCODE
+        } else {
+            try {
+                Invoke-WebRequest -Uri $Url -OutFile $partial
+            } catch {
+                $downloadExitCode = 1
+            }
+        }
+        $valid = ($downloadExitCode -eq 0) -and
+            (Test-Path -LiteralPath $partial -PathType Leaf) -and
+            ((Get-Item -LiteralPath $partial).Length -gt 0)
+        if ($valid) {
+            Move-Item -LiteralPath $partial -Destination $Destination
+            return
+        }
+        if ($attempt -lt 5) {
+            Start-Sleep -Seconds $attempt
+        }
+    }
+    throw "Download failed or returned an empty archive after retries: $Url"
+}
+
 $names = @("llvm", "cmake", "ninja")
 if ($IncludeDocs) { $names += "doxygen" }
 foreach ($name in $names) {
@@ -14,7 +52,9 @@ foreach ($name in $names) {
     New-Item -ItemType Directory -Force $directory | Out-Null
     $archive = Join-Path $directory $item.archive
     if (-not (Test-Path -LiteralPath $archive)) {
-        Invoke-WebRequest -Uri $item.url -OutFile $archive
+        Invoke-VerifiedDownload -Url $item.url -Destination $archive
+    } elseif ((Get-Item -LiteralPath $archive).Length -le 0) {
+        throw "Cached archive is empty: $archive. Remove it and rerun the setup script."
     }
     if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $item.sha256) {
         throw "Archive SHA256 mismatch: $archive. No automatic overwrite/removal."

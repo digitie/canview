@@ -111,6 +111,43 @@ function Assert-ArchiveLayout {
     }
 }
 
+function Invoke-VerifiedDownload {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Destination
+    )
+
+    $partial = "$Destination.partial"
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        if (Test-Path -LiteralPath $partial) {
+            Remove-Item -LiteralPath $partial -Force
+        }
+        $downloadExitCode = 0
+        if ($null -ne $curl) {
+            & $curl.Source --fail --location --retry 3 --retry-delay 2 --retry-all-errors --silent --show-error --output $partial $Url
+            $downloadExitCode = $LASTEXITCODE
+        } else {
+            try {
+                Invoke-WebRequest -Uri $Url -OutFile $partial
+            } catch {
+                $downloadExitCode = 1
+            }
+        }
+        $valid = ($downloadExitCode -eq 0) -and
+            (Test-Path -LiteralPath $partial -PathType Leaf) -and
+            ((Get-Item -LiteralPath $partial).Length -gt 0)
+        if ($valid) {
+            Move-Item -LiteralPath $partial -Destination $Destination
+            return
+        }
+        if ($attempt -lt 5) {
+            Start-Sleep -Seconds $attempt
+        }
+    }
+    throw "Download failed or returned an empty archive after retries: $Url"
+}
+
 function Write-Provenance {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -140,7 +177,9 @@ $archive = if ($ArchivePath.Trim().Length -gt 0) {
 }
 if (-not (Test-Path -LiteralPath $archive -PathType Leaf)) {
     Write-Host "Downloading pinned Arm GNU archive..."
-    Invoke-WebRequest -Uri $tool.archiveUrl -OutFile $archive
+    Invoke-VerifiedDownload -Url $tool.archiveUrl -Destination $archive
+} elseif ((Get-Item -LiteralPath $archive).Length -le 0) {
+    throw "Cached Arm GNU archive is empty: $archive. Remove it and rerun the installer."
 }
 $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($archiveHash -ne $tool.archiveSha256.ToLowerInvariant()) {
