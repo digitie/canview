@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import copy
 import sys
 import tempfile
 import unittest
@@ -90,9 +91,104 @@ class EspNowSchemaTests(unittest.TestCase):
             with self.subTest(message=name):
                 self.assertEqual(contract["since"], "1.3")
                 self.assertTrue(contract["idempotency_key"])
+                fields = generator._message_field_names(self.messages[name])
+                self.assertTrue(set(contract["idempotency_key"]).issubset(fields | {"canonical_argument_digest"}))
                 self.assertIn(contract["sensitive_log_policy"], {"allow", "redact"})
                 response = contract["response"]
                 self.assertTrue(response is None or response in self.messages)
+
+    def test_frame_policy_context_and_session_binding(self) -> None:
+        def recalculate_crc(frame: bytearray) -> bytes:
+            frame[28:32] = b"\x00\x00\x00\x00"
+            frame[28:32] = (zlib.crc32(frame) & 0xFFFFFFFF).to_bytes(4, "little")
+            return bytes(frame)
+
+        hello = bytearray((generator.GOLDEN_DIR / "hello.bin").read_bytes())
+        hello[7] = 1
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(hello))
+        self.assertEqual(context.exception.code, "bad_priority")
+
+        discovery = bytearray((generator.GOLDEN_DIR / "pair-discovery.bin").read_bytes())
+        discovery[6] = 0
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(discovery))
+        self.assertEqual(context.exception.code, "bad_flags")
+        discovery = (generator.GOLDEN_DIR / "pair-discovery.bin").read_bytes()
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, discovery, sender_role="PRIMARY_CONTROLLER")
+        self.assertEqual(context.exception.code, "unauthorized_sender")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, discovery, receiver_role="COMMUNICATOR")
+        self.assertEqual(context.exception.code, "unauthorized_receiver")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, discovery, link_state="ONLINE")
+        self.assertEqual(context.exception.code, "invalid_state")
+
+        command = bytearray((generator.GOLDEN_DIR / "command-retry.bin").read_bytes())
+        command[32 + 28:32 + 32] = (0xDEADBEEF).to_bytes(4, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(command))
+        self.assertEqual(context.exception.code, "session_mismatch")
+
+        bulk = bytearray((generator.GOLDEN_DIR / "bulk-fragment.bin").read_bytes())
+        bulk[32 + 24:32 + 26] = (int.from_bytes(bulk[32 + 24:32 + 26], "little") + 1).to_bytes(2, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(bulk))
+        self.assertEqual(context.exception.code, "bad_length")
+
+        malformed_command = bytearray(command[:32 + 72])
+        malformed_command.extend(b"\xff")
+        malformed_command[24:26] = (73).to_bytes(2, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, recalculate_crc(malformed_command))
+        self.assertEqual(context.exception.code, "bad_length")
+
+    def test_singleton_tlv_and_pairing_canonical_contracts_are_enforced(self) -> None:
+        capabilities = self.messages["CAPABILITIES"]
+        payload = bytearray((generator.GOLDEN_DIR / "capabilities.bin").read_bytes()[32:])
+        payload.extend(bytes.fromhex("01000800" + "0000000000000000"))
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_payload(self.schema, capabilities, bytes(payload))
+        self.assertEqual(context.exception.code, "duplicate_tlv")
+
+        phases = {phase["message"]: phase for phase in self.schema["pairing_phases"]}
+        rendered = json.loads(generator.PAIRING_VECTOR_PATH.read_text(encoding="utf-8"))
+        for message_name, phase in phases.items():
+            with self.subTest(phase=message_name):
+                self.assertTrue(set(phase["canonical_fields"]).issubset(generator._message_field_names(self.messages[message_name])))
+                self.assertEqual(
+                    phase["domain"],
+                    next(item["domain"] for item in rendered["vectors"] if item["phase"] == message_name),
+                )
+
+    def test_schema_validator_rejects_semantic_drift(self) -> None:
+        invalid_cases = []
+
+        changed = copy.deepcopy(self.schema)
+        changed["encoding"]["crc"]["check_123456789"] += 1
+        invalid_cases.append(("crc metadata", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["message_contracts"]["HELLO"]["idempotency_key"] = ["not_a_wire_field"]
+        invalid_cases.append(("idempotency field", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["pairing_phases"][0]["canonical_fields"].append("not_a_wire_field")
+        invalid_cases.append(("pairing canonical field", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["messages"][0]["senders"] = ["NOT_A_ROLE"]
+        invalid_cases.append(("message sender role", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["command_argument_tlv"]["header_size"] = 8
+        invalid_cases.append(("command argument policy", changed))
+
+        for name, invalid_schema in invalid_cases:
+            with self.subTest(case=name):
+                with self.assertRaises(generator.SchemaError):
+                    generator.validate_schema(invalid_schema)
 
     def test_revision_reason_and_cumulative_counter_widths(self) -> None:
         cumulative = {"error_count", "rx_count", "bus_off_count", "telemetry_dropped", "protocol_error_count"}
@@ -168,6 +264,10 @@ class EspNowSchemaTests(unittest.TestCase):
         values = {item["value"] for item in tlv["types"]}
         self.assertEqual(len(values), len(tlv["types"]))
         self.assertIn(0x8001, values)
+        command_tlv = self.schema["command_argument_tlv"]
+        self.assertEqual(command_tlv["header_size"], 4)
+        self.assertEqual(command_tlv["max_nesting_depth"], 0)
+        self.assertEqual(command_tlv["types"][0]["size"], -1)
 
     def test_generated_header_is_reproducible(self) -> None:
         digest = __import__("hashlib").sha256(generator._canonical_schema_bytes()).hexdigest()
@@ -284,6 +384,11 @@ class EspNowSchemaTests(unittest.TestCase):
         critical.extend(bytes.fromhex("10800200aabb"))
         with self.assertRaises(generator.ProtocolDecodeError) as context:
             generator.decode_payload(self.schema, capabilities, bytes(critical))
+        self.assertEqual(context.exception.code, "unsupported_tlv")
+        known_base_critical = bytearray(tlv_payload)
+        known_base_critical.extend(bytes.fromhex("028002000000"))
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_payload(self.schema, capabilities, bytes(known_base_critical))
         self.assertEqual(context.exception.code, "unsupported_tlv")
 
     def test_payload_reserved_bytes_are_rejected_after_crc_recalculation(self) -> None:

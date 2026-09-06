@@ -172,6 +172,21 @@ def _layout_entries(schema: Mapping[str, Any]) -> Iterable[tuple[str, int, Seque
                 yield entry
 
 
+def _message_field_names(message: Mapping[str, Any]) -> set[str]:
+    payload = message["payload"]
+    kind = payload["kind"]
+    if kind == "fixed":
+        return {str(field["name"]) for field in payload["fields"]}
+    if kind in {"bounded", "suffix", "tlv"}:
+        fields = list(payload["prefix"]["fields"])
+        if kind == "bounded":
+            fields.extend(payload["record"]["fields"])
+        return {str(field["name"]) for field in fields}
+    if kind == "variants":
+        return {str(field["name"]) for variant in payload["variants"] for field in variant["fields"]}
+    raise SchemaError(f"unknown payload kind {kind!r}")
+
+
 def _validate_companion_schemas(schema: Mapping[str, Any], message_ids: set[int]) -> None:
     companions = schema.get("companion_schemas")
     if not isinstance(companions, Sequence) or isinstance(companions, (str, bytes)) or not companions:
@@ -222,6 +237,39 @@ def _validate_companion_schemas(schema: Mapping[str, Any], message_ids: set[int]
             raise SchemaError("companion capabilities do not match the companion schema")
 
 
+def _validate_tlv_policy(policy: Any, label: str) -> None:
+    if not isinstance(policy, Mapping):
+        raise SchemaError(f"{label} policy must be an object")
+    if policy.get("header_size") != 4 or policy.get("max_nesting_depth") != 0:
+        raise SchemaError(f"{label} header/nesting contract is invalid")
+    critical_bit = policy.get("critical_bit")
+    if critical_bit != 0x8000:
+        raise SchemaError(f"{label} critical bit changed")
+    types = policy.get("types")
+    if not isinstance(types, Sequence) or isinstance(types, (str, bytes)) or not types:
+        raise SchemaError(f"{label}.types must be a non-empty list")
+    type_values: set[int] = set()
+    type_names: set[str] = set()
+    for item in types:
+        if not isinstance(item, Mapping):
+            raise SchemaError(f"{label} type must be an object")
+        name = item.get("name")
+        value = item.get("value")
+        size = item.get("size")
+        if not isinstance(name, str) or not name or name in type_names:
+            raise SchemaError(f"invalid or duplicate {label} type name {name!r}")
+        if not isinstance(value, int) or not 0 < value <= 0xFFFF or value in type_values:
+            raise SchemaError(f"invalid or duplicate {label} type {value}")
+        if not isinstance(size, int) or size < -1:
+            raise SchemaError(f"invalid {label} size for {value}")
+        if value & (int(critical_bit) - 1) == 0:
+            raise SchemaError(f"invalid {label} base type {value}")
+        if not isinstance(item.get("singleton"), bool):
+            raise SchemaError(f"{label} type {name} must declare singleton policy")
+        type_names.add(name)
+        type_values.add(value)
+
+
 def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
     config_policy = schema.get("config_policy")
     if not isinstance(config_policy, Mapping):
@@ -244,6 +292,26 @@ def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
     phase_names = {str(phase.get("message")) for phase in phases} if isinstance(phases, Sequence) else set()
     if phase_names != {"DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"}:
         raise SchemaError("pairing phases are incomplete")
+    allowed_mutations = {
+        "bind_peer_nonce": "must_not_bind",
+        "bind_selected_version": "must_not_bind",
+        "authorize_requested_role": "must_not_authorize",
+        "accept_untrusted_scope": "reject_without_local_authorization",
+        "reorder_transcript_fields": "bad_canonical_order",
+        "change_transcript_hash": "bad_transcript",
+    }
+    messages_by_name = {str(message["name"]): message for message in schema["messages"]}
+    for phase in phases if isinstance(phases, Sequence) else ():
+        if not isinstance(phase, Mapping) or phase.get("message") not in messages_by_name:
+            raise SchemaError(f"pairing phase references an unknown message: {phase!r}")
+        canonical_fields = phase.get("canonical_fields")
+        if (
+            not isinstance(canonical_fields, Sequence)
+            or isinstance(canonical_fields, (str, bytes))
+            or len(canonical_fields) != len(set(canonical_fields))
+            or not set(canonical_fields).issubset(_message_field_names(messages_by_name[str(phase["message"])]))
+        ):
+            raise SchemaError(f"pairing canonical fields do not match {phase.get('message')}")
     if not isinstance(negatives, Sequence) or isinstance(negatives, (str, bytes)):
         raise SchemaError("pairing_negative_vectors must be a list")
     seen_names: set[str] = set()
@@ -253,7 +321,11 @@ def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
         name = vector.get("name")
         if not isinstance(name, str) or name in seen_names:
             raise SchemaError("pairing negative vector names must be unique")
-        if vector.get("phase") not in phase_names or not vector.get("mutation") or not vector.get("expected"):
+        if (
+            vector.get("phase") not in phase_names
+            or vector.get("mutation") not in allowed_mutations
+            or vector.get("expected") != allowed_mutations[vector.get("mutation")]
+        ):
             raise SchemaError(f"invalid pairing negative vector: {vector!r}")
         seen_names.add(name)
     if {str(vector.get("phase")) for vector in negatives} != phase_names:
@@ -273,8 +345,21 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         raise SchemaError("v1.3 frame/header limits changed")
     if encoding.get("max_payload_size") != 208:
         raise SchemaError("v1.3 payload limit must be 208")
-    if not isinstance(encoding.get("crc"), Mapping) or encoding["crc"].get("name") != "CRC-32/ISO-HDLC":
+    crc = encoding.get("crc")
+    if not isinstance(crc, Mapping) or crc.get("name") != "CRC-32/ISO-HDLC":
         raise SchemaError("unsupported CRC contract")
+    if {
+        "polynomial_reflected": crc.get("polynomial_reflected"),
+        "initial": crc.get("initial"),
+        "xor_out": crc.get("xor_out"),
+        "check_123456789": crc.get("check_123456789"),
+    } != {
+        "polynomial_reflected": 3988292384,
+        "initial": 4294967295,
+        "xor_out": 4294967295,
+        "check_123456789": 3421780262,
+    }:
+        raise SchemaError("CRC metadata does not match the codec oracle")
 
     header = schema.get("header")
     if not isinstance(header, Mapping):
@@ -301,6 +386,14 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
             raise SchemaError(f"invalid constant type {constant.get('type')}")
         if not isinstance(constant.get("value"), int):
             raise SchemaError(f"constant {name} must have an integer value")
+    try:
+        magic_bytes = bytes.fromhex(str(encoding["magic_bytes_hex"]))
+    except (KeyError, ValueError) as exc:
+        raise SchemaError("encoding.magic_bytes_hex must be valid bytes") from exc
+    if len(magic_bytes) != 2 or int.from_bytes(magic_bytes, "little") != next(
+        constant["value"] for constant in constants if constant["c_name"] == "CANVIEW_MAGIC_LE"
+    ):
+        raise SchemaError("magic_bytes_hex does not match CANVIEW_MAGIC_LE")
 
     enums = schema.get("enums")
     if not isinstance(enums, Sequence):
@@ -326,21 +419,16 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
             if not isinstance(value, int):
                 raise SchemaError(f"enum value must be an integer: {enum_name}")
             enumerators.add(enum_name)
+    enum_by_name = {str(enum["name"]): enum for enum in enums}
+    role_enum = enum_by_name.get("role")
+    state_enum = enum_by_name.get("link_state")
+    if not isinstance(role_enum, Mapping) or not isinstance(state_enum, Mapping):
+        raise SchemaError("role and link_state enums are required")
+    role_values = set(role_enum["values"])
+    state_values = set(state_enum["values"])
 
-    tlv = schema.get("tlv")
-    if not isinstance(tlv, Mapping) or tlv.get("header_size") != 4 or tlv.get("max_nesting_depth") != 0:
-        raise SchemaError("TLV header/nesting contract is invalid")
-    tlv_types = tlv.get("types")
-    if not isinstance(tlv_types, Sequence):
-        raise SchemaError("tlv.types must be a list")
-    tlv_values: set[int] = set()
-    for item in tlv_types:
-        value = item.get("value")
-        if not isinstance(value, int) or value in tlv_values:
-            raise SchemaError(f"invalid or duplicate TLV type {value}")
-        if not isinstance(item.get("size"), int) or item["size"] < -1:
-            raise SchemaError(f"invalid TLV size for {value}")
-        tlv_values.add(value)
+    _validate_tlv_policy(schema.get("tlv"), "tlv")
+    _validate_tlv_policy(schema.get("command_argument_tlv"), "command_argument_tlv")
 
     qos_values = {str(m.get("qos")) for m in schema["messages"]}
     if not qos_values.issubset(KNOWN_QOS):
@@ -359,6 +447,17 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         _validate_identifier(str(message_name), "message name")
         if not message.get("senders") or not message.get("receivers") or not message.get("states"):
             raise SchemaError(f"message {message_name} must declare sender/receiver/state")
+        for field_name, allowed in (("senders", role_values), ("receivers", role_values), ("states", state_values)):
+            values = message.get(field_name)
+            if (
+                not isinstance(values, Sequence)
+                or isinstance(values, (str, bytes))
+                or len(values) != len(set(values))
+                or not set(values).issubset(allowed)
+            ):
+                raise SchemaError(f"message {message_name} has invalid {field_name}")
+        if not isinstance(message.get("broadcast"), bool) or not isinstance(message.get("encrypted"), bool):
+            raise SchemaError(f"message {message_name} must declare boolean broadcast/encrypted policy")
         if message.get("ack") not in KNOWN_ACK:
             raise SchemaError(f"message {message_name} has invalid ack policy")
         if not isinstance(message.get("priority"), int) or not 0 <= message["priority"] <= 4:
@@ -422,6 +521,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
     if sorted(required) != sorted(message_ids):
         raise SchemaError("required_message_ids must exactly match declared message IDs")
     _validate_companion_schemas(schema, message_ids)
+    messages_by_name = {str(message["name"]): message for message in schema["messages"]}
     contracts = schema.get("message_contracts")
     if not isinstance(contracts, Mapping) or set(contracts) != message_names:
         raise SchemaError("message_contracts must describe every declared message exactly once")
@@ -431,7 +531,14 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         response = contract.get("response")
         if response is not None and response not in message_names:
             raise SchemaError(f"message contract {message_name} references unknown response {response}")
-        if not isinstance(contract.get("idempotency_key"), Sequence) or not contract["idempotency_key"]:
+        idempotency_key = contract.get("idempotency_key")
+        if (
+            not isinstance(idempotency_key, Sequence)
+            or isinstance(idempotency_key, (str, bytes))
+            or not idempotency_key
+            or len(idempotency_key) != len(set(idempotency_key))
+            or not set(idempotency_key).issubset(_message_field_names(messages_by_name[message_name]) | {"canonical_argument_digest"})
+        ):
             raise SchemaError(f"message contract {message_name} has no idempotency key")
         if contract.get("sensitive_log_policy") not in {"allow", "redact"}:
             raise SchemaError(f"message contract {message_name} has invalid log policy")
@@ -720,7 +827,12 @@ def encode_payload(message: Mapping[str, Any], values: Mapping[str, Any]) -> byt
         suffix = _value_bytes(values.get(suffix_name, b""))
         if len(suffix) > int(payload["suffix_max"]):
             raise ValueError(f"{message['name']} suffix exceeds maximum")
-        length_field = next((f for f in payload["prefix"]["fields"] if f["name"].endswith("_length")), None)
+        length_field_name = payload.get("suffix_length_field")
+        length_field = next(
+            (f for f in payload["prefix"]["fields"]
+             if f["name"] == length_field_name or (length_field_name is None and f["name"].endswith("_length"))),
+            None,
+        )
         if length_field is not None and int(values.get(length_field["name"], len(suffix))) != len(suffix):
             raise ValueError(f"{message['name']} suffix length field mismatch")
         output.extend(suffix)
@@ -743,9 +855,11 @@ def encode_payload(message: Mapping[str, Any], values: Mapping[str, Any]) -> byt
     raise SchemaError(f"unknown payload kind {kind}")
 
 
-def _decode_tlvs(schema: Mapping[str, Any], data: bytes) -> list[dict[str, Any]]:
-    known = {int(item["value"]): item for item in schema["tlv"]["types"]}
+def _decode_tlvs(policy: Mapping[str, Any], data: bytes) -> list[dict[str, Any]]:
+    known = {int(item["value"]): item for item in policy["types"]}
+    critical_bit = int(policy["critical_bit"])
     tlvs: list[dict[str, Any]] = []
+    seen_singletons: set[int] = set()
     cursor = 0
     while cursor < len(data):
         if len(data) - cursor < 4:
@@ -756,10 +870,14 @@ def _decode_tlvs(schema: Mapping[str, Any], data: bytes) -> list[dict[str, Any]]
             raise ProtocolDecodeError("bad_length", "truncated TLV value")
         value = data[cursor : cursor + length]
         cursor += length
-        base_type = type_value & 0x7FFF
-        definition = known.get(type_value) or known.get(base_type)
-        if definition is None and type_value & int(schema["tlv"]["critical_bit"]):
+        base_type = type_value & (critical_bit - 1)
+        definition = known.get(type_value)
+        if definition is None and type_value & critical_bit:
             raise ProtocolDecodeError("unsupported_tlv", f"unknown critical TLV {type_value}")
+        if definition is not None and definition.get("singleton"):
+            if base_type in seen_singletons:
+                raise ProtocolDecodeError("duplicate_tlv", f"singleton TLV {base_type} is repeated")
+            seen_singletons.add(base_type)
         if definition is not None and int(definition["size"]) >= 0 and int(definition["size"]) != length:
             raise ProtocolDecodeError("bad_length", f"TLV {type_value} has invalid size")
         tlvs.append({"type": type_value, "value": value.hex()})
@@ -804,15 +922,22 @@ def decode_payload(schema: Mapping[str, Any], message: Mapping[str, Any], data: 
         prefix_size = int(payload["prefix_size"])
         result = _decode_fields(payload["prefix"]["fields"], data[:prefix_size])
         suffix = data[prefix_size:]
-        length_field = next((f for f in payload["prefix"]["fields"] if f["name"].endswith("_length")), None)
+        length_field_name = payload.get("suffix_length_field")
+        length_field = next(
+            (f for f in payload["prefix"]["fields"]
+             if f["name"] == length_field_name or (length_field_name is None and f["name"].endswith("_length"))),
+            None,
+        )
         if length_field is not None and int(result[length_field["name"]]) != len(suffix):
             raise ProtocolDecodeError("bad_length", "suffix length field mismatch")
+        if message["name"] == "COMMAND_REQUEST":
+            _decode_tlvs(schema["command_argument_tlv"], suffix)
         result[str(payload["suffix_name"])] = suffix.hex()
         return result
     if kind == "tlv":
         prefix_size = int(payload["prefix_size"])
         result = _decode_fields(payload["prefix"]["fields"], data[:prefix_size])
-        result["tlvs"] = _decode_tlvs(schema, data[prefix_size:])
+        result["tlvs"] = _decode_tlvs(schema["tlv"], data[prefix_size:])
         return result
     raise SchemaError(f"unknown payload kind {kind}")
 
@@ -856,7 +981,14 @@ def _constant_value(schema: Mapping[str, Any], name: str) -> int:
     raise KeyError(name)
 
 
-def decode_frame(schema: Mapping[str, Any], frame: bytes) -> dict[str, Any]:
+def decode_frame(
+    schema: Mapping[str, Any],
+    frame: bytes,
+    *,
+    sender_role: str | None = None,
+    receiver_role: str | None = None,
+    link_state: str | None = None,
+) -> dict[str, Any]:
     if len(frame) < int(schema["encoding"]["header_size"]):
         raise ProtocolDecodeError("bad_length", "frame is shorter than header")
     header_bytes = frame[:32]
@@ -869,8 +1001,11 @@ def decode_frame(schema: Mapping[str, Any], frame: bytes) -> dict[str, Any]:
         raise ProtocolDecodeError("bad_length", "unexpected header length")
     if int(header["flags"]) & ~int(schema["header"]["flags_known_mask"]):
         raise ProtocolDecodeError("bad_flags", "unknown frame flag")
+    if int(header["priority"]) > 4:
+        raise ProtocolDecodeError("bad_priority", "priority is outside the protocol range")
     payload_len = int(header["payload_len"])
-    if payload_len > 208 or len(frame) != 32 + payload_len:
+    header_size = int(schema["encoding"]["header_size"])
+    if payload_len > int(schema["encoding"]["max_payload_size"]) or len(frame) != header_size + payload_len:
         raise ProtocolDecodeError("bad_length", "frame length does not match payload length")
     zero_crc = bytearray(header_bytes)
     zero_crc[28:32] = b"\x00\x00\x00\x00"
@@ -880,7 +1015,23 @@ def decode_frame(schema: Mapping[str, Any], frame: bytes) -> dict[str, Any]:
     message = next((m for m in schema["messages"] if int(m["id"]) == int(header["message_type"])), None)
     if message is None:
         raise ProtocolDecodeError("unsupported_message", "unknown message type")
-    payload = decode_payload(schema, message, frame[32:])
+    if int(header["priority"]) != int(message["priority"]):
+        raise ProtocolDecodeError("bad_priority", "header priority does not match message policy")
+    ack_required = bool(int(header["flags"]) & 0x01)
+    if ack_required != (message["ack"] == "required"):
+        raise ProtocolDecodeError("bad_flags", "ACK_REQUIRED does not match message policy")
+    broadcast = bool(int(header["flags"]) & 0x20)
+    if broadcast != bool(message["broadcast"]):
+        raise ProtocolDecodeError("bad_flags", "BROADCAST does not match message policy")
+    if sender_role is not None and sender_role not in set(message["senders"]):
+        raise ProtocolDecodeError("unauthorized_sender", "sender role is not allowed for this message")
+    if receiver_role is not None and receiver_role not in set(message["receivers"]):
+        raise ProtocolDecodeError("unauthorized_receiver", "receiver role is not allowed for this message")
+    if link_state is not None and link_state not in set(message["states"]):
+        raise ProtocolDecodeError("invalid_state", "message is not allowed in the current link state")
+    payload = decode_payload(schema, message, frame[header_size:])
+    if "wireless_session_id" in payload and int(header["session_id"]) != int(payload["wireless_session_id"]):
+        raise ProtocolDecodeError("session_mismatch", "header and command session IDs differ")
     return {"header": header, "message": message["name"], "message_id": message["id"], "payload": payload}
 
 
@@ -1018,10 +1169,41 @@ def _check_or_write_file(path: Path, content: bytes, write: bool) -> None:
         raise SchemaError(f"generated file out of date: {path.relative_to(ROOT)}")
 
 
+def _expected_generated_paths(
+    golden: Mapping[str, tuple[bytes, str]],
+    negative: Mapping[str, tuple[bytes, str]],
+    compatibility: Mapping[str, tuple[bytes, str]],
+) -> set[Path]:
+    paths = {HEADER_PATH, PAIRING_VECTOR_PATH}
+    paths.update(GOLDEN_DIR / f"{name}.{suffix}" for name in golden for suffix in ("bin", "json"))
+    paths.update(MALFORMED_DIR / f"{name}.{suffix}" for name in negative for suffix in ("bin", "json"))
+    paths.update(COMPATIBILITY_DIR / f"{name}.{suffix}" for name in compatibility for suffix in ("bin", "json"))
+    return paths
+
+
+def _validate_generated_inventory(expected: set[Path], *, write: bool) -> None:
+    actual: set[Path] = set()
+    if HEADER_PATH.exists():
+        actual.add(HEADER_PATH)
+    for directory in (GOLDEN_DIR,):
+        if directory.exists():
+            actual.update(path for path in directory.rglob("*") if path.is_file())
+    missing = sorted(path.relative_to(ROOT).as_posix() for path in expected - actual)
+    extra = sorted(path.relative_to(ROOT).as_posix() for path in actual - expected)
+    if extra or (missing and not write):
+        details = []
+        if missing:
+            details.append(f"missing={missing}")
+        if extra:
+            details.append(f"extra={extra}")
+        raise SchemaError("generated output inventory mismatch: " + "; ".join(details))
+
+
 def generate(write: bool) -> None:
     schema = load_schema()
     validate_schema(schema)
     header, golden, negative, compatibility, pairing = _expected_outputs(schema)
+    _validate_generated_inventory(_expected_generated_paths(golden, negative, compatibility), write=write)
     _check_or_write_file(HEADER_PATH, header.encode("utf-8"), write)
     for name, (frame, metadata) in golden.items():
         _check_or_write_file(GOLDEN_DIR / f"{name}.bin", frame, write)
