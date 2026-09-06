@@ -1580,9 +1580,16 @@ static int test_replay(void)
                                      CANVIEW_UART_FLOW_INBOUND, &replay, &authorization, 2U) ==
           CANVIEW_OK);
 
+    canview_uart_message_view_t forged_view = view;
+    forged_view.wire.header.flags |= UINT8_C(0x80);
+    CHECK(canview_uart_message_admit(&forged_view, CANVIEW_UART_ENDPOINT_STM32,
+                                     CANVIEW_UART_FLOW_INBOUND, &replay, &authorization, 3U) ==
+          CANVIEW_MALFORMED);
+
     canview_uart_link_t link;
     CHECK(canview_uart_link_reset(&link) == CANVIEW_OK);
     CHECK(link_complete_for_test(&link, 9U, 0U) == 0);
+    CHECK(!canview_uart_command_admission_allowed(&link, &forged_view, &authorization, 10U));
     canview_uart_replay_context_t dispatch_replay = {0};
     CHECK(canview_uart_replay_reset(&dispatch_replay) == CANVIEW_OK);
     CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization, &dispatch_replay,

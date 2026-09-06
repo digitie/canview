@@ -511,6 +511,14 @@ canview_status_t canview_uart_message_admit(
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    canview_uart_message_view_t validated;
+    const canview_status_t validation =
+        canview_uart_message_validate_for_endpoint(&view->wire, endpoint, flow, &validated);
+    if (validation != CANVIEW_OK)
+    {
+        return validation;
+    }
+    view = &validated;
     if (!canview_uart_message_direction_allowed(view, endpoint, flow))
     {
         return CANVIEW_MALFORMED;
@@ -1524,14 +1532,21 @@ bool canview_uart_command_admission_allowed(
     const canview_uart_message_view_t *request,
     const canview_uart_command_admission_context_t *context, uint64_t now_ms)
 {
-    if (request == NULL || request->policy == NULL ||
-        request->wire.header.message_type != CANVIEW_UART_MSG_COMMAND_REQUEST ||
-        context == NULL || context->authorize == NULL ||
+    if (request == NULL || context == NULL || context->authorize == NULL ||
         !canview_uart_link_command_admission_allowed(link, now_ms))
     {
         return false;
     }
-    return context->authorize(request, now_ms, context->context);
+    canview_uart_message_view_t validated;
+    if (canview_uart_message_validate_for_endpoint(&request->wire,
+                                                   CANVIEW_UART_ENDPOINT_STM32,
+                                                   CANVIEW_UART_FLOW_INBOUND,
+                                                   &validated) != CANVIEW_OK ||
+        validated.wire.header.message_type != CANVIEW_UART_MSG_COMMAND_REQUEST)
+    {
+        return false;
+    }
+    return context->authorize(&validated, now_ms, context->context);
 }
 
 canview_status_t canview_uart_command_dispatch_admit(
