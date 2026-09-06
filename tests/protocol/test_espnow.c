@@ -411,6 +411,99 @@ static int test_session(void)
     CHECK(canview_frame_decode(&hello_meta, hello, hello_length, &backoff_session,
                                &backoff_decoded) == CANVIEW_DECODE_DELIVER);
     CHECK(canview_peer_session_release_rx(&backoff_session) == CANVIEW_OK);
+
+    CHECK(canview_peer_session_reset(NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_start(NULL, CANVIEW_ROLE_COMMUNICATOR, 1U, true, true, 0U) ==
+          CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_start(&session, (canview_role_t)99U, 1U, true, true, 0U) ==
+          CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_start(&session, CANVIEW_ROLE_COMMUNICATOR, 0U, true, true, 0U) ==
+          CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_authorize(&session, CANVIEW_ROLE_PRIMARY_CONTROLLER,
+                                         CANVIEW_SCOPE_AUDIO_PROFILE, CANVIEW_MSG_CLASS_CONTROL,
+                                         1U) == CANVIEW_OK);
+    CHECK(session.local_authorization_valid && session.authorized_scope == CANVIEW_SCOPE_AUDIO_PROFILE);
+    CHECK(canview_peer_session_authorize(&session, CANVIEW_ROLE_READ_ONLY_CONTROLLER,
+                                         CANVIEW_SCOPE_AUDIO_PROFILE, CANVIEW_MSG_CLASS_LINK,
+                                         1U) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_authorize(&session, CANVIEW_ROLE_PRIMARY_CONTROLLER,
+                                         (uint16_t)(CANVIEW_CONTROL_SCOPE_KNOWN_MASK + 1U),
+                                         CANVIEW_MSG_CLASS_LINK, 1U) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_authorize(&session, CANVIEW_ROLE_PRIMARY_CONTROLLER, 0U,
+                                         CANVIEW_MSG_CLASS_LINK, 0U) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_authorize(NULL, CANVIEW_ROLE_PRIMARY_CONTROLLER, 0U,
+                                         CANVIEW_MSG_CLASS_LINK, 1U) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_peer_session_on_message(NULL, CANVIEW_MSG_HELLO, 0U) == CANVIEW_INVALID_ARGUMENT);
+    canview_peer_session_t uninitialized;
+    CHECK(canview_peer_session_reset(&uninitialized) == CANVIEW_OK);
+    CHECK(canview_peer_session_on_message(&uninitialized, CANVIEW_MSG_HELLO, 0U) ==
+          CANVIEW_INVALID_ARGUMENT);
+    canview_control_time_sync_invalidate(&session.control_time_sync);
+    CHECK(!canview_control_time_sync_is_valid(&session.control_time_sync, 0U));
+    canview_control_time_sync_invalidate(NULL);
+
+    canview_encode_request_t hello_request = {
+        .meta = hello_meta,
+        .header = {
+            .message_type = CANVIEW_MSG_HELLO,
+            .flags = 0U,
+            .priority = CANVIEW_PRIORITY_LINK_SAFETY,
+            .session_id = hello_meta.expected_session_id,
+            .sequence = 1U,
+            .correlation_id = 0U,
+            .sender_time = 1U,
+        },
+        .variant_index = CANVIEW_ESPNOW_CONTRACT_VARIANT_NONE,
+        .payload = hello + CANVIEW_HEADER_SIZE,
+        .payload_size = hello_length - CANVIEW_HEADER_SIZE,
+    };
+    uint8_t encoded[TEST_FRAME_BYTES] = {0};
+    size_t encoded_size = 0U;
+    CHECK(canview_frame_encode(&hello_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_OK);
+    CHECK(encoded_size == hello_length);
+    CHECK(canview_frame_encode(NULL, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_INVALID_ARGUMENT);
+    CHECK(canview_frame_encode(&hello_request, encoded, sizeof(encoded), NULL) ==
+          CANVIEW_ENCODE_INVALID_ARGUMENT);
+    CHECK(canview_frame_encode(&hello_request, NULL, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_INVALID_ARGUMENT);
+    CHECK(canview_frame_encode(&hello_request, encoded, CANVIEW_HEADER_SIZE - 1U, &encoded_size) ==
+          CANVIEW_ENCODE_INVALID_ARGUMENT);
+    canview_encode_request_t bad_request = hello_request;
+    bad_request.header.message_type = UINT8_C(0xFF);
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_UNSUPPORTED_MESSAGE);
+    bad_request = hello_request;
+    bad_request.payload_size = 1U;
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_MALFORMED);
+    bad_request = hello_request;
+    bad_request.payload_size = TEST_PAYLOAD_BYTES + 1U;
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_INVALID_ARGUMENT);
+    bad_request = hello_request;
+    bad_request.meta.sender_role = (canview_role_t)99U;
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_INVALID_ARGUMENT);
+    bad_request = hello_request;
+    bad_request.meta.link_state = CANVIEW_LINK_ONLINE;
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_STATE_MISMATCH);
+    bad_request = hello_request;
+    bad_request.meta.encrypted = false;
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_UNAUTHENTICATED);
+    bad_request = hello_request;
+    bad_request.meta.expected_session_id = 7U;
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_SESSION_MISMATCH);
+    bad_request = hello_request;
+    bad_request.header.sender_time = UINT64_C(0x100000000);
+    CHECK(canview_frame_encode(&bad_request, encoded, sizeof(encoded), &encoded_size) ==
+          CANVIEW_ENCODE_MALFORMED);
+    CHECK(canview_frame_encode(&hello_request, encoded, hello_length - 1U, &encoded_size) ==
+          CANVIEW_ENCODE_BUFFER_TOO_SMALL);
     return 0;
 }
 
