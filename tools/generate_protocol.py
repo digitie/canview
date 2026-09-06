@@ -629,7 +629,7 @@ def _validate_frame_and_semantic_policy(
         ("BULK_BEGIN", "total_size", 1, 65536),
         ("BULK_BEGIN", "fragment_size", 1, 192),
         ("BULK_BEGIN", "window_size", 1, 4),
-        ("BULK_BEGIN", "timeout_ms", 1000, 120000),
+        ("BULK_BEGIN", "timeout_ms", 1000, 30000),
         ("BULK_FRAGMENT", "total_fragments", 1, 65536),
         ("BULK_FRAGMENT", "payload_len", 1, 180),
         ("BULK_ACK", "window_size", 1, 4),
@@ -917,6 +917,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
                     raise SchemaError(f"duplicate enum alias {alias_name}")
                 alias_enumerators.add(alias_name)
     effective_macro_prefixes: set[str] = set()
+    effective_macro_prefix_by_enum: dict[str, str] = {}
     for enum in enums:
         enum_prefix = str(enum["c_prefix"])
         macro_prefix = str(enum.get("macro_prefix") or (
@@ -927,6 +928,61 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         if macro_prefix in effective_macro_prefixes:
             raise SchemaError(f"duplicate effective enum macro_prefix {macro_prefix}")
         effective_macro_prefixes.add(macro_prefix)
+        effective_macro_prefix_by_enum[str(enum["name"])] = macro_prefix
+
+    generated_symbols: dict[str, str] = {}
+
+    def register_generated_symbol(symbol: str, origin: str) -> None:
+        previous = generated_symbols.get(symbol)
+        if previous is not None:
+            raise SchemaError(
+                f"generated symbol collision {symbol}: {previous} vs {origin}"
+            )
+        generated_symbols[symbol] = origin
+
+    for symbol in (
+        "CANVIEW_PROTOCOL_H",
+        "CANVIEW_PROTOCOL_SCHEMA_SHA256",
+        "CANVIEW_PROTOCOL_WIRE_NAME",
+        "CANVIEW_PACKED",
+        "CANVIEW_PROTOCOL_VERSION",
+        "CANVIEW_PROTOCOL_KNOWN_FLAG_MASK",
+        "CANVIEW_MESSAGE_COUNT",
+    ):
+        register_generated_symbol(symbol, "fixed generated header symbol")
+    for constant in schema["constants"]:
+        register_generated_symbol(str(constant["c_name"]), "constant")
+    for enum in enums:
+        enum_name = str(enum["name"])
+        prefix = str(enum["c_prefix"])
+        for value_name in enum["values"]:
+            register_generated_symbol(
+                f"{prefix}_{value_name}", f"{enum_name} enumerator"
+            )
+        for alias_prefix in enum.get("alias_prefixes", ()):
+            for value_name in enum["values"]:
+                register_generated_symbol(
+                    f"{alias_prefix}_{value_name}",
+                    f"{enum_name} compatibility alias",
+                )
+        known_prefix = effective_macro_prefix_by_enum[enum_name]
+        register_generated_symbol(
+            f"{known_prefix}_KNOWN_VALUE_COUNT",
+            f"{enum_name} known-value macro",
+        )
+        numeric_values = [int(value) for value in enum["values"].values()]
+        if numeric_values and (
+            enum.get("value_kind", "enum") == "bitmask"
+            or (max(numeric_values) <= 31 and min(numeric_values) >= 0)
+        ):
+            register_generated_symbol(
+                f"{known_prefix}_KNOWN_MASK",
+                f"{enum_name} known-mask macro",
+            )
+    for message in schema["messages"]:
+        register_generated_symbol(
+            f"CANVIEW_MSG_{message['name']}", "message enumerator"
+        )
     enum_by_name = {str(enum["name"]): enum for enum in enums}
     role_enum = enum_by_name.get("role")
     state_enum = enum_by_name.get("link_state")
@@ -2085,6 +2141,16 @@ def decode_frame(
     message = next((m for m in schema["messages"] if int(m["id"]) == int(header["message_type"])), None)
     if message is None:
         raise ProtocolDecodeError("unsupported_message", "unknown message type")
+    if (
+        sender_role is None
+        or receiver_role is None
+        or link_state is None
+        or expected_session_id is None
+    ):
+        raise ProtocolDecodeError(
+            "context_required",
+            "frame policy decode requires complete peer/session context",
+        )
     if int(header["priority"]) != int(message["priority"]):
         raise ProtocolDecodeError("bad_priority", "header priority does not match message policy")
     payload = decode_payload(schema, message, frame[header_size:])
@@ -2131,11 +2197,11 @@ def decode_frame(
             raise ProtocolDecodeError("context_required", "secure message requires complete peer/session context")
         if int(expected_session_id) != int(header["session_id"]):
             raise ProtocolDecodeError("session_mismatch", "frame session differs from transport session")
-    if sender_role is not None and sender_role not in variant_senders:
+    if sender_role not in variant_senders:
         raise ProtocolDecodeError("unauthorized_sender", "sender role is not allowed for this message")
-    if receiver_role is not None and receiver_role not in variant_receivers:
+    if receiver_role not in variant_receivers:
         raise ProtocolDecodeError("unauthorized_receiver", "receiver role is not allowed for this message")
-    if link_state is not None and link_state not in set(message["states"]):
+    if link_state not in set(message["states"]):
         raise ProtocolDecodeError("invalid_state", "message is not allowed in the current link state")
     _validate_payload_semantics(
         schema,

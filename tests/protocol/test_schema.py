@@ -168,7 +168,7 @@ class EspNowSchemaTests(unittest.TestCase):
         hello_frame = (generator.GOLDEN_DIR / "hello.bin").read_bytes()
         with self.assertRaises(generator.ProtocolDecodeError) as context:
             generator.decode_frame(self.schema, hello_frame)
-        self.assertEqual(context.exception.code, "unauthenticated")
+        self.assertEqual(context.exception.code, "context_required")
 
         zero_session = bytearray(hello_frame)
         zero_session[8:12] = b"\x00\x00\x00\x00"
@@ -243,12 +243,31 @@ class EspNowSchemaTests(unittest.TestCase):
         )
         with self.assertRaises(generator.ProtocolDecodeError) as context:
             generator.decode_frame(self.schema, pair_frame)
-        self.assertEqual(context.exception.code, "unauthenticated")
+        self.assertEqual(context.exception.code, "context_required")
         generator.decode_frame(
             self.schema,
             pair_frame,
             **generator.default_decode_context(self.schema, pair_confirm, {}),
         )
+
+        for message_name in ("DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE"):
+            with self.subTest(decode_context=message_name):
+                message = self.messages[message_name]
+                flags = 0x20 if message_name == "DISCOVERY" else 0
+                raw = generator.encode_frame(
+                    self.schema,
+                    message,
+                    {"flags": flags, "session_id": 0},
+                    self._zero_payload(message_name),
+                    sender_role=message["senders"][0],
+                    receiver_role=message["receivers"][0],
+                    link_state=message["states"][0],
+                    expected_session_id=0,
+                    authenticated=False,
+                )
+                with self.assertRaises(generator.ProtocolDecodeError) as context:
+                    generator.decode_frame(self.schema, raw)
+                self.assertEqual(context.exception.code, "context_required")
 
         for message_name, flags in (("DISCOVERY", 0x20), ("PAIR_REQUEST", 0), ("PAIR_CHALLENGE", 0)):
             message = self.messages[message_name]
@@ -522,7 +541,7 @@ class EspNowSchemaTests(unittest.TestCase):
             ("BULK_BEGIN", "window_size", 0),
             ("BULK_BEGIN", "window_size", 5),
             ("BULK_BEGIN", "timeout_ms", 999),
-            ("BULK_BEGIN", "timeout_ms", 120001),
+            ("BULK_BEGIN", "timeout_ms", 30001),
             ("BULK_FRAGMENT", "total_fragments", 0),
             ("BULK_FRAGMENT", "total_fragments", 65537),
             ("BULK_FRAGMENT", "payload_len", 0),
@@ -700,6 +719,10 @@ class EspNowSchemaTests(unittest.TestCase):
         changed = copy.deepcopy(self.schema)
         next(enum for enum in changed["enums"] if enum["name"] == "role")["macro_prefix"] = "CANVIEW_SCOPE"
         invalid_cases.append(("enum macro prefix collision", changed))
+
+        changed = copy.deepcopy(self.schema)
+        next(enum for enum in changed["enums"] if enum["name"] == "role")["macro_prefix"] = "CANVIEW_CONTROL_SCOPE"
+        invalid_cases.append(("generated constant and alias namespace collision", changed))
 
         for name, invalid_schema in invalid_cases:
             with self.subTest(case=name):
