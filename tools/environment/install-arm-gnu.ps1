@@ -55,6 +55,7 @@ function Write-Provenance {
         schemaVersion = 1
         release = $tool.release
         archiveUrl = $tool.archiveUrl
+        archivePath = $archive
         archiveSha256 = $archiveHash
         files = $Files
     } | ConvertTo-Json -Depth 4 | Out-File -LiteralPath (Join-Path $Root "canview-arm-gnu-provenance.json") -Encoding utf8
@@ -79,6 +80,7 @@ if ($archiveHash -ne $tool.archiveSha256.ToLowerInvariant()) {
     throw "Arm GNU archive SHA256 mismatch: $archiveHash"
 }
 
+$existingRootHandled = $false
 if (Test-Path -LiteralPath $installRoot -PathType Container) {
     if (-not $AdoptExisting) {
         throw "Existing Arm GNU root has no verified provenance. Re-run with -AdoptExisting to compare required executables against the pinned archive: $installRoot"
@@ -96,7 +98,7 @@ if (Test-Path -LiteralPath $installRoot -PathType Container) {
         }
         Write-Provenance -Root $installRoot -Files $existingFiles
         Write-Host "Adopted existing Arm GNU installation after pinned executable comparison: $installRoot"
-        return
+        $existingRootHandled = $true
     } finally {
         if (Test-Path -LiteralPath $adoptStaging -PathType Container) {
             Remove-Item -LiteralPath $adoptStaging -Recurse -Force
@@ -104,21 +106,23 @@ if (Test-Path -LiteralPath $installRoot -PathType Container) {
     }
 }
 
-$staging = Join-Path $Destination ".arm-gnu-staging-$([guid]::NewGuid().ToString('N'))"
-try {
-    Expand-Archive -LiteralPath $archive -DestinationPath $staging
-    $extractedRoot = Find-ExtractedRoot -Parent $staging
-    Move-Item -LiteralPath $extractedRoot -Destination $installRoot
-    $files = Get-RequiredToolHashes -Root $installRoot
-    Write-Provenance -Root $installRoot -Files $files
-    Write-Host "Installed verified Arm GNU Toolchain $($tool.release) at $installRoot"
-} catch {
-    if (Test-Path -LiteralPath $installRoot -PathType Container) {
-        Remove-Item -LiteralPath $installRoot -Recurse -Force
-    }
-    throw
-} finally {
-    if (Test-Path -LiteralPath $staging -PathType Container) {
-        Remove-Item -LiteralPath $staging -Recurse -Force
+if (-not $existingRootHandled) {
+    $staging = Join-Path $Destination ".arm-gnu-staging-$([guid]::NewGuid().ToString('N'))"
+    try {
+        Expand-Archive -LiteralPath $archive -DestinationPath $staging
+        $extractedRoot = Find-ExtractedRoot -Parent $staging
+        Move-Item -LiteralPath $extractedRoot -Destination $installRoot
+        $files = Get-RequiredToolHashes -Root $installRoot
+        Write-Provenance -Root $installRoot -Files $files
+        Write-Host "Installed verified Arm GNU Toolchain $($tool.release) at $installRoot"
+    } catch {
+        if (Test-Path -LiteralPath $installRoot -PathType Container) {
+            Remove-Item -LiteralPath $installRoot -Recurse -Force
+        }
+        throw
+    } finally {
+        if (Test-Path -LiteralPath $staging -PathType Container) {
+            Remove-Item -LiteralPath $staging -Recurse -Force
+        }
     }
 }

@@ -2,6 +2,7 @@
 param(
     [string]$ToolRoot = (Join-Path $env:LOCALAPPDATA "CANView\toolchains"),
     [string]$ArmGnuRoot = "",
+    [string]$ArmGnuArchive = "",
     [switch]$VerifyOnly
 )
 
@@ -55,7 +56,10 @@ function Assert-ArmGccVersion {
 }
 
 function Assert-ArmGnuProvenance {
-    param([Parameter(Mandatory = $true)][string]$Root)
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [string]$Archive = ""
+    )
 
     $provenancePath = Join-Path $Root "canview-arm-gnu-provenance.json"
     if (-not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) {
@@ -68,6 +72,22 @@ function Assert-ArmGnuProvenance {
         ($provenance.archiveSha256.ToLowerInvariant() -eq $manifest.tools.armGnuToolchain.archiveSha256.ToLowerInvariant()))
     if (-not $provenanceMatches) {
         throw "Arm GNU provenance does not match manifest: $provenancePath"
+    }
+    $archiveToVerify = $Archive
+    $recordedArchive = $provenance.PSObject.Properties["archivePath"]
+    $recordedArchiveExists = ($null -ne $recordedArchive)
+    if ($recordedArchiveExists) {
+        $recordedArchiveExists = Test-Path -LiteralPath $recordedArchive.Value -PathType Leaf
+    }
+    if ($archiveToVerify.Trim().Length -eq 0 -and $recordedArchiveExists) {
+        $archiveToVerify = $recordedArchive.Value
+    }
+    if ($archiveToVerify.Trim().Length -gt 0) {
+        $archivePath = (Resolve-Path -LiteralPath $archiveToVerify -ErrorAction Stop).Path
+        $archiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($archiveHash -ne $manifest.tools.armGnuToolchain.archiveSha256.ToLowerInvariant()) {
+            throw "Arm GNU archive SHA256 mismatch: $archivePath"
+        }
     }
 
     $requiredFiles = @(
@@ -211,7 +231,7 @@ $armRoot = $armCandidates |
 if ($null -eq $armRoot) {
     throw "Verified Arm GNU installation was not found. Run tools/environment/install-arm-gnu.ps1 or pass -ArmGnuRoot to its verified root."
 }
-Assert-ArmGnuProvenance -Root $armRoot
+Assert-ArmGnuProvenance -Root $armRoot -Archive $ArmGnuArchive
 $armBin = Join-Path $armRoot "bin"
 $env:Path = "$armBin;$env:Path"
 

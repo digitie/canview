@@ -38,7 +38,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ```powershell
 . .\tools\environment\install-arm-gnu.ps1 -Destination C:\ArmGNU
-. .\tools\environment\setup-windows.ps1 -ArmGnuRoot C:\ArmGNU\arm-gnu-toolchain-15.3.rel1
+. .\tools\environment\setup-windows.ps1 -ArmGnuRoot C:\ArmGNU\arm-gnu-toolchain-15.3.rel1 -ArmGnuArchive C:\path\arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip
 ```
 
 예를 들어 사용자 profile에 공백이 있는 경우:

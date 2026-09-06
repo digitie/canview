@@ -119,16 +119,18 @@ jobs:
             schemaVersion = 1
             release = $manifest.tools.armGnuToolchain.release
             archiveUrl = $manifest.tools.armGnuToolchain.archiveUrl
+            archivePath = $archive
             archiveSha256 = $hash
             files = $files
           } | ConvertTo-Json -Depth 4 | Out-File -LiteralPath (Join-Path $armRoot "canview-arm-gnu-provenance.json") -Encoding utf8
           "CANVIEW_TARGET_TOOLROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CANVIEW_TARGET_ARM_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install pinned SDKs and build all target images
         shell: pwsh
         run: |
           . tools/environment/foundation-windows.ps1
-          $armRoot = Join-Path $env:CANVIEW_TARGET_TOOLROOT "arm-gnu-toolchain-15.3.rel1"
-          . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot
+          $armRoot = $env:CANVIEW_TARGET_TOOLROOT
+          . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
           $ErrorActionPreference = 'Stop'
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
           New-Item -ItemType Directory -Force $logRoot | Out-Null
@@ -203,7 +205,7 @@ jobs:
           }
           $artifactManifest | ConvertTo-Json -Depth 3 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
+        if: success()
         with:
           name: target-firmware-images
           if-no-files-found: error
@@ -226,5 +228,9 @@ jobs:
             tests/fixtures/idf-public-component/build/*.bin
             tests/fixtures/idf-public-component/build/*.elf
             tests/fixtures/idf-public-component/build/*.map
-            ${{ runner.temp }}/canview-target-logs/*.log
-            ${{ runner.temp }}/canview-target-logs/target-artifacts.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: target-firmware-logs
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/canview-target-logs/*
