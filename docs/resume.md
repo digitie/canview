@@ -16,11 +16,11 @@
 
 ## 다음 한 작업
 
-T-003 PR #19 merge(`4ee017b`) 후 T-004 Communicator UART v1.0 schema/codec 구현을 시작했다. 현재 branch는 `agent/codex-t004-uart-schema-codec`이며 draft PR과 구현 커밋을 원격에 단계적으로 올린다.
+T-004 Communicator UART v1.0 schema/codec의 구현·수용 시험·2인 코드 finding closure를 완료했다. 현재 branch는 `agent/codex-t004-uart-schema-codec`, PR은 [#20](https://github.com/digitie/canview/pull/20)이다. 최종 원격 CI를 확인한 뒤 merge하고, 최신 사용자 요청에 따라 다음 task를 계속한다. 이전의 merge 후 대기 요청은 재개 요청으로 대체됐다.
 
 - 현재 문서: docs/tasks/T-004-uart-schema-codec.md, docs/architecture/protocols/communicator-uart.md, docs/architecture/implementation-readiness.md, docs/development/windows.md
-- 구현 순서: 독립 UART schema/generator → semantic payload codec와 transaction/idempotency model → COBS/CRC stream fault 시험 → STM32·ESP32 target compile과 2인 적대적 리뷰
-- 완료 조건: T-004 acceptance 전부, host debug/release/sanitize/coverage 및 Python fault simulation, target STM32·ESP32 warning-free build, 2인 적대적 리뷰 finding disposition과 재시험을 실제 실행한다.
+- 완료된 검증: Windows Debug/Release·WSL ASan+UBSan 각각 68/68, 실제 C parser 양방향 합계 69,120,000,130 byte, STM32 Debug/Release·ESP32 네 프로젝트 binary build warning/error0. [검증·리뷰 원문](reviews/adversarial/2026-09-07-T-004.md)을 따른다.
+- 남은 순서: 최종 CI → PR #20 merge 확인 → T-004 DONE/archive 갱신 → 사용자의 core/base 우선순위와 선행 DAG에 맞는 다음 task 선택. physical UART/DMA·보드/HIL은 T-004 통과 범위가 아니다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
