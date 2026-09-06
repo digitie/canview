@@ -55,6 +55,93 @@ function Assert-ArmGccVersion {
     return $version
 }
 
+function Get-ArmArchiveRootPrefix {
+    param([Parameter(Mandatory = $true)][string]$Archive)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($Archive)
+    try {
+        $entryNames = @($zip.Entries | ForEach-Object { $_.FullName.TrimStart('/') -replace '\\', '/' })
+        $requiredNames = @(
+            'arm-none-eabi-gcc.exe',
+            'arm-none-eabi-objcopy.exe',
+            'arm-none-eabi-size.exe'
+        )
+        $gccEntries = @($entryNames | Where-Object { $_ -match '(?:^|/)bin/arm-none-eabi-gcc\.exe$' })
+        $rootPrefixes = @()
+        foreach ($entry in $gccEntries) {
+            $binIndex = $entry.LastIndexOf('/bin/')
+            $prefix = if ($binIndex -lt 0) { '' } else { $entry.Substring(0, $binIndex) }
+            $hasAllTools = $true
+            foreach ($name in $requiredNames) {
+                $expected = if ($prefix.Length -eq 0) { "bin/$name" } else { "$prefix/bin/$name" }
+                if ($entryNames -notcontains $expected) {
+                    $hasAllTools = $false
+                    break
+                }
+            }
+            if ($hasAllTools) {
+                $rootPrefixes += $prefix
+            }
+        }
+        $uniquePrefixes = @($rootPrefixes | Sort-Object -Unique)
+        if ($uniquePrefixes.Count -ne 1) {
+            throw "Unexpected Arm GNU archive layout in ${Archive}: expected one complete bin root, found $($uniquePrefixes.Count)"
+        }
+        $selectedPrefix = $uniquePrefixes[0]
+        $outsideRoot = @($entryNames | Where-Object {
+            $_ -notmatch '/$' -and
+            $selectedPrefix.Length -gt 0 -and
+            -not $_.StartsWith("$selectedPrefix/", [System.StringComparison]::OrdinalIgnoreCase)
+        })
+        if ($outsideRoot.Count -gt 0) {
+            throw "Arm GNU archive contains file entries outside the selected root '$selectedPrefix': $($outsideRoot -join ', ')"
+        }
+        return $selectedPrefix
+    } finally {
+        $zip.Dispose()
+    }
+}
+
+function Get-ArmArchiveInventory {
+    param([Parameter(Mandatory = $true)][string]$Archive)
+
+    $prefix = Get-ArmArchiveRootPrefix -Archive $Archive
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($Archive)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $files = [ordered]@{}
+        foreach ($entry in $zip.Entries) {
+            $normalized = $entry.FullName.TrimStart('/') -replace '\\', '/'
+            if ($normalized.EndsWith('/')) {
+                continue
+            }
+            if ($prefix.Length -eq 0) {
+                $relative = $normalized
+            } else {
+                $prefixWithSeparator = "$prefix/"
+                if (-not $normalized.StartsWith($prefixWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    throw "Arm GNU archive file is outside the selected root: $normalized"
+                }
+                $relative = $normalized.Substring($prefixWithSeparator.Length)
+            }
+            if ($files.Contains($relative)) {
+                throw "Arm GNU archive contains duplicate file entries: $relative"
+            }
+            $stream = $entry.Open()
+            try {
+                $files[$relative] = [Convert]::ToHexString($sha.ComputeHash($stream)).ToLowerInvariant()
+            } finally {
+                $stream.Dispose()
+            }
+        }
+        return $files
+    } finally {
+        $sha.Dispose()
+        $zip.Dispose()
+    }
+}
+
 function Assert-ArmGnuProvenance {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -86,6 +173,7 @@ function Assert-ArmGnuProvenance {
     if ($archiveHash -ne $manifest.tools.armGnuToolchain.archiveSha256.ToLowerInvariant()) {
         throw "Arm GNU archive SHA256 mismatch: $archivePath"
     }
+    $archiveFiles = Get-ArmArchiveInventory -Archive $archivePath
 
     $filesProperty = $provenance.PSObject.Properties["files"]
     if ($null -eq $filesProperty) {
@@ -104,15 +192,22 @@ function Assert-ArmGnuProvenance {
         $relative = $item.FullName.Substring($resolvedRoot.Length).TrimStart('\', '/') -replace '\\', '/'
         $actualFiles[$relative] = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     }
-    if ($actualFiles.Count -ne $provenanceRecords.Count) {
-        throw "Arm GNU installation file count differs from provenance: expected $($provenanceRecords.Count), found $($actualFiles.Count)"
+    if ($actualFiles.Count -ne $archiveFiles.Count) {
+        throw "Arm GNU installation file count differs from archive: expected $($archiveFiles.Count), found $($actualFiles.Count)"
     }
-    foreach ($record in $provenanceRecords) {
-        if (-not $actualFiles.Contains($record.Name)) {
-            throw "Arm GNU installation is missing provenance file: $($record.Name)"
+    if ($provenanceRecords.Count -ne $archiveFiles.Count) {
+        throw "Arm GNU provenance file count differs from archive: expected $($archiveFiles.Count), found $($provenanceRecords.Count)"
+    }
+    foreach ($path in $archiveFiles.Keys) {
+        if (-not $actualFiles.Contains($path)) {
+            throw "Arm GNU installation is missing archive file: $path"
         }
-        if ($actualFiles[$record.Name] -ne $record.Value.ToLowerInvariant()) {
-            throw "Arm GNU file hash mismatch: $($record.Name)"
+        if ($actualFiles[$path] -ne $archiveFiles[$path]) {
+            throw "Arm GNU installation differs from archive: $path"
+        }
+        $record = $filesProperty.Value.PSObject.Properties[$path]
+        if ($null -eq $record -or $record.Value.ToLowerInvariant() -ne $archiveFiles[$path]) {
+            throw "Arm GNU provenance differs from archive: $path"
         }
     }
 }

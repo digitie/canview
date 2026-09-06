@@ -102,11 +102,11 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
-          New-Item -ItemType Directory -Force $logRoot | Out-Null
-          $manifest = Get-Content -Raw tools/toolchain-versions.json | ConvertFrom-Json
-          $toolchainBase = Join-Path $env:RUNNER_TEMP "canview-toolchains"
-          $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
           try {
+            New-Item -ItemType Directory -Force $logRoot | Out-Null
+            $manifest = Get-Content -Raw tools/toolchain-versions.json | ConvertFrom-Json
+            $toolchainBase = Join-Path $env:RUNNER_TEMP "canview-toolchains"
+            $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
             New-Item -ItemType Directory -Force $toolchainBase | Out-Null
             $partialArchive = "$archive.partial"
             $downloaded = $false
@@ -140,8 +140,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
-          New-Item -ItemType Directory -Force $logRoot | Out-Null
           try {
+            New-Item -ItemType Directory -Force $logRoot | Out-Null
             . tools/environment/foundation-windows.ps1
             $armRoot = $env:CANVIEW_TARGET_ARM_GNU_ROOT
             . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
@@ -169,12 +169,20 @@ jobs:
               }
             }
             function Assert-Esp32Target {
-              param([string]$Project, [string]$ExpectedBinary)
+              param([string]$Project, [string]$ExpectedProjectName, [string]$ExpectedBinary)
               $descriptionPath = Join-Path $Project "build/project_description.json"
               if (-not (Test-Path -LiteralPath $descriptionPath -PathType Leaf)) {
                 throw "ESP-IDF project description is missing: $descriptionPath"
               }
               $description = Get-Content -Raw -LiteralPath $descriptionPath | ConvertFrom-Json
+              if ($description.project_name -ne $ExpectedProjectName) {
+                throw "ESP-IDF project name mismatch in $descriptionPath`: expected $ExpectedProjectName, found $($description.project_name)"
+              }
+              $expectedProjectPath = (Resolve-Path -LiteralPath $Project).Path.TrimEnd('\', '/')
+              $actualProjectPath = [System.IO.Path]::GetFullPath($description.project_path).TrimEnd('\', '/')
+              if (-not [string]::Equals($actualProjectPath, $expectedProjectPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "ESP-IDF project path mismatch in $descriptionPath`: expected $expectedProjectPath, found $($description.project_path)"
+              }
               if ($description.target -ne 'esp32s3') {
                 throw "ESP-IDF target mismatch in $descriptionPath`: expected esp32s3, found $($description.target)"
               }
@@ -200,10 +208,10 @@ jobs:
             Invoke-TargetCommand "public-component-fullclean" { idf.py -C tests/fixtures/idf-public-component fullclean }
             Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
-            Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32.bin"
-            Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge.bin"
-            Assert-Esp32Target "firmware/controller" "canview_controller.bin"
-            Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture.bin"
+            Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32" "canview_communicator_esp32.bin"
+            Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge" "canview_diagnostic_bridge.bin"
+            Assert-Esp32Target "firmware/controller" "canview_controller" "canview_controller.bin"
+            Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture" "canview_public_component_fixture.bin"
             Assert-TargetArtifact "communicator esp32" "firmware/communicator/esp32/build/canview_communicator_esp32.bin"
             Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
             Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"

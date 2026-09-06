@@ -105,6 +105,15 @@ function Assert-ArchiveLayout {
         if ($uniquePrefixes.Count -ne 1) {
             throw "Unexpected Arm GNU archive layout in ${Archive}: expected one complete bin root, found $($uniquePrefixes.Count)"
         }
+        $selectedPrefix = $uniquePrefixes[0]
+        $outsideRoot = @($entryNames | Where-Object {
+            $_ -notmatch '/$' -and
+            $selectedPrefix.Length -gt 0 -and
+            -not $_.StartsWith("$selectedPrefix/", [System.StringComparison]::OrdinalIgnoreCase)
+        })
+        if ($outsideRoot.Count -gt 0) {
+            throw "Arm GNU archive contains file entries outside the selected root '$selectedPrefix': $($outsideRoot -join ', ')"
+        }
         Write-Host "Verified Arm GNU archive layout root prefix: '$($uniquePrefixes[0])'"
     } finally {
         $zip.Dispose()
