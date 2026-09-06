@@ -104,6 +104,8 @@ jobs:
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
           try {
             New-Item -ItemType Directory -Force $logRoot | Out-Null
+            & git config --global core.longpaths true
+            if ($LASTEXITCODE -ne 0) { throw "Failed to enable Git long paths" }
             $manifest = Get-Content -Raw tools/toolchain-versions.json | ConvertFrom-Json
             $toolchainBase = Join-Path $env:RUNNER_TEMP "canview-toolchains"
             $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
