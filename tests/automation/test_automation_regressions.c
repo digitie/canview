@@ -119,7 +119,7 @@ static void test_stale_warning_restore_ramp(void)
         output = brightness_update_for(&state, &config, &input, 100U);
         assert(!output.speed_warning_active);
         assert(output.brightness_percent <= previous);
-        assert(previous - output.brightness_percent <= 9U);
+        assert(previous - output.brightness_percent <= 9);
     }
     assert(output.brightness_percent == 11U);
     assert(state.last_safe_base_percent == 30U);
