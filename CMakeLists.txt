@@ -63,7 +63,7 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/shared/protocol/include
         ${PROJECT_SOURCE_DIR}/shared/interface)
     target_link_libraries(canview-uart-tests PRIVATE canview_wire canview_warnings)
-    foreach(scenario matrix direction malformed stream long-stream soak-smoke plan plan-boundaries command command-boundaries link link-boundaries limits session replay)
+    foreach(scenario matrix direction malformed stream long-stream soak-smoke payload-lifetime plan plan-boundaries command command-boundaries link link-boundaries limits session replay)
         add_test(NAME uart-${scenario} COMMAND canview-uart-tests ${scenario})
         set_tests_properties(uart-${scenario} PROPERTIES TIMEOUT 60)
     endforeach()

@@ -1650,6 +1650,11 @@ static int test_limits(void)
     const canview_uart_message_policy_t *policy = NULL;
     CHECK(canview_uart_message_policy(UINT8_C(0x7F), &policy) == CANVIEW_UNSUPPORTED_MESSAGE &&
           policy == NULL);
+    /* UART 1.1 clock companion IDs are not runtime v1.0 messages. */
+    CHECK(canview_uart_message_policy(UINT8_C(0x60), &policy) == CANVIEW_UNSUPPORTED_MESSAGE &&
+          policy == NULL);
+    CHECK(canview_uart_message_policy(UINT8_C(0x61), &policy) == CANVIEW_UNSUPPORTED_MESSAGE &&
+          policy == NULL);
     uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
     const size_t payload_size = fill_valid_payload(CANVIEW_UART_MSG_LINK_HELLO, payload,
                                                     sizeof(payload), false);
@@ -1775,6 +1780,89 @@ static int test_replay(void)
     return 0;
 }
 
+typedef struct
+{
+    canview_uart_message_view_t request;
+    uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
+    bool occupied;
+} test_command_slot_t;
+
+static canview_status_t test_enqueue_owned_command(const canview_uart_message_view_t *request,
+                                                   void *context)
+{
+    test_command_slot_t *slot = context;
+    if (slot == NULL || request == NULL || request->wire.payload == NULL ||
+        request->wire.payload_size > sizeof(slot->payload))
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (slot->occupied)
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    slot->request = *request;
+    memcpy(slot->payload, request->wire.payload, request->wire.payload_size);
+    slot->request.wire.payload = slot->payload;
+    slot->occupied = true;
+    return CANVIEW_OK;
+}
+
+static int test_command_payload_lifetime(void)
+{
+    for (size_t maximum = 0U; maximum < 2U; ++maximum)
+    {
+        canview_uart_codec_t codec;
+        canview_uart_message_view_t view;
+        canview_uart_link_t link;
+        canview_uart_replay_context_t replay = {0};
+        test_command_slot_t slot = {0};
+        uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
+        uint8_t scratch[CANVIEW_UART_MAX_FRAME_SIZE];
+        uint8_t serial[CANVIEW_UART_MAX_SERIAL_SIZE];
+        size_t serial_size = 0U;
+        const size_t payload_size = fill_valid_payload(CANVIEW_UART_MSG_COMMAND_REQUEST, payload,
+                                                       sizeof(payload), maximum != 0U);
+        CHECK(test_codec_reset_for_message(&codec, CANVIEW_UART_MSG_COMMAND_REQUEST) == CANVIEW_OK);
+        CHECK(canview_uart_link_reset(&link) == CANVIEW_OK);
+        CHECK(link_complete_for_test(&link, 9U, 0U) == 0);
+        CHECK(canview_uart_replay_reset(&replay) == CANVIEW_OK);
+        CHECK(canview_uart_message_encode(CANVIEW_UART_MSG_COMMAND_REQUEST,
+                  flags_for(CANVIEW_UART_MSG_COMMAND_REQUEST), 41U, 7U, 10U, payload, payload_size,
+                  scratch, sizeof(scratch), serial, sizeof(serial), &serial_size) == CANVIEW_OK);
+        CHECK(feed_frame(&codec, serial, serial_size, &view) == 0);
+        bool authorized = true;
+        const canview_uart_command_admission_context_t authorization = {
+            .authorize = test_authorize_command, .context = &authorized};
+        CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization,
+                  test_enqueue_owned_command, &slot, &replay, 10U) == CANVIEW_OK);
+        CHECK(slot.occupied && slot.request.wire.payload == slot.payload);
+        CHECK(slot.request.wire.payload != view.wire.payload);
+        CHECK(slot.request.wire.payload_size == payload_size);
+        CHECK(memcmp(slot.request.wire.payload, payload, payload_size) == 0);
+        /* Overwrite the codec's backing buffer with the next command. A shallow
+         * view copy would now change token and every digest byte in the queue. */
+        uint8_t next_payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
+        memcpy(next_payload, payload, payload_size);
+        put_le(next_payload, 8U, 2U);
+        memset(next_payload + 56U, 0xCC, CANVIEW_UART_COMMAND_DIGEST_SIZE);
+        CHECK(canview_uart_message_encode(CANVIEW_UART_MSG_COMMAND_REQUEST,
+                  flags_for(CANVIEW_UART_MSG_COMMAND_REQUEST), 42U, 8U, 11U, next_payload,
+                  payload_size, scratch, sizeof(scratch), serial, sizeof(serial),
+                  &serial_size) == CANVIEW_OK);
+        CHECK(feed_frame(&codec, serial, serial_size, &view) == 0);
+        CHECK(memcmp(view.wire.payload, payload, payload_size) != 0);
+        CHECK(canview_uart_command_dispatch_admit(&link, &view, &authorization,
+                  test_enqueue_owned_command, &slot, &replay, 11U) == CANVIEW_RESOURCE_BUSY);
+        CHECK(replay.sequence.newest == 41U);
+        CHECK(slot.request.wire.header.sequence == 41U);
+        CHECK(memcmp(slot.request.wire.payload, payload, payload_size) == 0);
+        CHECK(test_codec_reset_for_message(&codec, CANVIEW_UART_MSG_COMMAND_REQUEST) == CANVIEW_OK);
+        CHECK(slot.request.wire.header.correlation_id == 7U);
+        CHECK(memcmp(slot.request.wire.payload, payload, payload_size) == 0);
+    }
+    return 0;
+}
+
 static int run_scenario(const char *scenario)
 {
     if (strcmp(scenario, "matrix") == 0)
@@ -1800,6 +1888,10 @@ static int run_scenario(const char *scenario)
     if (strcmp(scenario, "soak-24h") == 0)
     {
         return test_byte_soak(86400U);
+    }
+    if (strcmp(scenario, "payload-lifetime") == 0)
+    {
+        return test_command_payload_lifetime();
     }
     if (strcmp(scenario, "direction") == 0)
     {
@@ -1844,7 +1936,7 @@ static int run_scenario(const char *scenario)
     if (strcmp(scenario, "all") == 0)
     {
         return test_message_matrix() || test_direction() || test_malformed() || test_stream() ||
-               test_long_stream() || test_byte_soak(1U) || test_plan() ||
+               test_long_stream() || test_byte_soak(1U) || test_command_payload_lifetime() || test_plan() ||
                test_plan_boundaries() ||
                test_command_cache() || test_command_boundaries() || test_link() ||
                test_link_boundaries() || test_session() || test_replay() || test_limits();

@@ -5,6 +5,14 @@
  * The generated header describes the wire ABI. This API validates a decoded
  * envelope before dispatch and owns no UART peripheral, DMA, queue or CAN TX
  * operation. All state is caller-owned and fixed-size.
+ *
+ * A single worker owns each link/plan/cache/replay context and serializes all
+ * feed, admission, session and callback operations. These APIs provide no locks
+ * and are not ISR-safe or reentrant. "Atomic" session changes mean an indivisible
+ * transaction from that worker's perspective, not cross-thread atomicity. ISR
+ * and other tasks post events to the owner; callbacks must not feed/reset the
+ * codec or reenter session/admission APIs. Runtime queues and pending commands
+ * must be flushed by that same owner on session invalidation (T-104/T-202).
  */
 #ifndef CANVIEW_UART_H
 #define CANVIEW_UART_H
@@ -284,6 +292,15 @@ typedef struct
     void *context;
 } canview_uart_command_admission_context_t;
 
+/** @brief Synchronously copy a validated command into a bounded owner queue.
+ *
+ * request itself is stack-borrowed until callback return; its payload is codec-
+ * borrowed until the next feed/reset. A callback retaining a command MUST copy
+ * the header and all payload bytes into its reserved queue slot before returning
+ * CANVIEW_OK, and rebind any stored payload pointer to that slot. Neither pointer
+ * may be retained. On failure it must publish no queued command. The callback
+ * runs on the single session owner and must not reenter the parser/admission.
+ */
 typedef canview_status_t (*canview_uart_command_enqueue_fn)(
     const canview_uart_message_view_t *request, void *context);
 
@@ -318,7 +335,9 @@ bool canview_uart_command_admission_allowed(
  *
  * The enqueue callback owns the bounded safety/control queue reservation. The
  * replay window is committed only after that callback returns CANVIEW_OK; a
- * busy/full queue leaves the sequence retryable.
+ * busy/full queue leaves the sequence retryable. CANVIEW_OK requires the
+ * synchronous owned copy specified by canview_uart_command_enqueue_fn. The
+ * caller must serialize this call with feed/reset and every session operation.
  */
 canview_status_t canview_uart_command_dispatch_admit(
     const canview_uart_link_t *link, const canview_uart_message_view_t *request,

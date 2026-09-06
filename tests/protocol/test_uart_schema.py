@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import importlib.util
+import json
 import pathlib
 import unittest
 
@@ -80,6 +81,29 @@ class UartSchemaTests(unittest.TestCase):
             next(item["id"] for item in self.schema["messages"] if item["name"] == "CAN_EVENT_MARKER"),
             next(item["id"] for item in self.schema["messages"] if item["name"] == "CAN_CAPTURE_CONTROL"),
         )
+
+    def test_navigation_clock_companion_stays_outside_runtime_v1_0(self) -> None:
+        path = ROOT / "tools" / "protocol" / "navigation_codec.py"
+        spec = importlib.util.spec_from_file_location("uart_navigation_reference", path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        codec = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(codec)
+        schema = json.loads((ROOT / "protocol/schema/navigation-v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(schema["uart_min_version"], [1, 1])
+        runtime_ids = {message["id"] for message in self.schema["messages"]}
+        for name in ("CLOCK_ANCHOR_QUERY", "CLOCK_ANCHOR_REPLY"):
+            with self.subTest(name=name):
+                message = schema["messages"][name]
+                self.assertEqual(message["transport"], "uart")
+                self.assertNotIn(message["id"], runtime_ids)
+                values = {field: 1 for field, _ in message["fields"]}
+                encoded = codec.encode(name, values)
+                self.assertEqual(codec.decode(name, encoded, version=[1, 1],
+                                              capabilities={message["capability"]}), values)
+                for version, capabilities in (([1, 0], {message["capability"]}), ([1, 1], set())):
+                    with self.assertRaises(ValueError):
+                        codec.decode(name, encoded, version=version, capabilities=capabilities)
 
     def test_mutations_are_rejected(self) -> None:
         moved = copy.deepcopy(self.schema)

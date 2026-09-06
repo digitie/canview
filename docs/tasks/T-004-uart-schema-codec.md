@@ -2,7 +2,7 @@
 
 - 상태: `IN_PROGRESS`
 - branch: `agent/codex-t004-uart-schema-codec`
-- PR: draft (생성 후 링크 기록)
+- PR: [#20](https://github.com/digitie/canview/pull/20)
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-001`, `T-002`
@@ -56,7 +56,9 @@ delimiter까지 buffer가 넘치면 다음 `0x00`까지 버리고 한 번만 ove
 python tools/generate_protocol.py --schema protocol/schema/uart-v1.0.yaml --check
 cmake --build --preset host-sanitize
 ctest --preset host-sanitize -R uart --output-on-failure
-python tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 3600
+python tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400
+cmake --build --preset host-release
+./build/host-release/canview-uart-tests.exe soak-24h
 ```
 
 ## 안전·rollback
@@ -68,3 +70,10 @@ UART error가 vehicle command retry로 직접 변환되면 안 된다. link resy
 
 - 예상 산출물은 `protocol/schema/uart-v1.0.yaml`, generated UART header/codec와 이 문서의 `tests/protocol/` UART fixture다. UART DMA/실물 flow control(T-104/T-202)과 OTA recovery(T-108)는 범위 밖이다.
 - wire/generator digest와 malformed/resync 결과를 보존하며 실제 target 4 Mbps 검증은 후속 task에 남긴다.
+
+## 현재 검증 범위
+
+- UART 1.1 CLOCK_ANCHOR는 기존 `navigation-v1.json` companion과 schema 기반 host codec에서만 직렬화한다. `uart-schema`가 1.0 peer/capability 누락 거부와 message ID 분리를, C `uart-limits`가 1.0 catalog의 미지원 처리를 검사한다. 실제 1.1 target transport는 T-100b/T-202에 남긴다.
+- 가상시간 Python 시험은 방향당 초당 10개 primary frame의 결함 복구 시험이다. 이것만으로 4 Mbps 24시간 바이트 부하를 증명하지 않는다. 별도 C `soak-24h`는 8-N-1의 10 bit/byte를 적용해 방향당 최소 34,560,000,000 byte를 실제 production decoder에 전달하고 계수한다.
+- command enqueue는 반환 전 bounded queue의 소유 버퍼로 header와 payload를 복사한다. parser를 다음 command로 덮어쓴 뒤 queue-full·reset에도 보관 command가 유지되는 `uart-payload-lifetime` 회귀시험으로 확인한다.
+- link/plan/cache/replay는 단일 worker가 소유한다. ISR/DMA와 다른 task는 event를 전달하고 같은 context를 직접 변경하지 않는다. T-104/T-202가 실제 queue flush·DMA/ISR, T-105/T-106이 local auth/safety와 TX 직전 검사, T-203이 observer reserve·실제 예산을 소유한다. 이 task의 codec 성공은 차량 admission 승인이 아니다.
