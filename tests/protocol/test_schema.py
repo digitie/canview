@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import sys
+import tempfile
 import unittest
 import zlib
 from pathlib import Path
@@ -102,11 +103,18 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertIn(0x8001, values)
 
     def test_generated_header_is_reproducible(self) -> None:
-        digest = __import__("hashlib").sha256(generator.SCHEMA_PATH.read_bytes()).hexdigest()
+        digest = __import__("hashlib").sha256(generator._canonical_schema_bytes()).hexdigest()
         expected = generator.render_header(self.schema, digest)
         self.assertEqual(generator.HEADER_PATH.read_text(encoding="utf-8"), expected)
         self.assertIn("GENERATED FILE - DO NOT EDIT", expected)
         self.assertIn("CANVIEW_MSG_CAN_EVENT_MARKER", expected)
+
+    def test_schema_digest_is_platform_independent(self) -> None:
+        canonical = generator._canonical_schema_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            crlf_path = Path(directory) / "schema.yaml"
+            crlf_path.write_bytes(canonical.replace(b"\n", b"\r\n"))
+            self.assertEqual(generator._canonical_schema_bytes(crlf_path), canonical)
 
     def test_golden_frames_round_trip_with_crc(self) -> None:
         for vector in self.schema["golden_vectors"]:

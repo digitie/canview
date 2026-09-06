@@ -883,8 +883,15 @@ def _render_compatibility(schema: Mapping[str, Any], base_frames: Mapping[str, b
     return output
 
 
+def _canonical_schema_bytes(path: Path = SCHEMA_PATH) -> bytes:
+    """Return schema bytes with platform line endings removed from the digest."""
+
+    text = path.read_text(encoding="utf-8")
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
 def _expected_outputs(schema: Mapping[str, Any]) -> tuple[str, dict[str, tuple[bytes, str]], dict[str, tuple[bytes, str]], dict[str, str]]:
-    digest = hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest()
+    digest = hashlib.sha256(_canonical_schema_bytes()).hexdigest()
     header = render_header(schema, digest)
     golden: dict[str, tuple[bytes, str]] = {}
     base_frames: dict[str, bytes] = {}

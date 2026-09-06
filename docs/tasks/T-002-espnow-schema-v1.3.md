@@ -100,7 +100,7 @@ cmake --build --preset host-debug
 ctest --preset host-debug -R protocol-schema --output-on-failure
 ```
 
-현재 실행 결과: `python -B tools/generate_protocol.py --check`, `python -B tests/protocol/test_schema.py` 16/16, host-debug CTest는 protocol/generator/legacy automation을 포함해 plan metadata 수정 전 36/37 PASS였다. 실패한 plan-validation은 T-001 archive 요약 형식 오류였고 같은 변경에서 수정했다. Release/sanitize/coverage와 두 전문 reviewer의 독립 검증은 T-002 PR closure 전에 다시 실행한다.
+현재 실행 결과: `python -B tools/generate_protocol.py --check`, `python -B tests/protocol/test_schema.py` 17/17, host-debug CTest는 protocol/generator/legacy automation을 포함해 37/37 PASS였다. Windows checkout의 CRLF에도 generator digest가 동일하도록 canonical LF 회귀시험을 포함한다. Release/sanitize/coverage와 두 전문 reviewer의 독립 검증은 T-002 PR closure 전에 다시 실행한다.
 
 ## 안전·rollback
 
