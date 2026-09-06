@@ -22,7 +22,9 @@ Controller가 계산한 음량 명령과 설정값은 차량 CAN frame이 아니
 - [`canview_auto_sport.c`](../../firmware/communicator/stm32/src/canview_auto_sport.c): SPORT 진입·복원 상태기계
 - [`test_automation.c`](../../tests/automation/test_automation.c): 지속시간, 히스테리시스, 수동 우선 동작 시험
 
-모든 시간 계산은 wall clock이 아니라 wrap-safe monotonic tick 차이를 사용한다. task가 오래 정지했다가 재개되면 한 번의 큰 `elapsed_ms`를 그대로 넣지 않고 운행 입력을 stale 처리한 뒤 상태기계를 재동기화한다.
+모든 시간 계산은 wall clock이 아니라 wrap-safe monotonic tick 차이를 사용한다. 조건 evidence는 tick당 최대 100 ms만 누적한다. `elapsed_ms > 250`이면 밝기·과속·전조등·음량·SPORT의 dwell을 초기화하고 그 tick의 새 명령과 SPORT feedback 완료 승격을 차단한다. 유휴 시간·PWM ramp·명령 timeout은 실제 경과 시간을 사용한다. monotonic generation 변경은 호출 adapter가 discontinuity로 전달해야 하며, 큰 gap을 정상 tick 여러 개로 나눠서 실차 evidence인 것처럼 재생하지 않는다.
+
+각 상태 객체는 호출 task가 소유하고 `update/reset/reconcile`을 직렬화한다. 이 순수 C 로직은 HAL, LVGL, RTOS, 송신 transport를 직접 호출하지 않는다. 출력 action은 의미 명령의 의도이고 UI preview나 ACK는 차량 적용의 evidence가 아니다.
 
 ## 2. CAN 기반 자동 밝기
 
@@ -38,7 +40,9 @@ Controller가 계산한 음량 명령과 설정값은 차량 CAN frame이 아니
 | `CF_Clu_RheostatLevel` | 운전자 클러스터 밝기 의도 | raw `0–31`의 방향과 유효값 검증 필요 |
 | M-CAN `Clu_RheostatLvl` | 오디오 bus에서의 밝기 연동 후보 | range와 주기 미확정 |
 
-점등 여부는 switch 위치가 아니라 실제 tail/low-beam 활성 신호를 우선한다. 터널 진입처럼 조명이 켜질 때는 500 ms 지속 후 야간으로 전환하고, 짧은 가로수 그림자나 조명 신호 흔들림으로 밝아지는 것을 막기 위해 소등은 1.5초 지속 후 주간으로 돌아간다.
+현재 밝기 상태기계의 야간 입력은 `lighting_valid + tail_lamps_on + lighting_age_ms`다. `lighting_valid`는 검증된 실제 미등 source에만 허용하며 AUTO switch 위치를 대신 넣지 않는다. low-beam은 후보 보조 정보이고, 현재 API의 미등 값으로 임의 대체하지 않는다. 터널 진입처럼 미등이 켜질 때는 500 ms 지속 후 야간으로 전환하고, 소등은 1.5초 지속 후 주간으로 돌아간다. 자동 밝기를 꺼도 night mode 판정은 계속하지만 PWM base는 수동 설정값을 따른다.
+
+밝기의 미등 기반 night mode와 §2.4의 전조등 미점등 경고는 독립이다. 미등이 켜져 야간 화면이어도 실제 low-beam이 꺼져 있으면 전조등 경고가 가능하다. 두 입력을 같은 boolean으로 합치지 않는다.
 
 ### 2.2 밝기 곡선
 
@@ -49,10 +53,21 @@ Controller가 계산한 음량 명령과 설정값은 차량 CAN frame이 아니
 야간 목표 = lerp(14%, 48%, verified_rheostat_percent)
 rheostat 미수신 야간 목표 = 30%
 전환 속도 = 전체 PWM 범위를 약 1.2초에 이동
-조명 신호 stale = 마지막 안전 밝기 유지
+조명 신호 stale = 마지막 유효한 감광·boost 전 base 유지
 ```
 
-밝기 출력은 `GPIO6` LEDC PWM에 적용하되 목표값이 바뀌어도 즉시 점프시키지 않는다. 조명 신호가 500 ms 넘게 stale이면 주간 100%로 되돌아가 운전자를 눈부시게 하지 않고 마지막 유효 밝기를 유지한다. 재수신 시 새 목표까지 다시 ramp한다.
+밝기 출력의 target 통합 지점은 `GPIO6` LEDC PWM이며 실제 PWM 적용은 Controller BSP task에서 연결한다. `last_safe_base_percent`는 ramp 출력인 `current_tenth_percent`와 별도로 저장한다. 초기값은 clamp한 초기 수동 밝기이고, 유효한 조명으로 계산한 day/night 목표 또는 자동 밝기를 끈 뒤의 명시적 수동 목표로만 갱신한다. 조명 age가 500 ms를 초과하거나 invalid이면 pending debounce를 지우고 마지막 base를 사용한다. stale 중에는 새로운 rheostat·자동 mode의 수동 설정값으로 base를 덮어쓰지 않는다.
+
+idle 감광이나 과속 boost 결과는 base에 저장하지 않는다. 예를 들어 base 80%의 idle 목표는 매 update 28%이며, 출력에 0.35를 반복 곱하지 않는다. 과속 중 출력이 90%였어도 stale 이후 base는 80%다. ramp 중 stale이 되어도 마지막 유효 목표까지 제한된 속도로 이동한다. 재수신하면 새 base로 갱신하고 ramp한다.
+
+| source | 현재 core 검사 | adapter 책임 |
+|---|---|---|
+| 미등 | `lighting_valid`, `lighting_age_ms <= 500` 기본값 | 검증된 실제 점등과 source age 전달 |
+| rheostat | `dimmer_valid`; invalid이면 야간 기본 30% | 별도 age/quality 확인 후 valid 결정; 미등 age를 재사용하지 않음 |
+| 경고용 차속 | `speed_valid`, `speed_age_ms <= speed_stale_timeout_ms`; 기본 150 ms | [ESP-NOW](protocols/esp-now.md) §10의 표시 기준과 일치시키고 age를 포화 처리 |
+| 제한속도 | `speed_limit_valid`, `speed_limit_active`, 양의 limit | valid에 source freshness·quality를 포함; 현재 core에는 limit age 필드 없음 |
+
+state의 마지막 night/base 보존은 source를 VALID로 승격하는 동작이 아니다. `IDLE_DIM`/`SPEED_WARNING` status가 brightness stale status를 덮어쓸 수 있으므로 UI adapter는 source quality를 별도로 유지한다.
 
 ### 2.3 무조작 감광과 제한속도 경고
 
@@ -67,22 +82,24 @@ rheostat 미수신 야간 목표 = 30%
 경고 중 목표 밝기 = 기존 목표와 90% 중 큰 값
 ```
 
-경고는 touch를 가로채지 않고 idle latch도 지우지 않는다. 따라서 이미 감광된 상태에서 과속하면 경고 기간에만 밝아지고, 해제 뒤에는 다시 35% 유휴 밝기로 부드럽게 돌아간다. 밝기 우선순위는 `주간/야간 base → idle dim → speed warning boost`다. warning blink는 인지성을 위해 단계 전환하고 backlight는 급격한 점프를 막기 위해 ramp한다.
+속도 invalid/151 ms 이상 stale 또는 제한속도 invalid/inactive/0이면 경고와 진입·해제·blink timer를 즉시 지운다. 이때 정상 속도 해제용 1초 debounce를 기다리지 않는다. 정상 입력으로 회복해도 500 ms 진입 evidence를 다시 채워야 한다.
+
+경고는 touch를 가로채지 않고 idle latch도 지우지 않는다. 따라서 이미 감광된 상태에서 과속하면 경고 기간에만 밝아지고, 해제 뒤에는 base의 35% 유휴 목표로 부드럽게 돌아간다. 밝기 우선순위는 `주간/야간 base → idle dim → speed warning boost`다. warning blink는 인지성을 위해 단계 전환하고 backlight는 급격한 점프를 막기 위해 ramp한다.
 
 ### 2.4 일몰 후 전조등 미점등 경고
 
 저장 DBC에는 1차 차량의 GPS 좌표·현재 시각 CAN signal이 없으므로 `PCF85063 RTC + 설정된 일출·일몰`을 사용한다. GPS·시간 후보의 조사 결과는 [GPS·시간 조사](../vehicle/gps-time-investigation.md)에 있다.
 
-경고 입력은 `rtc_valid`, `solar_window_valid`, `vehicle_awake`, `CF_Gway_HeadLampLow`/`C_TailLampActivity` 중 실차에서 확인된 조명 상태와 각 입력의 age다. 다음 조건이 모두 충족될 때만 밤으로 판정한다.
+경고 입력은 `rtc_valid`, `solar_valid`, `vehicle_awake`, 실차에서 확인된 실제 low-beam 상태 `headlamp_valid/headlamps_on`과 각 입력의 age다. `C_TailLampActivity`는 밝기 night mode용이며 전조등 ON의 대체 근거로 쓰지 않는다. 현재 경고 core는 RTC·solar·headlamp age에 기본 2,000 ms 상한을 적용한다. 다음 조건이 모두 충족될 때만 밤으로 판정한다.
 
 ```text
-RTC·일출·일몰·조명 signal이 stale 아님
+enabled AND RTC·일출·일몰·실제 전조등 signal이 valid/fresh
 AND vehicle_awake
-AND local_time >= sunset + 60 s
-   OR local_time < sunrise
+AND (local_time >= sunset OR local_time < sunrise)
+AND 가장 최근 sunset으로부터 경과 >= 60 s
 ```
 
-밤에 전조등/미등 OFF가 2초 유지되면 `headlamp_warning_active`를 켠다. 조명 ON이 1초 유지되면 끄며, 순간적인 CAN bit 흔들림은 무시한다. 입력이 stale이거나 차량이 sleep이면 false positive를 피하기 위해 경고를 즉시 끈다. 제한속도 경고가 동시에 있으면 제한속도 경고를 우선하고, 정상 상태에서는 경고 overlay를 숨긴다. 터치 입력을 가로채지 않으며, 경고 해제 후 backlight는 원래 야간/유휴 목표까지 ramp한다.
+밤에 실제 전조등 OFF가 2초 유지되면 `warning_active`를 켠다. 실제 전조등 ON이 1초 유지되면 끄며, 순간적인 CAN bit 흔들림은 무시한다. 입력이 stale이거나 차량이 sleep이면 경고와 evidence를 즉시 지운다. OR의 일출 전 분기도 전체 valid/fresh/awake guard 아래 있으며, 자정 이후에도 직전 일몰에서의 grace를 계산한다. 제한속도 경고가 동시에 있으면 UI는 제한속도 경고를 우선하고, 정상 상태에서는 경고 overlay를 숨긴다. 이 core는 경고 상태만 반환하며 PWM boost는 만들지 않는다.
 
 ## 3. FFT 기반 주행 소음 음량 보정
 
@@ -96,7 +113,7 @@ band_excess = focus_band_level - learned_baseline(speed, source_volume)
 dominant_frequency = attack/release smoothing을 거친 focus peak
 ```
 
-`band_excess`는 절대 dBA가 아니라 같은 차속·오디오 조건에서 학습한 기준보다 얼마나 커졌는지를 뜻한다. FFT invalid, clipping, confidence 65% 미만에서는 증감 evidence를 서서히 지우고 음량 명령은 만들지 않는다.
+`band_excess`는 절대 dBA가 아니라 같은 차속·오디오 조건에서 학습한 기준보다 얼마나 커졌는지를 뜻한다. FFT invalid, clipping, confidence 65% 미만에서는 증감 evidence를 즉시 지우고 자동 증감 명령은 만들지 않는다. clipping/underrun은 입력 adapter가 `fft_valid=false`로 전달한다.
 
 설정의 주파수 대역은 다음 preset으로 변환한다.
 
@@ -142,7 +159,11 @@ lower = speed < 30 km/h
 
 누적시간을 채우면 목표 offset을 정확히 한 step만 바꾼다. 이후 최소 3초 command cooldown과 2초 microphone feedback freeze를 적용한다. 같은 소음이 계속돼도 다음 step은 새 attack 시간을 다시 만족해야 한다. 음량이 한 번에 크게 뛰지 않고 `0 → +1 → +2`처럼 완만하게 움직인다.
 
-`SET_OFFSET` 요청 뒤 상태기계의 target은 Communicator `COMMAND_RESULT`와 AMP feedback으로 확인한다. 거부·timeout·외부 knob 변경에서는 `canview_adaptive_volume_reconcile()`로 실제 적용 offset을 다시 주입하고 attack/release evidence를 버린다. 확인되지 않은 target을 반복 송신하거나 NVS에 성공값처럼 저장하지 않는다.
+`SET_OFFSET` 반환 시 `command_pending`을 세우고 다음 offset 요청과 evidence 누적을 막는다. `target_offset_steps`는 미확인 의도이고 `applied_offset_steps`와 같아졌다는 사실이나 `ACK(ACCEPTED/DUPLICATE)`만으로 pending을 해제하지 않는다. 초기 입력의 applied 값은 reset 시 초기값으로만 사용한다.
+
+호출 orchestration은 일치하는 terminal `COMMAND_RESULT(COMPLETED)`와 최신 AMP feedback을 모두 확인한 후 `canview_adaptive_volume_reconcile()`로 실제 offset을 주입한다. 거부·취소·timeout 뒤에도 현재 snapshot을 확인하기 전에는 reconcile하지 않는다. reconcile은 pending과 attack/release evidence를 지우되 수동 hold를 유지한다. pending 중 수동 조작은 즉시 hold를 시작하고 0 offset 의도를 보존하며, 진행 중 요청의 취소/종결과 실제 상태 확인 전에는 두 번째 요청을 내지 않는다. 미확인 target을 NVS에 성공값처럼 저장하지 않는다.
+
+현재 순수 C API에는 token/session 식별자와 차속·FFT·audio feedback별 age가 없다. source별 freshness ceiling, authenticated terminal 매칭, 중복/late result 차단, 취소 및 reconnect snapshot adapter는 T-305 범위다. `reconcile()` 자체를 token 검증기로 간주하지 않으며, ACK callback이나 UI preview에서 호출하지 않는다. 이 adapter가 연결되기 전 volume action은 host 의도 시험에만 사용한다.
 
 다음 guard를 함께 적용한다.
 
@@ -201,8 +222,11 @@ ARMED
 - 운전자가 물리 DRIVE MODE 버튼을 조작하면 즉시 `MANUAL_HOLD`로 들어가고 자동화가 더 이상 mode를 덮어쓰지 않는다.
 - `MANUAL_HOLD`는 자동 기능을 껐다 다시 켜는 명시적 재arm 또는 ignition cycle까지 유지한다.
 - 기어·브레이크·ABS/TCS/ESC·mode·link·lease 중 하나라도 유효하지 않으면 `INHIBITED`이며 새 command를 만들지 않는다.
-- mode feedback은 command 후 1.5초 안에 확인해야 한다. 진입 실패는 다시 `ARMED`, 복귀 실패는 반복 pulse 대신 `MANUAL_HOLD`로 간다.
+- pending 완료에는 freshness와 local safety가 필요하다. stale mode가 SPORT/previous_mode와 같아도 완료나 소유권 확보로 승격하지 않는다. deadline 이상 경과한 tick은 feedback보다 timeout을 먼저 판정하고 `MANUAL_HOLD`로 가며, 명시적 재arm 없이 재시도하지 않는다.
+- 자동화가 소유하던 SPORT와 다른 유효 mode가 관찰되면 물리 버튼 이벤트가 누락됐어도 소유권·previous snapshot을 버리고 `MANUAL_HOLD`로 간다. 그 tick에 복귀 pulse를 만들지 않는다.
 - link loss나 bus fault 중에는 복귀를 시도하지 않는다. 상태가 다시 신뢰 가능해진 뒤 현재 mode와 snapshot을 대조한다.
+
+현재 core의 1,500 ms pending timer는 action 생성 다음 tick부터 계산하는 host 상태기계 시간이다. target executor의 첫 성공한 physical TX-complete 시각과 transaction feedback 연결은 T-106/T-305에서 구현해야 한다. core의 `ACTIVE`를 인증된 wire `COMPLETED`나 차량 TX gate 통과로 표시하지 않는다.
 
 ## 5. 4WD 바퀴 게이지와 TPMS
 
@@ -223,7 +247,7 @@ ARMED
 | ROAD NOISE | 소음 보정, 주파수 대역, 민감도, 반응, 최대 보정 | preset과 `+2/+3/+4` |
 | SPORT AUTO | 자동 전환, 진입 속도, 급가속 감지 | 사용/끔, `60/70/80 km/h` |
 
-Controller-local 값인 밝기와 FFT preset은 Controller NVS에 저장한다. SPORT 설정은 `CONFIG_SET`으로 Communicator에 보내고 ACK 뒤에만 Controller NVS mirror를 갱신한다. 저장 중 전원이 끊겨도 이전 valid generation을 복원할 수 있도록 version, length, CRC가 있는 두 slot을 번갈아 commit한다.
+Controller-local 값인 밝기와 FFT preset은 [OTA](ota.md)의 Controller config A/B에 저장한다. SPORT 설정은 `CONFIG_SET`으로 Communicator에 보내고 일치하는 `CONFIG_RESULT` 성공과 새 `state_revision`, owner readback을 확인한 뒤에만 Controller mirror를 갱신한다. NVS는 비권위 cache이며 transport ACK는 적용 완료가 아니다. 적용 상태 `APPLIED`는 owner가 확정한 결과를 뜻하며, 차량 명령에는 별도로 `COMMAND_RESULT(COMPLETED)`와 matching feedback이 필요하다. 저장 중 전원이 끊겨도 이전 valid generation을 복원할 수 있도록 version, length, CRC가 있는 두 slot을 번갈아 commit한다.
 
 설정 변경은 차량 정차에서만 허용한다. 운행 중에는 현재 자동화 상태와 offset만 표시하고 세부 threshold는 편집하지 않는다.
 
@@ -243,3 +267,13 @@ Controller-local 값인 밝기와 FFT preset은 Controller NVS에 저장한다. 
 - SPORT 진입 전 mode와 복귀 feedback이 일치한다.
 - 물리 mode 조작 뒤 자동 command가 재개되지 않는다.
 - TPMS stale과 실제 `0 psi`를 같은 상태로 표현하지 않는다.
+
+현재 실행 가능한 host 회귀는 다음 명령이다. Windows에서는 먼저 Visual Studio Developer PowerShell 환경을 연다. 이 명령은 target/HIL·차량 검증이나 UI preview 실행 명령이 아니다.
+
+```powershell
+cmake -S tests/automation -B .tools/automation-worker-build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build .tools/automation-worker-build
+ctest --test-dir .tools/automation-worker-build --output-on-failure
+```
+
+`test_automation_regressions.c`는 반복 stale+idle, boost 후 stale 복귀/ramp, 차속 150/151 ms 경계, invalid FFT evidence, 단일 pending, stale SPORT feedback·외부 mode·deadline, 251 ms/5초/`UINT32_MAX` gap, 중복 ACK/result와 tick wrap을 검사한다. 정상 지속시간 fixture는 100 ms sample 반복이고 gap 시험은 원 API를 직접 호출한다. MSVC는 `/W4 /WX /utf-8`로 build하며 assert를 Release에서도 유지한다. v1.2 draft protocol의 GNU packed 대신 사용하는 `msvc_wire_layout.h`는 시험 전용 경계이고 runtime ABI 이식 완료를 의미하지 않는다.

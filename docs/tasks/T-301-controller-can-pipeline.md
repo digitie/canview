@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P0`
 - Gate: `G2/G3`
-- 선행: `T-003`, `T-006`, `T-201`, `T-300`
+- 선행: `T-003`, `T-006`, `T-203`, `T-300`
 - 병렬 가능: Diagnostic Bridge shell
 
 ## 목표
@@ -13,7 +13,7 @@ ESP-NOW CAN batch를 secure session 뒤에도 local default-deny allow-list로 �
 ## 구현 범위
 
 - ESP-NOW decoded frame→local admission queue
-- local desired/effective allow-list와 NVS transaction
+- local desired/effective allow-list와 versioned config transaction (OTA config A/B, NVS는 비권위 cache)
 - upstream peer subscription sync adapter
 - generated descriptor catalog load/digest/revision
 - Intel/Motorola/signed/range decoder integration
@@ -42,6 +42,9 @@ ESP-NOW CAN batch를 secure session 뒤에도 local default-deny allow-list로 �
 - [ ] delayed/reordered/replayed/이전 STM boot record가 age 0 또는 fresh로 나오지 않는다.
 - [ ] 같은 ID의 RTR/error/TX echo가 일반 signal 값·freshness를 갱신하지 않는다.
 - [ ] local filter batch 한 entry 오류·power cut·revision 경쟁에서 old/new 전체 상태 중 하나만 보인다.
+- [ ] 현재 `canview_controller_signal.c` prototype helper는 descriptor factor/offset의 NaN/Inf와 float→integer 범위 초과를 모두 거절한다고 검증되지 않았다. finite 검사·역전 range·곱셈/덧셈 overflow·목표 signed/u32 범위를 변환 전에 검사하는 구현과 회귀시험을 이 task에서 수행한다.
+- [ ] NaN, +Inf, -Inf, signed 최소/최대 바깥, u32 0/최대 바깥, float overflow와 min>max descriptor vector가 UB 없이 명시 reject/quality 결과를 낸다. sanitizer와 reference decoder 결과를 함께 남긴다.
+- [ ] 현재 generic helper의 age=0 quality stamp를 실제 입력의 신선도 보장으로 보지 않는다. 실사용 adapter에서 원본 STM boot/sample timestamp·catalog/profile revision·evidence를 먼저 검증하며 stale/delayed/reordered record가 정상 숫자 또는 automation dwell을 갱신하지 않는 통합 fixture를 둔다.
 
 ## 검증
 
@@ -53,4 +56,9 @@ python tests/protocol/property_local_allowlist.py --seed 1 --cases 10000
 
 ## rollback
 
-NVS transaction 실패나 catalog digest mismatch에서는 이전 wider allow-list로 복귀하지 않고 effective store를 default-deny로 내린다. UI는 link가 있어도 데이터 unavailable로 표시한다.
+config transaction 실패나 catalog digest mismatch에서는 이전 wider allow-list로 복귀하지 않고 effective store를 default-deny로 내린다. UI는 link가 있어도 데이터 unavailable로 표시한다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 `firmware/controller/components/canview_can/`의 catalog/filter/freshness adapter와 이 문서의 profile/property tests다. Communicator DBC decode·차량 TX·실차 evidence 승격은 범위 밖이다.
+- filter/catalog storage API와 buffer lifetime, shrink/expand의 fail-closed 순서 및 negative quality trace를 evidence로 남긴다.

@@ -33,7 +33,7 @@ static bool extract_little_endian(const uint8_t *data, uint8_t data_len,
                                   uint64_t *raw)
 {
     if (bit_length == 0U || bit_length > 32U || start_bit >= 64U ||
-        (uint16_t)start_bit + bit_length > (uint16_t)data_len * 8U) {
+        (uint32_t)start_bit + (uint32_t)bit_length > (uint32_t)data_len * 8U) {
         return false;
     }
     uint64_t value = 0U;

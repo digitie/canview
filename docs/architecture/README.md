@@ -8,6 +8,7 @@
 |---|---|
 | 장치명·peer routing·장애 상태 | [시스템 구조](system.md) |
 | repository 목표 구조·runtime 경계·release gate | [구현 준비 기준](implementation-readiness.md) |
+| 전체 계획 감사·요구사항별 수용 기준 추적 | [요구사항 coverage](requirements-coverage.md) |
 | ESP-NOW·UART wire 계약 | [프로토콜 인덱스](protocols/README.md) |
 | 독립 OTA·부트 복구·N16R8 회로 변경 | [OTA 설계와 적대적 리뷰](ota.md) |
 | 외부 GNSS·온보드 INS·기압·시간 | [센서 확장 계약](protocols/navigation.md), [R1 하드웨어](../hardware/r1/README.md) |

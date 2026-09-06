@@ -60,3 +60,9 @@ idf.py -C firmware/controller size-components
 ## 증거
 
 보드 revision, official example commit, sdkconfig diff, LCD/touch 사진·영상, I²C error count, heap/PSRAM report를 남긴다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 기존 `firmware/controller/` BSP·LVGL task·touch/LCD/backlight/RTC adapter와 budget fixture다. full UI model·OTA recovery·차량 command는 범위 밖이다.
+- GPIO/board revision별 init 실패와 deinit 자원 해제·task/ISR 소유권을 문서화하고 watchdog/heap/PSRAM/화면 timing을 측정한다. 실패한 BSP를 정적 screenshot 성공으로 대체하지 않는다.

@@ -30,7 +30,9 @@ static bool safety_ready(const canview_auto_sport_input_t *input)
 {
     return input->signals_fresh && input->forward_gear && !input->brake_active &&
            !input->abs_tcs_esc_active && !input->drive_mode_fault &&
-           input->control_link_ready && input->current_mode != CANVIEW_DRIVE_MODE_UNKNOWN;
+           input->control_link_ready &&
+           input->current_mode > CANVIEW_DRIVE_MODE_UNKNOWN &&
+           input->current_mode <= CANVIEW_DRIVE_MODE_SPORT;
 }
 
 canview_auto_sport_config_t canview_auto_sport_default_config(void)
@@ -133,6 +135,11 @@ static canview_auto_sport_output_t make_output(const canview_auto_sport_state_t 
     return output;
 }
 
+static void enter_manual_hold(canview_auto_sport_state_t *state)
+{
+    *state = (canview_auto_sport_state_t){.status = CANVIEW_SPORT_MANUAL_HOLD};
+}
+
 canview_auto_sport_output_t canview_auto_sport_update(
     canview_auto_sport_state_t *state,
     const canview_auto_sport_config_t *config,
@@ -147,59 +154,73 @@ canview_auto_sport_output_t canview_auto_sport_update(
     }
 
     canview_auto_sport_output_t output = make_output(state);
-
-    if (input->physical_mode_change) {
-        state->status = CANVIEW_SPORT_MANUAL_HOLD;
-        state->owns_sport_mode = false;
-        state->previous_mode = CANVIEW_DRIVE_MODE_UNKNOWN;
+    const bool tick_gap = elapsed_ms > CANVIEW_SPORT_MAX_TICK_GAP_MS;
+    const uint32_t evidence_ms = elapsed_ms > CANVIEW_SPORT_MAX_EVIDENCE_MS
+                                     ? CANVIEW_SPORT_MAX_EVIDENCE_MS : elapsed_ms;
+    if (tick_gap) {
         state->speed_evidence_ms = 0U;
         state->acceleration_evidence_ms = 0U;
         state->exit_evidence_ms = 0U;
+        state->sport_active_ms = 0U;
+    }
+
+    if (input->physical_mode_change) {
+        enter_manual_hold(state);
         return make_output(state);
     }
 
     if (state->status == CANVIEW_SPORT_MANUAL_HOLD) {
         if (!input->enabled) {
             state->status = CANVIEW_SPORT_DISABLED;
-        } else if (input->rearm_requested && safety_ready(input)) {
+        } else if (input->rearm_requested && safety_ready(input) && !tick_gap) {
             state->status = CANVIEW_SPORT_ARMED;
         }
         return make_output(state);
     }
 
     if (state->status == CANVIEW_SPORT_ENTER_PENDING) {
-        if (input->current_mode == CANVIEW_DRIVE_MODE_SPORT) {
+        state->pending_ms = add_saturated(state->pending_ms, elapsed_ms,
+                                          config->command_timeout_ms);
+        if (state->pending_ms >= config->command_timeout_ms) {
+            enter_manual_hold(state);
+            return make_output(state);
+        }
+        if (!tick_gap && safety_ready(input) &&
+            input->current_mode == CANVIEW_DRIVE_MODE_SPORT) {
             state->status = CANVIEW_SPORT_ACTIVE;
             state->owns_sport_mode = true;
             state->pending_ms = 0U;
             state->sport_active_ms = 0U;
             return make_output(state);
         }
-        state->pending_ms = add_saturated(state->pending_ms, elapsed_ms,
-                                          config->command_timeout_ms);
-        if (state->pending_ms >= config->command_timeout_ms) {
-            state->status = input->enabled ? CANVIEW_SPORT_ARMED : CANVIEW_SPORT_DISABLED;
-            state->previous_mode = CANVIEW_DRIVE_MODE_UNKNOWN;
-            state->pending_ms = 0U;
-        }
         return make_output(state);
     }
 
     if (state->status == CANVIEW_SPORT_EXIT_PENDING) {
-        if (input->current_mode == state->previous_mode) {
+        state->pending_ms = add_saturated(state->pending_ms, elapsed_ms,
+                                          config->command_timeout_ms);
+        if (state->pending_ms >= config->command_timeout_ms) {
+            enter_manual_hold(state);
+            return make_output(state);
+        }
+        if (!tick_gap && safety_ready(input) &&
+            input->current_mode == state->previous_mode) {
             state->status = input->enabled ? CANVIEW_SPORT_ARMED : CANVIEW_SPORT_DISABLED;
             state->owns_sport_mode = false;
             state->previous_mode = CANVIEW_DRIVE_MODE_UNKNOWN;
             state->pending_ms = 0U;
             return make_output(state);
         }
-        state->pending_ms = add_saturated(state->pending_ms, elapsed_ms,
-                                          config->command_timeout_ms);
-        if (state->pending_ms >= config->command_timeout_ms) {
-            state->status = CANVIEW_SPORT_MANUAL_HOLD;
-            state->owns_sport_mode = false;
-            state->pending_ms = 0U;
-        }
+        return make_output(state);
+    }
+
+    if (!tick_gap && input->signals_fresh && state->owns_sport_mode &&
+        mode_can_be_restored(input->current_mode)) {
+        enter_manual_hold(state);
+        return make_output(state);
+    }
+    if (tick_gap) {
+        state->status = input->enabled ? CANVIEW_SPORT_INHIBITED : CANVIEW_SPORT_DISABLED;
         return make_output(state);
     }
 
@@ -234,18 +255,18 @@ canview_auto_sport_output_t canview_auto_sport_update(
     }
 
     if (state->status == CANVIEW_SPORT_ACTIVE) {
-        state->sport_active_ms = add_saturated(state->sport_active_ms, elapsed_ms,
+        state->sport_active_ms = add_saturated(state->sport_active_ms, evidence_ms,
                                                config->minimum_sport_hold_ms);
         const bool exit_condition =
             input->speed_tenth_kph <= config->exit_speed_tenth_kph &&
             input->longitudinal_acceleration_milli_mps2 <=
                 config->acceleration_release_milli_mps2;
         if (exit_condition) {
-            state->exit_evidence_ms = add_saturated(state->exit_evidence_ms, elapsed_ms,
+            state->exit_evidence_ms = add_saturated(state->exit_evidence_ms, evidence_ms,
                                                     config->exit_confirm_ms);
         } else {
             state->exit_evidence_ms = subtract_saturated(state->exit_evidence_ms,
-                                                         doubled_saturated(elapsed_ms));
+                                                         doubled_saturated(evidence_ms));
         }
         if (state->sport_active_ms >= config->minimum_sport_hold_ms &&
             state->exit_evidence_ms >= config->exit_confirm_ms &&
@@ -272,16 +293,16 @@ canview_auto_sport_output_t canview_auto_sport_update(
         input->longitudinal_acceleration_milli_mps2 >= config->acceleration_enter_milli_mps2;
 
     state->speed_evidence_ms = speed_condition
-                                   ? add_saturated(state->speed_evidence_ms, elapsed_ms,
+                                   ? add_saturated(state->speed_evidence_ms, evidence_ms,
                                                    config->speed_confirm_ms)
                                    : subtract_saturated(state->speed_evidence_ms,
-                                                        doubled_saturated(elapsed_ms));
+                                                        doubled_saturated(evidence_ms));
     state->acceleration_evidence_ms =
         acceleration_condition
-            ? add_saturated(state->acceleration_evidence_ms, elapsed_ms,
+            ? add_saturated(state->acceleration_evidence_ms, evidence_ms,
                             config->acceleration_confirm_ms)
             : subtract_saturated(state->acceleration_evidence_ms,
-                                 doubled_saturated(elapsed_ms));
+                                 doubled_saturated(evidence_ms));
 
     if ((state->speed_evidence_ms >= config->speed_confirm_ms ||
          state->acceleration_evidence_ms >= config->acceleration_confirm_ms) &&

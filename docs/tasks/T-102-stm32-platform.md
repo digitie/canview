@@ -12,7 +12,7 @@
 
 ## 구현 범위
 
-- vector/startup와 system clock 170 MHz
+- vector/startup와 R1 HSE 16 MHz → SYSCLK 160 MHz, APB/USART2/FDCAN 80 MHz
 - 선택 HSE와 FDCAN/USART kernel clock compile-time calculation
 - SysTick 또는 monotonic hardware timer 1 ms, microsecond capture timer
 - IWDG 250–500 ms와 progress-vote watchdog
@@ -49,6 +49,13 @@ firmware/communicator/stm32/tests/*
 - [ ] reset reason과 build digest를 UART diagnostic으로 읽을 수 있다.
 - [ ] boot authenticity 또는 production debug lock이 불확실하면 reported control capability와 TX permit이 0이다.
 
+## 계획 보완 수용 기준
+
+- [ ] [현행 R1 clock](../hardware/r1/firmware-pinmap.md)의 PLL/BRR/AF·PG10-NRST를 target map과 계측으로 확인하고 UART 4 Mbps를 170 MHz 가정으로 계산하지 않는다.
+- [ ] module→interface→BSP/platform 의존, ISR ring 소유권·수명, task별 주기/우선순위/stack/WCET/overflow/progress-vote를 해당 firmware README와 public header에 기록한다.
+- [ ] T-101이 사용할 최소 boot/fault image를 먼저 제공한다. T-102의 전체 완료를 T-101의 시작 조건으로 오해하지 않고 실물 미확인 항목은 열린 상태로 유지한다.
+- [ ] STM Flash 보호 root/config와 T-107 부트로더 map의 배치가 겹치지 않는다. T-107 이전 전체 Flash scaffold는 OTA 지원 image가 아니다.
+
 ## 검증 명령
 
 ```powershell
@@ -65,3 +72,8 @@ host `ctest`는 별도의 T-001 root test preset이 추가된 뒤 저장소 루�
 ## evidence
 
 map/size/stack-usage, HSE failure scope, IWDG reset log를 남긴다. hardware 미도착 시 host test까지 진행하되 task 상태는 G1 evidence 전까지 완료하지 않는다.
+
+
+## 산출물·범위 경계
+
+- FDCAN capture·command executor·OTA bootloader는 범위 밖이다. boot/clock/watchdog 검증 실패 시 모든 capability와 TX gate를 닫고 이전 검증된 capture-only scaffold로 제한한다.

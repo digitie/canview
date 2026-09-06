@@ -72,7 +72,7 @@ Primary Controller는 단순 read-only 장치가 아니다. CANView 기능 구�
 
 | control scope bit | 이름 | 허용 용도 |
 |---:|---|---|
-| 0 | `AUDIO_PROFILE` | `QUIET`, `REAR_BOOST`, `CENTER` 같은 검증된 profile transaction |
+| 0 | `AUDIO_PROFILE` | `QUIET`, `REAR_BOOST` 같은 검증된 profile transaction. 복원은 OEM snapshot |
 | 1 | `AUDIO_VOLUME_OFFSET` | 주행 소음 보정과 profile의 제한된 상대 음량 변경 |
 | 2 | `AUDIO_FADER` | 취침·뒷좌석 강화 profile의 앞/뒤 패닝 |
 | 3 | `AUDIO_BALANCE` | profile에 필요한 좌/우 패닝. 현재 운전자 UI에는 임의 조정 화면을 두지 않음 |
@@ -169,7 +169,7 @@ CRC는 header의 `crc32` 4 byte를 0으로 둔 값과 payload 전체에 계산�
 | `0x16` | ERROR | 필요 시 Q1 | 양방향 |
 | `0x17–18` | state snapshot request/response | Q1 | Controller→Communicator→Controller |
 | `0x20` | raw CAN batch | Q0 | Communicator→Controller |
-| `0x21` | decoded signal batch, optional legacy | Q0 | Communicator→Controller |
+| `0x21` | decoded signal batch, 사용 보류 | 없음 | 현 통합 구현에서 송수신 비활성 |
 | `0x22` | bus status | Q0, 변화 시 Q1 | Communicator→Controller |
 | `0x23` | CAN filter get/list | Q1 | Controller↔Communicator |
 | `0x24` | CAN filter add/replace/delete/clear | Q1 | Controller↔Communicator |
@@ -195,7 +195,7 @@ CRC는 header의 `crc32` 4 byte를 0으로 둔 값과 payload 전체에 계산�
 명령·설정·협상은 `ACK_REQUIRED`를 세우고 ACK가 없으면 재전송한다. 이 방식은 같은 packet이 여러 번 도착할 수 있으므로 수신자는 중복 제거 cache를 가져야 한다.
 
 - 초기 ACK timeout: 최근 RTT가 없으면 80 ms
-- 적응 timeout: `clamp(2 × smoothed_RTT + 20 ms, 40 ms, 300 ms)`
+- 적응 timeout: `min(clamp(2 × smoothed_RTT + 20 ms, 40 ms, 250 ms), remaining_ttl_ms / 2)`. TTL 여유가 없으면 재시도하지 않는다. 현재 host tracker는 RTT 없이 80→160 ms를 사용하며 같은 상한을 지킨다.
 - 최대 시도: 최초 1회 + 재시도 2회
 - retry jitter: ±10%
 - TTL이 먼저 끝나면 재전송 중단
@@ -276,7 +276,14 @@ Communicator                             Controller
   |== PAIR_RESULT(key generation) encrypted ==>|
 ```
 
-HMAC은 해당 pair package의 `HMAC-SHA-256(link_root, domain || canonical_fields)`를 사용하고 wire에는 앞 16 byte를 싣는다. `domain`은 message마다 `CV-DISCOVERY-1`, `CV-PAIR-REQUEST-1`처럼 분리한다. canonical fields에는 정렬된 양쪽 device ID와 MAC, 양쪽 nonce, channel, 선택 protocol version, 요청 role, 로컬 승인 role/scope/message class와 key generation을 모두 길이 prefix와 함께 넣는다. 요청 role은 로컬 peer record의 권한을 넓힐 수 없다.
+HMAC은 해당 pair package의 `HMAC-SHA-256(link_root, domain || canonical_fields)`를 사용하고 wire에는 앞 16 byte를 싣는다. `domain`은 message마다 `CV-DISCOVERY-1`, `CV-PAIR-REQUEST-1`처럼 분리한다. canonical byte열은 단계별로 이미 알려진 transcript prefix만 포함한다. DISCOVERY에 아직 생성되지 않은 상대 nonce나 미선택 version을 요구하지 않는다.
+
+- DISCOVERY: 사전 provision된 pair의 endpoint ID/MAC binding, 발신 nonce, channel, 제안 protocol 범위, link key generation. 여러 pair가 있으면 pair별 인증된 announcement를 aggregate 1 Hz 이내로 보낸다. 설치 공용 root를 만들지 않는다.
+- PAIR_REQUEST: 검증한 DISCOVERY digest, 상대 nonce, 요청 version/role. 수신자는 자신의 pending nonce와 만료 창을 확인한다.
+- PAIR_CHALLENGE: 앞 두 메시지 digest와 정렬된 두 endpoint/nonce, 선택 version/channel, 양단이 로컬 승인한 role/scope/message class와 key generation.
+- CONFIRM/RESULT: 완성 transcript hash와 phase별 domain. 양단 로컬 권한이 불일치하면 중단한다.
+
+T-002는 각 phase의 필드 순서·길이 prefix·exact encoding을 schema/golden으로 동결하고 T-003은 nonce 재사용·이전 phase replay·role 확장을 거부한다. 요청 role은 로컬 peer record의 권한을 넓힐 수 없다.
 
 ESP-NOW의 PMK는 장치당 하나이고 LMK는 peer별이다. 각 장치는 자신의 `local_pmk`를 설정하고, 두 endpoint는 pair 전용 `link_root`에서 같은 LMK만 파생한다.
 
@@ -290,7 +297,7 @@ LMK = HKDF-SHA-256(link_root, peer_salt,
                    authorized_message_classes || link_key_generation)[0:16]
 ```
 
-PMK, LMK와 `link_root`는 공중으로 보내지 않는다. `PAIR_CONFIRM`부터 encrypted unicast여야 하며 transcript hash가 일치해야 한다. 성공 후 peer MAC, channel, LMK, link generation과 로컬 승인 권한을 encrypted NVS에 원자적으로 저장한다. 새 key 확인이 끝나기 전에는 encrypted NVS의 이전 generation 복구 사본을 지우지 않는다.
+PMK, LMK와 `link_root`는 공중으로 보내지 않는다. `PAIR_CONFIRM`부터 encrypted unicast여야 하며 transcript hash가 일치해야 한다. 성공 후 peer binding·권한·key generation은 [OTA](../ota.md)의 보호된 provisioning A/B 정책으로 원자 저장한다. runtime key cache의 암호화는 별도로 적용하며 normal NVS를 유일한 권위/복구 사본으로 삼지 않는다. 새 key 확인이 끝나기 전에는 이전 valid generation을 지우지 않는다. provisioning 변경은 승인된 commissioning에서만 허용하고 일반 설정/OTA 업로드로 실행하지 않는다.
 
 이 pair별 PSK 방식은 해당 `link_root`가 유출되면 그 링크에 forward secrecy를 제공하지 않는다. 다만 다른 pair의 root나 LMK까지 파생되지는 않아야 한다. 더 높은 위협 모델이 필요하면 차기 major에서 ECDH+서명 handshake를 별도 도입하되 v1 wire에 임시 확장을 섞지 않는다.
 
@@ -487,7 +494,7 @@ raw stream은 상시 전체 bus mirror가 아니다. 3×500 kbit/s CAN line traf
 
 ### 11.2 decoded signal batch
 
-기본 경로는 Controller가 raw record를 자체 DBC catalog로 decode하는 것이다. `SIGNAL_BATCH`는 이전 Communicator decode 구현과의 선택적 호환 경로로만 남긴다. signal catalog가 `(signal_id, type, unit, scale, display name, source message)`를 정의한다. wire record는 12 byte다.
+기본 경로는 Controller가 raw record를 자체 DBC catalog로 decode하는 것이다. `SIGNAL_BATCH`의 아래 layout은 역사적 draft 비교 자료이며 첫 통합 구현에서는 capability를 광고하거나 송수신하지 않는다. 기존에 배포된 legacy runtime이 없으므로 Communicator DBC decoder나 가상의 호환 경로를 만들지 않는다. 이 message를 재도입하려면 별도 schema·역할·capability·golden vector 변경이 필요하다. draft signal catalog는 `(signal_id, type, unit, scale, display name, source message)`를 정의하고 record는 12 byte였다.
 
 | 필드 | 크기 | 설명 |
 |---|---:|---|
@@ -537,7 +544,7 @@ heartbeat 3회 누락, session 변경, Communicator reboot, physical TX disable�
 | `command_id:u16` | 사전 정의된 의도 명령 |
 | `ttl_ms:u16` | 생성 후 실행 가능한 최대 시간 |
 | `origin_device_id/origin_boot_id:u64` | provisioned Primary와 현재 boot binding |
-| `wireless_session_id:u64` | 현재 encrypted session binding |
+| `wireless_session_id:u32` | 공통 header `session_id`와 같은 현재 encrypted session binding; origin boot와 함께 검증 |
 | `control_generation:u32` | Controller↔STM32 control root generation |
 | `issued_at_controller_ms:u32` | retry에서도 바뀌지 않는 생성 시각 |
 | `control_sync_generation:u32` | end-to-end clock mapping |
@@ -568,7 +575,7 @@ STM32는 `(origin, boot, session, control generation, request token, command ID,
 
 v1의 공개 명령은 raw frame이 아니라 다음과 같은 의미 단위다.
 
-- `AUDIO_PROFILE_SET`: 중앙/취침/뒷좌석 강화 profile
+- `AUDIO_PROFILE_SET`: 취침/뒷좌석 강화 profile. 고정 중앙값으로 복원을 대신하지 않음
 - `AUDIO_VOLUME_OFFSET_SET`: 제한된 상대 offset
 - `AUDIO_RESTORE_SNAPSHOT`: Communicator가 저장한 OEM 상태 복원
 - `DRIVE_MODE_BUTTON_PULSE`: 검증된 물리 버튼 1회 동작만 요청
@@ -598,7 +605,7 @@ Controller에 audio 제어 권한을 주는 것은 위 의미 명령을 허용�
 
 설정 변경은 secure session, Primary Controller, 차량 정지, control lease, compatible config schema를 모두 요구한다. `CONFIG_RESULT`의 성공과 새 `state_revision`을 받은 뒤에만 Controller mirror를 commit한다. 범위를 벗어난 값은 clamp하지 않고 application error로 거부해 UI와 Communicator의 실제 설정이 조용히 달라지지 않게 한다.
 
-화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset, RTC와 유휴 설정은 Controller-local NVS 값이다. RTC 시간 변경은 Controller가 PCF85063에 직접 적용하며 차량 command 또는 Communicator config로 전송하지 않는다. 휴대폰 설정을 구현할 때는 Diagnostic Bridge와 Controller 사이의 owner-targeted remote config를 사용한다. 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다. CAN filter는 Controller local default-deny 경계와 Communicator의 peer별 upstream subscription을 별도 revision으로 관리한다.
+화면 밝기, FFT 주파수 대역·민감도·반응·최대 offset, RTC와 유휴 설정은 Controller-local 값이다. [OTA config A/B](../ota.md)가 권위 snapshot이고 NVS는 비권위 cache다. RTC 시간 변경은 Controller가 PCF85063에 직접 적용하며 차량 command 또는 Communicator config로 전송하지 않는다. 휴대폰 설정을 구현할 때는 Diagnostic Bridge와 Controller 사이의 owner-targeted remote config를 사용한다. 실제 음량 offset만 `AUDIO_VOLUME_OFFSET_SET` 의미 명령으로 전달한다. CAN filter는 Controller local default-deny 경계와 Communicator의 peer별 upstream subscription을 별도 revision으로 관리한다.
 
 ## 13. 상태 snapshot과 revision
 
@@ -684,7 +691,7 @@ ESP-NOW 기본 bit rate는 1 Mbit/s지만 MAC overhead, airtime 경쟁, retry를
 | event/command | 비정기 | 0.1 kB/s 이하 |
 | 제한 raw capture | 최대 200 frame/s | 약 3.5–6 kB/s |
 
-Communicator는 전송 전 동일 signal의 오래된 queue item을 coalesce한다. 화면 refresh가 20 Hz라면 같은 signal을 100 Hz로 무선 전송하지 않는다.
+위 signal 수는 화면 정보량을 환산한 예시이지 Communicator의 의미 decode 요구가 아니다. raw 경로에서는 `(peer, bus, can_id, flags)` key의 오래된 sample을 구독 조건에 따라 coalesce한다. event/capture stream은 coalescing 여부와 drop/gap을 명시한다. 같은 ID의 서로 다른 byte field를 Communicator가 signal 이름으로 해석하지 않는다.
 
 ## 18. bulk와 확장성
 

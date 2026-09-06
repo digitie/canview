@@ -3,11 +3,12 @@
 - 상태: `BLOCKED`
 - 우선순위: `P1`
 - Gate: `G1/G2` 보조, 차량 TX 승인 아님
-- 선행: T-100 제조사 land/PCB gate, T-002/T-004 transport schema, 실물 보드·GNSS·마이크
+- 선행: `T-002`, `T-004`, `T-101`, `T-200`, `T-201`, `T-202`, `T-203`, `T-300`, `T-303`, `T-304`
+- 외부 선행: 실물 보드·GNSS·마이크, 승인된 센서 장착·배선
 
 ## 목표와 고정 결정
 
-[R1 pinmap](../hardware/r1/firmware-pinmap.md), [센서 회로](../hardware/r1/navigation-hardware.md), [mic 회로](../hardware/r1/bridge-controller-microphone.md), [navigation wire](../architecture/protocols/navigation.md)를 firmware와 bench evidence로 연결한다. N4R2/N8R2 module 차이를 보존하고 BMP384는 MTi AUX SPI 소유다. 기존 generic CAN 경로와 Controller 제한 의미 제어 권한을 바꾸지 않는다.
+[R1 pinmap](../hardware/r1/firmware-pinmap.md), [센서 회로](../hardware/r1/navigation-hardware.md), [mic 회로](../hardware/r1/bridge-controller-microphone.md), [navigation wire](../architecture/protocols/navigation.md)를 firmware와 bench evidence로 연결한다. Communicator N16R8/Bridge N8R2 module 차이를 보존하고 BMP384는 MTi AUX SPI 소유다. 기존 generic CAN 경로와 Controller 제한 의미 제어 권한을 바꾸지 않는다.
 
 ## 구현 범위
 
@@ -33,8 +34,19 @@
 - [ ] 원음/실제 위치/키가 공개 Git에 들어가지 않는다. 합성 golden fixture만 공유한다.
 - [ ] 모든 미지원 센서는 정상 숫자 대신 invalid/미지원으로 표시한다.
 
+## 계획 보완 수용 기준
+
+- [ ] ESP-NOW 1.4/UART 1.1 미협상 peer에는 센서 메시지가 0건이며 1.3/1.0 CAN 기능은 보존된다.
+- [ ] calibration/P0/mount 설정의 owner, schema/revision, 영속 write/readback와 실패 복구를 T-304/T-205 저장 계약에 맞춰 확인한다.
+- [ ] 16 kHz 온보드 분석과 32 kHz 원격 수음은 source별 설정·calibration을 분리한다. T-303 DSP를 재사용하고 T-100b는 원격 SI/센서 통합 evidence를 소유한다.
+
 ## 검증·evidence·rollback
 
 현 단계 host 명령은 `python -m unittest discover -s tools/protocol -p test_navigation_codec.py -v`다. 이것만으로 위 acceptance를 체크하지 않는다. target map/build log, logic analyzer/Oscope waveform, sample counter/latency/power trace를 revision·환경·장비 정보와 함께 기록한다. 민감 위치/음성 원본은 로컬에 둔다.
 
 범위 밖: 차량 제어 신호 확정, RTK 보정망 운영, 무제한 DR, 새 raw CAN 송신 API, 상시 BAT/CAN wake 회로. 실패 시 sensors/mic automation capability를 끄고 capture-only를 유지한다. 보호 gate를 firmware로 우회해 시험을 진행하지 않는다.
+
+
+## 산출물·범위 경계
+
+- CAN evidence 승격·차량 제어 권한 확대·OTA 공통 manager 구현은 범위 밖이다. 지원 센서가 없으면 정상 수치로 대체하지 않는다.

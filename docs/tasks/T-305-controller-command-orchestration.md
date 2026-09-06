@@ -15,7 +15,7 @@ UI intent를 owner·scope·lease·revision이 있는 semantic command로 바꾸�
 - command owner router와 capability/scope precheck
 - secure control lease acquire/renew/release
 - 8-slot pending tracker를 session-aware transaction manager로 확장
-- audio QUIET/REAR_BOOST/CENTER, restore snapshot intent
+- audio QUIET/REAR_BOOST와 검증된 OEM snapshot restore intent. CENTER 또는 고정 중앙 fader/balance 복원 명령은 포함하지 않음
 - adaptive volume offset intent
 - SPORT automation arm/disarm/config intent
 - request/accepted/executing/completed/rejected UI model
@@ -46,6 +46,11 @@ UI intent를 owner·scope·lease·revision이 있는 semantic command로 바꾸�
 - [ ] stale speed/FFT/audio/mode 또는 250 ms 초과 tick gap에서 dwell과 command 수가 증가하지 않는다.
 - [ ] SPORT entry UI 60/70/80 km/h가 owner registry adapter에서 wire 600/700/800으로만 변환되고 key는 `0x0202`다.
 
+## 계획 보완 수용 기준
+
+- [ ] create/destroy·link reset에서 pending token을 종료하고 callback/queue payload를 by-value로 소유한다. 늦은 결과가 새 UI instance나 다른 transaction을 갱신하지 않는다.
+- [ ] SPORT persistent enable/threshold와 RAM arm/lease를 분리한다. reboot·OTA 뒤 이전 arm을 복구하지 않고 owner 최종 RESULT 전에는 NVS mirror를 commit하지 않는다.
+
 ## 검증
 
 ```bash
@@ -57,3 +62,8 @@ python tests/ui/capture_screens.py --scenario command-lifecycle
 ## release 차단
 
 이 task의 mock 성공은 차량 송신 승인이 아니다. T-503/T-106/G4가 끝날 때까지 command transport는 simulator backend에만 연결한다.
+
+## 산출물·범위 경계
+
+- 예상 산출물은 Controller command/config coordinator와 UI pending/capability adapter·end-to-end fixture다. raw frame·STM local safety 대체·G5 승인 자체는 범위 밖이다.
+- queue/token 수명·session 종료 시 취소, ACK/RESULT/feedback 순서별 실제 표시와 TX count를 evidence로 남긴다.

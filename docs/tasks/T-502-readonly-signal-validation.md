@@ -12,7 +12,7 @@
 
 ## 우선순위
 
-1. speed, RPM, battery voltage, transmission clutch lock, engine temperature
+1. speed, RPM, battery voltage, transmission clutch lock, transmission temperature, engine temperature
 2. 4WD rear coupling/clutch torque 후보와 바퀴별 drive index
 3. TPMS FL/FR/RL/RR와 warning mapping
 4. instant fuel economy
@@ -37,6 +37,13 @@
 - [ ] 경고 없는 기본 화면과 각 fault/과속/야간 screenshot이 있다.
 - [ ] candidate 값은 운전자 화면 output에서 차단된다.
 
+## 계획 보완 수용 기준
+
+- [ ] 미션 lock과 미션 온도는 엔진 온도/4WD LOCK과 분리해 OEM scanner·실측에 대조한다. direct lock 신호 부재 시 RPM/slip 추정을 확정 lock으로 승격하지 않는다.
+- [ ] 순간연비의 km/L·L/100 km·단위 enum·공회전·연료차단·0·invalid/max sentinel을 대조하며 injector 추정으로 빈칸을 채우지 않는다.
+- [ ] SPORT용 gear/brake/ABS/TCS/ESC/longitudinal acceleration/drive mode의 valid·status·freshness·manual override 근거도 T-505a에 제공한다. GNSS/INS를 CAN safety 대신 쓰지 않는다.
+- [ ] 정상 lamp off는 검증된 lamp 의미만 나타내며 soot/load/regen 또는 모든 DPF 정상을 보장하지 않는다. 범위 내 미지원 항목은 이유·추가 evidence gate를 남긴다.
+
 ## 검증
 
 ```bash
@@ -49,3 +56,8 @@ python tests/ui/capture_screens.py --profile tucson-tl-2017 --all-quality-states
 ## 결과 문서
 
 `docs/vehicle/signal-catalog.md`, `docs/vehicle/target-2017-tucson.md`, profile report와 UI screenshot을 함께 갱신한다.
+
+## 산출물·범위 경계
+
+- 위 신호별 read-only 검증 matrix가 구현 범위다. 산출물은 `tests/vehicle/` 분석/부정 fixture, profile/evidence manifest와 `docs/vehicle/signal-catalog.md`다. OBD/UDS query·DPF 강제 재생·candidate 정상 UI는 범위 밖이다.
+- 미증명 신호는 미확인/미지원으로 남기고 해당 기능 gate를 닫는다. 미지원 사유는 release 제한으로 추적한다.

@@ -44,6 +44,10 @@ delimiter까지 buffer가 넘치면 다음 `0x00`까지 버리고 한 번만 ove
 - [ ] result-before-ACK와 duplicate command가 재실행되지 않는다.
 - [ ] 4 Mbps 상당 host stream 24시간 simulation에서 parser leak/overflow가 없다.
 
+## 계획 보완 수용 기준
+
+- [ ] UART 1.1 CLOCK_ANCHOR QUERY/REPLY는 navigation companion schema에서 생성하며 1.0 peer에는 보내지 않는다. recovery UART는 T-108의 별도 schema/CRC/baud로 분리한다.
+
 ## 검증 명령
 
 ```bash
@@ -56,3 +60,9 @@ python tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 3600
 ## 안전·rollback
 
 UART error가 vehicle command retry로 직접 변환되면 안 된다. link resync와 current snapshot 전까지 STM32 command admission은 닫힌다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 `protocol/schema/uart-v1.0.yaml`, generated UART header/codec와 이 문서의 `tests/protocol/` UART fixture다. UART DMA/실물 flow control(T-104/T-202)과 OTA recovery(T-108)는 범위 밖이다.
+- wire/generator digest와 malformed/resync 결과를 보존하며 실제 target 4 Mbps 검증은 후속 task에 남긴다.

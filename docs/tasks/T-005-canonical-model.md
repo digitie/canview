@@ -61,3 +61,9 @@ rg -n '\(canview_.*quality_t\)' firmware ui protocol
 ## migration
 
 `CANVIEW_UI_QUALITY_*`, unsigned `fft_peak_tenth_db`, `sport_monitor_enabled`, 사용하지 않는 평균연비 field를 한 PR에서 정리한다. 임시 숫자 호환 enum은 만들지 않는다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 schema의 공통 enum, `shared/model/` 시간·품질 helper와 Controller/UI exhaustive adapter·model tests다. 차량 signal을 VERIFIED로 승격하거나 새 제어 scope를 만드는 작업은 범위 밖이다.
+- migration 전후 enum/unit/time fixture와 consumer compile 결과를 남기며 unknown을 정상값으로 호환하지 않는다. 오류 시 해당 output을 unavailable로 닫는다.

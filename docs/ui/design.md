@@ -45,14 +45,14 @@ CANView는 순정 계기판을 대체하지 않는 320×480 세로형 보조 화
 ## 3. 정보 구조
 
 ```text
-상단 36 px: CANView 상태 / 현재 속도 / 무선 상태
-본문 368 px
+상단 40 px: CANView 상태 / 현재 속도 / 연결 상태·제한속도 표지
+본문 376 px(상하 padding 제외 360 px)
 ├─ 주행: 대형 4WD·TPMS·중앙 순간연비 → DPF → 작은 속도·RPM 원형 계기
 ├─ 소리: 취침·뒷좌석+ → 현재 음량 → Cabin FFT
-├─ FFT: Peak·Level을 그래프 내부에 둔 대형 spectrum
+├─ FFT: Peak·Level을 그래프 내부에 둔 대형 spectrum + 차속·RPM
 ├─ 자동: SPORT 자동화와 현재 주행 mode
-└─ 설정: 화면 → 주행 소음 보정 → SPORT 자동화
-하단 72 px: 주행 / 소리 / FFT / 자동 / 설정
+└─ 설정: 날짜·시각 RTC → 화면 → 주행 소음 보정 → SPORT 자동화
+하단 64 px: 주행 / 소리 / FFT / 자동 / 설정
 전역 overlay: 제한속도 표지와 과속 경고
 ```
 
@@ -60,7 +60,7 @@ CANView는 순정 계기판을 대체하지 않는 320×480 세로형 보조 화
 
 ### 3.1 주행 화면
 
-화면 면적은 4WD가 압도적으로 크고 DPF, 속도·RPM 순으로 작아진다. 352 px의 실제 본문 높이 중 264 px를 4WD에 할당해 차량과 구동계가 약 75%를 차지하게 한다.
+화면 면적은 4WD가 가장 크고 DPF, 속도·RPM 순으로 이어진다. Web은 본문 360 px 중 256 px를 4WD에 할당하고, DPF 32 px·보조 원형 계기 56 px와 gap을 둔다. LVGL은 해당 구현의 좌표를 사용하되 같은 정보 우선순위와 잘림 없는 320×480 검증을 통과해야 한다.
 
 - 4WD: 첨부한 순정 화면처럼 중앙 차량 outline 안에 앞·뒤 differential와 propeller shaft를 그리고, 네 바퀴 바깥쪽에 8단 수평 분절 torque bar를 대칭 배치한다. 각 bar 아래에는 해당 바퀴 공기압 `psi`를 둔다. [2017 Tucson TL 취급설명서 제원](https://www.hyundaicanada.com/-/media/hyundai/feature/ownerssection/manuals/english/2017/tuscon/tl-can-eng-8.pdf)의 전장 4,475 mm, 전폭 1,850 mm, 축거 2,670 mm, 전·후 윤거 1,608/1,620 mm를 기준으로 화면 좌표의 타이어 외곽 `100×242`, 축간 `144`, 좌우 휠 중심 간격 `86`으로 다시 맞췄다. 후면은 실제 리프트게이트 SUV처럼 평평한 끝단과 짧은 범퍼 모서리로 표현한다. 공개 DBC만으로 실제 바퀴 토크가 확정되지 않았으므로 데이터 모델에서는 계속 `구동 지수`로 관리한다.
 - 연비: `순간 연비`만 차량 중앙 coupling 위치의 작은 정보 창에 표시한다. 신호가 없으면 `—`로 유지한다. 평균연비는 주행 화면에 표시하지 않는다.
@@ -71,7 +71,7 @@ CANView는 순정 계기판을 대체하지 않는 320×480 세로형 보조 화
 
 `취침`과 `뒷좌석 +`는 검증된 profile 명령이다. 임의 sound-position UI와 음량 ± 버튼은 두지 않고 현재 OEM 음량만 크게 표시한다. 하단 `CABIN FFT`에는 주파수 막대, 그래프 안 왼쪽 위 `PEAK`, 오른쪽 위 `LEVEL`을 둔다.
 
-FFT 전용 화면은 본문 대부분을 50 Hz–8 kHz spectrum에 할당한다. 23개 log-frequency bin을 사용하며 dB는 마이크·ADC·window·reference calibration 전에는 상대 레벨이다. 속도와 RPM은 별도 계기를 반복하지 않고 상단의 지속 속도와 CAN telemetry에서 연관 분석한다.
+FFT 전용 화면은 본문 대부분을 50 Hz–8 kHz spectrum에 할당하고 아래에 차속·RPM을 함께 표시한다. 23개 log-frequency bin의 중심 주파수와 peak marker가 같은 축을 사용해야 한다. Web fixture는 1/3 옥타브 중심 50/63/80/100/125/160/200/250/315/400/500/630/800/1,000/1,250/1,600/2,000/2,500/3,150/4,000/5,000/6,300/8,000 Hz이며 1.25 kHz는 index 14다. `LEVEL`은 보정되지 않은 음압을 뜻하는 dBA가 아니다. 디지털 full-scale reference가 정의되면 `dBFS`, 그렇지 않으면 `dB rel`로 표시하고 기준을 섞지 않는다.
 
 ### 3.3 SPORT 자동화
 
@@ -83,6 +83,8 @@ FFT 전용 화면은 본문 대부분을 50 Hz–8 kHz spectrum에 할당한다.
 
 | 그룹 | 위젯 | 값 |
 |---|---|---|
+| TIME · RTC | 날짜·시·분 dropdown + 적용 button | 2000–2099년, 1–12월, 해당 월의 유효 일수, 0–23시, 0–59분. 윤년 검증 |
+| TIME · RTC | 읽기 전용 시간대·solar 상태 | 1차 한국형 UTC+09:00. 일출·일몰 source가 없으면 `—`, 임의 위치값을 생성하지 않음 |
 | DISPLAY | 밝기 slider | 10–100% |
 | DISPLAY | CAN 자동 밝기 switch | 끔/사용 |
 | DISPLAY | 무조작 복귀 dropdown | 15/30/60/120초, 기본 30초 |
@@ -97,7 +99,7 @@ FFT 전용 화면은 본문 대부분을 50 Hz–8 kHz spectrum에 할당한다.
 
 ## 4. 제한속도·야간·유휴 상태
 
-제한속도 표지는 모든 화면의 오른쪽 위에 뜬다. 설정·오디오처럼 touch 요소가 있는 화면에서는 opacity를 낮추며, LVGL에서 `LV_OBJ_FLAG_CLICKABLE`을 제거하고 Web prototype에서 `pointer-events: none`으로 처리해 아래 control을 계속 누를 수 있다.
+유효한 제한구역에서만 작은 표지를 상단 상태 영역에 표시한다. 과속 경고는 주행 화면 중앙에 크게 표시하며 다른 화면에서도 잘 드러나게 확장한다. 설정·오디오처럼 touch 요소가 있는 화면에서는 opacity를 낮추며, LVGL에서 `LV_OBJ_FLAG_CLICKABLE`을 제거하고 Web prototype에서 `pointer-events: none`으로 처리해 아래 control을 계속 누를 수 있다. 미수신·stale 차속으로 과속을 판정하지 않는다. 전조등 경고는 유효한 RTC·solar·실제 headlamp 상태에서 문제를 확인했을 때만 표시하며 과속 경고를 우선한다.
 
 - 표시 시작: 내비게이션 속도 제한값과 valid/source flag가 함께 유효할 때
 - 경고 진입: 현재 속도가 제한속도의 110% 이상으로 500 ms 유지

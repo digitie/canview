@@ -17,7 +17,7 @@ ESP-IDF에 종속되지 않는 공통 C codec과 state machine을 구현하고 �
 - CRC-32/ISO-HDLC은 corruption 검사이며 인증으로 취급하지 않는다.
 - production session은 encrypted peer context 없이는 ONLINE/control 상태가 될 수 없다.
 - anti-replay는 session별 64-packet sliding window를 사용한다.
-- QoS1은 initial 80 ms, adaptive timeout `clamp(2×SRTT+20,40,300)`, 총 3회 시도다.
+- QoS1은 initial 80 ms, adaptive timeout `clamp(2×SRTT+20,40,250)` ms, 총 3회 시도다. 실제 retry 대기는 매 시도 남은 TTL/2 이하로 제한하며 재전송 때문에 원래 TTL을 연장하지 않는다. 현재 tracker의 80→160 ms 동작과 정본 정책을 회귀시험으로 대조한다.
 - command idempotency와 packet sequence duplicate를 별도 처리한다.
 - QoS1 retry는 새 sequence와 동일한 token/issued time/TTL/argument bytes를 사용한다.
 - auth backoff는 peer/candidate별이며 unknown-source flood가 정상 peer를 잠그지 못한다.
@@ -64,6 +64,8 @@ decode result는 `DROP_SILENT`, `ERROR_RATE_LIMITED`, `ACK_REQUIRED`, `DELIVER`�
 - [ ] unencrypted transport metadata에서 control lease 발급 경로가 없다.
 - [ ] 1/5/20/50% loss simulation에서 QoS1 최대 시도와 TTL을 넘지 않는다.
 - [ ] ERROR/ACK/broadcast가 response storm을 만들지 않는다.
+- [ ] worker slot·idempotency entry·ACK 전송 자원을 원자 예약한 뒤에만 accepted ACK를 보낸다. 한 자원이라도 고갈되면 예약을 해제하고 pre-ACK BUSY/정본 drop 정책을 적용하며 accepted인데 실행 queue에 없는 요청은 0건이다.
+- [ ] 40/250 ms clamp·남은 TTL/2·TTL 만료·80→160 ms·RTT 급변·마지막 시도 경계에서 총 3회와 immutable token/time/tag 계약을 보존한다.
 
 ## 검증 명령
 
@@ -77,3 +79,9 @@ python tests/protocol/fault_transport.py --seed 1 --loss 0,1,5,20,50
 ## 증거
 
 golden vector count, fuzz seed corpus, branch coverage, sequence/session state graph를 PR artifact로 남긴다. cryptographic primitive 자체를 새로 구현하지 않고 ESP-IDF mbedTLS adapter와 host library를 사용한다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 `shared/protocol/` 공통 codec·session API와 이 문서의 `tests/protocol/` reference/fault script다. IDF callback·radio/Flash adapter 구현은 범위 밖이다.
+- API context는 caller 소유이며 session reset/destroy 전에 pending retry와 borrowed payload를 해제한다. 실패 시 ONLINE/control을 닫고 이전 session queue를 재사용하지 않는다.

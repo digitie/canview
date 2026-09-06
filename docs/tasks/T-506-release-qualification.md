@@ -3,12 +3,13 @@
 - 상태: `BLOCKED`
 - 우선순위: `P0`
 - Gate: `G6`
-- 선행: 기능별 G5 완료
+- 선행: `T-100b`, `T-502`, `T-503a`, `T-504`, `T-505`, `T-508`
+- 외부 선행: manifest에 포함한 기능별 G5 evidence, 실제 장비·폐쇄시험
 - 후속: 설치 후보 release
 
 ## 목표
 
-hardware revision, 세 firmware, protocol, profile, configuration과 evidence를 하나의 재현 가능한 release로 묶고 차량 전원·통신·보안 fault에서 안전 상태를 검증한다.
+hardware revision, 네 runtime firmware, protocol, profile, configuration과 evidence를 하나의 재현 가능한 release로 묶고 차량 전원·통신·보안 fault에서 안전 상태를 검증한다.
 
 이 gate는 현재 요청 범위인 engineering prototype/폐쇄시험 설치 적합성까지다. AEC-Q 부품 qualification, PPAP, 법규·EMC 인증과 양산 traceability는 포함하지 않으며, 이를 통과해도 양산품 또는 OEM-grade라고 표시하지 않는다. 양산을 목표로 바꾸면 별도 production qualification program과 task를 먼저 만든다.
 
@@ -50,6 +51,11 @@ known limitations and rollback image
 - [ ] rollback image가 control disabled 상태로 정상 boot한다.
 - [ ] 설치·제거·고장 시 사용자 절차가 문서화됐다.
 
+## 계획 보완 수용 기준
+
+- [ ] 독립 OTA의 정상/복구/STM bootloader artifact·layout·signing key ID·policy/schema/ABI·T-508 fault evidence를 manifest에 연결한다. runtime 네 image와 별도 recovery/bootloader를 빠뜨리지 않는다.
+- [ ] 부분 기능 milestone과 요청 제품 전체 완료를 구분한다. 미지원 신호/옵션의 명시적 제한은 gate evidence와 함께 기록하고 미구현 task를 DONE으로 바꾸지 않는다.
+
 ## 검증
 
 ```bash
@@ -62,3 +68,7 @@ python tests/security/scan_release.py release/
 ## 실패 처리
 
 한 qualification 항목이라도 실패하면 기능만 조용히 제외해 같은 version을 재사용하지 않는다. 새 manifest와 version을 만들고 관련 gate를 다시 실행한다. 안전 관련 실패는 default build를 `CAPTURE_ONLY`로 되돌린다.
+
+## 산출물·범위 경계
+
+- qualification matrix·release manifest와 설치/제거 절차가 구현 범위다. 산출물은 release/HIL/security scripts, `release/manifest.json`과 승인된 사용자 절차다. 양산/인증·누락 기능의 묵시적 면제는 범위 밖이다.

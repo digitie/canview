@@ -3,7 +3,7 @@
 - 상태: `BLOCKED`
 - 우선순위: `P0`
 - Gate: `G4`, 차량에서는 `G5`
-- 선행: `T-101`, `T-105`, `T-503`, `T-500`
+- 선행: `T-101`, `T-105`, `T-503`, `T-505a`, `T-500`
 - 후속: `T-505`, `T-506`
 
 ## 목표
@@ -50,6 +50,11 @@ FDCAN low-level TX 함수는 generated command executor translation unit에서�
 - [ ] audio 각 step 전후 power cut에서 silent partial success가 없고 reboot 결과가 네 terminal 상태 중 하나다.
 - [ ] sender mask와 무관하게 dequeue/각 frame 직전 generated safety 조건을 다시 검사한다.
 
+## 계획 보완 수용 기준
+
+- [ ] T-503/T-505a는 수신 조사·profile evidence 입력이며 bench executor 검증은 이 task와 T-503a/T-505가 수행한다. 후속 bench 결과를 자기 선행으로 요구하지 않는다.
+- [ ] mock/synthetic builder는 bench fixture 전용이고 Tucson VERIFIED manifest와 혼합되지 않는다. T-507의 실제 보호·키 provisioning을 충족하기 전에는 차량 TX image를 배포하지 않는다.
+
 ## 검증
 
 ```bash
@@ -61,3 +66,9 @@ python tests/hil/compare_tx_allowlist.py evidence/latest/can-tx.log
 ## release 차단
 
 G4 evidence가 있어도 실차 자동화는 켜지 않는다. 기능별 G5 폐쇄시험과 사용자의 opt-in 설정이 추가로 필요하다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 STM command executor·build-mode/TX 접근 제약과 이 문서의 `tests/hil/` TX/fault scripts다. 범용 raw send API·근거 없는 frame builder·G5 전체 승인은 범위 밖이다.
+- 각 command의 terminal result·TX-complete·실제 feedback audit digest를 남긴다. 실패 시 capability off이며 executor mock을 실차 evidence로 사용하지 않는다.

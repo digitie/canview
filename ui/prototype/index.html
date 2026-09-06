@@ -8,9 +8,9 @@
   <link rel="stylesheet" href="canview.css">
 </head>
 <body>
-  <main class="app is-speed-warning" aria-label="CANView 화면 프로토타입">
+  <main class="app" aria-label="CANView 데모 화면">
     <header class="status-bar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>CV</div>
+      <div class="brand">CV <small>DEMO</small></div>
       <div class="persistent-speed" aria-label="현재 차속 시속 82킬로미터"><strong data-speed-value>82</strong><span>km/h</span></div>
       <div class="link-summary" role="status" aria-label="CAN 3개 및 무선 연결 정상">
         <span class="bus-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>−54</span>
@@ -18,7 +18,7 @@
     </header>
 
     <div class="screen-stack" data-current-screen="drive">
-      <aside class="speed-limit-overlay" aria-label="제한속도 시속 70킬로미터, 현재 제한속도 초과">
+      <aside class="speed-limit-overlay" aria-label="제한속도 시속 70킬로미터" hidden>
         <span>LIMIT</span><strong>70</strong>
       </aside>
       <aside class="headlamp-warning-overlay" aria-label="일몰 후 전조등이 꺼져 있음" hidden>
@@ -27,15 +27,16 @@
 
       <section class="screen-panel drive-panel is-active" id="screen-drive" data-screen="drive" aria-label="주행 상태">
         <article class="drivetrain-card" aria-label="4WD 토크 배분과 타이어 공기압">
-          <div class="card-kicker"><span>4WD TORQUE · PSI</span><strong>AWD</strong></div>
+          <div class="card-kicker"><span>4WD · PSI</span><strong>AWD</strong></div>
           <div class="wheel-meter wheel-meter--fl" style="--wheel-drive: 76%"><em>76%</em><span class="torque-stack"></span><strong>34.2 <small>psi</small></strong></div>
           <div class="wheel-meter wheel-meter--fr" style="--wheel-drive: 74%"><em>74%</em><span class="torque-stack"></span><strong>34.0 <small>psi</small></strong></div>
           <div class="vehicle-plan">
             <svg viewBox="0 0 112 246" aria-hidden="true">
-              <path class="vehicle-shell" d="M27 3h58l11 7 5 13 4 25v163c0 10-3 20-10 27l-11 6H28l-11-6c-7-7-10-17-10-27V48l4-25 5-13Z"/>
+              <path class="vehicle-shell" d="M25 3h62l11 8 5 18 3 24v155l-3 22-10 14H19L9 230l-3-22V53l3-24 5-18Z"/>
               <rect class="vehicle-wheel" x="6" y="36" width="14" height="32" rx="6"/><rect class="vehicle-wheel" x="92" y="36" width="14" height="32" rx="6"/>
               <rect class="vehicle-wheel" x="6" y="180" width="14" height="32" rx="6"/><rect class="vehicle-wheel" x="92" y="180" width="14" height="32" rx="6"/>
               <path class="vehicle-glass" d="M22 56 28 23 42 13h28l14 10 6 33Z"/><path class="vehicle-glass" d="M22 172h68l-6 42H28Z"/>
+              <path class="vehicle-roof" d="M24 65 29 83v78l-5 12m64-108-5 18v78l5 12M22 17h19m30 0h19M20 230h20m32 0h20"/>
               <path class="driveline" d="M13 52h43m0 0h43M56 60v126M13 196h43m0 0h43"/>
               <rect class="differential" x="43" y="42" width="26" height="20" rx="5"/><rect class="differential" x="43" y="186" width="26" height="20" rx="5"/>
               <rect class="coupling" x="42" y="99" width="28" height="48" rx="4"/>
@@ -49,8 +50,8 @@
           <div class="wheel-meter wheel-meter--rr" style="--wheel-drive: 40%"><em>40%</em><span class="torque-stack"></span><strong>33.9 <small>psi</small></strong></div>
         </article>
 
-        <article class="dpf-card" aria-label="DPF 상태 정상">
-          <span class="micro-label">DPF</span><strong>정상</strong><div class="dpf-meter" aria-hidden="true"><i style="--dpf: 34%"></i></div><span>34%</span>
+        <article class="dpf-card" aria-label="DPF 표시 데모">
+          <span class="micro-label">DPF</span><strong></strong><div class="dpf-meter" aria-hidden="true"><i style="--dpf: 34%"></i></div><span>34%</span>
         </article>
 
         <div class="compact-round-gauges">
@@ -99,22 +100,27 @@
           </svg>
           <div class="spectrum-axis"><span>50 Hz</span><span>1 kHz</span><span>8 kHz</span></div>
         </article>
+        <div class="fft-telemetry" aria-label="FFT 동시 차량 정보"><div><span>SPEED <small>km/h</small></span><strong data-signal="speed">82</strong></div><div><span>ENGINE <small>rpm</small></span><strong data-signal="rpm">1840</strong></div></div>
       </section>
 
       <section class="screen-panel automation-panel" id="screen-automation" data-screen="automation" aria-label="SPORT 자동화" hidden>
-        <article class="sport-card" data-drive-mode="sport">
-          <div class="sport-head"><span class="micro-label">SPORT AUTOMATION</span><b>활성</b></div>
-          <div class="mode-field"><span>현재 주행 모드</span><strong>SPORT</strong><i></i></div>
-          <div class="sport-return"><span>해제 후</span><strong>ECO</strong></div>
+        <article class="sport-card" data-drive-mode="normal">
+          <div class="sport-head"><span class="micro-label">SPORT AUTOMATION</span><b>대기</b></div>
+          <div class="mode-field"><span>현재 주행 모드</span><strong>NORMAL</strong><i></i></div>
+          <div class="sport-return"><span>복귀 모드</span><strong>—</strong></div>
           <button class="sport-toggle" type="button" aria-pressed="true">자동 전환 사용</button>
         </article>
       </section>
 
       <section class="screen-panel settings-panel" id="screen-settings" data-screen="settings" aria-label="설정" hidden>
+        <p class="settings-lock" role="status" hidden>정차 후 설정</p>
         <section class="settings-group time-settings" aria-labelledby="time-settings">
           <div class="group-heading"><h2 id="time-settings">TIME · RTC</h2><output class="rtc-value">현재 12:00</output></div>
           <div class="time-picker"><span>시각 설정</span><label><select id="clock-hour" aria-label="시"><option selected>00</option><option>01</option><option>02</option><option>03</option><option>04</option><option>05</option><option>06</option><option>07</option><option>08</option><option>09</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option></select><small>시</small></label><b>:</b><label><select id="clock-minute" aria-label="분"><option selected>00</option><option>05</option><option>10</option><option>15</option><option>20</option><option>25</option><option>30</option><option>35</option><option>40</option><option>45</option><option>50</option><option>55</option></select><small>분</small></label></div>
           <div class="rtc-status"><span>보드 RTC</span><strong>PCF85063 · I²C</strong></div>
+          <div class="date-picker"><select id="clock-year" aria-label="연도"></select><select id="clock-month" aria-label="월"></select><select id="clock-day" aria-label="일"></select></div>
+          <div class="setting-option"><strong>시간대</strong><span>UTC+09:00</span><button id="clock-apply" type="button">적용</button></div>
+          <div class="rtc-status"><span>일출 · 일몰</span><strong data-signal="solar">— · —</strong></div>
         </section>
         <section class="settings-group display-settings" aria-labelledby="display-settings">
           <div class="group-heading"><h2 id="display-settings">DISPLAY</h2><output class="brightness-value" for="brightness">42%</output></div>
@@ -146,6 +152,7 @@
       <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-automation" data-target="automation"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18 18 5M7 6h5v5M12 18h5v-5"/></svg></span><span>자동</span></button>
       <button class="nav-button" type="button" role="tab" aria-selected="false" aria-controls="screen-settings" data-target="settings"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 15 6l-.3-2.6h-4L10.4 6A8 8 0 0 0 8 7.1l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1A8 8 0 0 0 10.4 18l.3 2.6h4L15 18a8 8 0 0 0 1.6-1.1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z"/></svg></span><span>설정</span></button>
     </nav>
+    <output class="feedback" role="status" aria-live="polite" hidden></output>
   </main>
   <script src="prototype.js"></script>
 </body>

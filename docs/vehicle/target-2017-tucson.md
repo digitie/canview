@@ -94,7 +94,7 @@ upstream Hyundai 차량 정의는 일반 Tucson 플랫폼에 `hyundai_can_genera
 | C | upstream 정의와 이름만 일치하고 실차 의미 검증이 안 됨 |
 | X | 해당 차량 캡처에서 보이지 않거나 다른 bus/bitrate로 확인됨 |
 
-A 등급만 기본 화면의 신뢰 가능한 값으로 사용한다. B/C는 `candidate` 또는 `raw` 배지를 표시하고, X는 자동으로 stale 처리한다.
+이 A/B/C/X는 과거 조사표의 지역적 등급이며 다른 문서의 문자 등급과 자동 변환하지 않는다. runtime은 [T-005](../tasks/T-005-canonical-model.md)의 `CANDIDATE/OBSERVED/VERIFIED/REJECTED`와 독립 freshness를 사용한다. 기본 운전자 화면은 별도 ignition cycle 반복·독립 기준·unit/range/stale·반례와 승인 profile gate를 통과한 VERIFIED 값만 표시한다. B/C 후보는 Signal Lab에서만 읽고 일반 UI에는 `—`다. X의 미지원/반대 evidence와 오래된 sample(STALE)은 서로 다른 상태이며 한 번의 미수신만으로 차량 미탑재를 확정하지 않는다.
 
 기능별 후보, 인포테인먼트·BCM·IPS·도어 잠금의 위험도와 실차 검증 순서는 [CAN 신호 후보 카탈로그](signal-catalog.md)에 정리한다.
 

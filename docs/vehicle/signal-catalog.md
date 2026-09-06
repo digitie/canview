@@ -11,7 +11,7 @@
 - `A`: 반복 캡처, 독립 계측 또는 순정 표시와 일치하고 stale 기준까지 확정
 - `X`: 대상 차량에 없거나 다른 bus/format으로 확인
 
-현재 저장소 기준 확정 등급은 모두 `C`다. 실차 프로파일에서만 `A/B/X`로 승격한다. DBC 세 파일은 message 주기를 정의하지 않으므로 표의 주기는 `실측 필요`로 둔다. C-CAN/M-CAN/FT-CAN 명칭과 실제 Communicator 물리 채널 1/2/3의 대응도 먼저 listen-only로 찾아야 한다.
+현재 저장소 기준 확정 등급은 모두 `C`다. 이 문자의 의미는 과거 catalog 안에서만 유효하다. runtime은 [T-005](../tasks/T-005-canonical-model.md)의 evidence enum과 독립 freshness, [T-006](../tasks/T-006-vehicle-profile-generator.md)의 승인 profile gate를 따른다. `C/B`는 정상 운전자 수치나 safety 입력으로 사용할 수 없다. DBC 세 파일은 message 주기를 정의하지 않으므로 표의 주기는 `실측 필요`로 둔다. C-CAN/M-CAN/FT-CAN 명칭과 실제 Communicator 물리 채널 1/2/3의 대응도 먼저 listen-only로 찾아야 한다.
 
 GPS 좌표·현재 날짜·시각 CAN 신호의 별도 조사 결과는 [CAN 신호의 GPS·시간 조사](gps-time-investigation.md)에 있다. 주 DBC에는 해당 정보가 없으므로 Controller RTC와 별도 위치 원천을 사용한다.
 

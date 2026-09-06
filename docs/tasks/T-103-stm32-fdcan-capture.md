@@ -38,7 +38,7 @@
 ## 검증
 
 ```bash
-cmake --build --preset debug
+cmake --build firmware/communicator/stm32/build/debug
 ctest --preset host-sanitize -R fdcan --output-on-failure
 python tests/hil/run_can_capture.py --channels 3 --mode capture-only
 python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log
@@ -47,3 +47,9 @@ python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log
 ## evidence
 
 CAN simulator seed/profile, analyzer log, frame count·drop·latency report, firmware digest를 G2 bundle에 넣는다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 STM32의 FDCAN bus adapter·capture ring·timestamp API, `tests/hil/run_can_capture.py`와 raw fixture다. DBC 화면 decode·임의 CAN TX는 범위 밖이다.
+- ring slot은 ISR producer가 소유권을 넘긴 뒤 worker만 읽고 release한다. DMA/cache/overflow·3채널 wrap 경쟁을 시험하며 불명확한 timestamp를 fresh로 표시하지 않는다. 실패 시 listen-only/default-deny로 남는다.

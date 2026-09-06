@@ -182,17 +182,17 @@ PB3/PB4와 PB5/PB6의 이전 배치는 사용하지 않는다. reset debug pull�
 
 ### 5.5 reset-safe 초기화와 watchdog
 
-3.3 V rail은 MAX20040 PGOOD으로 enable되는 TPS629210이 만들고, `TLV803EA30DPWR`가 STM32 NRST와 ESP32 CHIP_PU를 함께 감시한다. firmware가 개입하기 전 회로 기본값은 TCAN STB1/2 high, MAX3055 EN low, UART RTS/CTS high다.
+현재 회로는 차량 PHY rail과 차량/USB mux 뒤 system rail을 분리한다. ESP/STM reset supervisor도 독립이다. [R1 핀맵의 부팅·복구 계약](../hardware/r1/firmware-pinmap.md#부팅복구-구현-순서)과 [OTA 서비스 인터록](../architecture/ota.md)이 정본이며 과거 공용 NRST/CHIP_PU 연결을 BSP에 다시 넣지 않는다. GPIO 초기화 이전에도 외부 회로가 TCAN standby, MAX3055 standby, TX gate off, UART flow stop을 유지해야 한다.
 
 STM32 firmware 초기화 순서는 다음과 같이 고정한다.
 
-1. PA4·PA5 latch high와 PA6 latch low를 output mode보다 먼저 기록한다.
+1. PA4·PA5 latch high와 PA6·PA7 latch low를 output mode보다 먼저 기록한다. ESP_RUN_OK도 low로 시작한다.
 2. HSE·PLL·FDCAN kernel clock을 검증한다.
 3. UART와 FDCAN message RAM, filter, interrupt, bitrate를 모두 구성한다.
 4. controller를 start하고 listen-only profile을 검증한다.
-5. 마지막에만 PA4·PA5를 low, 필요한 경우 PA6를 high로 바꿔 PHY를 normal mode로 전환한다.
+5. RX_ALLOWED·actual rail/gate sense와 filter를 확인한 뒤 필요한 PHY만 수신한다. TX gate는 계속 닫고 별도 권한·lease·build mode·physical arm 검사 뒤에만 ARM edge를 허용한다. USB-only/서비스 모드에서는 RX/TX를 모두 차단한다.
 
-IWDG 목표 timeout은 250–500 ms다. main loop만으로 refresh하지 않고 CAN 처리, UART worker, safety state가 모두 정상일 때만 refresh한다. reset이 발생하면 외부 pull resistor가 즉시 CAN 1·2 standby와 CAN 3 disabled 상태를 복원한다.
+IWDG 목표 timeout은 250–500 ms다. main loop만으로 refresh하지 않고 CAN 처리, UART worker, safety state가 모두 정상일 때만 refresh한다. 외부 WDI falling pulse와 재무장 latch는 별도 계약이며 [핀맵](../hardware/r1/firmware-pinmap.md)을 따른다. reset/fault 뒤 자동 재무장하지 않는다.
 
 ## 6. DBC toolchain
 

@@ -3,7 +3,8 @@
 - 상태: `BLOCKED`
 - 우선순위: `P0`
 - Gate: `G1`
-- 선행: `T-100`, 조립 PCB와 bench 장비
+- 선행: `T-100a`, `T-500`
+- 외부 선행: 조립 PCB, T-102/T-200의 시험용 boot image, bench 장비
 - 후속: `T-501`, `T-106`
 
 ## 목표
@@ -29,7 +30,7 @@
 7. TXD stuck-low injection과 hard gate off 차단
 8. CAN short-to-ground/battery, bus-off, MAX ERR
 9. 4 Mbps UART eye와 CTS stall
-10. sleep/wake와 ignition-off current
+10. 외부 IGN/ACC 차단·USB service의 OFF/current 검증 (CAN wake 없음)
 11. BATT/ACC/USB/SWD의 모든 투입·제거 순서와 phantom power
 12. PROTECTED_VBAT UV에서 MAX3055 BATT/VCC/EN/TXD와 hard gate timing
 
@@ -37,15 +38,20 @@
 
 - [ ] 어떤 reset/brownout 시험에서도 unintended dominant pulse가 검출되지 않는다.
 - [ ] hard gate off에서 MCU pin low fault가 bus dominant를 만들지 않는다.
-- [ ] supervisor threshold/delay와 5 V PGOOD→3.3 V 순서가 계산 범위 안이다.
+- [ ] 차량/USB mux·SYS/PHY 각 rail의 실제 경로와 독립 supervisor threshold/delay·상승/하강 순서가 현행 회로 계산 범위 안이다. 모든 경우를 단일 5 V PGOOD→3.3 V 순서로 가정하지 않는다.
 - [ ] rail droop가 MCU/PHY UV threshold margin을 침범하지 않는다.
 - [ ] OV cutoff/reconnect에서 oscillation/chatter가 없다.
 - [ ] CAN fault 뒤 부품 손상·latch-up·역급전이 없다.
 - [ ] UART 4 Mbps 오류율과 eye margin이 기준을 만족한다.
-- [ ] ignition-off current가 T-100 목표 이하이다.
-- [ ] 72시간 OFF 및 온도 corner에서 parked current와 false wake가 기준 안이다.
+- [ ] 외부 IGN/ACC OFF·USB 유무 조합의 current와 phantom power를 측정하고 상시 BAT+의 1 mA/자동 CAN wake를 달성했다고 표시하지 않는다.
+- [ ] 72시간 OFF 및 온도 corner에서 의도하지 않은 재기동·역급전이 없다.
 - [ ] CPU halt, ISR spin, WDI 미갱신/과속·정상 cadence 오갱신에서 외부 guardian 동작과 한계가 기록된다.
 - [ ] gate off에서는 TXD valid-frame/stuck-low injection에도 세 bus의 dominant/ACK/error/data frame이 0건이다.
+
+## 계획 보완 수용 기준
+
+- [ ] 독립 ESP/STM reset, J31 제거/재삽입, GPIO7·48 고착, stale ARM edge를 현행 회로로 측정한다. OTA flash cut-point 시험은 T-508에서 별도 수행한다.
+- [ ] `run_power_faults.py`, `assert_no_tx.py`, `validate_hardware_evidence.py`는 T-500 공용 rig API로 이 task에서 구현·등록하고 실패 fixture부터 확인한다.
 
 ## 검증
 
@@ -62,3 +68,8 @@ python tests/hil/validate_hardware_evidence.py evidence/hardware/REV/SERIAL
 ## rollback
 
 한 항목이라도 실패하면 board revision을 `CAPTURE_ONLY laboratory`로 표시한다. resistor 값만 조용히 바꿔 재시험하지 말고 BOM variant와 재시험 ID를 남긴다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 `tests/hil/` power/rail/gate script·negative 로그 fixture와 `docs/hardware/r1/verification.md`의 실측 evidence다. PCB routing 변경/발주 및 vehicle TX 기능은 범위 밖이다.

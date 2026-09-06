@@ -83,7 +83,7 @@ Primary Controller에는 CANView 기능에 필요한 control lease와 의미 명
 - STM32가 재부팅되면 외부 pull resistor가 TCAN 두 채널을 standby, MAX3055를 Power-On Standby로 만든다. HSE와 세 FDCAN이 준비되고 listen-only profile을 검증한 뒤에만 채널별로 normal mode를 허용한다.
 - UART framing 오류, sequence 불일치, queue overflow는 raw 명령 재시도로 해결하지 않는다. session 재동기화와 snapshot을 먼저 수행한다.
 - MAX3055 채널의 bitrate 또는 bus 유형이 확인되지 않으면 해당 채널은 전기적으로 standby 상태를 유지한다.
-- 차량 전원은 LM74800과 back-to-back N-FET, MAX20040 5 V, PGOOD-gated TPS629210 3.3 V 순서로 기동한다. TLV803E가 3.3 V brownout 동안 STM32 NRST와 ESP32 CHIP_PU를 동시에 low로 유지한다.
+- 전원·reset의 현재 정본은 [R1 Communicator 회로](../hardware/r1/communicator-circuit.md)와 [OTA 서비스 인터록](ota.md)이다. 과거 단일 rail·공용 reset 제안을 현재 회로와 섞지 않는다. brownout은 하드웨어 TX 차단으로 수렴하며 MCU별 reset을 분리해 ESP32가 STM32 업데이트·복구를 수행할 수 있다.
 - UART RTS/CTS 외부 pull-up은 두 MCU 중 하나가 reset된 동안 양방향 송신을 막는다. heartbeat와 control lease는 reset 후 자동 승계하지 않는다.
 - Diagnostic Bridge가 멈추거나 Wi-Fi client가 과도한 요청을 보내면 Bridge용 P4 raw capture부터 drop한다. Controller telemetry와 P0/P1 queue는 유지한다.
 - Bridge reboot, phone disconnect, diagnostic lease timeout은 capture/filter 변경 권한만 회수한다. 차량 control lease와 Communicator PHY state를 바꾸지 않는다.

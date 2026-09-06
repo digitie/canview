@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include "automation_test_ticks.h"
 
 static void test_can_brightness_debounce_and_stale_hold(void)
 {
@@ -21,22 +22,22 @@ static void test_can_brightness_debounce_and_stale_hold(void)
     };
 
     canview_auto_brightness_output_t output =
-        canview_auto_brightness_update(&state, &config, &input, 100U);
+        brightness_update_for(&state, &config, &input, 100U);
     assert(output.status == CANVIEW_BRIGHTNESS_CAN_DAY);
     assert(output.brightness_percent == 80U);
 
     input.tail_lamps_on = true;
     for (int i = 0; i < 4; ++i) {
-        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+        output = brightness_update_for(&state, &config, &input, 100U);
         assert(output.status == CANVIEW_BRIGHTNESS_CAN_DAY);
     }
-    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    output = brightness_update_for(&state, &config, &input, 100U);
     assert(output.status == CANVIEW_BRIGHTNESS_CAN_NIGHT);
     assert(output.brightness_percent == 31U);
 
     input.lighting_age_ms = 600U;
     input.tail_lamps_on = false;
-    output = canview_auto_brightness_update(&state, &config, &input, 1000U);
+    output = brightness_update_for(&state, &config, &input, 1000U);
     assert(output.status == CANVIEW_BRIGHTNESS_CAN_STALE);
     assert(output.brightness_percent == 31U);
 }
@@ -57,55 +58,56 @@ static void test_idle_return_touch_restore_and_warning_priority(void)
         .speed_limit_active = true,
         .speed_limit_kph = 70U,
         .speed_tenth_kph = 700U,
+        .speed_valid = true,
     };
 
     canview_auto_brightness_output_t output =
-        canview_auto_brightness_update(&state, &config, &input, 29900U);
+        brightness_update_for(&state, &config, &input, 29900U);
     assert(!output.idle_dimmed);
-    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    output = brightness_update_for(&state, &config, &input, 100U);
     assert(output.idle_dimmed);
     assert(output.return_to_default_screen);
     assert(output.brightness_percent == 28U);
 
-    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    output = brightness_update_for(&state, &config, &input, 100U);
     assert(output.idle_dimmed);
     assert(!output.return_to_default_screen);
 
     input.user_interaction = true;
-    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    output = brightness_update_for(&state, &config, &input, 100U);
     assert(!output.idle_dimmed);
     assert(output.brightness_percent == 80U);
     input.user_interaction = false;
 
     input.speed_tenth_kph = 770U;
     for (int i = 0; i < 4; ++i) {
-        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+        output = brightness_update_for(&state, &config, &input, 100U);
         assert(!output.speed_warning_active);
     }
-    output = canview_auto_brightness_update(&state, &config, &input, 100U);
+    output = brightness_update_for(&state, &config, &input, 100U);
     assert(output.speed_warning_active);
     assert(output.brightness_percent == 90U);
 
     input.speed_tenth_kph = 730U;
     for (int i = 0; i < 10; ++i) {
-        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+        output = brightness_update_for(&state, &config, &input, 100U);
     }
     assert(!output.speed_warning_active);
     assert(output.brightness_percent == 80U);
 
     input.speed_tenth_kph = 700U;
-    output = canview_auto_brightness_update(&state, &config, &input, 30000U);
+    output = brightness_update_for(&state, &config, &input, 30000U);
     assert(output.idle_dimmed);
     assert(output.brightness_percent == 28U);
 
     input.speed_tenth_kph = 770U;
-    output = canview_auto_brightness_update(&state, &config, &input, 500U);
+    output = brightness_update_for(&state, &config, &input, 500U);
     assert(output.idle_dimmed);
     assert(output.speed_warning_active);
     assert(output.brightness_percent == 90U);
 
     input.speed_tenth_kph = 730U;
-    output = canview_auto_brightness_update(&state, &config, &input, 1000U);
+    output = brightness_update_for(&state, &config, &input, 1000U);
     assert(output.idle_dimmed);
     assert(!output.speed_warning_active);
     assert(output.brightness_percent == 28U);
@@ -125,7 +127,7 @@ static void test_night_mode_tracks_tail_lamps_with_auto_brightness_off(void)
 
     canview_auto_brightness_output_t output = {0};
     for (int i = 0; i < 5; ++i) {
-        output = canview_auto_brightness_update(&state, &config, &input, 100U);
+        output = brightness_update_for(&state, &config, &input, 100U);
     }
     assert(output.status == CANVIEW_BRIGHTNESS_MANUAL);
     assert(output.night_mode_active);
@@ -159,10 +161,10 @@ static void test_adaptive_volume_attack_release_and_manual_hold(void)
 
     canview_adaptive_volume_output_t output = {0};
     for (int i = 0; i < 4; ++i) {
-        output = canview_adaptive_volume_update(&state, &config, &input, 1000U);
+        output = volume_update_for(&state, &config, &input, 1000U);
         assert(output.action == CANVIEW_VOLUME_ACTION_NONE);
     }
-    output = canview_adaptive_volume_update(&state, &config, &input, 1000U);
+    output = volume_update_for(&state, &config, &input, 1000U);
     assert(output.action == CANVIEW_VOLUME_ACTION_SET_OFFSET);
     assert(output.target_offset_steps == 1);
     canview_adaptive_volume_reconcile(&state, 1);
@@ -170,19 +172,19 @@ static void test_adaptive_volume_attack_release_and_manual_hold(void)
     input.dominant_frequency_hz = 3000U;
     bool saw_release = false;
     for (int i = 0; i < 7; ++i) {
-        output = canview_adaptive_volume_update(&state, &config, &input, 1000U);
+        output = volume_update_for(&state, &config, &input, 1000U);
         assert(output.target_offset_steps == 1);
     }
     for (int i = 0; i < 7; ++i) {
-        output = canview_adaptive_volume_update(&state, &config, &input, 1000U);
+        output = volume_update_for(&state, &config, &input, 1000U);
         saw_release = saw_release || output.action == CANVIEW_VOLUME_ACTION_SET_OFFSET;
     }
     assert(saw_release);
     assert(output.target_offset_steps == 0);
 
-    state.desired_offset_steps = 2;
+    canview_adaptive_volume_reconcile(&state, 2);
     input.manual_volume_changed = true;
-    output = canview_adaptive_volume_update(&state, &config, &input, 100U);
+    output = volume_update_for(&state, &config, &input, 100U);
     assert(output.action == CANVIEW_VOLUME_ACTION_SET_OFFSET);
     assert(output.target_offset_steps == 0);
     assert(output.status == CANVIEW_VOLUME_PAUSED);
@@ -214,35 +216,35 @@ static void test_auto_sport_speed_hysteresis_and_restore(void)
 
     canview_auto_sport_output_t output = {0};
     for (int i = 0; i < 4; ++i) {
-        output = canview_auto_sport_update(&state, &config, &input, 500U);
+        output = sport_update_for(&state, &config, &input, 500U);
         assert(output.action == CANVIEW_SPORT_ACTION_NONE);
     }
-    output = canview_auto_sport_update(&state, &config, &input, 500U);
+    output = sport_update_for(&state, &config, &input, 500U);
     assert(output.action == CANVIEW_SPORT_ACTION_ENTER);
     assert(output.restore_mode == CANVIEW_DRIVE_MODE_ECO);
 
     input.current_mode = CANVIEW_DRIVE_MODE_SPORT;
-    output = canview_auto_sport_update(&state, &config, &input, 100U);
+    output = sport_update_for(&state, &config, &input, 100U);
     assert(output.status == CANVIEW_SPORT_ACTIVE);
 
     input.speed_tenth_kph = 600U;
     for (int i = 0; i < 150; ++i) {
-        output = canview_auto_sport_update(&state, &config, &input, 100U);
+        output = sport_update_for(&state, &config, &input, 100U);
     }
     assert(output.action == CANVIEW_SPORT_ACTION_NONE);
     assert(output.status == CANVIEW_SPORT_ACTIVE);
 
     input.speed_tenth_kph = 550U;
     for (int i = 0; i < 79; ++i) {
-        output = canview_auto_sport_update(&state, &config, &input, 100U);
+        output = sport_update_for(&state, &config, &input, 100U);
         assert(output.action == CANVIEW_SPORT_ACTION_NONE);
     }
-    output = canview_auto_sport_update(&state, &config, &input, 100U);
+    output = sport_update_for(&state, &config, &input, 100U);
     assert(output.action == CANVIEW_SPORT_ACTION_RESTORE_PREVIOUS);
     assert(output.restore_mode == CANVIEW_DRIVE_MODE_ECO);
 
     input.current_mode = CANVIEW_DRIVE_MODE_ECO;
-    output = canview_auto_sport_update(&state, &config, &input, 100U);
+    output = sport_update_for(&state, &config, &input, 100U);
     assert(output.status == CANVIEW_SPORT_ARMED);
 }
 
@@ -257,14 +259,14 @@ static void test_auto_sport_mid_speed_acceleration_and_manual_priority(void)
 
     canview_auto_sport_output_t output = {0};
     for (int i = 0; i < 7; ++i) {
-        output = canview_auto_sport_update(&state, &config, &input, 100U);
+        output = sport_update_for(&state, &config, &input, 100U);
         assert(output.action == CANVIEW_SPORT_ACTION_NONE);
     }
-    output = canview_auto_sport_update(&state, &config, &input, 100U);
+    output = sport_update_for(&state, &config, &input, 100U);
     assert(output.action == CANVIEW_SPORT_ACTION_ENTER);
 
     input.physical_mode_change = true;
-    output = canview_auto_sport_update(&state, &config, &input, 100U);
+    output = sport_update_for(&state, &config, &input, 100U);
     assert(output.status == CANVIEW_SPORT_MANUAL_HOLD);
     assert(output.action == CANVIEW_SPORT_ACTION_NONE);
 }
@@ -481,17 +483,17 @@ static void test_headlamp_warning_uses_rtc_sunset_and_hysteresis(void)
         .headlamps_on = false,
     };
     canview_headlamp_warning_output_t output =
-        canview_headlamp_warning_update(&state, &config, &input, 1000U);
+        headlamp_update_for(&state, &config, &input, 1000U);
     assert(output.night_active);
     assert(!output.warning_active);
-    output = canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    output = headlamp_update_for(&state, &config, &input, 1000U);
     assert(output.warning_active);
     input.headlamps_on = true;
-    output = canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    output = headlamp_update_for(&state, &config, &input, 1000U);
     assert(!output.warning_active);
     input.local_minutes = 720U;
     input.headlamps_on = false;
-    output = canview_headlamp_warning_update(&state, &config, &input, 1000U);
+    output = headlamp_update_for(&state, &config, &input, 1000U);
     assert(!output.night_active);
     assert(!output.warning_active);
 }

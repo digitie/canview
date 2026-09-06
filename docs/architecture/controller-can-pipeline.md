@@ -93,7 +93,7 @@ record quota, period burst quota, byte/s quota를 모두 만족해야 admission�
 
 `CAN_FILTER_SET`은 batch header 뒤에 filter entry를 붙인다. `action`은 한 batch에서 하나만 사용한다. `ADD`, `REPLACE`, `DELETE`는 1–8개이고 `CLEAR`는 count 0만 허용한다. `config_revision`이 해당 peer namespace의 현재 subscription revision과 다르면 아무 entry도 적용하지 않고 conflict를 반환한다. 초기 provisioning에서만 revision 0을 “현재값 무관”으로 허용할 수 있으며 운행 중에는 exact match를 사용한다. Communicator는 이를 raw stream 조건으로만 취급하고 DBC 의미를 해석하지 않는다.
 
-Controller local allow-list는 별도 `controller_config_revision`으로 NVS에 저장한다. 축소·삭제는 local deny를 먼저 적용한 뒤 upstream을 갱신하고, 확대·추가는 local staging 후 upstream 수락과 matching catalog digest가 있을 때만 effective로 승격한다. 두 store가 어긋나도 local allow-list보다 넓은 frame을 decode하지 않는다.
+Controller local allow-list는 별도 `controller_config_revision`과 [OTA config A/B snapshot](ota.md)을 권위 저장으로 사용한다. NVS는 비권위 cache다. 축소·삭제는 local deny를 먼저 적용한 뒤 upstream을 갱신하고, 확대·추가는 local staging 후 upstream 수락과 matching catalog digest가 있을 때만 effective로 승격한다. 두 store가 어긋나도 local allow-list보다 넓은 frame을 decode하지 않는다.
 
 `CAN_FILTER_GET`의 전체 조회는 최대 8개 entry 단위로 나누며 각 result가 `snapshot_id`, `subscription_revision`, `part_index`, `part_count`, `total_count`를 가진다. 모든 part가 같은 snapshot/revision으로 모이기 전에는 표시·적용하지 않고, 손실·중복·조회 중 변경에서는 전체를 폐기한다. 조회 결과는 설정을 적용하지 않는다. filter entry의 `reserved0`, batch header의 `reserved_le`, stream config의 `reserved_le`은 반드시 0이어야 한다.
 

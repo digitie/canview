@@ -15,11 +15,11 @@
 
 가장 중요한 결론은 다음과 같다.
 
-- 저장된 `opendbc`에는 4WD clutch torque·duty·pressure 후보가 있지만, **검증된 전륜:후륜 축 토크 비율은 없다**. 1차 UI는 `후륜 결합 추정`으로 표시해야 한다.
+- 저장된 `opendbc`에는 4WD clutch torque·duty·pressure 후보가 있지만, **검증된 전륜:후륜 축 토크 비율은 없다**. 추정 분석은 Signal Lab에만 두고 일반 UI는 검증된 입력이 없으면 `—`로 표시한다.
 - 공개 DBC에서 확인되는 DPF 직접 신호는 `DPF_LAMP_STAT`뿐이며 raw code의 의미표도 없다. soot mass, regeneration active, ash load는 진단기와 실차 비교 전에는 제공할 수 없다.
 - M-CAN DBC에 volume/fader/balance/rear speaker mute/SDVC 후보가 있으나 주기·alive·checksum·값 범위가 비어 있다. 물리 head unit 조작 capture 전에는 송신하지 않는다.
 - 보드에는 ES8311과 SMD microphone이 있어 주변 소음 prototype은 추가 hardware 없이 시작할 수 있다. 설치 위치와 차량 오디오의 self-noise가 문제가 되면 별도 microphone node로 분리한다.
-- SPORT mode 자동화는 powertrain 체감에 관여한다. 첫 release는 감지·추천만 제공하고, 실제 버튼 pulse는 bench와 폐쇄 시험 검증 뒤 opt-in으로 연다.
+- SPORT mode 자동화는 powertrain 체감에 관여한다. 첫 release는 수신·기록만 제공하고, 실제 버튼 pulse는 bench와 폐쇄 시험 검증 뒤 opt-in으로 연다. 운전자 UI에 추천 멘트나 decision path를 추가하지 않는다.
 - 자동 밝기는 외부 조도 센서 없이 실제 등화 점등과 cluster rheostat CAN 값만 사용한다. 조명 switch의 `AUTO` 위치만으로 야간을 판정하지 않는다.
 
 ## 2. 근거 등급
@@ -33,7 +33,7 @@ UI와 구현 issue에는 모든 차량 신호에 다음 등급을 붙인다.
 | C | 여러 신호로 계산한 heuristic | 일반 UI에는 값 숨김, service log에 confidence | 금지 |
 | D | 존재 미확인·community 주장뿐 | 진단 화면에만 | 금지 |
 
-현재 이 문서의 대상 차량 신호는 모두 B 이하에서 시작한다. 이름이 그럴듯하거나 다른 Hyundai 차량에서 동작했다는 사실은 A 승격 근거가 아니다.
+현재 이 문서의 대상 차량 신호는 모두 B 이하에서 시작한다. 이 문자의 의미는 과거 조사표의 지역적 등급이며 다른 문서의 A/B/C와 자동 변환하지 않는다. runtime은 [T-005](../tasks/T-005-canonical-model.md)의 evidence enum과 독립 freshness를 사용하고, VERIFIED 승격은 승인 evidence/profile gate를 따른다. 이름이 그럴듯하거나 다른 Hyundai 차량에서 동작했다는 사실은 승격 근거가 아니다.
 
 ## 3. 공통 architecture
 
@@ -43,13 +43,15 @@ UI와 구현 issue에는 모든 차량 신호에 다음 등급을 붙인다.
         v
 Communicator
   - listen-only capture
-  - target profile / DBC decode
+  - STM32 local safety profile / 제한 command executor
+  - ESP32는 의미 해석 없는 raw record routing
   - signal quality + timestamp
   - command allow-list / safety gate
         |
         | encrypted ESP-NOW
         v
 320×480 Controller
+  - 화면용 DBC catalog / 범용 decode / 독립 품질 검증
   - 운전 화면: 2초 이내 상태 파악
   - 정차 화면: 설정·진단·calibration
   - 명령은 semantic request만 생성
@@ -215,8 +217,8 @@ Hyundai 설명서는 DPF가 주행 조건에서 soot를 자동 산화하고, 짧
 
 | 상태 | 큰 label | 보조 정보 | 색상 |
 |---|---|---|---|
-| normal verified | `DPF 정상` | lamp off, last update | 기본 ink |
-| possible regen | `재생 추정` | confidence와 EGT 근거 | accent |
+| normal verified | 검증된 해당 항목만 표시 | lamp off만으로 전체 DPF 정상 판정 금지 | 기본 ink |
+| possible regen | 운전자 화면에는 `—` | 추정·confidence는 Signal Lab에서만 | muted |
 | lamp on | `DPF 확인` | 차량 설명서 확인 | warning amber |
 | lamp blink/fault | `배출가스 점검` | 안전한 곳에서 정비 권고 | error red + icon |
 | unsupported | `세부 정보 없음` | lamp만 감시 중 | muted |
@@ -259,13 +261,14 @@ Primary Controller는 이 profile을 실행하는 데 필요한 volume, fader/ba
 | `OEM` | 변경 없음 | 변경 없음 | 변경 없음 | 변경 없음 | 변경 없음 |
 | `QUIET` | 지원 시 on | 미지원 시 front bias | 보존 | calibrated quiet cap 이하 | 보존 |
 | `REAR_BOOST` | off | calibrated rear bias | 보존 | 선택적 +1 step, cap 적용 | 보존 |
-| `CENTER` | off | center | center | 보존 | 보존 |
+
+`CENTER`는 사용자 기능이나 복원 대체값으로 제공하지 않는다. 복원 대상은 원래 OEM snapshot이며 고정 중앙값이 아니다.
 
 `front`, `rear`, `left`, `right`의 raw 증가 방향은 capture로 정한다. DBC field 이름만으로 `+` 방향을 가정하지 않는다. `QUIET`의 quiet cap도 고정 숫자가 아니라 head unit의 max step과 사용자가 정차 상태에서 지정한 상대 cap으로 저장한다.
 
 ### 6.4 snapshot과 복원
 
-profile 적용 전 gateway가 다음 OEM 상태 snapshot을 만든다.
+profile 적용 전 Communicator STM32의 command executor가 다음 OEM 상태 snapshot을 만든다. Controller가 요청한 값과 실제 AMP feedback은 별도 상태로 관리한다.
 
 - audio source와 source별 volume
 - mute / rear speaker mute
@@ -278,7 +281,7 @@ profile 해제는 “중앙값”을 쓰는 것이 아니라 snapshot을 복원�
 1. 외부 변경 감지
 2. 자동 profile write 중지
 3. 새 OEM 상태를 현재값으로 채택
-4. UI에 `차량에서 직접 변경됨` 표시
+4. UI의 실제 상태를 갱신하고 override 사유는 service log에 기록
 5. 사용자가 다시 profile을 눌렀을 때만 새 snapshot으로 재적용
 
 ### 6.5 송신 검증
@@ -350,7 +353,7 @@ FFT 화면용 분석은 같은 16 kHz capture에서 별도 저우선순위 task�
  -> UI 8 Hz 갱신
 ```
 
-`canview_ui_model_t`에는 `fft_bins[23]`, `fft_peak_hz`, `fft_peak_tenth_db`만 전달한다. raw PCM과 complex FFT buffer는 audio task 내부에만 두고 LVGL task나 ESP-NOW payload로 복사하지 않는다. FFT bin은 화면 높이에 맞춘 0–100 상대값이며, peak level도 calibration 전에는 상대 dB다. 8 kHz는 16 kHz sampling의 Nyquist 경계이므로 마지막 display bin은 8 kHz 미만 유효 bin만 합산한다. clipping, sample underrun, microphone mute 시에는 이전 spectrum을 유지하지 말고 invalid 상태로 전환한다.
+UI에는 23개 spectrum bar, peak 주파수, level과 개별 품질만 전달한다. raw PCM과 complex FFT buffer는 audio task 내부에만 두고 LVGL task나 ESP-NOW payload로 복사하지 않는다. bar 높이는 0–100 표시값이며 디지털 level은 signed dBFS, 자동 음량 입력은 차속별 baseline 대비 dB 차이로 구분한다. 음압 calibration 없이 dBA로 표시하지 않는다. 8 kHz는 16 kHz sampling의 Nyquist 경계이므로 마지막 display band는 8 kHz 미만 유효 bin만 합산한다. clipping, sample underrun, microphone mute 시에는 이전 spectrum을 정상처럼 유지하지 말고 invalid 상태로 전환한다. 정확한 level 산식·FFT window·정규화는 [T-303](../tasks/T-303-controller-fft.md), 화면 단위는 [UI 설계](../ui/design.md)가 정본이다.
 
 정식 dBA 계측기 calibration 전에는 `dBA`가 아니라 `상대 소음 dB`로 취급한다. 94 dB calibrator 또는 비교 계측기로 offset을 맞춘 경우에만 dBA label을 쓴다.
 
@@ -401,7 +404,7 @@ lower = speed < 30 km/h
 5. media mute sample과 평소 volume sample 비교
 6. 사용자가 각 속도에서 원하는 volume offset 확인
 
-profile은 microphone raw sample이 아니라 curve와 통계량만 저장한다. calibration이 없으면 speed-only로 동작하고 UI에 `소음 보정 학습 전`을 표시한다.
+profile은 microphone raw sample이 아니라 curve와 통계량만 저장한다. calibration·유효한 FFT가 없으면 CANView 자동 음량 상승은 중지한다. 속도만으로 음량을 올리는 fallback을 만들지 않으며 기존 OEM SDVC를 임의로 해제하지 않는다. 학습·중지 이유는 service 화면에서 확인한다.
 
 ## 8. SPORT mode 자동 전환·복귀
 
@@ -427,7 +430,7 @@ profile은 microphone raw sample이 아니라 curve와 통계량만 저장한다
 | 단계 | 기능 | 차량 TX |
 |---|---|---|
 | R0 | speed/acceleration과 현재 mode 기록 | 없음 |
-| R1 | `SPORT 권장` 알림, 사용자가 물리 버튼 조작 | 없음 |
+| R1 | monitor-only 판정 기록, 운전자 추천 알림 없음 | 없음 |
 | R2 | 정차 bench에서 button pulse 재현 | bench만 |
 | R3 | 폐쇄 시험장 opt-in automation | 제한 허용 |
 | R4 | 장기 검증 후 일반 사용 opt-in | 조건부 |
@@ -561,7 +564,7 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 - onboard microphone relative noise meter
 - signal quality/catalog revision
 - CAN 자동 밝기 monitor와 PWM ramp
-- 평균·순간 연비와 전역 제한속도 표시
+- 중앙 순간 연비와 전역 제한속도 표시(평균연비 UI 없음)
 - 무조작 감광·주행 화면 자동 복귀
 
 ### P2 — 안전한 audio 기능
@@ -570,7 +573,7 @@ mode cycle에 ECO가 포함돼 여러 pulse가 필요하다면 각 pulse 뒤 fee
 - state snapshot/restore
 - QUIET/REAR_BOOST bench 구현
 - manual override detection
-- speed-only adaptive volume
+- FFT evidence·차속·OEM feedback 기반 adaptive volume
 
 ### P3 — calibration 기능
 

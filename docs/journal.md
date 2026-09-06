@@ -1,5 +1,30 @@
 # CANView 작업 일지
 
+## 2026-09-06 (codex, 전체 계획 두 차례 점검·UI 개선)
+
+기준선 `4aeb2912da063c6fcb0d8715aa46f84c7d1d1b0f`의 사용자 변경을 보존하고 기존 PR16 branch에서 작업했다. 계획/자동화/LVGL/진단 웹을 분리한 작업자와 main의 2차 대조를 수행했다. [요구 추적표](architecture/requirements-coverage.md)에 42개 요구와 46개 상세 task, 남은 실제 gate를 연결했다. embedded-architecture/documentation/cstyle 원칙으로 의미 명령·상태 소유권·ISR/queue 경계·실행되지 않은 gate를 분리했다. Hallmark는 사용하지 않았다.
+
+- 계획: 누락된 OTA8단계·PCB 제작·audio bench/SPORT source task11개, 순환 의존성 제거, schema phase/session/reason·설정 A/B 정본 충돌을 수정했다. 상세 task DONE 승격 없음.
+- UI: 운전자/진단 웹 각5뷰, 4WD·순간연비·RPM 옆 보조값·FFT 차속/RPM·signed dBFS·날짜/60개 분·정차잠금·경고 touch-through·미수신/로컬 초안을 개선했다. DPF lamp OFF를 전체 정상으로 표시하지 않는다.
+- 자동화: stale/idle 반복 감광·boost base 오염, volume pending·FFT invalid, SPORT stale/수동 mode·tick gap을 수정했다. 수정 전7개 failure의 재현과 수정 후 회귀를 확인했다.
+
+작성자 실제 검증:
+
+| 명령/환경 | 결과 |
+|---|---|
+| `python -B -X utf8 tools/validate_plan.py` | 상세46·metadata/선행 DAG 오류0 |
+| `python -B -X utf8 -m unittest discover -s tests -p test_plan_validation.py -v` | 부정 fixture 포함35시험 PASS; 작성 중 최초0-test 결과는 통과로 집계하지 않음 |
+| `node tools/ui/check-browser.cjs --screenshots` (Playwright+Edge, 외부망 차단) | 운전자72검사·진단10그룹, JS 오류/외부 요청0; `docs/images/` 재생성 |
+| VS Developer PowerShell → `cmake -S tests/automation -B .tools/automation-main-build -G Ninja -DCMAKE_BUILD_TYPE=Debug`, build, CTest | MSVC19.50 `/W4 /WX /utf-8`, 11/11 PASS |
+| `./tools/ui/validate-lvgl.ps1` | 공식 LVGL8.4.0 `4495f42` 실제 C 링크·수명/상태 회귀. 정확한 최종 결과는 독립 review에서 재확인 |
+| Python navigation/hardware unittest | 기존16+9시험 PASS; 실제 RF/전기적 HIL 아님 |
+| KiCad10.0.6 Python `tools/hardware/validate_exports.py`, `check_margins.py` | 4보드 export/pad/BOM 정합성 PASS, 저장 ERC0 확인·정적 margin 재검산; PCB/아날로그 승인 아님 |
+| `tools/validate_document_links.py`, `git diff --check` | 상대 링크·공백 검사 PASS, 최종 closure 후 재실행 |
+
+일반 PowerShell의 `setup-windows.ps1 -VerifyOnly`는 CMake PATH 부재로 실패했다. 설치된 VS dev shell의 CMake4.2.3-msvc3/Ninja1.12.1은 host 시험에 사용했지만 잠금 target toolchain CMake4.4.3/Ninja1.13.2/Arm15.3.Rel1을 충족했다고 표시하지 않는다. ESP/STM target, OTA runtime·PCB·전원 차단/HIL·Android/iOS 실기기·최종 한글 font/LCD FPS/8시간 soak·실차 evidence는 미실행이다. CodeGraph 미초기화로 `rg`·정본 직접 읽기·compiler/test로 추적했다.
+
+최종 독립 reviewer2명은 작업자와 별도로 동일 immutable candidate를 검토한다. 원문·finding 반영·post-fix 재검토와 PR merge 결과는 [새 리뷰 기록](reviews/README.md)에 보존한다. 이 일지나 prototype으로 차량 CAN TX를 허용하지 않는다.
+
 ## 2026-09-06 (codex, 독립 OTA·N16R8 회로)
 
 사용자의 N16R8 선택에 따라 WROOM-1-N16R8, 내부 bundle staging, 외장 SPI NOR 미실장을 채택했다. reset/BOOT0·복구 버튼·물리 CAN 차단을 실제 생성 입력과 KiCad 산출물에 반영했다. embedded-architecture/documentation 스킬을 적용해 플랫폼 경계와 전원 차단 수용 조건을 분리했다. 사용자 단일 MD 요청을 우선해 설계와 두 전문 리뷰어 원문·disposition·재검토를 [OTA 문서](architecture/ota.md)에 누적한다.

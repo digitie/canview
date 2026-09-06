@@ -26,8 +26,8 @@
   --color-mode-eco: oklch(74% 0.150 150);
   --color-mode-eco-wash: oklch(21% 0.045 150);
 
-  --font-display: "Space Grotesk", "IBM Plex Sans KR", sans-serif;
-  --font-body: "IBM Plex Sans KR", sans-serif;
+  --font-display: "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-body: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
 
   --space-3xs: 2px;
   --space-2xs: 4px;

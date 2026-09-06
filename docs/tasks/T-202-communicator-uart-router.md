@@ -47,3 +47,9 @@ python tests/hil/run_dual_mcu_reset_matrix.py --seed 1
 ## evidence
 
 STM-only reset, ESP-only reset, simultaneous reset의 state timeline과 packet capture를 저장한다. session이 유지된 시험 결과는 실패다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 Communicator의 UART link/router component와 boot epoch·CTS·queue HIL fixture다. STM command 재서명/생성 및 OTA recovery UART는 범위 밖이다.
+- 세대 교체 중 queue buffer·callback lifetime과 결과 correlation을 시험한다. 실패 시 기존 token/lease를 재사용하지 않고 link 재협상으로 수렴한다.

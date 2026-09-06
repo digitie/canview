@@ -1,6 +1,6 @@
 # ADR-006: 소형 R1 회로·USB service 전원·INS/원격 수음
 
-- 상태: accepted — 설계 방향에 대한 결정이며 제작/실차 승인 아님
+- 상태: partially superseded by [ADR-007](007-n16r8-independent-recoverable-ota.md) — 결정 1의 Communicator 모듈과 공용 reset 해석만 대체, 나머지 유지. 제작/실차 승인 아님
 - 날짜: 2026-09-05
 - 배경: 사용자 최신 회로 요청과 크기 명확화(가격보다 소형화 우선)
 

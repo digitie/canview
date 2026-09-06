@@ -19,4 +19,5 @@ CANView의 구조적 결정은 파일당 하나의 ADR로 둔다. 파일명은 N
 | [ADR-003](003-windows-development-and-ephemeral-worktrees.md) | Windows 개발환경과 일회성 worktree | accepted |
 | [ADR-004](004-layered-documentation-and-review-archive.md) | 계층형 문서 정보구조와 누적 독립 리뷰 아카이브 | accepted |
 | [ADR-005](005-latest-windows-embedded-toolchain.md) | 최신 Windows 임베디드 toolchain baseline | accepted |
-| [ADR-006](006-compact-hardware-power-and-sensors.md) | 소형 R1 회로·USB service 전원·INS·원격 수음 | accepted |
+| [ADR-006](006-compact-hardware-power-and-sensors.md) | 소형 R1 회로·USB service 전원·INS·원격 수음 | partially superseded by ADR-007 |
+| [ADR-007](007-n16r8-independent-recoverable-ota.md) | N16R8과 장치별 독립 복구 OTA | accepted |

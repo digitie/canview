@@ -6,7 +6,7 @@
 
 이 문서는 CANView의 여러 설계 문서를 실제 구현 순서와 코드 경계로 통합한 정본이다. 구현자는 개별 문서 사이의 빈칸을 임의로 해석하지 않고 이 문서와 [`tasks/`](../tasks/)의 원자 작업을 따른다.
 
-검토 기준은 `origin/main`의 `50b5e733ea469e37bbb762876386625ef8b3b11f`다. 현재 저장소의 판정은 다음과 같다.
+1차 계획 감사의 비교 기준은 `4aeb2912da063c6fcb0d8715aa46f84c7d1d1b0f`다. 아래는 그 기준선의 구현/검증 상태이며, 병렬 UI 수정이나 이번 계획 보완을 target·실차 통과로 계산하지 않는다. 요구별 추적은 [요구사항 coverage](requirements-coverage.md), 실행 순서는 [task backlog](../tasks.md)가 담당한다.
 
 | 범위 | 판정 | 근거 |
 |---|---|---|
@@ -15,11 +15,13 @@
 | Communicator STM32 | reset-safe scaffold만 준비 | clock, DMA UART, FDCAN, watchdog, 안전 profile과 command executor가 없음 |
 | Controller·Communicator ESP32 | bootstrap 준비 | ESP-IDF top-level project·기본 component·partition은 있으나 v1.3 protocol 전까지 application dependency·BSP·transport task가 없음 |
 | Diagnostic Bridge | prototype 설계만 존재 | firmware, REST/WS backend, capture storage가 없음 |
-| ESP-NOW·UART wire | 구현 차단 | 메시지 번호와 일부 구조만 있고 모든 payload ABI·codec·golden vector가 없음 |
+| ESP-NOW·UART wire | 기본 통합 미완료 | v1.3/v1.0 전체 schema·codec·golden gate가 없음. navigation companion v1.4/v1.1의 별도 schema/host fixture만으로 기본 경로를 통과시키지 않음 |
 | 2017 Tucson TL 신호 | 후보 단계 | 저장 DBC의 대상 차량 적합성을 입증한 capture가 없음 |
-| 차량 CAN 송신 | **금지** | 회로도·hard TX gate·검증된 vehicle profile·HIL/실차 증거가 없음 |
+| 하드웨어 | 생성 회로와 정적 검증 존재, 제작·실측 미완료 | R1 및 N16R8 OTA 회로/ERC 기록은 있으나 land·PCB·조립·reset/rail/CAN 실측 gate가 열려 있음 |
+| 독립 OTA | 설계 계약만 존재 | 정상/복구 앱·bootloader·서명 packager·journal·API·provisioning·전원 차단 HIL 미구현 |
+| 차량 CAN 송신 | **금지** | hard TX gate의 실물 증명·검증된 vehicle profile·HIL/실차 증거가 없음 |
 
-따라서 현재 기준선은 `설계/host prototype`이지 차량용 release가 아니다. 아래 G0–G6 gate 중 G0가 완료되기 전에는 firmware 통합을 시작하지 않고, G4 이전에는 실제 차량 bus에서 송신하지 않는다.
+따라서 현재 기준선은 `설계/host prototype`이지 차량용 release가 아니다. G0 계약 이전에는 기능 firmware 통합을 시작하지 않는다. T-100/T-102/T-200/T-300 등의 회로·boot scaffold와 합성 host fixture 준비는 통합/G1 통과가 아니다. 실제 차량 TX는 G4 bench 통과 뒤에도 기능별 G5 시험 승인·profile·lease·build mode·local check·외부 gate를 모두 요구한다.
 
 ## 2. 구현자가 다시 결정하지 않을 사항
 
@@ -27,8 +29,8 @@
 
 1. 장치명은 `Controller`, `Communicator`, `Diagnostic Bridge`다.
 2. Communicator의 두 MCU는 `ESP32-S3-WROOM-1-N16R8`와 `STM32G474CEU6`다. [OTA 설계](ota.md)의 독립 reset·서비스 인터록·복구 계약을 따른다.
-3. Communicator 내부 링크는 4 Mbps, 8-N-1, RTS/CTS, COBS, CRC-32/ISO-HDLC를 쓰는 독립 UART protocol `1.0`이다.
-4. 첫 통합 ESP-NOW 구현은 현재 `1.2` header에 Diagnostic Bridge 메시지를 합친 protocol `1.3`이다. `1.2`와 `1.3`을 동시에 구현하지 않는다.
+3. Communicator 정상 앱 내부 링크는 4 Mbps, 8-N-1, RTS/CTS, COBS, CRC-32/ISO-HDLC를 쓰는 독립 UART protocol `1.0`이다. navigation companion `1.1`과 OTA recovery UART는 각 정본의 별도 협상/baud/codec을 사용하며 서로 자동 대체하지 않는다.
+4. 첫 통합 ESP-NOW 구현은 현재 `1.2` header에 Diagnostic Bridge 메시지를 합친 protocol `1.3`이다. `1.2`와 `1.3`을 동시에 구현하지 않는다. navigation `1.4` companion은 capability 협상 뒤에만 추가하며 `1.3` 기본 ABI를 재정의하지 않는다.
 5. 무선 일반 frame 상한은 240 byte다. CAN FD payload는 v1.3에 억지로 넣지 않고 별도 미래 record type으로 남긴다.
 6. 화면용 DBC decode는 Controller가 수행한다. Communicator ESP32는 DBC signal 이름·scale을 알지 않는다.
 7. CAN 송신의 최종 판단과 frame 생성은 STM32가 수행한다. 어느 ESP32도 arbitration ID와 raw payload를 STM32에 전달해 송신시킬 수 없다.
@@ -56,6 +58,8 @@
 | hardware pin | 승인된 KiCad schematic/netlist | pinmap CSV와 MCU pin header | 제안 CSV만 보고 PCB 제작 |
 | Diagnostic API | `api/diagnostic-v1.openapi.yaml` | C route table 검증자료, web client type | 문서 prose만으로 endpoint 구현 |
 | capture bundle | `schema/cvtrace-v1.schema.json` | validator와 fixture | schema version 없는 export |
+| navigation 확장 | `protocol/schema/navigation-v1.json`와 [navigation 계약](protocols/navigation.md) | ESP-NOW 1.4/UART 1.1 companion codec·fixture | 기본 wire version에 미협상 센서 메시지 삽입 |
+| 독립 OTA | [OTA §4–9·12](ota.md)의 layout/서명/정책 계약 → T-007/T-204/T-107/T-108/T-205 schema | 역할별 normal/recovery·STM bootloader·packager·golden vector | 현재 factory scaffold를 OTA 지원으로 표시 |
 
 생성물 첫 줄에는 `DO NOT EDIT`, generator version, source digest를 넣는다. CI는 생성기를 다시 실행한 뒤 diff가 생기면 실패한다. 같은 상수가 schema·C·Python·JavaScript에서 다르면 build를 통과시키지 않는다.
 
@@ -287,7 +291,7 @@ wire 폭도 schema에서 공통으로 고정한다. `COMMAND_RESULT`와 상태 �
 9. message별 exact/bounded payload, reserved, enum, count, TLV bounds 확인
 10. semantic quota·revision·TTL 검사
 11. idempotency cache 조회
-12. ACK용 control queue에 등록한 뒤 실제 worker queue에 등록
+12. worker slot·idempotency entry·ACK용 control queue 자원을 원자 예약하고 admission을 commit한 뒤 accepted ACK를 전송. 하나라도 실패하면 예약을 해제하고 pre-ACK BUSY 또는 정본 drop 정책을 적용하며, 실행 queue 등록 실패 뒤 수락 ACK를 남기지 않음
 
 CRC 실패 frame은 auth error response를 만들지 않는다. broadcast에는 오류 응답을 보내지 않는다. parsing 실패가 peer·내용에 따라 timing oracle이 되지 않도록 동일 category 오류를 rate-limit한다. 인증 실패 잠금은 알려진 peer·pairing candidate별 exponential backoff로만 적용한다. 알 수 없는 MAC의 flood가 기존 정상 peer나 전체 설치를 `AUTH_LOCKED`로 만들 수 없다.
 
@@ -329,7 +333,7 @@ Controller   ↔ Diagnostic Bridge  : link_root_pb (명시적 service pairing �
 
 ### 7.6 STM32까지 이어지는 control 인증
 
-ESP-NOW 암호화가 끝나는 Communicator ESP32만 믿고 STM32가 차량 명령을 실행하지 않는다. Primary Controller와 STM32에만 별도 pair-specific `control_root`를 provision하고, ESP32 두 대는 이를 저장하지 않는다. `CONTROL_LEASE`, `COMMAND_REQUEST`, SPORT 설정과 STM32의 terminal `COMMAND_RESULT`는 schema가 정의한 canonical envelope에 HMAC-SHA-256의 앞 16 byte `control_tag`를 붙인다.
+ESP-NOW 암호화가 끝나는 Communicator ESP32만 믿고 STM32가 차량 명령을 실행하지 않는다. Primary Controller와 STM32에만 별도 pair-specific `control_root`를 provision하고, Communicator ESP32와 Diagnostic Bridge는 이를 저장하지 않는다. `CONTROL_LEASE`, `COMMAND_REQUEST`, SPORT 설정과 STM32의 terminal `COMMAND_RESULT`는 schema가 정의한 canonical envelope에 HMAC-SHA-256의 앞 16 byte `control_tag`를 붙인다.
 
 요청 envelope에는 origin device/boot ID, wireless session ID, control key generation, locally assigned role/scope, request token, command/config ID, issued time, TTL, control-sync generation, expected state revision와 canonical argument digest를 포함한다. Communicator ESP32는 bytes를 변경하지 않고 UART로 전달한다. STM32는 tag, provisioned Primary identity, generation, lease, TTL과 generated command table을 모두 확인한다. 결과 envelope에는 token, terminal stage/reason, 실제 TX audit digest, feedback revision/time을 넣고 STM32가 tag를 만든다. Bridge와 read-only peer에는 `control_root`를 provision하지 않는다.
 
@@ -398,7 +402,7 @@ generator는 같은 profile에서 서로 다른 최소 산출물을 만든다.
 
 `evidence_grade != VERIFIED`인 command 또는 feedback signal이 하나라도 있으면 STM32 command artifact를 생성하지 않고 build를 실패시킨다. DBC에 message가 존재한다는 사실만으로 송신 frame을 만들지 않는다.
 
-ESP-NOW `SIGNAL_BATCH`의 값은 32 bit로 유지한다. Controller operational catalog와 STM32 safety profile은 v1.3에서 `bit_length <= 32`만 허용한다. 33–64 bit DBC field는 Diagnostic Bridge가 raw frame에서 별도 64-bit candidate로 분석할 수 있지만 `SIGNAL_BATCH`로 전송하거나 운전자/safety signal로 자동 승격하지 않는다. 지원이 필요하면 새 value/record type을 protocol major 호환성 검토와 함께 추가한다.
+`SIGNAL_BATCH`는 [ESP-NOW 정본](protocols/esp-now.md)의 draft 비교 자료이며 v1.3 송수신 경로에서 비활성이다. 화면 DBC decode는 Controller가 raw CAN을 받아 수행한다. Controller operational catalog와 STM32 safety profile의 `bit_length <= 32` 제한은 별도로 유지한다. 33–64 bit DBC field는 Diagnostic Bridge가 raw frame에서 별도 64-bit candidate로 분석할 수 있지만 운전자/safety signal로 자동 승격하지 않는다. operational 지원이 필요하면 새 value/record type을 protocol major 호환성 검토와 함께 추가한다.
 
 profile validator는 endian/value type/enum, DLC, signedness, factor/offset/min/max가 finite인지와 scaling overflow를 검사한다. 일반 operational descriptor의 frame kind는 `RX DATA`만 허용한다. RTR, error frame과 TX echo는 Diagnostic Bridge descriptor가 명시적으로 opt-in할 때만 관찰하며 일반 signal 값이나 freshness를 갱신하지 않는다. DLC 뒤 byte는 수신 normalization 단계에서 0이어야 한다.
 
@@ -416,7 +420,7 @@ profile validator는 endian/value type/enum, DLC, signedness, factor/offset/min/
 
 ### 10.2 hard TX gate
 
-현재 pinmap에는 firmware와 독립적인 TX 차단 회로가 없다. Communicator schematic에는 세 transceiver TXD를 recessive high로 강제할 수 있는 하드웨어 gate와 default-disabled 입력을 추가해야 한다. gate가 off여도 RXD와 normal-mode 수신은 가능해야 한다.
+현재 R2/N16R8 생성 회로에는 firmware와 독립적인 PHY RX/TX gate·외부 watchdog·ARM latch·J31 서비스 인터록이 존재한다. 이는 회로/ERC 상태이며 reset·brownout·PHY dominant·지연/역급전의 실물 검증 완료가 아니다. 허용식과 pin은 [OTA §6](ota.md), [R1 회로](../hardware/r1/communicator-circuit.md)와 해당 생성 netlist가 정본이다. 정상 RUN에서 TX만 unarmed인 capture-only 수신과 J31 제거/rail fault로 RX/TX 모두 차단된 service 상태를 구분한다.
 
 - 전원 off/reset/unprogrammed MCU: TXD forced recessive
 - service jumper 또는 sealed population option이 없으면 arm 불가
@@ -424,9 +428,9 @@ profile validator는 endian/value type/enum, DLC, signedness, factor/offset/min/
 - CAN FD 목표 bitrate에서 propagation delay와 duty distortion 검증
 - gate 상태를 STM32가 읽어 heartbeat/audit에 보고하되, 읽은 값만으로 gate를 우회할 수 없음
 
-구체 logic IC와 free GPIO는 schematic/ERC/SI task에서 확정한다. hard gate 없이 prototype을 만들면 `CAPTURE_ONLY`로만 표시하고 차량 송신 release에 사용할 수 없다.
+구체 IC·GPIO·외부 pull은 현재 BOM/pinmap/netlist에 정의되어 있다. T-100/T-100a의 원문·PCB 대조와 T-101/T-508의 실측으로 닫으며 free GPIO를 임의 배정하지 않는다. gate가 없거나 실제 차단이 검증되지 않은 prototype을 차량 송신 release로 표시하지 않는다. `CAPTURE_ONLY` 이름도 하드웨어 안전 실측을 대체하지 않는다.
 
-gate는 3채널 tri-state buffer output과 PHY TXD 사이에 두고 output별 pull-up으로 disable 시 recessive를 만든다. 공통 permit은 물리 `TX_ARM` population/jumper, 5 V/3.3 V rail-good, STM request와 MCU 외부 watchdog/monostable의 AND다. `/OE`는 외부 pull로 default disable이며 watchdog timeout 상한은 100 ms다. `CAPTURE_ONLY` variant는 jumper를 실장하지 않고 TX API도 link하지 않는다. 이 gate는 reset·brownout·CPU stall을 제한하지만 올바른 cadence로 watchdog을 갱신하는 논리 오동작의 정상 형식 frame까지 판별하는 bus guardian은 아니다. 따라서 valid-frame flood는 generated executor의 ID/DLC/data/rate/total-frame 제한과 HIL analyzer가 별도로 막는다.
+각 gate의 disable level·pull·PHY TXD recessive·propagation budget은 생성 회로 정본에 따른다. active-low `/OE`로 일괄 가정하지 않으며 FT 경로의 active-high OE와 외부 pull-down도 대조한다. permit은 물리 TX_ARM·J31 SERVICE_RUN·독립 reset/rail-good·외부 watchdog·새 STM ARM edge를 반영한다. `CAPTURE_ONLY` variant는 TX_ARM을 실장하지 않고 TX API도 link하지 않는다. 이 gate는 reset·brownout·CPU stall을 제한하지만 올바른 cadence로 watchdog을 갱신하는 논리 오동작의 정상 형식 frame까지 판별하는 bus guardian은 아니다. 따라서 valid-frame flood는 generated executor의 ID/DLC/data/rate/total-frame 제한과 HIL analyzer가 별도로 막는다.
 
 ### 10.3 실행 조건
 
@@ -456,20 +460,20 @@ SPORT automation은 `DISABLED`, `MONITOR_ONLY`, `ARMED_TX`, `ENTER_PENDING`, `AC
 
 ## 11. hardware 보완 기준
 
-R1 [상세 회로](../hardware/r1/README.md)와 생성 `hardware/communicator/pinmap.csv`가 현재 검토 입력이다. 과거 `pinmap-proposed.csv`는 이력이며 구현 정본이 아니다. 회로 task는 다음을 모두 산출해야 한다.
+R1 [상세 회로](../hardware/r1/README.md)에 [OTA §6](ota.md)의 N16R8·독립 reset·J31/J32/U56 서비스 인터록 변경을 적용한 생성 `hardware/communicator/pinmap.csv`와 netlist가 현재 검토 입력이다. 과거 `pinmap-proposed.csv`와 MINI/공유 reset 그림은 현행 제작 입력이 아니다. T-100은 회로·계산·land 승인, T-100a는 PCB/DRC/제조 입력, T-101은 조립품 실측, T-508은 OTA fault qualification을 소유한다. 회로 task는 다음을 모두 산출해야 한다.
 
 1. KiCad schematic, PCB constraints, net classes, ERC 결과
 2. 정확한 manufacturer part number와 대체품 정책을 포함한 BOM
 3. LM74800 FET/TVS/fuse/inductor/capacitor worst-case 계산
 4. 5 V·3.3 V startup, RF burst, PHY dominant worst-case 전류·thermal 예산
-5. `BAT`, `ACC/IGN` 또는 CAN wake/sleep 정책과 ignition-off 목표 대기전류
+5. 현 R1의 외부 fused IGN/ACC 차단·USB service 정책과 OFF 전류/역급전 시험 조건. 상시 BAT+/CAN wake variant는 별도 설계 승인 전 포함하지 않음
 6. 차량 harness connector pinout, keying, ground/chassis/shield 정책
 7. CAN1/2 split termination과 CAN3 RTH/RTL의 독립 DNP variant
 8. MAX3055 `WAKE`, `INH`, `ERR`, BATT 처리. CAN3가 실장·enable되는 variant에서는 `ERR` 감시를 mandatory로 둠
 9. hard TX gate, service jumper, state sense, test point
 10. 4 Mbps UART series resistor/eye 측정 계획
 11. HSE 값·load capacitor·FDCAN timing 계산
-12. programming/SWD/USB와 공통 reset 상호작용, vehicle rail이 켜진 상태에서 USB VBUS 역급전 방지
+12. programming/SWD/USB와 ESP/STM 독립 reset·J31 재삽입·stale ARM 상호작용, vehicle rail이 켜진 상태에서 USB VBUS 역급전 방지
 
 R1 전원 정책은 [ADR-006](../adr/006-compact-hardware-power-and-sensors.md)에 따라 **외부에서 차단되는 fused IGN/ACC 입력**이며 별도 상시 BAT+·ACC sense/CAN wake 회로는 없다. 상시 BAT+ harness를 무조건 허용하지 않는다. USB-C는 MCU service 전원을 공급하지만 CAN PHY/GPS rail과 mux로 분리된다. 차량 전압/PHY reset이 유효하지 않으면 RX/TX gate가 닫히고 회복 뒤에도 새 ARM edge가 필요하다. OFF1mA 요구는 상시전원 variant의 별도 acceptance이며 현 회로가 달성했다고 주장하지 않는다. SWD VTref는 target 출력 전용이다. bench12V는 동일 보호 입력을 사용한다.
 
@@ -529,16 +533,18 @@ animation은 model sample을 직접 튀겨 그리지 않고 시간 기반 보간
 
 | 설정/동작 | owner | 저장 | wire 경로 |
 |---|---|---|---|
-| RTC 시각·날짜 | Controller | Controller NVS + PCF85063 | local UI 또는 Bridge↔Controller remote config |
-| 일출·일몰·전조등 경고 | Controller | Controller NVS | local/confirmed remote config |
-| 화면 밝기·자동 밝기·유휴 timeout | Controller | Controller NVS | local/confirmed remote config |
-| FFT band·민감도·반응·최대 offset | Controller | Controller NVS | local/confirmed remote config |
-| local RX allow-list | Controller | Controller NVS | local config; upstream subscription 별도 동기화 |
-| peer subscription·quota | Communicator ESP32 | encrypted NVS | peer `CAN_FILTER_*` transaction |
+| RTC 시각·날짜 | Controller | config A/B intent + PCF85063 readback | local UI 또는 Bridge↔Controller remote config |
+| 일출·일몰·전조등 경고 | Controller | Controller config A/B | local/confirmed remote config |
+| 화면 밝기·자동 밝기·유휴 timeout | Controller | Controller config A/B | local/confirmed remote config |
+| FFT band·민감도·반응·최대 offset | Controller | Controller config A/B | local/confirmed remote config |
+| local RX allow-list | Controller | Controller config A/B | local config; upstream subscription 별도 동기화 |
+| peer subscription·quota | Communicator ESP32 | config A/B default + session별 RAM effective | peer `CAN_FILTER_*` transaction |
 | control lease·peer role/scope | Communicator ESP32 + STM mirror | RAM, pairing record | ESP-NOW + UART semantic state |
-| SPORT automation threshold/arm | STM32 | versioned config Flash | Controller command/config → Communicator → UART |
+| SPORT automation threshold/arm | STM32 | threshold는 config A/B, arm은 RAM | Controller command/config → Communicator → UART |
 | vehicle audio snapshot/profile | STM32 | RAM + bounded recovery record | semantic command only |
 | diagnostic capture/filter | Bridge + Communicator peer namespace | Bridge storage/Communicator RAM | diagnostic lease messages |
+
+저장의 권위 영역·크기·trial/rollback 보존은 [OTA §4·5·9](ota.md)를 따른다. normal NVS는 비권위 cache이며 T-304/T-205가 versioned snapshot과 readback·전원 차단 복구를 연결한다. config Flash와 PCF85063은 하나의 원자 transaction이 아니므로 pending intent와 실제 RTC 판독을 조정하고 부분 성공을 숨기지 않는다. link/control root는 protected provisioning 정책을 따르며 일반 config/default 복원이나 OTA 때문에 session·control lease·SPORT arm을 복원하지 않는다.
 
 RTC command ID와 Communicator config key를 현재 header에서 제거하는 migration은 protocol `1.3` 생성 task에서 한 번에 수행한다. 중간 호환 alias를 만들지 않는다.
 
@@ -603,21 +609,11 @@ G3까지 모든 차량 연결 build는 `CAPTURE_ONLY`다. DPF 강제 regeneratio
 
 ## 17. critical path와 병렬화
 
-```text
-T-001 CI/toolchain
-   ├─ T-002 ESP-NOW schema ─ T-003 codec/session ─┬─ Controller/Comm/Bridge transport
-   ├─ T-004 UART schema ──── STM/ESP UART ───────┤
-   └─ T-005 canonical model ─ T-006 profile gen ─┤
-                                                  ├─ G2 bench read-only
-T-100 schematic ─ T-101 board bring-up ──────────┘
-                                                  └─ T-501 vehicle capture ─ T-502 signal UI
-                                                                             ├─ audio bench/release
-                                                                             └─ SPORT HIL/closed course
-```
+의존 DAG의 정본은 [task backlog](../tasks.md#4-critical-path)와 상세 task의 `선행`이다. 이 문서에 다른 순서의 그래프를 복제하지 않는다. 읽기 전용 `tools/validate_plan.py`는 개수·ID·상태·요약·선행 참조·사이클을 검사하되 실물/evidence gate를 자동 통과시키지 않는다.
 
-protocol, hardware, Controller BSP, Bridge web shell은 G0 이후 병렬 진행할 수 있다. 차량 command executor는 profile evidence와 hard TX gate가 모두 완료될 때까지 mock backend만 구현한다.
+T-500은 공용 rig/시나리오 API를 먼저 제공하고 T-103/T-101 등 각 소비 task가 실제 firmware·하드웨어 시험을 완료한다. T-101용 최소 boot image 제공과 T-102/T-200의 전체 완료를 혼동하지 않는다. T-503/T-505a의 수신 조사 → T-106 executor → T-503a/T-505 bench/폐쇄시험 순서로 실제 source evidence와 주입 검증을 분리한다.
 
-상세 원자 작업, 의존성, 변경 파일, 검증 명령과 산출 증거는 [`tasks.md`](../tasks.md)와 [`tasks/`](../tasks/)를 따른다.
+[OTA §12](ota.md)의 8단계는 T-007/T-204/T-107/T-108/T-306/T-205/T-507/T-508에 대응한다. 각 장치는 독립 AP/복구를 제공하며 개발 DAG의 선행은 런타임 Controller/Bridge 의존성을 뜻하지 않는다. OTA 변경 firmware의 차량 연결 전 작업대 gate와 기능별 G4/G5 승인은 별개다.
 
 ## 18. 구현 준비 완료 정의
 

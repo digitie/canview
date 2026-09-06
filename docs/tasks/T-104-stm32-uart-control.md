@@ -55,3 +55,9 @@ python tests/hil/inject_uart_faults.py --seed 1
 ## 주의
 
 256개 전체 result payload가 SRAM budget을 넘으면 임의로 entry 수를 줄이지 않는다. compact result record와 60초 time bucket을 설계하고 budget 변경 근거를 이 task에 남긴다.
+
+
+## 산출물·범위 경계
+
+- 예상 산출물은 STM UART DMA adapter·link/cache component와 이 문서의 `tests/hil/` soak/fault scripts다. vehicle frame builder와 recovery UART는 범위 밖이다.
+- DMA buffer 수명·wrap/overrun·parser view copy·queue 취소·reset 후 callback을 검증한다. command cache의 live entry를 줄여 SRAM 실패를 감추지 않고 CONTROL scope를 닫는다.

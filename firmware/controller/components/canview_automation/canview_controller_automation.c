@@ -52,6 +52,7 @@ canview_auto_brightness_config_t canview_auto_brightness_default_config(void)
         .speed_warning_off_confirm_ms = 1000U,
         .speed_warning_flash_interval_ms = 400U,
         .speed_warning_brightness_percent = 90U,
+        .speed_stale_timeout_ms = 150U,
     };
     return config;
 }
@@ -147,6 +148,7 @@ void canview_auto_brightness_reset(canview_auto_brightness_state_t *state,
     *state = (canview_auto_brightness_state_t){
         .initialized = true,
         .current_tenth_percent = (uint16_t)clamp_percent(initial_percent) * 10U,
+        .last_safe_base_percent = clamp_percent(initial_percent),
     };
 }
 
@@ -181,10 +183,21 @@ static void update_speed_warning(canview_auto_brightness_state_t *state,
 {
     const bool limit_available = input->speed_limit_valid && input->speed_limit_active &&
                                  input->speed_limit_kph > 0U;
-    const bool enter_condition = limit_available &&
+    const bool speed_fresh = input->speed_valid &&
+                            input->speed_age_ms <= config->speed_stale_timeout_ms;
+    if (!limit_available || !speed_fresh || elapsed_ms > CANVIEW_AUTOMATION_MAX_TICK_GAP_MS) {
+        state->speed_warning_active = false;
+        state->speed_warning_on_ms = 0U;
+        state->speed_warning_off_ms = 0U;
+        state->speed_warning_flash_ms = 0U;
+        return;
+    }
+    elapsed_ms = elapsed_ms > CANVIEW_AUTOMATION_MAX_EVIDENCE_MS
+                     ? CANVIEW_AUTOMATION_MAX_EVIDENCE_MS : elapsed_ms;
+    const bool enter_condition =
         speed_is_at_least_percent(input->speed_tenth_kph, input->speed_limit_kph,
                                   config->speed_warning_enter_percent);
-    const bool keep_condition = limit_available &&
+    const bool keep_condition =
         speed_is_at_least_percent(input->speed_tenth_kph, input->speed_limit_kph,
                                   config->speed_warning_exit_percent);
 
@@ -271,7 +284,8 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
 
     uint8_t target = clamp_percent(input->manual_percent);
     const bool signal_valid = input->lighting_valid &&
-                              input->lighting_age_ms <= config->stale_timeout_ms;
+                              input->lighting_age_ms <= config->stale_timeout_ms &&
+                              elapsed_ms <= CANVIEW_AUTOMATION_MAX_TICK_GAP_MS;
 
     if (signal_valid) {
         const bool requested_night = input->tail_lamps_on;
@@ -285,7 +299,9 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
             }
             const uint32_t confirm_ms = requested_night ? config->lamp_on_confirm_ms
                                                         : config->lamp_off_confirm_ms;
-            state->pending_ms = add_saturated(state->pending_ms, elapsed_ms, confirm_ms);
+            const uint32_t evidence_ms = elapsed_ms > CANVIEW_AUTOMATION_MAX_EVIDENCE_MS
+                                            ? CANVIEW_AUTOMATION_MAX_EVIDENCE_MS : elapsed_ms;
+            state->pending_ms = add_saturated(state->pending_ms, evidence_ms, confirm_ms);
             if (state->pending_ms >= confirm_ms) {
                 state->night_active = requested_night;
                 state->pending_ms = 0U;
@@ -298,7 +314,7 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
     if (!input->enabled) {
         output.status = CANVIEW_BRIGHTNESS_MANUAL;
     } else if (!signal_valid) {
-        target = (uint8_t)((state->current_tenth_percent + 5U) / 10U);
+        target = state->last_safe_base_percent;
         output.status = CANVIEW_BRIGHTNESS_CAN_STALE;
     } else {
         if (state->night_active) {
@@ -307,6 +323,10 @@ canview_auto_brightness_output_t canview_auto_brightness_update(
         } else {
             output.status = CANVIEW_BRIGHTNESS_CAN_DAY;
         }
+    }
+
+    if (!input->enabled || signal_valid) {
+        state->last_safe_base_percent = target;
     }
 
     if (state->idle_dimmed) {
@@ -380,6 +400,7 @@ void canview_adaptive_volume_reconcile(canview_adaptive_volume_state_t *state,
     }
     state->initialized = true;
     state->desired_offset_steps = applied_offset_steps;
+    state->command_pending = false;
     state->attack_evidence_ms = 0U;
     state->release_evidence_ms = 0U;
 }
@@ -407,10 +428,40 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
         state->manual_hold_ms = config->manual_hold_ms;
         state->attack_evidence_ms = 0U;
         state->release_evidence_ms = 0U;
+        state->reset_offset_requested = true;
+    }
+
+    if (!input->fft_valid || input->confidence_percent < config->min_confidence_percent ||
+        elapsed_ms > CANVIEW_AUTOMATION_MAX_TICK_GAP_MS) {
+        state->attack_evidence_ms = 0U;
+        state->release_evidence_ms = 0U;
+    }
+    if (elapsed_ms > CANVIEW_AUTOMATION_MAX_TICK_GAP_MS) {
+        output.status = CANVIEW_VOLUME_INVALID;
+        output.target_offset_steps = state->desired_offset_steps;
+        return output;
+    }
+    elapsed_ms = elapsed_ms > CANVIEW_AUTOMATION_MAX_EVIDENCE_MS
+                     ? CANVIEW_AUTOMATION_MAX_EVIDENCE_MS : elapsed_ms;
+
+    if (state->command_pending) {
+        state->attack_evidence_ms = 0U;
+        state->release_evidence_ms = 0U;
+        output.status = CANVIEW_VOLUME_PAUSED;
+        output.target_offset_steps = state->desired_offset_steps;
+        return output;
+    }
+
+    if (state->reset_offset_requested) {
+        state->reset_offset_requested = false;
         if (state->desired_offset_steps != 0) {
             state->desired_offset_steps = 0;
+            state->command_pending = true;
             output.action = CANVIEW_VOLUME_ACTION_SET_OFFSET;
         }
+        output.status = CANVIEW_VOLUME_PAUSED;
+        output.target_offset_steps = state->desired_offset_steps;
+        return output;
     }
 
     if (!input->enabled) {
@@ -418,6 +469,7 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
         state->release_evidence_ms = 0U;
         if (state->desired_offset_steps != 0) {
             state->desired_offset_steps = 0;
+            state->command_pending = true;
             output.action = CANVIEW_VOLUME_ACTION_SET_OFFSET;
         }
         output.status = CANVIEW_VOLUME_IDLE;
@@ -432,8 +484,8 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
     }
 
     if (!input->fft_valid || input->confidence_percent < config->min_confidence_percent) {
-        state->attack_evidence_ms = subtract_saturated(state->attack_evidence_ms, elapsed_ms);
-        state->release_evidence_ms = subtract_saturated(state->release_evidence_ms, elapsed_ms);
+        state->attack_evidence_ms = 0U;
+        state->release_evidence_ms = 0U;
         output.status = CANVIEW_VOLUME_INVALID;
         output.target_offset_steps = state->desired_offset_steps;
         return output;
@@ -471,6 +523,7 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
         state->attack_evidence_ms >= config->attack_ms &&
         state->desired_offset_steps < (int8_t)config->max_offset_steps) {
         ++state->desired_offset_steps;
+        state->command_pending = true;
         state->attack_evidence_ms = 0U;
         state->step_cooldown_ms = config->step_interval_ms;
         state->feedback_freeze_ms = config->feedback_freeze_ms;
@@ -479,6 +532,7 @@ canview_adaptive_volume_output_t canview_adaptive_volume_update(
                state->release_evidence_ms >= config->release_ms &&
                state->desired_offset_steps > 0) {
         --state->desired_offset_steps;
+        state->command_pending = true;
         state->release_evidence_ms = 0U;
         state->step_cooldown_ms = config->step_interval_ms;
         state->feedback_freeze_ms = config->feedback_freeze_ms;
@@ -561,7 +615,8 @@ canview_headlamp_warning_output_t canview_headlamp_warning_update(
                               input->headlamp_valid &&
                               input->rtc_age_ms <= config->stale_timeout_ms &&
                               input->solar_age_ms <= config->stale_timeout_ms &&
-                              input->headlamp_age_ms <= config->stale_timeout_ms;
+                              input->headlamp_age_ms <= config->stale_timeout_ms &&
+                              elapsed_ms <= CANVIEW_AUTOMATION_MAX_TICK_GAP_MS;
     const bool night = source_fresh && input->enabled && input->vehicle_awake &&
                        after_sunset_with_grace(config, input);
     output.night_active = night;
@@ -579,6 +634,8 @@ canview_headlamp_warning_output_t canview_headlamp_warning_update(
         output.status = CANVIEW_HEADLAMP_WARNING_DAY;
         return output;
     }
+    elapsed_ms = elapsed_ms > CANVIEW_AUTOMATION_MAX_EVIDENCE_MS
+                     ? CANVIEW_AUTOMATION_MAX_EVIDENCE_MS : elapsed_ms;
 
     if (state->warning_active) {
         state->warning_on_evidence_ms = 0U;

@@ -132,13 +132,13 @@ Bridge는 Controller 설정 요청을 Communicator로 우회 전달하지 않는
 
 `N8R8`은 PSRAM 여유가 크지만 기본 권장 주변온도가 65 °C까지인 variant다. 밀폐된 차량 상시 설치에는 `N8R2`를 우선하고, 더 긴 기록은 PSRAM을 늘리기보다 microSD로 해결한다. 개발실 전용 보드라면 `N8R8`도 사용할 수 있다.
 
-2 MB PSRAM에서는 24 byte internal capture record를 200 record/s로 저장할 때 이론상 약 7분 분량이지만, Wi-Fi buffer와 heap을 함께 써야 한다. 첫 구현은 PSRAM ring을 1 MiB 이하로 제한하고 기본 pre-trigger 5초, post-trigger 15초를 사용한다.
+PSRAM은 전원 차단 시 사라지는 작업 메모리이며 영속 capture 저장소가 아니다. 첫 구현은 [구현 준비 기준](implementation-readiness.md)의 PSRAM ring 기본 512 KiB 이하와 capture off free 512 KiB 이상을 지킨다. 기본 pre-trigger 5초, post-trigger 15초를 사용하고 실제 heap·저장공간 admission을 통과한 길이만 수락한다.
 
 ### 5.2 제품화 회로 원칙
 
 - 차량 12 V에 상시 연결한다면 Controller나 Communicator의 보호되지 않은 5 V를 빌려 쓰지 않는다.
 - permanent bridge는 역극성·load dump·brownout을 별도 검토하고, service tool은 절연되지 않은 USB와 차량 ground를 동시에 연결하지 않는다.
-- button은 short press marker, 2초 long press AP open, 8초 long press pairing request로 구분한다.
+- button은 capture 중 short press marker, 정상 앱에서 3초 hold 후 release 시 commissioning/service 진입으로 구분한다. 이 service 창에서 AP를 열고 신규 peer 등록은 별도 양단 물리 승인 후 진행한다. reset 중 5초 hold는 [OTA 복구 앱](ota.md) 진입이며 pairing/key erase로 처리하지 않는다. 이전 2초/8초 제스처는 사용하지 않는다.
 - boot strap GPIO, USB D+/D-, PSRAM 점유 GPIO를 button/LED에 사용하지 않는다.
 - antenna keep-out과 금속 enclosure 거리를 지킨다. 외장 안테나가 필요하면 `WROOM-1U` variant를 별도 검토한다.
 
@@ -176,7 +176,7 @@ HTTP captive portal은 편의 기능이며 인증 수단이 아니다. vehicle d
 ### 6.3 현장 연결 순서
 
 1. 차량이 정지했고 Bridge LED가 정상인지 확인한다.
-2. Bridge button을 2초 누르거나 Controller의 `진단 연결`을 선택한다.
+2. 정상 앱에서 Bridge button을 3초 누른 뒤 놓거나 Controller의 `진단 연결`을 선택한다. OTA 복구 진입은 reset 중 5초 hold로 별도다.
 3. Controller가 Bridge에서 받은 SSID·일회 PIN을 QR과 함께 표시한다.
 4. Controller가 없으면 enclosure 안쪽의 recovery QR로 AP에 연결하고, 물리 button을 다시 눌러 service window를 승인한다.
 5. 휴대폰 captive portal 또는 `192.168.4.1`을 연다.
@@ -243,7 +243,7 @@ ID 목록 5초 기준선 ──> 행동 template 선택 ──> capture arm
 5. marker 전후에 반복해서 바뀐 bit를 추천 순서로 확인
 6. start bit, length, endian, signed, factor, offset을 form으로 바꾸며 live value 확인
 7. 후보를 `C/B/A/X` evidence와 함께 저장
-8. capture와 manifest를 휴대폰으로 내려받아 GitHub issue나 에이전트에 전달
+8. capture와 manifest는 우선 개인 저장소로 내려받는다. 공개 issue/에이전트 전달에는 raw CAN 안의 VIN·좌표 등까지 제거한 검증된 privacy export만 사용하며 원본을 public Git에 올리지 않는다.
 
 ### 8.2 capture mode
 
@@ -324,7 +324,7 @@ Browser decoder는 Controller decoder와 같은 Intel/Motorola bit 규칙, sign 
 
 ### 9.4 evidence와 등급
 
-기존 `C/B/A/X` 등급과 다음 상태를 매핑한다.
+다음 C/B/A/X는 이 진단 문서의 과거 표시 등급이다. 차량 catalog의 문자 등급을 이 표로 자동 변환하지 않는다. 구현 정본은 [T-005](../tasks/T-005-canonical-model.md)의 `CANDIDATE/OBSERVED/VERIFIED/REJECTED` evidence enum이며 freshness는 별도 축이다.
 
 | UI 상태 | 문서 등급 | 필요한 증거 |
 |---|---|---|
@@ -333,7 +333,7 @@ Browser decoder는 Controller decoder와 같은 Intel/Motorola bit 규칙, sign 
 | 검증됨 | A | 반복 캡처 + 독립 계측/OEM 표시 일치 + unit/scale/range/stale 확정 |
 | 제외 | X | 대상 차량에 없거나 반대 증거 기록 |
 
-자동 분석은 `후보` 또는 `관찰됨`까지만 제안할 수 있다. `검증됨` 승격은 UI checklist를 사람이 확인해야 하며 다음 항목이 비어 있으면 저장 버튼을 비활성화한다.
+자동 분석은 `후보` 또는 `관찰됨`까지만 제안할 수 있다. UI checklist는 승격 심사 요청만 저장하며 `VERIFIED` runtime profile을 직접 발급하지 않는다. [T-403](../tasks/T-403-signal-lab-evidence.md)의 독립 evidence 검토와 [T-006](../tasks/T-006-vehicle-profile-generator.md)의 승인 profile 생성 gate를 모두 통과해야 한다. 다음 항목이 비어 있으면 심사 요청을 비활성화한다.
 
 - 독립 기준이 무엇이었는지
 - 반복 횟수와 capture ID
@@ -444,9 +444,8 @@ part 하나가 없어져도 다음 stats window를 기다리고 재전송하지 
 | 8 | `request_token` |
 | 8 | `capture_id` |
 | 1 | `state`: IDLE/ARMED/CAPTURING/FINALIZING/COMPLETE/FAILED/CANCELLED |
-| 1 | `reason` |
+| 2 | `reason`, 공통 u16 namespace |
 | 1 | `bus_mask` |
-| 1 | `reserved0=0` |
 | 4 | `accepted_records` |
 | 4 | `dropped_records` |
 | 4 | `stored_bytes` |
@@ -455,6 +454,8 @@ part 하나가 없어져도 다음 stats window를 기다리고 재전송하지 
 | 4 | `reserved1=0` |
 
 HTTP 202, ESP-NOW MAC success, app ACK, capture completion을 한 상태로 합치지 않는다. Web UI는 `요청 전송`, `장치 수락`, `기록 중`, `저장 완료`를 순서대로 표현한다.
+
+위 capture status는 44 byte schema 계약이다. reason을 u8로 축소하지 않으며 T-002가 byte offset·size·악성 입력 golden을 동결하기 전에는 새 수신 codec을 배포하지 않는다.
 
 marker는 `CAN_CAPTURE_CONTROL` action으로도 표현하지 않는다. `CAN_EVENT_MARKER` 한 경로만 사용하며 raw text를 싣지 않고 다음 고정 payload를 사용한다.
 
@@ -626,15 +627,7 @@ Wi-Fi callback, button ISR, HTTP socket callback에서 DBC decode, JSON 생성, 
 
 ### 13.1 partition 기준
 
-8 MB Flash prototype의 출발점은 다음과 같다. 실제 offset은 ESP-IDF 생성 결과로 검증한다.
-
-| partition | 목표 크기 | 내용 |
-|---|---:|---|
-| NVS + encrypted key | 64 KiB 이상 | peer·AP credential·config |
-| OTA app A/B | 각 2 MiB | signed firmware |
-| web assets | 1 MiB | gzip HTML/CSS/JS/icons |
-| capture metadata | 512 KiB | candidate/evidence index |
-| crash/counter | 128 KiB | bounded diagnostic |
+8 MiB Bridge의 offset·크기는 [OTA §4](ota.md)의 recovery + app A/B + 일반 데이터 배치만 따른다. 별도 1 MiB 공유 web partition을 추가하지 않고 웹 자산을 서명된 앱에 포함한다. 설정·provisioning의 권위 사본은 각각 이중 영역에 두고 NVS는 비권위 캐시만 저장한다. 일반 데이터 1.75 MiB 안에서 capture·metadata·emergency reserve를 함께 예산화한다. [T-204](../tasks/T-204-esp-ota-recovery.md)와 [T-401](../tasks/T-401-capture-cvtrace.md)가 실제 이미지·free space로 검증하기 전에는 긴 capture를 약속하지 않는다.
 
 긴 raw capture를 internal Flash에 순환 기록하지 않는다. targeted short capture만 저장하고, 긴 `ARMED_DRIVE`는 microSD가 없으면 duration을 제한한다.
 
@@ -749,7 +742,7 @@ offline import는 저장된 `.cvtrace`를 브라우저 분석 화면에서 다�
 | `GET /api/v1/candidates` | 후보 목록 | read |
 | `POST /api/v1/candidates` | 후보 저장 | D1 |
 | `PUT /api/v1/candidates/{id}` | descriptor/evidence 수정 | D1 |
-| `POST /api/v1/candidates/{id}/verify` | checklist 기반 등급 변경 | D1 |
+| `POST /api/v1/candidates/{id}/verify` | checklist 기반 승격 심사 요청 저장; VERIFIED 직접 발급 금지 | D1 |
 | `GET /api/v1/config-targets` | Bridge/Controller/Communicator owner | read |
 | `GET /api/v1/config/{target}/schema` | schema-driven widget 정의 | read |
 | `GET /api/v1/config/{target}` | 현재값·revision | read |
@@ -781,7 +774,7 @@ Bridge web asset을 다시 빌드하지 않고 새 설정을 표시할 수 있�
 }
 ```
 
-web renderer가 허용하는 widget은 `switch`, `select`, `slider`, `action` 네 개뿐이다. 임의 HTML, script, CSS, expression을 schema에 넣지 않는다. 숫자 threshold는 target이 보낸 options만 표시하며 자유 text 입력을 만들지 않는다. candidate decoder의 bit/factor처럼 본질적으로 임의값이 필요한 진단 field만 별도 제한 numeric input을 허용한다.
+web renderer가 허용하는 widget은 `switch`, `select`, `slider`, `action` 네 개뿐이다. 임의 HTML, script, CSS, expression을 schema에 넣지 않는다. 숫자 threshold와 candidate decoder의 bit/factor도 검증된 options만 표시하며 자유 숫자 입력을 만들지 않는다. 새 후보 descriptor는 제한된 import 경로로 추가한다.
 
 ## 16. WebSocket event
 
@@ -914,7 +907,7 @@ capture 중 큰 button은 `MARK` 하나만 둔다. marker를 누르면 400 ms �
 
 64-bit map은 DBC start-bit numbering 혼동을 줄이기 위해 byte 0–7 행과 bit 7–0 열 label을 항상 표시한다. Intel/Motorola를 바꾸면 선택 bit 연결선을 다시 그린다. raw byte는 절대 숨기지 않는다.
 
-factor·offset은 `1`, `0.1`, `0.01`, `0.03125`, `0.5`, `-40` 같은 최근/DBC preset을 먼저 제공하고 `고급`에서만 제한 numeric input을 연다. 입력은 finite, 최대 절댓값, decimal 자리 수를 검증한다.
+factor·offset은 `1`, `0.1`, `0.01`, `0.03125`, `0.5`, `-40` 같은 DBC/catalog preset을 select로 제공한다. 임의 decoder 값은 검증된 descriptor import로만 추가한다. import도 finite, 최대 절댓값, decimal 자리 수와 bit 범위를 검증하며 자유식 코드를 실행하지 않는다.
 
 ### 17.6 설정 화면
 
@@ -948,7 +941,7 @@ Bridge 기본 설정:
 
 | 상태·버스·캡처 준비 | 64-bit Signal Lab |
 |---|---|
-| ![Diagnostic Bridge 상태 화면](../images/can-debug-overview.png) | ![Diagnostic Bridge 신호 분석 화면](../images/can-debug-signal-lab.png) |
+| ![Diagnostic Bridge 상태 화면](../images/diagnostic-status.png) | ![Diagnostic Bridge 신호 분석 화면](../images/diagnostic-signals.png) |
 
 [`ui/diagnostic-web/index.html`](../../ui/diagnostic-web/index.html)을 브라우저에서 열고 `?screen=status`, `frames`, `capture`, `signals`, `settings` query로 각 화면을 확인한다. 실제 REST·WebSocket 연결 전의 정적 prototype이며, backend 구현이 끝났다고 간주하면 안 된다.
 

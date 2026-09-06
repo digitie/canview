@@ -30,7 +30,7 @@ export script에서 native child 종료 전에 다음 명령이 실행되어 이
 5. MAX3055 VCC5V의 positive ripple/overshoot와 빠른 하강 검출. 정적 계산의 여유가 좁으므로 실제 최악값이 벗어나면 regulator/supervisor/hold-up를 재설계한다.
 6. reverse/load-dump/FET SOA/TVS/fuse 협조, USB 전환·unpowered injection, CAN bus fault, CAN3 실제 물리계층, mic 케이블 SI, INS 동작/재획득.
 
-이를 단순 “남은 문서 작성”으로 취급하지 않는다. [T-100](../../tasks/T-100-communicator-schematic.md), [T-101](../../tasks/T-101-hardware-bringup.md), [T-100b](../../tasks/T-100b-navigation-audio-bringup.md)에 설계 확정/실측 gate로 남긴다. 전체 G1 또는 차량 TX 승인은 열리지 않는다.
+이를 단순 “남은 문서 작성”으로 취급하지 않는다. [T-100](../../tasks/T-100-communicator-schematic.md)의 회로 승인 → [T-100a](../../tasks/T-100a-pcb-production-design.md)의 PCB 제작 입력 → [T-101](../../tasks/T-101-hardware-bringup.md)의 조립품 실측으로 구분한다. 센서는 [T-100b](../../tasks/T-100b-navigation-audio-bringup.md), 독립 OTA 단전/인터록은 [T-508](../../tasks/T-508-ota-power-can-hil.md)의 실측 gate다. 전체 G1 또는 차량 TX 승인은 열리지 않는다.
 
 ## 전력 예산과 고장 시 부하 제거
 

@@ -8,7 +8,7 @@
 
 - ESP32는 무선 link, pairing, Controller session, configuration, raw telemetry bridge를 담당한다.
 - STM32는 세 FDCAN, timestamp, bus 상태, 안전 신호, 차량 TX 최종 허용을 담당한다.
-- Controller의 표시용 DBC catalog와 signal decoder는 이 UART 경계 밖의 Controller에 둔다. ESP32와 STM32는 signal name이나 scale을 해석하지 않는다.
+- Controller의 표시용 DBC catalog와 signal decoder는 이 UART 경계 밖의 Controller에 둔다. Communicator ESP32는 signal name이나 scale을 해석하지 않는다. STM32는 화면용 범용 DBC 해석을 하지 않지만 최종 안전 판단에 필요한 generated local safety/feedback 신호는 독립 해석한다.
 - ESP-NOW frame을 UART로 그대로 tunnel하지 않는다. 경계마다 길이·권한·상태를 다시 검증한 semantic message만 전달한다.
 
 ## 2. 물리·UART 설정
@@ -227,7 +227,7 @@ Heartbeat 주기는 100 ms다.
 - boot ID 변경: 모든 pending request와 lease를 폐기하고 HELLO부터 시작한다.
 - queue overflow: raw telemetry를 먼저 버리며 safety/control overflow는 fail-closed 상태다.
 
-한쪽 MCU가 상대 MCU를 무조건 reset하는 회로는 기본안에 넣지 않는다. watchdog reset loop가 차량 bus에 반복적으로 영향을 줄 수 있기 때문이다. 독립 watchdog과 transceiver safe pull resistor를 우선 사용하고, cross-reset은 prototype fault-injection 결과가 있을 때만 추가한다.
+runtime 오류마다 상대 MCU를 무조건 reset하지 않는다. [OTA 전용 reset·서비스 인터록](../ota.md)에 의해 ESP가 STM만 reset하는 회로는 이미 설계에 포함돼 있지만, J31 서비스 상태·TX 차단·bounded 복구 정책을 확인한 OTA/물리 서비스에서만 사용한다. UART CRC 오류나 heartbeat 누락을 양 MCU 무한 reset loop로 보상하지 않는다.
 
 ## 10. 확장성
 

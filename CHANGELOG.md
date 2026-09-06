@@ -6,6 +6,8 @@
 
 ### Added
 
+- 전체 계획 2차 대조용 요구사항 추적표와 누락된 OTA·PCB·오디오/SPORT evidence 작업 11개, task metadata/선행 DAG 검증을 추가했다. 제품 구현·차량 승인과 계획 완료를 분리했다.
+- 운전자/진단 웹 5뷰씩의 오프라인 동작 검사와 공식 LVGL8.4 실제 host 수명·상태 회귀시험을 추가했다.
 - Bridge 없이 가능한 장치별 브라우저 OTA, STM 내부 이중 슬롯 복구와 설치 승인·버전 정책을 단일 [설계·리뷰 문서](docs/architecture/ota.md)에 추가했다. OTA 펌웨어 구현은 후속 단계다.
 - Communicator N16R8/Octal PSRAM ECC 설정, ESP·STM reset 분리, 물리 서비스 인터록과 역구동 차단 buffer, Controller 복구 버튼 회로를 반영했다.
 
@@ -26,6 +28,8 @@
 
 ### Changed
 
+- 현대 5W 청색 UI의 큰 4WD·순간연비·작은 원형계기·FFT/차속/RPM·날짜 설정·터치 투과 경고를 다듬고 개별 미수신/정차 잠금/로컬 초안을 구분했다.
+- CAN 밝기 stale 시 반복 감광, 음량 미확인 명령 중복, SPORT 오래된 feedback·외부 mode 변경·시간 점프 처리를 보강했다. 실제 transport/차량 연결은 후속 gate다.
 - 기존 docs/tasks/README.md는 상세 task directory 안내 포인터로 변경했다.
 - root README의 task 링크를 docs/tasks.md로 통일했다.
 - AGENTS.md는 필수 정책과 단계별 문서 선택만 남기고 상세 절차를 runbook으로 분리했다.

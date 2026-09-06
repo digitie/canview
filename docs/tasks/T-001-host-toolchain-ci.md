@@ -72,6 +72,11 @@ tools/check_generated.py
 - [ ] lock file과 source digest가 바뀌지 않은 clean build에서 dependency resolution 결과가 동일하다.
 - [ ] budget Markdown와 machine manifest가 어긋나거나 synthetic map/stack/latency가 한도를 넘으면 CI가 실패한다.
 
+## 계획 보완 수용 기준
+
+- [ ] `tools/validate_plan.py`와 `tests/test_plan_validation.py`를 읽기 전용 CI gate로 실행해 task 수/ID/상태/제목/선행/순환/요약 불일치를 검출한다.
+- [ ] task 검증 절의 미래 script/fixture/CTest target을 구현 산출물로 추적한다. 현재 존재하는 링크/host 검사는 지금 실행하고 미생성 명령은 성공으로 집계하지 않는다.
+
 ## 검증 명령
 
 ```powershell
