@@ -14,6 +14,15 @@
         }                                                                                        \
     } while (0)
 
+static canview_status_t test_plan_apply_default(canview_uart_plan_context_t *context,
+                                                const uint8_t *payload, size_t payload_size)
+{
+    return canview_uart_plan_apply(context, payload, payload_size, 0U);
+}
+
+#define TEST_PLAN_APPLY(context, payload, payload_size)                                         \
+    test_plan_apply_default((context), (payload), (payload_size))
+
 static void put_le(uint8_t *bytes, size_t width, uint64_t value)
 {
     for (size_t index = 0U; index < width; ++index)
@@ -113,6 +122,10 @@ static size_t fill_valid_payload(uint8_t message_type, uint8_t *payload, size_t 
     case CANVIEW_UART_MSG_COMMAND_REQUEST:
         put_le(payload, 8U, 1U);
         put_le(payload + 10U, 2U, 500U);
+        put_le(payload + 12U, 8U, 2U);
+        put_le(payload + 20U, 8U, 3U);
+        put_le(payload + 28U, 4U, 4U);
+        put_le(payload + 32U, 4U, 5U);
         put_le(payload + 52U, 2U, maximum ? 136U : 0U);
         break;
     case CANVIEW_UART_MSG_COMMAND_RESULT:
@@ -213,6 +226,54 @@ static int test_message_matrix(void)
     return 0;
 }
 
+static int test_direction(void)
+{
+    uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
+    canview_uart_message_view_t view;
+    canview_uart_message_view_t empty = {0};
+    CHECK(!canview_uart_message_direction_allowed(NULL, CANVIEW_UART_ENDPOINT_ESP32,
+                                                  CANVIEW_UART_FLOW_INBOUND));
+    CHECK(!canview_uart_message_direction_allowed(&empty, CANVIEW_UART_ENDPOINT_ESP32,
+                                                  CANVIEW_UART_FLOW_INBOUND));
+    CHECK(!canview_uart_message_direction_allowed(&empty,
+                                                  (canview_uart_endpoint_t)2,
+                                                  CANVIEW_UART_FLOW_INBOUND));
+    CHECK(!canview_uart_message_direction_allowed(&empty, CANVIEW_UART_ENDPOINT_ESP32,
+                                                  (canview_uart_flow_t)2));
+
+    for (size_t index = 0U; index < CANVIEW_UART_MESSAGE_POLICY_COUNT; ++index)
+    {
+        const canview_uart_message_policy_t *policy = &CANVIEW_UART_MESSAGE_POLICIES[index];
+        if (policy->supported == 0U)
+        {
+            continue;
+        }
+        const size_t payload_size =
+            fill_valid_payload(policy->message_type, payload, sizeof(payload), false);
+        canview_wire_view_t wire = {0};
+        wire.header.message_type = policy->message_type;
+        wire.header.flags = flags_for(policy->message_type);
+        wire.payload = payload;
+        wire.payload_size = payload_size;
+        CHECK(canview_uart_message_validate(&wire, &view) == CANVIEW_OK);
+        const bool both = policy->direction == CANVIEW_UART_DIRECTION_BOTH;
+        const bool esp_to_stm = policy->direction == CANVIEW_UART_DIRECTION_ESP_TO_STM;
+        CHECK(canview_uart_message_direction_allowed(&view, CANVIEW_UART_ENDPOINT_ESP32,
+                                                     CANVIEW_UART_FLOW_OUTBOUND) ==
+              (both || esp_to_stm));
+        CHECK(canview_uart_message_direction_allowed(&view, CANVIEW_UART_ENDPOINT_ESP32,
+                                                     CANVIEW_UART_FLOW_INBOUND) ==
+              (both || !esp_to_stm));
+        CHECK(canview_uart_message_direction_allowed(&view, CANVIEW_UART_ENDPOINT_STM32,
+                                                     CANVIEW_UART_FLOW_OUTBOUND) ==
+              (both || !esp_to_stm));
+        CHECK(canview_uart_message_direction_allowed(&view, CANVIEW_UART_ENDPOINT_STM32,
+                                                     CANVIEW_UART_FLOW_INBOUND) ==
+              (both || esp_to_stm));
+    }
+    return 0;
+}
+
 static int test_malformed(void)
 {
     uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
@@ -286,6 +347,8 @@ static int test_malformed(void)
                                  CANVIEW_WIRE_CAN_MAX_DLC + 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_TX_AUDIT, 12U, 4U,
                                  CANVIEW_WIRE_CAN_STANDARD_ID_MAX + 1U) == 0);
+    CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_TX_AUDIT, 18U, 2U, UINT16_C(0x0100)) ==
+          0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_TX_AUDIT, 18U, 2U, 0x10U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_TX_AUDIT, 11U, 1U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_TX_AUDIT, 36U, 4U, 1U) == 0);
@@ -294,6 +357,7 @@ static int test_malformed(void)
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_CAPTURE_CONTROL, 17U, 1U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_CAPTURE_CONTROL, 24U, 4U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_EVENT_MARKER, 22U, 2U, 1U) == 0);
+    CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_CAPTURE_STATUS, 40U, 4U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_COMMAND_RESULT, 0U, 8U, 0U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_COMMAND_RESULT, 10U, 1U, 7U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_COMMAND_RESULT, 11U, 1U, 1U) == 0);
@@ -537,6 +601,89 @@ static int test_stream(void)
     return 0;
 }
 
+static int test_long_stream(void)
+{
+    enum
+    {
+        LONG_STREAM_FRAMES = 72000U,
+        LONG_STREAM_FAULT_PERIOD = 97U
+    };
+    uint8_t serial[CANVIEW_UART_MAX_SERIAL_SIZE];
+    uint8_t scratch[CANVIEW_UART_MAX_FRAME_SIZE];
+    uint8_t payload[CANVIEW_UART_MAX_PAYLOAD_SIZE];
+    canview_uart_codec_t codec;
+    canview_uart_message_view_t view;
+    CHECK(canview_uart_codec_reset(&codec) == CANVIEW_OK);
+    uint32_t valid_frames = 0U;
+    uint32_t corrupted_frames = 0U;
+    for (uint32_t frame = 0U; frame < LONG_STREAM_FRAMES; ++frame)
+    {
+        const size_t payload_size = fill_valid_payload(CANVIEW_UART_MSG_HEARTBEAT, payload,
+                                                       sizeof(payload), false);
+        put_le(payload, 8U, UINT64_C(1) + frame / 100U);
+        size_t serial_size = 0U;
+        CHECK(canview_uart_message_encode(
+                  CANVIEW_UART_MSG_HEARTBEAT, flags_for(CANVIEW_UART_MSG_HEARTBEAT), frame,
+                  frame ^ UINT32_C(0x5A5A0000), UINT64_C(1000000) * frame, payload, payload_size,
+                  scratch, sizeof(scratch), serial, sizeof(serial), &serial_size) == CANVIEW_OK);
+
+        switch (frame % LONG_STREAM_FAULT_PERIOD)
+        {
+        case 1U:
+        {
+            uint8_t *byte = &serial[serial_size - 2U];
+            *byte = *byte == UINT8_C(0xFF) ? UINT8_C(0xFE) : (uint8_t)(*byte ^ UINT8_C(0x01));
+            if (*byte == 0U)
+            {
+                *byte = UINT8_C(0x02);
+            }
+            (void)feed_frame(&codec, serial, serial_size, &view);
+            ++corrupted_frames;
+            break;
+        }
+        case 2U:
+        {
+            const size_t dropped = serial_size / 2U;
+            for (size_t index = 0U; index < serial_size; ++index)
+            {
+                if (index != dropped)
+                {
+                    (void)canview_uart_codec_feed(&codec, serial[index], &view);
+                }
+            }
+            ++corrupted_frames;
+            break;
+        }
+        case 3U:
+            for (size_t index = 0U; index + 1U < serial_size; ++index)
+            {
+                (void)canview_uart_codec_feed(&codec, serial[index], &view);
+            }
+            (void)canview_uart_codec_feed(&codec, UINT8_C(0xA5), &view);
+            (void)canview_uart_codec_feed(&codec, 0U, &view);
+            ++corrupted_frames;
+            break;
+        case 4U:
+            (void)canview_uart_codec_feed(&codec, UINT8_C(0xA5), &view);
+            (void)canview_uart_codec_feed(&codec, UINT8_C(0x5A), &view);
+            (void)canview_uart_codec_feed(&codec, 0U, &view);
+            CHECK(feed_frame(&codec, serial, serial_size, &view) == 0);
+            ++valid_frames;
+            ++corrupted_frames;
+            break;
+        default:
+            CHECK(feed_frame(&codec, serial, serial_size, &view) == 0);
+            ++valid_frames;
+            break;
+        }
+    }
+    CHECK(codec.packets_ok == valid_frames);
+    CHECK(corrupted_frames > 0U);
+    CHECK(codec.crc_failures + codec.malformed_packets + codec.unsupported_messages > 0U);
+    CHECK(codec.oversize_packets == 0U);
+    return 0;
+}
+
 static void build_plan_begin(uint8_t *payload, uint64_t token, uint32_t revision,
                              uint32_t expected_revision, uint16_t total_chunks,
                              uint16_t filter_count)
@@ -583,56 +730,74 @@ static int test_plan(void)
     uint8_t chunk[CANVIEW_UART_MAX_PAYLOAD_SIZE];
     uint8_t commit[48];
     build_plan_begin(begin, 1U, 1U, 0U, 2U, 2U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     size_t chunk_size = build_plan_chunk(chunk, 1U, 1U, 0U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     memset(commit, 0, sizeof(commit));
     commit[0] = CANVIEW_UART_PLAN_OP_COMMIT;
     put_le(commit + 4U, 8U, 1U);
     put_le(commit + 12U, 4U, 1U);
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 1U, 1U, 1U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
-    for (size_t index = 0U; index < 32U; ++index)
-    {
-        commit[16U + index] = (uint8_t)(index + 1U);
-    }
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_OK);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
+    uint8_t plan_digest[CANVIEW_UART_PLAN_DIGEST_SIZE];
+    CHECK(canview_uart_plan_digest(&context.candidate, plan_digest) == CANVIEW_OK);
+    memcpy(commit + 16U, plan_digest, sizeof(plan_digest));
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_OK);
     canview_uart_observer_plan_t active;
     CHECK(canview_uart_plan_current(&context, &active) == CANVIEW_OK);
     CHECK(active.revision == 1U && active.filter_count == 2U && active.filters[1].can_id == 1U);
+    static const uint8_t expected_digest[CANVIEW_UART_PLAN_DIGEST_SIZE] = {
+        0xF1U, 0x71U, 0x27U, 0x0FU, 0x56U, 0xA5U, 0xABU, 0xFAU,
+        0x41U, 0x37U, 0x08U, 0x8FU, 0x2BU, 0x9BU, 0x8DU, 0xB6U,
+        0xD7U, 0x42U, 0x96U, 0xB2U, 0xBFU, 0xC8U, 0x18U, 0x57U,
+        0x1DU, 0x9FU, 0xB5U, 0xD9U, 0x04U, 0x6DU, 0x20U, 0x4EU};
+    CHECK(memcmp(active.plan_digest, expected_digest, sizeof(expected_digest)) == 0);
+    uint8_t digest_again[CANVIEW_UART_PLAN_DIGEST_SIZE];
+    CHECK(canview_uart_plan_digest(&active, digest_again) == CANVIEW_OK);
+    CHECK(memcmp(digest_again, active.plan_digest, sizeof(digest_again)) == 0);
+    active.max_records_per_second += 1U;
+    CHECK(canview_uart_plan_digest(&active, digest_again) == CANVIEW_OK);
+    CHECK(memcmp(digest_again, active.plan_digest, sizeof(digest_again)) != 0);
 
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
-    build_plan_begin(begin, 2U, 2U, 0U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
-    chunk_size = build_plan_chunk(chunk, 2U, 2U, 1U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    build_plan_begin(begin, 2U, 1U, 0U, 2U, 1U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    chunk_size = build_plan_chunk(chunk, 2U, 1U, 1U, 2U, 1U);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     CHECK(canview_uart_plan_current(&context, &active) == CANVIEW_OK && active.revision == 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_RESOURCE_BUSY);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_RESOURCE_BUSY);
     memset(chunk, 0, sizeof(chunk));
     chunk[0] = CANVIEW_UART_PLAN_OP_CHUNK;
     put_le(chunk + 4U, 8U, 2U);
-    put_le(chunk + 12U, 4U, 2U);
+    put_le(chunk + 12U, 4U, 1U);
     put_le(chunk + 16U, 2U, 0U);
     put_le(chunk + 18U, 2U, 2U);
     chunk[20] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, 36U) == CANVIEW_INCOMPLETE);
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_RESOURCE_BUSY);
-    build_plan_begin(begin, 3U, 3U, 0U, 1U, 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_RESOURCE_BUSY);
-    CHECK(canview_uart_plan_apply(&context, chunk, 36U) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, 36U) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_RESOURCE_BUSY);
+    build_plan_begin(begin, 3U, 1U, 0U, 1U, 0U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_RESOURCE_BUSY);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, 36U) == CANVIEW_MALFORMED);
 
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
-    build_plan_begin(begin, 4U, 4U, 0U, 1U, 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    build_plan_begin(begin, 4U, 1U, 0U, 1U, 0U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     uint8_t abort_payload[20] = {0};
     abort_payload[0] = CANVIEW_UART_PLAN_OP_ABORT;
     put_le(abort_payload + 4U, 8U, 4U);
-    put_le(abort_payload + 12U, 4U, 4U);
-    CHECK(canview_uart_plan_apply(&context, abort_payload, sizeof(abort_payload)) == CANVIEW_OK);
+    put_le(abort_payload + 12U, 4U, 1U);
+    CHECK(TEST_PLAN_APPLY(&context, abort_payload, sizeof(abort_payload)) == CANVIEW_OK);
     CHECK(canview_uart_plan_current(&context, &active) == CANVIEW_OK && active.revision == 0U);
+    build_plan_begin(begin, 5U, 1U, 0U, 1U, 0U);
+    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin), 10U) == CANVIEW_INCOMPLETE);
+    build_plan_begin(begin, 6U, 1U, 0U, 1U, 0U);
+    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin),
+                                  10U + CANVIEW_UART_PLAN_STAGING_TIMEOUT_MS) ==
+          CANVIEW_INCOMPLETE);
+    CHECK(!context.pending || context.request_token == 6U);
     return 0;
 }
 
@@ -642,267 +807,312 @@ static int test_plan_boundaries(void)
     uint8_t begin[32];
     uint8_t chunk[CANVIEW_UART_MAX_PAYLOAD_SIZE];
     uint8_t commit[48] = {0};
+    uint8_t plan_digest[CANVIEW_UART_PLAN_DIGEST_SIZE];
+    canview_uart_observer_plan_t active;
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
-    CHECK(canview_uart_plan_apply(NULL, begin, sizeof(begin)) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_plan_apply(&context, NULL, sizeof(begin)) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(TEST_PLAN_APPLY(NULL, begin, sizeof(begin)) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(TEST_PLAN_APPLY(&context, NULL, sizeof(begin)) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_plan_current(NULL, NULL) == CANVIEW_INVALID_ARGUMENT);
 
     build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
     begin[1U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 0U, 1U, 0U, 1U, 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 1U, 1U, 0U, 0U, 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 1U, 1U, 0U, CANVIEW_UART_PLAN_MAX_CHUNKS + 1U, 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 1U, 1U, 0U, 1U, CANVIEW_UART_PLAN_MAX_FILTERS + 1U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
+    put_le(begin + 24U, 2U, CANVIEW_UART_PLAN_MIN_RECORDS_PER_SECOND - 1U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
+    put_le(begin + 24U, 2U, CANVIEW_UART_PLAN_MAX_RECORDS_PER_SECOND + 1U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
+    put_le(begin + 26U, 4U, CANVIEW_UART_PLAN_MIN_BYTES_PER_SECOND - 1U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
+    put_le(begin + 26U, 4U, CANVIEW_UART_PLAN_MAX_BYTES_PER_SECOND + 1U);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
     begin[30U] = 8U;
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
     begin[31U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
     build_plan_begin(begin, 1U, 1U, 0U, 1U, 17U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
-    CHECK(canview_uart_plan_apply(&context, begin, 31U) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, begin, 31U) == CANVIEW_MALFORMED);
 
     context.active.revision = 7U;
     build_plan_begin(begin, 2U, 8U, 0U, 1U, 0U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_STALE);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_STALE);
     CHECK(!context.pending);
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
 
     build_plan_begin(begin, 3U, 1U, 0U, 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     size_t chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[1U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 0U, 1U, 0U, 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 0U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, CANVIEW_UART_PLAN_MAX_CHUNKS + 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 1U, 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U,
                                   CANVIEW_UART_PLAN_CHUNK_MAX_FILTERS + 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[21U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[24U] = CANVIEW_WIRE_CAN_BUS_COUNT;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[25U] = 0x10U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[26U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     put_le(chunk + 28U, 4U, CANVIEW_WIRE_CAN_STANDARD_ID_MAX + 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[24U + 2U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     chunk[24U + 1U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
     build_plan_begin(begin, 3U, 1U, 0U, 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     chunk_size = build_plan_chunk(chunk, 3U, 1U, 0U, 1U, 1U);
     put_le(chunk + 24U + 4U, 4U, CANVIEW_WIRE_CAN_EXTENDED_ID_MAX);
     chunk[24U + 1U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
 
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
     build_plan_begin(begin, 6U, 1U, 0U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     chunk_size = build_plan_chunk(chunk, 6U, 1U, 0U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
     chunk_size = build_plan_chunk(chunk, 6U, 1U, 1U, 2U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
 
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
     build_plan_begin(begin, 4U, 1U, 0U, 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
     chunk_size = build_plan_chunk(chunk, 4U, 1U, 0U, 1U, 1U);
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_INCOMPLETE);
     chunk[20U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, chunk, chunk_size) == CANVIEW_MALFORMED);
     memset(commit, 0, sizeof(commit));
     commit[0] = CANVIEW_UART_PLAN_OP_COMMIT;
     put_le(commit + 4U, 8U, 4U);
     put_le(commit + 12U, 4U, 1U);
     commit[1U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
     commit[1U] = 0U;
-    CHECK(canview_uart_plan_apply(&context, commit, 47U) == CANVIEW_MALFORMED);
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_OK);
+    CHECK(TEST_PLAN_APPLY(&context, commit, 47U) == CANVIEW_MALFORMED);
+    CHECK(canview_uart_plan_digest(&context.candidate, plan_digest) == CANVIEW_OK);
+    memcpy(commit + 16U, plan_digest, sizeof(plan_digest));
+    commit[16U] ^= 1U;
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
+    CHECK(canview_uart_plan_current(&context, &active) == CANVIEW_OK && active.revision == 0U);
+    commit[16U] ^= 1U;
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_OK);
 
     uint8_t unknown[20] = {0};
-    CHECK(canview_uart_plan_apply(&context, unknown, sizeof(unknown)) ==
+    CHECK(TEST_PLAN_APPLY(&context, unknown, sizeof(unknown)) ==
           CANVIEW_UNSUPPORTED_MESSAGE);
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
 
     CHECK(canview_uart_plan_reset(&context) == CANVIEW_OK);
     memset(commit, 0, sizeof(commit));
     commit[0] = CANVIEW_UART_PLAN_OP_COMMIT;
     put_le(commit + 4U, 8U, 5U);
     put_le(commit + 12U, 4U, 1U);
-    CHECK(canview_uart_plan_apply(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
+    CHECK(TEST_PLAN_APPLY(&context, commit, sizeof(commit)) == CANVIEW_MALFORMED);
     uint8_t abort_payload[20] = {0};
     abort_payload[0] = CANVIEW_UART_PLAN_OP_ABORT;
     put_le(abort_payload + 4U, 8U, 5U);
     put_le(abort_payload + 12U, 4U, 1U);
-    CHECK(canview_uart_plan_apply(&context, abort_payload, sizeof(abort_payload)) ==
+    CHECK(TEST_PLAN_APPLY(&context, abort_payload, sizeof(abort_payload)) ==
           CANVIEW_MALFORMED);
     abort_payload[18U] = 1U;
-    CHECK(canview_uart_plan_apply(&context, abort_payload, sizeof(abort_payload)) ==
+    CHECK(TEST_PLAN_APPLY(&context, abort_payload, sizeof(abort_payload)) ==
           CANVIEW_MALFORMED);
     return 0;
 }
 
+static canview_uart_command_key_t test_command_key(uint64_t token, uint16_t command_id,
+                                                   const uint8_t digest[CANVIEW_UART_COMMAND_DIGEST_SIZE])
+{
+    canview_uart_command_key_t key = {
+        .origin_device_id = 1U,
+        .origin_boot_id = 2U,
+        .wireless_session_id = 3U,
+        .control_generation = 4U,
+        .request_token = token,
+        .command_id = command_id};
+    memcpy(key.canonical_argument_digest, digest, CANVIEW_UART_COMMAND_DIGEST_SIZE);
+    return key;
+}
+
 static int test_command_cache(void)
 {
-    canview_uart_command_cache_t cache;
+    canview_uart_command_cache_t cache = {0};
     uint8_t digest[CANVIEW_UART_COMMAND_DIGEST_SIZE];
     uint8_t changed[CANVIEW_UART_COMMAND_DIGEST_SIZE];
     uint8_t result[CANVIEW_UART_COMMAND_RESULT_MAX];
     memset(digest, 0x11, sizeof(digest));
     memset(changed, 0x22, sizeof(changed));
     memset(result, 0xA5, sizeof(result));
+    const canview_uart_command_key_t key = test_command_key(1U, 7U, digest);
+    canview_uart_command_handle_t handle;
     CHECK(canview_uart_command_cache_reset(&cache) == CANVIEW_OK);
-    size_t entry = 0U;
-    CHECK(canview_uart_command_cache_admit(&cache, 1U, 7U, digest, 100U, &entry) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result, sizeof(result), 101U) ==
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 100U, &handle) == CANVIEW_OK);
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, sizeof(result), 101U) ==
           CANVIEW_OK);
     const uint8_t *stored = NULL;
     size_t stored_size = 0U;
-    size_t duplicate_entry = 0U;
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 7U, digest, 102U, &duplicate_entry,
-                                            &stored, &stored_size) == CANVIEW_DUPLICATE);
-    CHECK(duplicate_entry == entry && stored != NULL && stored_size == sizeof(result) &&
+    canview_uart_command_handle_t duplicate_handle;
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 102U, &duplicate_handle, &stored,
+                                            &stored_size) == CANVIEW_DUPLICATE);
+    CHECK(duplicate_handle.slot == handle.slot && duplicate_handle.generation == handle.generation &&
+          stored != NULL && stored_size == sizeof(result) &&
           memcmp(stored, result, sizeof(result)) == 0);
-    CHECK(canview_uart_command_cache_mark_ack(&cache, entry) == CANVIEW_OK);
-    CHECK(cache.entries[entry].terminal && cache.entries[entry].acknowledged);
-    CHECK(canview_uart_command_cache_admit(&cache, 1U, 7U, digest, 103U, &duplicate_entry) ==
+    CHECK(canview_uart_command_cache_mark_ack(&cache, &handle) == CANVIEW_OK);
+    CHECK(cache.entries[handle.slot].terminal && cache.entries[handle.slot].acknowledged);
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 103U, &duplicate_handle) ==
           CANVIEW_DUPLICATE);
-    CHECK(canview_uart_command_cache_admit(&cache, 1U, 7U, changed, 103U, &duplicate_entry) ==
-          CANVIEW_MALFORMED);
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 7U, changed, 103U, &duplicate_entry,
-                                            &stored, &stored_size) == CANVIEW_MALFORMED);
 
-    for (uint64_t token = 2U; token <= CANVIEW_UART_COMMAND_CACHE_CAPACITY; ++token)
-    {
-        CHECK(canview_uart_command_cache_admit(&cache, token, 7U, digest, 100U, &entry) ==
-              CANVIEW_OK);
-    }
-    CHECK(canview_uart_command_cache_admit(&cache, 257U, 7U, digest, 100U, &entry) ==
-          CANVIEW_RESOURCE_BUSY);
-    CHECK(canview_uart_command_cache_expire(&cache, 60100U) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_admit(&cache, 257U, 7U, digest, 60101U, &entry) ==
+    canview_uart_command_key_t changed_key = key;
+    memcpy(changed_key.canonical_argument_digest, changed, sizeof(changed));
+    CHECK(canview_uart_command_cache_admit(&cache, &changed_key, 103U, &duplicate_handle) ==
+          CANVIEW_MALFORMED);
+    CHECK(canview_uart_command_cache_lookup(&cache, &changed_key, 103U, &duplicate_handle, &stored,
+                                            &stored_size) == CANVIEW_MALFORMED);
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, sizeof(result), 104U) ==
           CANVIEW_OK);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result, sizeof(result),
-                                                   60101U) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_lookup(&cache, 257U, 7U, digest, 60102U, &entry, &stored,
-                                            &stored_size) == CANVIEW_DUPLICATE &&
-          stored != NULL && stored_size == sizeof(result));
-    CHECK(canview_uart_command_cache_expire(&cache, 120101U) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_lookup(&cache, 257U, 7U, digest, 120102U, &entry, &stored,
-                                            &stored_size) == CANVIEW_STALE);
+    result[0] ^= 1U;
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, sizeof(result), 104U) ==
+          CANVIEW_MALFORMED);
+    result[0] ^= 1U;
+
+    canview_uart_command_key_t other_origin = key;
+    other_origin.origin_device_id = 9U;
+    CHECK(canview_uart_command_cache_admit(&cache, &other_origin, 105U, &duplicate_handle) ==
+          CANVIEW_OK);
+    CHECK(duplicate_handle.slot != handle.slot);
+    CHECK(canview_uart_command_cache_lookup(&cache, &other_origin, 106U, &duplicate_handle,
+                                            &stored, &stored_size) == CANVIEW_DUPLICATE);
+    CHECK(canview_uart_command_cache_reset(&cache) == CANVIEW_OK);
+
+    for (uint64_t token = 1U; token <= CANVIEW_UART_COMMAND_CACHE_CAPACITY; ++token)
+    {
+        const canview_uart_command_key_t fill_key = test_command_key(token, 7U, digest);
+        CHECK(canview_uart_command_cache_admit(&cache, &fill_key, 100U, &handle) == CANVIEW_OK);
+    }
+    const canview_uart_command_key_t full_key = test_command_key(257U, 7U, digest);
+    CHECK(canview_uart_command_cache_admit(&cache, &full_key, 100U, &handle) ==
+          CANVIEW_RESOURCE_BUSY);
+    CHECK(canview_uart_command_cache_expire(&cache, CANVIEW_UART_COMMAND_CACHE_RETENTION_MS + 100U) ==
+          CANVIEW_OK);
+    CHECK(canview_uart_command_cache_admit(&cache, &full_key,
+                                           CANVIEW_UART_COMMAND_CACHE_RETENTION_MS + 101U,
+                                           &handle) == CANVIEW_OK);
+    const canview_uart_command_handle_t stale_handle = handle;
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, sizeof(result),
+                                                   CANVIEW_UART_COMMAND_CACHE_RETENTION_MS + 101U) ==
+          CANVIEW_OK);
+    CHECK(canview_uart_command_cache_expire(&cache,
+                                            2U * CANVIEW_UART_COMMAND_CACHE_RETENTION_MS + 102U) ==
+          CANVIEW_OK);
+    const canview_uart_command_key_t replacement_key = test_command_key(258U, 7U, digest);
+    CHECK(canview_uart_command_cache_admit(&cache, &replacement_key,
+                                           2U * CANVIEW_UART_COMMAND_CACHE_RETENTION_MS + 103U,
+                                           &handle) == CANVIEW_OK);
+    CHECK(canview_uart_command_cache_record_result(&cache, &stale_handle, result, sizeof(result),
+                                                   2U * CANVIEW_UART_COMMAND_CACHE_RETENTION_MS + 104U) ==
+          CANVIEW_STALE);
+    CHECK(canview_uart_command_cache_reset(&cache) == CANVIEW_OK);
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, sizeof(result), 200U) ==
+          CANVIEW_STALE);
     return 0;
 }
 
 static int test_command_boundaries(void)
 {
-    canview_uart_command_cache_t cache;
+    canview_uart_command_cache_t cache = {0};
     uint8_t digest[CANVIEW_UART_COMMAND_DIGEST_SIZE];
     uint8_t result[CANVIEW_UART_COMMAND_RESULT_MAX];
     memset(digest, 0x31, sizeof(digest));
     memset(result, 0xC3, sizeof(result));
-    size_t entry = 0U;
-    size_t ignored_entry = 0U;
+    canview_uart_command_key_t key = test_command_key(1U, 1U, digest);
+    canview_uart_command_handle_t handle = {0};
+    canview_uart_command_handle_t ignored_handle;
     const uint8_t *stored = NULL;
     size_t stored_size = 0U;
-
     CHECK(canview_uart_command_cache_reset(NULL) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_command_cache_reset(&cache) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_admit(NULL, 1U, 1U, digest, 0U, &entry) ==
-          CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_admit(&cache, 0U, 1U, digest, 0U, &entry) ==
-          CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_admit(&cache, 1U, 1U, NULL, 0U, &entry) ==
-          CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_admit(&cache, 1U, 1U, digest, 0U, NULL) ==
-          CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_admit(&cache, 1U, 1U, digest, 0U, &entry) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 1U, digest, 1U, &ignored_entry,
-                                            &stored, &stored_size) == CANVIEW_DUPLICATE);
+    CHECK(canview_uart_command_cache_admit(NULL, &key, 0U, &handle) == CANVIEW_INVALID_ARGUMENT);
+    key.request_token = 0U;
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 0U, &handle) == CANVIEW_INVALID_ARGUMENT);
+    key.request_token = 1U;
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 0U, NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 0U, &handle) == CANVIEW_OK);
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 1U, &ignored_handle, &stored,
+                                            &stored_size) == CANVIEW_DUPLICATE);
     CHECK(stored == NULL && stored_size == 0U);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result, sizeof(result), 2U) ==
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, sizeof(result), 2U) ==
           CANVIEW_OK);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, NULL, 1U, 2U) ==
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, NULL, 1U, 2U) ==
           CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result, 0U, 2U) ==
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result, 0U, 2U) ==
           CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result,
+    CHECK(canview_uart_command_cache_record_result(&cache, &handle, result,
                                                    CANVIEW_UART_COMMAND_RESULT_MAX + 1U, 2U) ==
           CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_mark_ack(&cache, CANVIEW_UART_COMMAND_CACHE_CAPACITY) ==
-          CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_mark_ack(NULL, entry) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_mark_ack(&cache, entry) == CANVIEW_OK);
-
-    CHECK(canview_uart_command_cache_lookup(NULL, 1U, 1U, digest, 2U, &ignored_entry, &stored,
+    handle.slot = CANVIEW_UART_COMMAND_CACHE_CAPACITY;
+    CHECK(canview_uart_command_cache_mark_ack(&cache, &handle) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_uart_command_cache_mark_ack(NULL, &handle) == CANVIEW_INVALID_ARGUMENT);
+    handle.slot = 0U;
+    CHECK(canview_uart_command_cache_mark_ack(&cache, &handle) == CANVIEW_OK);
+    CHECK(canview_uart_command_cache_lookup(NULL, &key, 2U, &ignored_handle, &stored,
                                             &stored_size) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_lookup(&cache, 0U, 1U, digest, 2U, &ignored_entry, &stored,
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 2U, NULL, &stored,
                                             &stored_size) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 1U, NULL, 2U, &ignored_entry, &stored,
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 2U, &ignored_handle, NULL,
                                             &stored_size) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 1U, digest, 2U, NULL, &stored,
-                                            &stored_size) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 1U, digest, 2U, &ignored_entry, NULL,
-                                            &stored_size) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_lookup(&cache, 1U, 1U, digest, 2U, &ignored_entry, &stored,
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 2U, &ignored_handle, &stored,
                                             NULL) == CANVIEW_INVALID_ARGUMENT);
-
     CHECK(canview_uart_command_cache_reset(&cache) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_mark_ack(&cache, 0U) == CANVIEW_STALE);
-    CHECK(canview_uart_command_cache_record_result(&cache, 0U, result, sizeof(result), 2U) ==
-          CANVIEW_STALE);
-    CHECK(canview_uart_command_cache_record_result(NULL, 0U, result, sizeof(result), 2U) ==
-          CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_uart_command_cache_record_result(&cache,
-                                                   CANVIEW_UART_COMMAND_CACHE_CAPACITY, result,
-                                                   sizeof(result), 2U) == CANVIEW_INVALID_ARGUMENT);
-
-    CHECK(canview_uart_command_cache_admit(&cache, 2U, 1U, digest, 10U, &entry) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result, sizeof(result), 60010U) ==
-          CANVIEW_STALE);
-    CHECK(canview_uart_command_cache_admit(&cache, 3U, 1U, digest, 60010U, &ignored_entry) ==
-          CANVIEW_OK);
-    CHECK(canview_uart_command_cache_admit(&cache, 4U, 1U, digest, 60010U, &ignored_entry) ==
-          CANVIEW_OK);
-    CHECK(canview_uart_command_cache_lookup(&cache, 3U, 1U, digest, 60011U, &ignored_entry,
-                                            &stored, &stored_size) == CANVIEW_DUPLICATE);
-    CHECK(canview_uart_command_cache_lookup(&cache, 2U, 1U, digest, 60010U, &ignored_entry,
-                                            &stored, &stored_size) == CANVIEW_STALE);
+    CHECK(canview_uart_command_cache_mark_ack(&cache, &handle) == CANVIEW_STALE);
     CHECK(canview_uart_command_cache_expire(NULL, 0U) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_uart_command_cache_admit(&cache, &key, UINT64_MAX - 1U, &handle) == CANVIEW_OK);
+    CHECK(cache.entries[handle.slot].expires_at_ms == UINT64_MAX);
+    return 0;
+}
 
-    CHECK(canview_uart_command_cache_reset(&cache) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_admit(&cache, 5U, 1U, digest, UINT64_MAX - 1U, &entry) ==
-          CANVIEW_OK);
-    CHECK(cache.entries[entry].expires_at_ms == UINT64_MAX);
-    CHECK(canview_uart_command_cache_record_result(&cache, entry, result, sizeof(result),
-                                                   UINT64_MAX - 1U) == CANVIEW_OK);
-    CHECK(canview_uart_command_cache_lookup(&cache, 5U, 1U, digest, UINT64_MAX, &ignored_entry,
-                                            &stored, &stored_size) == CANVIEW_STALE);
+static int link_complete_for_test(canview_uart_link_t *link, uint64_t boot_id,
+                                  uint64_t now_ms)
+{
+    bool changed = false;
+    CHECK(canview_uart_link_note_hello(link, boot_id, now_ms, &changed) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_hello_ack(link, boot_id, CANVIEW_UART_PROTOCOL_MAJOR,
+                                           CANVIEW_UART_PROTOCOL_MINOR, 0U, now_ms) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_safety_snapshot(link, boot_id, now_ms) == CANVIEW_OK);
+    CHECK(canview_uart_link_set_cts_blocked(link, false, now_ms) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_heartbeat(link, boot_id, now_ms, &changed) == CANVIEW_OK);
     return 0;
 }
 
@@ -911,9 +1121,7 @@ static int test_link(void)
     canview_uart_link_t link;
     bool changed = true;
     CHECK(canview_uart_link_reset(&link) == CANVIEW_OK);
-    CHECK(link.state == CANVIEW_UART_LINK_OFFLINE);
-    CHECK(canview_uart_link_note_hello(&link, 1U, 0U, &changed) == CANVIEW_OK && !changed);
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 0U, &changed) == CANVIEW_OK && !changed);
+    CHECK(link_complete_for_test(&link, 1U, 0U) == 0);
     CHECK(link.state == CANVIEW_UART_LINK_ONLINE);
     CHECK(canview_uart_link_command_admission_allowed(&link, 50U));
     CHECK(canview_uart_link_tick(&link, 300U) == CANVIEW_OK &&
@@ -931,9 +1139,11 @@ static int test_link(void)
     CHECK(canview_uart_link_set_cts_blocked(&link, true, 700U) == CANVIEW_OK);
     CHECK(canview_uart_link_tick(&link, 1700U) == CANVIEW_OK &&
           link.state == CANVIEW_UART_LINK_OFFLINE);
-    CHECK(canview_uart_link_note_heartbeat(&link, 2U, 1701U, &changed) == CANVIEW_OK && changed);
-    CHECK(link.state == CANVIEW_UART_LINK_OFFLINE);
+    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 1701U, &changed) == CANVIEW_OK);
+    CHECK(!link.hello_complete && !changed);
     CHECK(!canview_uart_link_command_admission_allowed(&link, 1701U));
+    CHECK(link_complete_for_test(&link, 1U, 1800U) == 0);
+    CHECK(link.state == CANVIEW_UART_LINK_ONLINE);
     return 0;
 }
 
@@ -945,6 +1155,10 @@ static int test_link_boundaries(void)
     CHECK(canview_uart_link_note_hello(NULL, 1U, 0U, &changed) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_link_note_hello(&link, 0U, 0U, &changed) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_link_note_hello(&link, 1U, 0U, NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_uart_link_note_hello_ack(NULL, 1U, CANVIEW_UART_PROTOCOL_MAJOR,
+                                           CANVIEW_UART_PROTOCOL_MINOR, 0U, 0U) ==
+          CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_uart_link_note_safety_snapshot(NULL, 1U, 0U) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_link_note_heartbeat(NULL, 1U, 0U, &changed) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_link_note_heartbeat(&link, 0U, 0U, &changed) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_link_note_heartbeat(&link, 1U, 0U, NULL) == CANVIEW_INVALID_ARGUMENT);
@@ -956,42 +1170,98 @@ static int test_link_boundaries(void)
     CHECK(canview_uart_link_tick(&link, 0U) == CANVIEW_OK &&
           link.state == CANVIEW_UART_LINK_OFFLINE);
     CHECK(!canview_uart_link_command_admission_allowed(&link, 0U));
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 10U, &changed) == CANVIEW_OK && !changed);
-    CHECK(link.state == CANVIEW_UART_LINK_OFFLINE && !link.hello_complete);
-    CHECK(canview_uart_link_note_hello(&link, 1U, 20U, &changed) == CANVIEW_OK && !changed);
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 20U, &changed) == CANVIEW_OK && !changed);
-    CHECK(link.state == CANVIEW_UART_LINK_ONLINE);
-    CHECK(canview_uart_link_note_hello(&link, 1U, 30U, &changed) == CANVIEW_OK && !changed);
-    CHECK(canview_uart_link_note_heartbeat(&link, 2U, 31U, &changed) == CANVIEW_OK && changed);
-    CHECK(link.state == CANVIEW_UART_LINK_OFFLINE && !link.hello_complete);
-
-    CHECK(canview_uart_link_reset(&link) == CANVIEW_OK);
-    CHECK(canview_uart_link_note_hello(&link, 1U, 100U, &changed) == CANVIEW_OK);
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 100U, &changed) == CANVIEW_OK);
-    CHECK(canview_uart_link_tick(&link, 50U) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_OFFLINE);
-
-    CHECK(canview_uart_link_reset(&link) == CANVIEW_OK);
-    CHECK(canview_uart_link_note_hello(&link, 1U, 0U, &changed) == CANVIEW_OK);
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 0U, &changed) == CANVIEW_OK);
-    CHECK(canview_uart_link_set_cts_blocked(&link, true, 10U) == CANVIEW_OK);
-    CHECK(link.state == CANVIEW_UART_LINK_ONLINE);
-    CHECK(canview_uart_link_tick(&link, 109U) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_ONLINE &&
-          canview_uart_link_command_admission_allowed(&link, 109U));
-    CHECK(canview_uart_link_tick(&link, 110U) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_SUSPECT &&
-          !canview_uart_link_command_admission_allowed(&link, 110U));
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 200U, &changed) == CANVIEW_OK);
-    CHECK(canview_uart_link_tick(&link, 1000U) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_SUSPECT);
-    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 1000U, &changed) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_SUSPECT);
+    CHECK(canview_uart_link_note_hello(&link, 1U, 10U, &changed) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_hello_ack(&link, 1U, CANVIEW_UART_PROTOCOL_MAJOR + 1U,
+                                           CANVIEW_UART_PROTOCOL_MINOR, 0U, 10U) ==
+          CANVIEW_UNSUPPORTED_VERSION);
+    CHECK(canview_uart_link_note_hello_ack(&link, 1U, CANVIEW_UART_PROTOCOL_MAJOR,
+                                           CANVIEW_UART_PROTOCOL_MINOR, 0U, 10U) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_safety_snapshot(&link, 1U, 10U) == CANVIEW_OK);
+    CHECK(!canview_uart_link_command_admission_allowed(&link, 10U));
+    CHECK(canview_uart_link_set_cts_blocked(&link, false, 10U) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 10U, &changed) == CANVIEW_OK);
+    CHECK(canview_uart_link_command_admission_allowed(&link, 10U));
     CHECK(canview_uart_link_tick(&link, 1011U) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_OFFLINE);
-    CHECK(canview_uart_link_set_cts_blocked(&link, false, 1012U) == CANVIEW_OK &&
-          link.state == CANVIEW_UART_LINK_ONLINE &&
-          canview_uart_link_command_admission_allowed(&link, 1012U));
+          link.state == CANVIEW_UART_LINK_OFFLINE && !link.hello_complete);
+    CHECK(canview_uart_link_note_heartbeat(&link, 1U, 1012U, &changed) == CANVIEW_OK &&
+          !link.hello_complete);
+
+    CHECK(canview_uart_link_reset(&link) == CANVIEW_OK);
+    CHECK(link_complete_for_test(&link, 1U, 100U) == 0);
+    CHECK(canview_uart_link_note_hello(&link, 2U, 200U, &changed) == CANVIEW_OK && changed);
+    CHECK(!link.hello_ack_complete && !link.safety_snapshot_valid && !link.cts_known);
+    CHECK(canview_uart_link_note_hello_ack(&link, 2U, CANVIEW_UART_PROTOCOL_MAJOR,
+                                           CANVIEW_UART_PROTOCOL_MINOR, 0U, 200U) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_safety_snapshot(&link, 2U, 200U) == CANVIEW_OK);
+    CHECK(canview_uart_link_set_cts_blocked(&link, false, 200U) == CANVIEW_OK);
+    CHECK(canview_uart_link_note_heartbeat(&link, 2U, 200U, &changed) == CANVIEW_OK);
+    CHECK(link.state == CANVIEW_UART_LINK_ONLINE);
+
+    canview_uart_command_admission_context_t admission = {
+        .authenticated = true,
+        .control_lease_valid = true,
+        .safety_snapshot_current = true,
+        .build_mode_allows_tx = true,
+        .hardware_tx_gate_ready = true};
+    CHECK(canview_uart_command_admission_allowed(&link, &admission, 200U));
+    admission.authenticated = false;
+    CHECK(!canview_uart_command_admission_allowed(&link, &admission, 200U));
+    CHECK(!canview_uart_command_admission_allowed(&link, NULL, 200U));
+    return 0;
+}
+
+static int test_session(void)
+{
+    canview_uart_link_t link;
+    canview_uart_plan_context_t plan;
+    canview_uart_command_cache_t cache = {0};
+    bool boot_changed = true;
+    uint8_t begin[32];
+    uint8_t digest[CANVIEW_UART_COMMAND_DIGEST_SIZE] = {0x41U};
+    canview_uart_command_key_t key = test_command_key(1U, 7U, digest);
+    canview_uart_command_handle_t handle;
+    canview_uart_command_handle_t ignored_handle;
+    const uint8_t *stored = NULL;
+    size_t stored_size = 0U;
+
+    CHECK(canview_uart_session_reset(&link, &plan, &cache) == CANVIEW_OK);
+    build_plan_begin(begin, 1U, 1U, 0U, 1U, 0U);
+    CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 10U, &handle) == CANVIEW_OK);
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 1U, 20U, &boot_changed) ==
+          CANVIEW_OK);
+    CHECK(!boot_changed && !plan.pending && !link.hello_ack_complete);
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 20U, &ignored_handle, &stored,
+                                            &stored_size) == CANVIEW_STALE);
+
+    key.request_token = 2U;
+    CHECK(canview_uart_command_cache_admit(&cache, &key, 30U, &handle) == CANVIEW_OK);
+    CHECK(canview_uart_session_note_heartbeat(&link, &plan, &cache, 1U, 40U, &boot_changed) ==
+          CANVIEW_OK);
+    CHECK(!boot_changed);
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 40U, &ignored_handle, &stored,
+                                            &stored_size) == CANVIEW_DUPLICATE);
+
+    build_plan_begin(begin, 3U, 1U, 0U, 1U, 0U);
+    CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    CHECK(canview_uart_session_note_heartbeat(&link, &plan, &cache, 2U, 50U, &boot_changed) ==
+          CANVIEW_OK);
+    CHECK(boot_changed && !plan.pending && !link.hello_complete);
+    CHECK(canview_uart_command_cache_lookup(&cache, &key, 50U, &ignored_handle, &stored,
+                                            &stored_size) == CANVIEW_STALE);
+
+    CHECK(canview_uart_link_note_hello(&link, 2U, 60U, &boot_changed) == CANVIEW_OK);
+    CHECK(canview_uart_plan_reset(&plan) == CANVIEW_OK);
+    build_plan_begin(begin, 4U, 1U, 0U, 1U, 0U);
+    CHECK(TEST_PLAN_APPLY(&plan, begin, sizeof(begin)) == CANVIEW_INCOMPLETE);
+    cache.next_generation = UINT64_MAX;
+    const uint64_t peer_boot_before = link.peer_boot_id;
+    const bool pending_before = plan.pending;
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 3U, 70U, &boot_changed) ==
+          CANVIEW_RESOURCE_BUSY);
+    CHECK(link.peer_boot_id == peer_boot_before && plan.pending == pending_before);
+    CHECK(canview_uart_session_note_hello(&link, &plan, &cache, 0U, 70U, &boot_changed) ==
+          CANVIEW_INVALID_ARGUMENT);
     return 0;
 }
 
@@ -1055,7 +1325,7 @@ static int test_limits(void)
     CHECK(canview_uart_message_validate(&wire, &view) == CANVIEW_MALFORMED);
     CHECK(canview_uart_plan_reset(NULL) == CANVIEW_INVALID_ARGUMENT);
     canview_uart_plan_context_t plan;
-    CHECK(canview_uart_plan_apply(&plan, payload, 0U) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(TEST_PLAN_APPLY(&plan, payload, 0U) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_command_cache_reset(NULL) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_uart_link_reset(NULL) == CANVIEW_INVALID_ARGUMENT);
     return 0;
@@ -1074,6 +1344,14 @@ static int run_scenario(const char *scenario)
     if (strcmp(scenario, "stream") == 0)
     {
         return test_stream();
+    }
+    if (strcmp(scenario, "long-stream") == 0)
+    {
+        return test_long_stream();
+    }
+    if (strcmp(scenario, "direction") == 0)
+    {
+        return test_direction();
     }
     if (strcmp(scenario, "plan") == 0)
     {
@@ -1099,16 +1377,21 @@ static int run_scenario(const char *scenario)
     {
         return test_link_boundaries();
     }
+    if (strcmp(scenario, "session") == 0)
+    {
+        return test_session();
+    }
     if (strcmp(scenario, "limits") == 0)
     {
         return test_limits();
     }
     if (strcmp(scenario, "all") == 0)
     {
-        return test_message_matrix() || test_malformed() || test_stream() || test_plan() ||
+        return test_message_matrix() || test_direction() || test_malformed() || test_stream() ||
+               test_long_stream() || test_plan() ||
                test_plan_boundaries() ||
                test_command_cache() || test_command_boundaries() || test_link() ||
-               test_link_boundaries() || test_limits();
+               test_link_boundaries() || test_session() || test_limits();
     }
     (void)fprintf(stderr, "unknown UART scenario: %s\n", scenario);
     return 2;

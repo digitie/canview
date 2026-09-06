@@ -250,9 +250,17 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
     required_limits = {
         "command_cache_capacity": 256,
         "command_result_max": 82,
+        "command_cache_retention_ms": 60000,
+        "command_ttl_min_ms": 500,
+        "command_ttl_max_ms": 30000,
         "plan_max_chunks": 16,
         "plan_max_filters": 64,
         "plan_chunk_max_filters": 16,
+        "plan_staging_timeout_ms": 2000,
+        "plan_min_records_per_second": 1,
+        "plan_max_records_per_second": 200,
+        "plan_min_bytes_per_second": 512,
+        "plan_max_bytes_per_second": 20000,
         "can_batch_max_records": 12,
         "can_id_stats_max_records": 5,
         "config_max_records": 25,
@@ -284,6 +292,8 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         for key in ("direction", "qos", "supported"):
             if key not in message:
                 raise SchemaError(f"{name} missing {key}")
+        if message["direction"] not in ("BOTH", "ESP_TO_STM", "STM_TO_ESP"):
+            raise SchemaError(f"invalid direction policy: {name}")
         allowed = message.get("allowed_flags")
         required = message.get("required_flags")
         if type(allowed) is not int or type(required) is not int or allowed & ~0x1F or required & ~allowed:
@@ -361,9 +371,17 @@ def render(schema: Mapping[str, Any], digest: str) -> str:
         f"#define CANVIEW_UART_BAUD UINT32_C({int(protocol['baud'])})",
         f"#define CANVIEW_UART_COMMAND_CACHE_CAPACITY UINT16_C({int(limits['command_cache_capacity'])})",
         f"#define CANVIEW_UART_COMMAND_RESULT_MAX UINT16_C({int(limits['command_result_max'])})",
+        f"#define CANVIEW_UART_COMMAND_CACHE_RETENTION_MS UINT32_C({int(limits['command_cache_retention_ms'])})",
+        f"#define CANVIEW_UART_COMMAND_TTL_MIN_MS UINT16_C({int(limits['command_ttl_min_ms'])})",
+        f"#define CANVIEW_UART_COMMAND_TTL_MAX_MS UINT16_C({int(limits['command_ttl_max_ms'])})",
         f"#define CANVIEW_UART_PLAN_MAX_CHUNKS UINT8_C({int(limits['plan_max_chunks'])})",
         f"#define CANVIEW_UART_PLAN_MAX_FILTERS UINT8_C({int(limits['plan_max_filters'])})",
         f"#define CANVIEW_UART_PLAN_CHUNK_MAX_FILTERS UINT8_C({int(limits['plan_chunk_max_filters'])})",
+        f"#define CANVIEW_UART_PLAN_STAGING_TIMEOUT_MS UINT32_C({int(limits['plan_staging_timeout_ms'])})",
+        f"#define CANVIEW_UART_PLAN_MIN_RECORDS_PER_SECOND UINT16_C({int(limits['plan_min_records_per_second'])})",
+        f"#define CANVIEW_UART_PLAN_MAX_RECORDS_PER_SECOND UINT16_C({int(limits['plan_max_records_per_second'])})",
+        f"#define CANVIEW_UART_PLAN_MIN_BYTES_PER_SECOND UINT32_C({int(limits['plan_min_bytes_per_second'])})",
+        f"#define CANVIEW_UART_PLAN_MAX_BYTES_PER_SECOND UINT32_C({int(limits['plan_max_bytes_per_second'])})",
         f"#define CANVIEW_UART_CAN_BATCH_MAX_RECORDS UINT8_C({int(limits['can_batch_max_records'])})",
         f"#define CANVIEW_UART_CAN_ID_STATS_MAX_RECORDS UINT8_C({int(limits['can_id_stats_max_records'])})",
         f"#define CANVIEW_UART_CONFIG_MAX_RECORDS UINT8_C({int(limits['config_max_records'])})",
@@ -415,6 +433,12 @@ def render(schema: Mapping[str, Any], digest: str) -> str:
         "    CANVIEW_UART_PAYLOAD_VARIANTS = UINT8_C(4),",
         "} canview_uart_payload_kind_t;",
         "",
+        "typedef enum {",
+        "    CANVIEW_UART_DIRECTION_BOTH = UINT8_C(0),",
+        "    CANVIEW_UART_DIRECTION_ESP_TO_STM = UINT8_C(1),",
+        "    CANVIEW_UART_DIRECTION_STM_TO_ESP = UINT8_C(2),",
+        "} canview_uart_message_direction_t;",
+        "",
         "typedef struct {",
         "    uint8_t message_type;",
         "    uint16_t min_payload;",
@@ -422,6 +446,7 @@ def render(schema: Mapping[str, Any], digest: str) -> str:
         "    uint8_t required_flags;",
         "    uint8_t allowed_flags;",
         "    uint8_t payload_kind;",
+        "    uint8_t direction;",
         "    uint8_t supported;",
         "} canview_uart_message_policy_t;",
         "",
@@ -454,7 +479,8 @@ def render(schema: Mapping[str, Any], digest: str) -> str:
         lines.append(
             f"    {{CANVIEW_UART_MSG_{message['name']}, {minimum}U, {maximum}U, "
             f"UINT8_C({int(message['required_flags'])}), UINT8_C({int(message['allowed_flags'])}), "
-            f"{kind_value}, UINT8_C({1 if message['supported'] else 0})}},"
+            f"{kind_value}, CANVIEW_UART_DIRECTION_{message['direction']}, "
+            f"UINT8_C({1 if message['supported'] else 0})}},"
         )
     lines += [
         "};",
