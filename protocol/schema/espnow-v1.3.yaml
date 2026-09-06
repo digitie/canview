@@ -49,8 +49,10 @@
   },
   "frame_policy": {
     "response_messages": ["HELLO", "CAPABILITIES", "TIME_SYNC_RESPONSE", "ACK", "ERROR", "STATE_SNAPSHOT", "CAN_FILTER_RESULT", "CAN_STREAM_STATUS", "CAN_ID_STATS", "CAN_CAPTURE_STATUS", "COMMAND_RESULT", "CONTROL_LEASE_STATUS", "CONFIG_RESULT", "REMOTE_CONFIG_STATUS", "BULK_ACK"],
+    "response_correlation_required": true,
     "fragment_messages": ["BULK_FRAGMENT"],
     "session_zero_messages": ["DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"],
+    "authenticated_session_zero_messages": ["PAIR_CONFIRM", "PAIR_RESULT"],
     "secure_messages": ["HELLO", "CAPABILITIES", "TIME_SYNC_REQUEST", "TIME_SYNC_RESPONSE", "HEARTBEAT", "ACK", "ERROR", "STATE_SNAPSHOT_REQUEST", "STATE_SNAPSHOT", "CAN_BATCH", "SIGNAL_BATCH", "BUS_STATUS", "CAN_FILTER_GET", "CAN_FILTER_SET", "CAN_FILTER_RESULT", "CAN_STREAM_CONFIG", "CAN_STREAM_STATUS", "CAN_OBSERVER_CONFIG", "CAN_ID_STATS", "CAN_CAPTURE_CONTROL", "CAN_CAPTURE_STATUS", "CAN_EVENT_MARKER", "DIAGNOSTIC_LEASE", "COMMAND_REQUEST", "COMMAND_RESULT", "CONTROL_LEASE_REQUEST", "CONTROL_LEASE_STATUS", "CONFIG_GET", "CONFIG_SET", "CONFIG_RESULT", "CONFIG_SCHEMA_REQUEST", "REMOTE_CONFIG_REQUEST", "REMOTE_CONFIG_STATUS", "DIAGNOSTIC_COUNTERS", "BULK_BEGIN", "BULK_FRAGMENT", "BULK_ACK", "BULK_END"]
   },
   "semantic_policy": {
@@ -62,10 +64,54 @@
       {"message": "PAIR_CONFIRM", "field": "authorized_role"},
       {"message": "PAIR_RESULT", "field": "assigned_role"}
     ],
-    "command_id_fields": [{"message": "COMMAND_REQUEST", "field": "command_id"}],
+    "authenticated_role_fields": [
+      {"message": "HELLO", "field": "role"},
+      {"message": "CAPABILITIES", "field": "role"}
+    ],
     "scope_fields": [
       {"message": "CAPABILITIES", "field": "control_scope"},
-      {"message": "PAIR_CHALLENGE", "field": "authorized_scope"}
+      {"message": "PAIR_CHALLENGE", "field": "authorized_scope"},
+      {"message": "CONTROL_LEASE_REQUEST", "field": "requested_scope"},
+      {"message": "CONTROL_LEASE_STATUS", "field": "granted_scope"}
+    ],
+    "command_id_fields": [
+      {"message": "COMMAND_REQUEST", "field": "command_id"},
+      {"message": "COMMAND_RESULT", "field": "command_id"}
+    ],
+    "enum_fields": [
+      {"message": "ACK", "field": "status", "enum": "ack_status"},
+      {"message": "ERROR", "field": "code", "enum": "error_code"},
+      {"message": "HEARTBEAT", "field": "link_state", "enum": "link_state"},
+      {"message": "STATE_SNAPSHOT", "field": "link_state", "enum": "link_state"},
+      {"message": "CAN_FILTER_SET", "field": "action", "enum": "filter_action"},
+      {"message": "CAN_FILTER_RESULT", "field": "action", "enum": "filter_action"},
+      {"message": "CAN_FILTER_RESULT", "field": "result", "enum": "filter_result"},
+      {"message": "CAN_OBSERVER_CONFIG", "field": "mode", "enum": "observer_mode"},
+      {"message": "CAN_CAPTURE_CONTROL", "field": "action", "enum": "capture_action"},
+      {"message": "CAN_CAPTURE_STATUS", "field": "state", "enum": "capture_state"},
+      {"message": "CAN_EVENT_MARKER", "field": "marker_kind", "enum": "marker_kind"},
+      {"message": "COMMAND_REQUEST", "field": "command_id", "enum": "command_id"},
+      {"message": "COMMAND_RESULT", "field": "command_id", "enum": "command_id"},
+      {"message": "COMMAND_RESULT", "field": "stage", "enum": "command_stage"},
+      {"message": "CONFIG_RESULT", "field": "stage", "enum": "remote_config_stage"},
+      {"message": "REMOTE_CONFIG_STATUS", "field": "stage", "enum": "remote_config_stage"},
+      {"message": "BULK_ACK", "field": "status", "enum": "bulk_status"},
+      {"message": "BULK_END", "field": "status", "enum": "bulk_status"}
+    ],
+    "record_enum_fields": [
+      {"message": "SIGNAL_BATCH", "field": "value_type", "enum": "value_type"},
+      {"message": "SIGNAL_BATCH", "field": "quality", "enum": "signal_quality"},
+      {"message": "SIGNAL_BATCH", "field": "evidence_grade", "enum": "evidence_grade"},
+      {"message": "CONFIG_SET", "field": "value_type", "enum": "value_type"},
+      {"message": "REMOTE_CONFIG_REQUEST", "field": "value_type", "enum": "value_type"}
+    ],
+    "config_key_fields": [
+      {"message": "CONFIG_GET", "field": "key"},
+      {"message": "CONFIG_SET", "field": "key"},
+      {"message": "REMOTE_CONFIG_REQUEST", "field": "key"}
+    ],
+    "bitmask_fields": [
+      {"message": "COMMAND_REQUEST", "field": "precondition_flags", "enum": "precondition"}
     ],
     "capability_authorization": {
       "message": "CAPABILITIES",
@@ -109,16 +155,16 @@
   "enums": [
     {"name": "role", "c_type": "canview_role_t", "c_prefix": "CANVIEW_ROLE", "values": {"COMMUNICATOR": 0, "PRIMARY_CONTROLLER": 1, "READ_ONLY_CONTROLLER": 2, "DIAGNOSTIC_BRIDGE": 3}},
     {"name": "link_state", "c_type": "canview_link_state_t", "c_prefix": "CANVIEW_LINK", "values": {"DISABLED": 0, "RADIO_INIT": 1, "PEER_RESTORE": 2, "DISCOVERING": 3, "PAIRING": 4, "SECURE_HELLO": 5, "NEGOTIATING": 6, "TIME_SYNC": 7, "STATE_SYNC": 8, "ONLINE": 9, "DEGRADED": 10, "RECOVERING": 11, "AUTH_BACKOFF": 12, "READ_ONLY_INCOMPATIBLE": 13}},
-    {"name": "frame_flags", "c_type": "canview_frame_flag_t", "c_prefix": "CANVIEW_FLAG", "values": {"ACK_REQUIRED": 1, "RESPONSE": 2, "ERROR": 4, "FRAGMENT": 8, "LAST_FRAGMENT": 16, "BROADCAST": 32, "READ_ONLY": 64}},
+    {"name": "frame_flags", "c_type": "canview_frame_flag_t", "c_prefix": "CANVIEW_FLAG", "value_kind": "bitmask", "values": {"ACK_REQUIRED": 1, "RESPONSE": 2, "ERROR": 4, "FRAGMENT": 8, "LAST_FRAGMENT": 16, "BROADCAST": 32, "READ_ONLY": 64}},
     {"name": "priority", "c_type": "canview_priority_t", "c_prefix": "CANVIEW_PRIORITY", "values": {"LINK_SAFETY": 0, "COMMAND": 1, "CRITICAL_EVENT": 2, "TELEMETRY": 3, "BULK": 4}},
     {"name": "ack_status", "c_type": "canview_ack_status_t", "c_prefix": "CANVIEW_ACK", "values": {"ACCEPTED": 0, "DUPLICATE": 1, "BUSY": 2, "MALFORMED": 3, "UNSUPPORTED": 4, "UNAUTHENTICATED": 5, "EXPIRED": 6}},
     {"name": "command_stage", "c_type": "canview_command_stage_t", "c_prefix": "CANVIEW_COMMAND", "values": {"ACCEPTED": 0, "EXECUTING": 1, "COMPLETED": 2, "REJECTED": 3, "EXPIRED": 4, "CANCELLED": 5, "FAILED": 6}},
     {"name": "signal_quality", "c_type": "canview_signal_quality_t", "c_prefix": "CANVIEW_QUALITY", "values": {"VALID": 0, "STALE": 1, "UNAVAILABLE": 2, "UNVERIFIED": 3, "OUT_OF_RANGE": 4, "FAULT": 5}},
     {"name": "evidence_grade", "c_type": "canview_evidence_grade_t", "c_prefix": "CANVIEW_EVIDENCE", "values": {"UNKNOWN": 0, "CANDIDATE": 1, "OBSERVED": 2, "VERIFIED": 3}},
     {"name": "value_type", "c_type": "canview_value_type_t", "c_prefix": "CANVIEW_VALUE", "values": {"BOOL": 0, "U32": 1, "I32": 2, "F32": 3, "ENUM": 4, "BITSET": 5}},
-    {"name": "can_flag", "c_type": "canview_can_flag_t", "c_prefix": "CANVIEW_BUS_FLAG", "values": {"EXTENDED_ID": 1, "REMOTE_FRAME": 2, "ERROR_FRAME": 4, "TX_ECHO": 8}},
-    {"name": "precondition", "c_type": "canview_precondition_flag_t", "c_prefix": "CANVIEW_PRECOND", "values": {"IGNITION_ON": 1, "ENGINE_RUNNING": 2, "FORWARD_GEAR": 4, "NOT_BRAKING": 8, "ABS_ESC_INACTIVE": 16, "SIGNALS_FRESH": 32, "CONTROL_LEASE": 64, "VEHICLE_STOPPED": 128}},
-    {"name": "control_scope", "c_type": "canview_control_scope_t", "c_prefix": "CANVIEW_CONTROL_SCOPE", "values": {"AUDIO_PROFILE": 1, "AUDIO_VOLUME_OFFSET": 2, "AUDIO_FADER": 4, "AUDIO_BALANCE": 8, "AUDIO_MUTE": 16, "AUDIO_REAR_MUTE": 32, "AUDIO_SDVC": 64, "AUDIO_RESTORE": 128, "DRIVE_MODE_PULSE": 256, "ADAPTIVE_VOLUME_AUTOMATION": 512, "AUTO_SPORT_AUTOMATION": 1024}},
+    {"name": "can_flag", "c_type": "canview_can_flag_t", "c_prefix": "CANVIEW_BUS_FLAG", "value_kind": "bitmask", "values": {"EXTENDED_ID": 1, "REMOTE_FRAME": 2, "ERROR_FRAME": 4, "TX_ECHO": 8}},
+    {"name": "precondition", "c_type": "canview_precondition_flag_t", "c_prefix": "CANVIEW_PRECOND", "value_kind": "bitmask", "values": {"IGNITION_ON": 1, "ENGINE_RUNNING": 2, "FORWARD_GEAR": 4, "NOT_BRAKING": 8, "ABS_ESC_INACTIVE": 16, "SIGNALS_FRESH": 32, "CONTROL_LEASE": 64, "VEHICLE_STOPPED": 128}},
+    {"name": "control_scope", "c_type": "canview_control_scope_t", "c_prefix": "CANVIEW_SCOPE", "value_kind": "bitmask", "values": {"AUDIO_PROFILE": 1, "AUDIO_VOLUME_OFFSET": 2, "AUDIO_FADER": 4, "AUDIO_BALANCE": 8, "AUDIO_MUTE": 16, "AUDIO_REAR_MUTE": 32, "AUDIO_SDVC": 64, "AUDIO_RESTORE": 128, "DRIVE_MODE_PULSE": 256, "ADAPTIVE_VOLUME_AUTOMATION": 512, "AUTO_SPORT_AUTOMATION": 1024}},
     {"name": "command_id", "c_type": "canview_command_id_t", "c_prefix": "CANVIEW_COMMAND_ID", "values": {"AUDIO_PROFILE_SET": 257, "AUDIO_VOLUME_OFFSET_SET": 258, "AUDIO_RESTORE_SNAPSHOT": 259, "DRIVE_MODE_BUTTON_PULSE": 513, "AUTOMATION_ARM": 514, "AUTOMATION_DISARM": 515}},
     {"name": "automation_id", "c_type": "canview_automation_id_t", "c_prefix": "CANVIEW_AUTOMATION", "values": {"ADAPTIVE_VOLUME": 1, "AUTO_SPORT": 2}},
     {"name": "config_key", "c_type": "canview_config_key_t", "c_prefix": "CANVIEW_CONFIG", "values": {"SPORT_AUTOMATION_ENABLED": 513, "SPORT_ENTRY_SPEED_TENTH_KPH": 514, "SPORT_ACCELERATION_ENABLED": 515, "RTC_LOCAL_TIME": 769, "SUNRISE_MINUTES": 770, "SUNSET_MINUTES": 771, "HEADLAMP_WARNING_ENABLED": 772, "CAN_RX_STREAM_PERIOD_MS": 1025, "CAN_RX_STREAM_MAX_RECORDS": 1026, "CAN_RX_BYTES_PER_SECOND": 1027}},
@@ -252,8 +298,8 @@
     {"id": 99, "name": "BULK_END", "senders": ["COMMUNICATOR", "PRIMARY_CONTROLLER", "READ_ONLY_CONTROLLER", "DIAGNOSTIC_BRIDGE"], "receivers": ["COMMUNICATOR", "PRIMARY_CONTROLLER", "READ_ONLY_CONTROLLER", "DIAGNOSTIC_BRIDGE"], "states": ["ONLINE", "DEGRADED"], "qos": "Q1", "priority": 4, "ack": "required", "broadcast": false, "encrypted": true, "payload": {"kind": "fixed", "c_type": "canview_bulk_end_payload_t", "size": 60, "fields": [{"name": "object_id", "type": "bytes", "length": 16, "offset": 0}, {"name": "status", "type": "u8", "offset": 16}, {"name": "reserved0", "type": "bytes", "length": 3, "offset": 17, "reserved": true}, {"name": "total_size", "type": "u32", "offset": 20}, {"name": "sha256", "type": "bytes", "length": 32, "offset": 24}, {"name": "reason", "type": "u16", "offset": 56}, {"name": "reserved1", "type": "u16", "offset": 58, "reserved": true}]}}
   ],
   "golden_vectors": [
-    {"name": "hello", "message": "HELLO", "header": {"flags": 2, "priority": 0, "session_id": 16909060, "sequence": 287454020, "sender_time_ms": 1432778632, "correlation_id": 0}, "payload": {"device_id": 72623859790382856, "boot_id": 1230066625199609624, "nonce": "000102030405060708090a0b0c0d0e0f", "role": 0, "major": 1, "minor": 3, "max_frame": 240, "build_id_digest": "101112131415161718191a1b1c1d1e1f", "challenge": "202122232425262728292a2b2c2d2e2f", "capability_digest": "303132333435363738393a3b3c3d3e3f"}},
-    {"name": "capabilities", "message": "CAPABILITIES", "header": {"flags": 2, "priority": 0, "session_id": 16909060, "sequence": 287277863, "sender_time_ms": 1432778639, "correlation_id": 0}, "payload": {"device_id": 72623859790382856, "boot_id": 1230066625199609624, "role": 0, "selected_major": 1, "selected_minor": 3, "max_frame": 240, "bus_count": 3, "support_flags": 1, "control_scope": 0, "max_filters": 32, "max_peers": 3, "max_batch_records": 12, "profile_id": 17, "catalog_revision": 2, "config_schema_version": 1, "profile_digest": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f", "catalog_digest": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f", "build_id_digest": "808182838485868788898a8b8c8d8e8f", "tlvs": [{"type": 1, "value": "0100000000000000"}, {"type": 2, "value": "0000"}, {"type": 3, "value": "11000000"}]}},
+    {"name": "hello", "message": "HELLO", "header": {"flags": 2, "priority": 0, "session_id": 16909060, "sequence": 287454020, "sender_time_ms": 1432778632, "correlation_id": 1}, "payload": {"device_id": 72623859790382856, "boot_id": 1230066625199609624, "nonce": "000102030405060708090a0b0c0d0e0f", "role": 0, "major": 1, "minor": 3, "max_frame": 240, "build_id_digest": "101112131415161718191a1b1c1d1e1f", "challenge": "202122232425262728292a2b2c2d2e2f", "capability_digest": "303132333435363738393a3b3c3d3e3f"}},
+    {"name": "capabilities", "message": "CAPABILITIES", "header": {"flags": 2, "priority": 0, "session_id": 16909060, "sequence": 287277863, "sender_time_ms": 1432778639, "correlation_id": 2}, "payload": {"device_id": 72623859790382856, "boot_id": 1230066625199609624, "role": 0, "selected_major": 1, "selected_minor": 3, "max_frame": 240, "bus_count": 3, "support_flags": 1, "control_scope": 0, "max_filters": 32, "max_peers": 3, "max_batch_records": 12, "profile_id": 17, "catalog_revision": 2, "config_schema_version": 1, "profile_digest": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f", "catalog_digest": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f", "build_id_digest": "808182838485868788898a8b8c8d8e8f", "tlvs": [{"type": 1, "value": "0100000000000000"}, {"type": 2, "value": "0000"}, {"type": 3, "value": "11000000"}]}},
     {"name": "pair-discovery", "message": "DISCOVERY", "header": {"flags": 32, "priority": 0, "session_id": 0, "sequence": 1, "sender_time_ms": 1000, "correlation_id": 0}, "payload": {"installation_id": 72623859790382856, "endpoint_id": 1230066625199609624, "mac": "aabbccddeeff", "nonce": "000102030405060708090a0b0c0d0e0f", "channel": 6, "proposed_major": 1, "proposed_minor_min": 3, "proposed_minor_max": 3, "link_key_generation": 7, "expires_at_ms": 120000, "hmac_tag": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"}},
     {"name": "command-retry", "message": "COMMAND_REQUEST", "header": {"flags": 1, "priority": 1, "session_id": 16909060, "sequence": 10, "sender_time_ms": 5000, "correlation_id": 0}, "payload": {"request_token": 72623859790382856, "command_id": 257, "ttl_ms": 2000, "origin_device_id": 1230066625199609624, "origin_boot_id": 72623859790382856, "wireless_session_id": 16909060, "control_generation": 9, "issued_at_controller_ms": 4000, "control_sync_generation": 3, "expected_state_revision": 17, "precondition_flags": 65, "argument_tlv_length": 8, "argument_tlv": "0100040001000000", "control_tag": "000102030405060708090a0b0c0d0e0f"}},
     {"name": "capture-status", "message": "CAN_CAPTURE_STATUS", "header": {"flags": 2, "priority": 2, "session_id": 16909060, "sequence": 55, "sender_time_ms": 9000, "correlation_id": 10}, "payload": {"request_token": 72623859790382856, "capture_id": 1230066625199609624, "state": 2, "reason": 0, "bus_mask": 7, "accepted_records": 120, "dropped_records": 3, "stored_bytes": 4096, "remaining_ms": 10000, "effective_filter_revision": 17}},

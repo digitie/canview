@@ -33,6 +33,26 @@ class EspNowSchemaTests(unittest.TestCase):
             vector.get("header", {}),
         )
 
+    def _zero_payload(self, message_name: str) -> dict[str, object]:
+        message = self.messages[message_name]
+        payload = message["payload"]
+        if payload["kind"] == "fixed":
+            fields = payload["fields"]
+        elif payload["kind"] in {"suffix", "tlv", "bounded"}:
+            fields = payload["prefix"]["fields"]
+        else:
+            fields = payload["variants"][0]["fields"]
+        values: dict[str, object] = {}
+        for field in fields:
+            values[field["name"]] = "00" * int(field["length"]) if field["type"] == "bytes" else 0
+        if payload["kind"] == "bounded":
+            values["records"] = []
+        if payload["kind"] == "suffix":
+            values[payload["suffix_name"]] = ""
+        if payload["kind"] == "tlv":
+            values["tlvs"] = []
+        return values
+
     def test_version_and_transport_limits_are_frozen(self) -> None:
         self.assertEqual(self.schema["version"], {"major": 1, "minor": 3, "wire_name": "ESP-NOW v1.3"})
         self.assertEqual(self.schema["encoding"]["byte_order"], "little")
@@ -166,6 +186,16 @@ class EspNowSchemaTests(unittest.TestCase):
             generator.decode_frame(self.schema, recalculate_crc(response_on_command), **self._context_for("COMMAND_REQUEST"))
         self.assertEqual(context.exception.code, "bad_flags")
 
+        response_without_response_flag = bytearray((generator.GOLDEN_DIR / "capture-status.bin").read_bytes())
+        response_without_response_flag[6] &= ~0x02
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(
+                self.schema,
+                recalculate_crc(response_without_response_flag),
+                **self._context_for("CAN_CAPTURE_STATUS"),
+            )
+        self.assertEqual(context.exception.code, "bad_flags")
+
         last_without_fragment = bytearray(hello_frame)
         last_without_fragment[6] |= 0x10
         with self.assertRaises(generator.ProtocolDecodeError) as context:
@@ -185,6 +215,50 @@ class EspNowSchemaTests(unittest.TestCase):
             generator.decode_frame(self.schema, recalculate_crc(capability), **self._context_for("CAPABILITIES"))
         self.assertEqual(context.exception.code, "unauthorized_scope")
 
+        role_mismatch = bytearray((generator.GOLDEN_DIR / "capabilities.bin").read_bytes())
+        role_mismatch[6] |= 0x40
+        role_mismatch[32 + 16] = 1
+        role_mismatch[32 + 24:32 + 26] = (1).to_bytes(2, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(
+                self.schema,
+                recalculate_crc(role_mismatch),
+                **{**self._context_for("CAPABILITIES"), "sender_role": "READ_ONLY_CONTROLLER"},
+            )
+        self.assertEqual(context.exception.code, "role_mismatch")
+
+        pair_confirm = self.messages["PAIR_CONFIRM"]
+        with self.assertRaises(ValueError):
+            generator.encode_frame(self.schema, pair_confirm, {}, self._zero_payload("PAIR_CONFIRM"))
+        pair_frame = generator.encode_frame(
+            self.schema,
+            pair_confirm,
+            {},
+            self._zero_payload("PAIR_CONFIRM"),
+            authenticated=True,
+        )
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(self.schema, pair_frame)
+        self.assertEqual(context.exception.code, "unauthenticated")
+        generator.decode_frame(
+            self.schema,
+            pair_frame,
+            **generator.default_decode_context(self.schema, pair_confirm, {}),
+        )
+
+        for message_name, field_name, invalid_value in (
+            ("CONTROL_LEASE_REQUEST", "requested_scope", 0x8000),
+            ("CONTROL_LEASE_STATUS", "granted_scope", 0x8000),
+            ("COMMAND_RESULT", "command_id", 0xFFFF),
+            ("CONFIG_GET", "key", 0xFFFF),
+            ("COMMAND_REQUEST", "precondition_flags", 0x100),
+        ):
+            with self.subTest(invalid_field=f"{message_name}.{field_name}"):
+                values = self._zero_payload(message_name)
+                values[field_name] = invalid_value
+                with self.assertRaises(ValueError):
+                    generator.encode_payload(self.messages[message_name], values)
+
         invalid_command = bytearray((generator.GOLDEN_DIR / "command-retry.bin").read_bytes())
         invalid_command[32 + 8:32 + 10] = (0xFFFF).to_bytes(2, "little")
         with self.assertRaises(generator.ProtocolDecodeError) as context:
@@ -197,6 +271,47 @@ class EspNowSchemaTests(unittest.TestCase):
         with self.assertRaises(generator.ProtocolDecodeError) as context:
             generator.decode_frame(self.schema, recalculate_crc(malformed_command), **self._context_for("COMMAND_REQUEST"))
         self.assertEqual(context.exception.code, "bad_length")
+
+        final_fragment_without_last = bytearray((generator.GOLDEN_DIR / "bulk-fragment.bin").read_bytes())
+        final_fragment_without_last[32 + 16:32 + 20] = (3).to_bytes(4, "little")
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(
+                self.schema,
+                recalculate_crc(final_fragment_without_last),
+                **self._context_for("BULK_FRAGMENT"),
+            )
+        self.assertEqual(context.exception.code, "bad_fragment")
+
+        non_final_fragment_with_last = bytearray((generator.GOLDEN_DIR / "bulk-fragment.bin").read_bytes())
+        non_final_fragment_with_last[6] |= 0x10
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            generator.decode_frame(
+                self.schema,
+                recalculate_crc(non_final_fragment_with_last),
+                **self._context_for("BULK_FRAGMENT"),
+            )
+        self.assertEqual(context.exception.code, "bad_fragment")
+
+        bulk_begin = next(vector for vector in self.schema["golden_vectors"] if vector["message"] == "BULK_BEGIN")
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                self.messages["BULK_BEGIN"],
+                {**bulk_begin["header"], "flags": 0},
+                bulk_begin["payload"],
+            )
+        read_only_bulk = generator.encode_frame(
+            self.schema,
+            self.messages["BULK_BEGIN"],
+            {**bulk_begin["header"], "flags": 0x41},
+            bulk_begin["payload"],
+            sender_role="READ_ONLY_CONTROLLER",
+        )
+        generator.decode_frame(
+            self.schema,
+            read_only_bulk,
+            **{**self._context_for("BULK_BEGIN"), "sender_role": "READ_ONLY_CONTROLLER"},
+        )
 
     def test_singleton_tlv_and_pairing_canonical_contracts_are_enforced(self) -> None:
         capabilities = self.messages["CAPABILITIES"]
@@ -239,6 +354,10 @@ class EspNowSchemaTests(unittest.TestCase):
         invalid_cases.append(("pairing canonical order", changed))
 
         changed = copy.deepcopy(self.schema)
+        changed["pairing_phases"].reverse()
+        invalid_cases.append(("pairing phase order", changed))
+
+        changed = copy.deepcopy(self.schema)
         changed["pairing_phases"][0]["domain"] = "CV-OTHER-1"
         invalid_cases.append(("pairing domain", changed))
 
@@ -257,6 +376,18 @@ class EspNowSchemaTests(unittest.TestCase):
         changed = copy.deepcopy(self.schema)
         changed["frame_policy"]["response_messages"].append("COMMAND_REQUEST")
         invalid_cases.append(("message flag policy", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["golden_vectors"][1]["name"] = changed["golden_vectors"][0]["name"]
+        invalid_cases.append(("duplicate golden vector", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["frame_policy"]["response_correlation_required"] = False
+        invalid_cases.append(("response correlation policy", changed))
+
+        changed = copy.deepcopy(self.schema)
+        changed["enums"][8]["value_kind"] = "bitmask"
+        invalid_cases.append(("invalid bitmask enum", changed))
 
         changed = copy.deepcopy(self.schema)
         changed["enums"][0]["values"]["PRIMARY_CONTROLLER"] = 0
@@ -354,6 +485,8 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertIn("CANVIEW_MSG_CAN_EVENT_MARKER", expected)
         self.assertIn("CANVIEW_ROLE_KNOWN_MASK", expected)
         self.assertIn("CANVIEW_LINK_KNOWN_MASK", expected)
+        self.assertIn("CANVIEW_BUS_FLAG_KNOWN_MASK UINT32_C(0x0000000F)", expected)
+        self.assertIn("CANVIEW_PRECOND_KNOWN_MASK UINT32_C(0x000000FF)", expected)
 
     def test_schema_digest_is_platform_independent(self) -> None:
         canonical = generator._canonical_schema_bytes()
@@ -464,6 +597,11 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertEqual(len(encoded), 78)
         with self.assertRaises(ValueError):
             generator.encode_payload(command, {**common, "argument_tlv_length": 1})
+        with self.assertRaises(ValueError):
+            generator.encode_payload(
+                command,
+                {"prefix": {**common, "argument_tlv_length": 1}, "argument_tlv": common["argument_tlv"]},
+            )
 
         capabilities = self.messages["CAPABILITIES"]
         values = {

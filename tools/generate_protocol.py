@@ -101,6 +101,13 @@ EXPECTED_PAIRING_PHASES: dict[str, dict[str, Any]] = {
         ),
     },
 }
+EXPECTED_PAIRING_PHASE_ORDER = (
+    "DISCOVERY",
+    "PAIR_REQUEST",
+    "PAIR_CHALLENGE",
+    "PAIR_CONFIRM",
+    "PAIR_RESULT",
+)
 EXPECTED_PAIRING_NEGATIVES = {
     "discovery-peer-nonce": ("DISCOVERY", "bind_peer_nonce", "must_not_bind"),
     "discovery-selected-version": ("DISCOVERY", "bind_selected_version", "must_not_bind"),
@@ -118,6 +125,7 @@ EXPECTED_RESPONSE_MESSAGES = frozenset({
     "REMOTE_CONFIG_STATUS", "BULK_ACK",
 })
 EXPECTED_FRAGMENT_MESSAGES = frozenset({"BULK_FRAGMENT"})
+EXPECTED_AUTHENTICATED_SESSION_ZERO_MESSAGES = frozenset({"PAIR_CONFIRM", "PAIR_RESULT"})
 
 
 class SchemaError(ValueError):
@@ -357,7 +365,11 @@ def _validate_config_and_pairing_policy(schema: Mapping[str, Any]) -> None:
     phases = schema.get("pairing_phases")
     negatives = schema.get("pairing_negative_vectors")
     phase_names = {str(phase.get("message")) for phase in phases} if isinstance(phases, Sequence) else set()
-    if phase_names != {"DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"}:
+    if (
+        not isinstance(phases, Sequence)
+        or isinstance(phases, (str, bytes))
+        or tuple(str(phase.get("message")) for phase in phases) != EXPECTED_PAIRING_PHASE_ORDER
+    ):
         raise SchemaError("pairing phases are incomplete")
     messages_by_name = {str(message["name"]): message for message in schema["messages"]}
     if phase_names != set(EXPECTED_PAIRING_PHASES):
@@ -423,33 +435,51 @@ def _validate_frame_and_semantic_policy(
     if not isinstance(frame_policy, Mapping):
         raise SchemaError("frame_policy is required")
     if set(frame_policy) != {
-        "response_messages", "fragment_messages", "session_zero_messages", "secure_messages"
+        "response_messages", "response_correlation_required", "fragment_messages", "session_zero_messages",
+        "authenticated_session_zero_messages", "secure_messages"
     }:
         raise SchemaError("frame_policy keys changed")
     response_messages = frame_policy.get("response_messages")
+    response_correlation_required = frame_policy.get("response_correlation_required")
     fragment_messages = frame_policy.get("fragment_messages")
     session_zero_messages = frame_policy.get("session_zero_messages")
+    authenticated_session_zero_messages = frame_policy.get("authenticated_session_zero_messages")
     secure_messages = frame_policy.get("secure_messages")
     for label, values in (
         ("response_messages", response_messages),
         ("fragment_messages", fragment_messages),
         ("session_zero_messages", session_zero_messages),
+        ("authenticated_session_zero_messages", authenticated_session_zero_messages),
         ("secure_messages", secure_messages),
     ):
         if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
             raise SchemaError(f"frame_policy.{label} must be a list")
         if len(values) != len(set(values)) or not set(values).issubset(messages_by_name):
             raise SchemaError(f"frame_policy.{label} has invalid message names")
+    if response_correlation_required is not True:
+        raise SchemaError("response correlation policy changed")
     if set(response_messages) != EXPECTED_RESPONSE_MESSAGES:
         raise SchemaError("response message policy changed")
     if set(fragment_messages) != EXPECTED_FRAGMENT_MESSAGES:
         raise SchemaError("fragment message policy changed")
     if set(session_zero_messages) != PAIRING_MESSAGES:
         raise SchemaError("session-zero message policy changed")
+    if set(authenticated_session_zero_messages) != EXPECTED_AUTHENTICATED_SESSION_ZERO_MESSAGES:
+        raise SchemaError("authenticated session-zero message policy changed")
+    if not set(authenticated_session_zero_messages).issubset(set(session_zero_messages)):
+        raise SchemaError("authenticated session-zero messages must be pairing messages")
+    for message_name in authenticated_session_zero_messages:
+        if not messages_by_name[message_name].get("encrypted"):
+            raise SchemaError(f"authenticated session-zero message must be encrypted: {message_name}")
     if set(secure_messages) != set(messages_by_name) - PAIRING_MESSAGES:
         raise SchemaError("secure message policy does not cover the message catalog")
     if set(session_zero_messages) & set(secure_messages):
         raise SchemaError("session-zero and secure message policies overlap")
+    encrypted_messages = {
+        name for name, message in messages_by_name.items() if message.get("encrypted")
+    }
+    if encrypted_messages != set(secure_messages) | set(authenticated_session_zero_messages):
+        raise SchemaError("encrypted messages must have secure or authenticated pre-session policy")
 
     semantic_policy = schema.get("semantic_policy")
     if not isinstance(semantic_policy, Mapping):
@@ -462,8 +492,48 @@ def _validate_frame_and_semantic_policy(
         ("PAIR_CONFIRM", "authorized_role"),
         ("PAIR_RESULT", "assigned_role"),
     }
-    expected_scope_fields = {("CAPABILITIES", "control_scope"), ("PAIR_CHALLENGE", "authorized_scope")}
-    expected_command_fields = {("COMMAND_REQUEST", "command_id")}
+    expected_authenticated_role_fields = {("HELLO", "role"), ("CAPABILITIES", "role")}
+    expected_scope_fields = {
+        ("CAPABILITIES", "control_scope"),
+        ("PAIR_CHALLENGE", "authorized_scope"),
+        ("CONTROL_LEASE_REQUEST", "requested_scope"),
+        ("CONTROL_LEASE_STATUS", "granted_scope"),
+    }
+    expected_command_fields = {("COMMAND_REQUEST", "command_id"), ("COMMAND_RESULT", "command_id")}
+    expected_enum_fields = {
+        ("ACK", "status", "ack_status"),
+        ("ERROR", "code", "error_code"),
+        ("HEARTBEAT", "link_state", "link_state"),
+        ("STATE_SNAPSHOT", "link_state", "link_state"),
+        ("CAN_FILTER_SET", "action", "filter_action"),
+        ("CAN_FILTER_RESULT", "action", "filter_action"),
+        ("CAN_FILTER_RESULT", "result", "filter_result"),
+        ("CAN_OBSERVER_CONFIG", "mode", "observer_mode"),
+        ("CAN_CAPTURE_CONTROL", "action", "capture_action"),
+        ("CAN_CAPTURE_STATUS", "state", "capture_state"),
+        ("CAN_EVENT_MARKER", "marker_kind", "marker_kind"),
+        ("COMMAND_REQUEST", "command_id", "command_id"),
+        ("COMMAND_RESULT", "command_id", "command_id"),
+        ("COMMAND_RESULT", "stage", "command_stage"),
+        ("CONFIG_RESULT", "stage", "remote_config_stage"),
+        ("REMOTE_CONFIG_STATUS", "stage", "remote_config_stage"),
+        ("BULK_ACK", "status", "bulk_status"),
+        ("BULK_END", "status", "bulk_status"),
+    }
+    expected_record_enum_fields = {
+        ("SIGNAL_BATCH", "value_type", "value_type"),
+        ("SIGNAL_BATCH", "quality", "signal_quality"),
+        ("SIGNAL_BATCH", "evidence_grade", "evidence_grade"),
+        ("CONFIG_SET", "value_type", "value_type"),
+        ("REMOTE_CONFIG_REQUEST", "value_type", "value_type"),
+    }
+    expected_config_key_fields = {
+        ("CONFIG_GET", "key"),
+        ("CONFIG_SET", "key"),
+        ("REMOTE_CONFIG_REQUEST", "key"),
+    }
+    expected_bitmask_fields = {("COMMAND_REQUEST", "precondition_flags", "precondition")}
+    enum_names = {str(enum.get("name")) for enum in schema.get("enums", ())}
 
     def policy_pairs(key: str) -> set[tuple[str, str]]:
         entries = semantic_policy.get(key)
@@ -481,12 +551,38 @@ def _validate_frame_and_semantic_policy(
             pairs.add(pair)
         return pairs
 
+    def policy_triples(key: str) -> set[tuple[str, str, str]]:
+        entries = semantic_policy.get(key)
+        if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
+            raise SchemaError(f"semantic_policy.{key} must be a list")
+        triples: set[tuple[str, str, str]] = set()
+        for entry in entries:
+            if not isinstance(entry, Mapping) or set(entry) != {"message", "field", "enum"}:
+                raise SchemaError(f"semantic_policy.{key} entry is invalid")
+            triple = (str(entry["message"]), str(entry["field"]), str(entry["enum"]))
+            if triple in triples or triple[0] not in messages_by_name or triple[2] not in enum_names:
+                raise SchemaError(f"semantic_policy.{key} contains an invalid field or enum")
+            if triple[1] not in _message_field_names(messages_by_name[triple[0]]):
+                raise SchemaError(f"semantic_policy.{key} references a missing field")
+            triples.add(triple)
+        return triples
+
     if policy_pairs("role_fields") != expected_role_fields:
         raise SchemaError("role semantic field policy changed")
+    if policy_pairs("authenticated_role_fields") != expected_authenticated_role_fields:
+        raise SchemaError("authenticated role semantic field policy changed")
     if policy_pairs("scope_fields") != expected_scope_fields:
         raise SchemaError("scope semantic field policy changed")
     if policy_pairs("command_id_fields") != expected_command_fields:
         raise SchemaError("command semantic field policy changed")
+    if policy_triples("enum_fields") != expected_enum_fields:
+        raise SchemaError("enum semantic field policy changed")
+    if policy_triples("record_enum_fields") != expected_record_enum_fields:
+        raise SchemaError("record enum semantic field policy changed")
+    if policy_pairs("config_key_fields") != expected_config_key_fields:
+        raise SchemaError("config key semantic field policy changed")
+    if policy_triples("bitmask_fields") != expected_bitmask_fields:
+        raise SchemaError("bitmask semantic field policy changed")
     capability = semantic_policy.get("capability_authorization")
     if not isinstance(capability, Mapping) or capability != {
         "message": "CAPABILITIES",
@@ -572,6 +668,9 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         values = enum.get("values")
         if not isinstance(c_type, str) or not isinstance(prefix, str) or not isinstance(values, Mapping):
             raise SchemaError(f"invalid enum declaration {enum!r}")
+        value_kind = enum.get("value_kind", "enum")
+        if value_kind not in {"enum", "bitmask"}:
+            raise SchemaError(f"invalid enum value_kind for {c_type}: {value_kind}")
         _validate_identifier(c_type, "enum c_type")
         _validate_identifier(prefix, "enum c_prefix")
         if c_type in enum_types:
@@ -585,6 +684,8 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
                 raise SchemaError(f"duplicate enumerator {enum_name}")
             if not isinstance(value, int):
                 raise SchemaError(f"enum value must be an integer: {enum_name}")
+            if value_kind == "bitmask" and (value <= 0 or value & (value - 1)):
+                raise SchemaError(f"bitmask enum value must be a single bit: {enum_name}")
             if value in enum_values:
                 raise SchemaError(f"duplicate enum numeric value in {c_type}: {value}")
             enumerators.add(enum_name)
@@ -690,6 +791,7 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
     required = schema.get("required_message_ids")
     if sorted(required) != sorted(message_ids):
         raise SchemaError("required_message_ids must exactly match declared message IDs")
+    _validate_vector_catalog(schema)
     _validate_companion_schemas(schema, message_ids)
     messages_by_name = {str(message["name"]): message for message in schema["messages"]}
     _validate_frame_and_semantic_policy(schema, messages_by_name)
@@ -783,7 +885,15 @@ def _render_enum(enum: Mapping[str, Any], macro_prefix: str | None = None) -> li
         f"#define {known_prefix}_KNOWN_VALUE_COUNT "
         f"UINT16_C({len(numeric_values)})"
     )
-    if numeric_values and max(numeric_values) <= 31 and min(numeric_values) >= 0:
+    if numeric_values and enum.get("value_kind", "enum") == "bitmask":
+        known_mask = 0
+        for value in numeric_values:
+            known_mask |= value
+        lines.append(
+            f"#define {known_prefix}_KNOWN_MASK "
+            f"UINT32_C(0x{known_mask:08X})"
+        )
+    elif numeric_values and max(numeric_values) <= 31 and min(numeric_values) >= 0:
         known_mask = sum(1 << value for value in numeric_values)
         lines.append(
             f"#define {known_prefix}_KNOWN_MASK "
@@ -990,6 +1100,23 @@ def _enum_values(schema: Mapping[str, Any], name: str) -> set[int]:
     return {int(value) for value in enum["values"].values()}
 
 
+def _enum_value(schema: Mapping[str, Any], name: str, member: str) -> int:
+    enum = next((item for item in schema["enums"] if item.get("name") == name), None)
+    if not isinstance(enum, Mapping) or member not in enum["values"]:
+        raise SchemaError(f"unknown {name} enum member {member}")
+    return int(enum["values"][member])
+
+
+def _enum_name(schema: Mapping[str, Any], name: str, value: int) -> str:
+    enum = next((item for item in schema["enums"] if item.get("name") == name), None)
+    if not isinstance(enum, Mapping):
+        raise SchemaError(f"missing enum {name}")
+    for member, member_value in enum["values"].items():
+        if int(member_value) == int(value):
+            return str(member)
+    raise SchemaError(f"unknown {name} enum value {value}")
+
+
 def _flatten_payload_values(values: Mapping[str, Any]) -> dict[str, Any]:
     flattened: dict[str, Any] = {}
     prefix = values.get("prefix")
@@ -997,6 +1124,31 @@ def _flatten_payload_values(values: Mapping[str, Any]) -> dict[str, Any]:
         flattened.update(prefix)
     flattened.update(values)
     return flattened
+
+
+def _semantic_field_values(values: Mapping[str, Any], field_name: str) -> list[Any]:
+    result: list[Any] = []
+    if field_name in values:
+        result.append(values[field_name])
+    prefix = values.get("prefix")
+    if isinstance(prefix, Mapping) and field_name in prefix:
+        result.append(prefix[field_name])
+    records = values.get("records")
+    if isinstance(records, Sequence) and not isinstance(records, (str, bytes, bytearray)):
+        for record in records:
+            if isinstance(record, Mapping) and field_name in record:
+                result.append(record[field_name])
+    return result
+
+
+def _semantic_record_field_values(values: Mapping[str, Any], field_name: str) -> list[Any]:
+    result: list[Any] = []
+    records = values.get("records")
+    if isinstance(records, Sequence) and not isinstance(records, (str, bytes, bytearray)):
+        for record in records:
+            if isinstance(record, Mapping) and field_name in record:
+                result.append(record[field_name])
+    return result
 
 
 def _semantic_error(
@@ -1015,6 +1167,7 @@ def _validate_payload_semantics(
     values: Mapping[str, Any],
     *,
     decode: bool,
+    authenticated_role: str | None = None,
 ) -> None:
     message_name = str(message["name"])
     flattened = _flatten_payload_values(values)
@@ -1030,11 +1183,77 @@ def _validate_payload_semantics(
         if role not in _enum_values(schema, "role"):
             _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown role")
 
+    for entry in semantic_policy["authenticated_role_fields"]:
+        if entry["message"] != message_name or authenticated_role is None:
+            continue
+        field_values = _semantic_field_values(values, str(entry["field"]))
+        if not field_values:
+            continue
+        if authenticated_role not in {
+            str(member)
+            for member in next(item for item in schema["enums"] if item.get("name") == "role")["values"]
+        }:
+            _semantic_error(decode, "unauthorized_sender", "authenticated sender role is unknown")
+        expected_role = _enum_value(schema, "role", authenticated_role)
+        if any(int(value) != expected_role for value in field_values):
+            _semantic_error(
+                decode,
+                "role_mismatch",
+                f"{message_name}.{entry['field']} does not match authenticated sender role",
+            )
+
     for entry in semantic_policy["command_id_fields"]:
         if entry["message"] != message_name or entry["field"] not in flattened:
             continue
         if int(flattened[entry["field"]]) not in _enum_values(schema, "command_id"):
             _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown command")
+
+    for entry in semantic_policy["enum_fields"]:
+        if entry["message"] != message_name:
+            continue
+        for value in _semantic_field_values(values, str(entry["field"])):
+            try:
+                valid = int(value) in _enum_values(schema, str(entry["enum"]))
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown value")
+
+    for entry in semantic_policy["record_enum_fields"]:
+        if entry["message"] != message_name:
+            continue
+        for value in _semantic_record_field_values(values, str(entry["field"])):
+            try:
+                valid = int(value) in _enum_values(schema, str(entry["enum"]))
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown value")
+
+    for entry in semantic_policy["bitmask_fields"]:
+        if entry["message"] != message_name:
+            continue
+        known_mask = 0
+        for enum_value in _enum_values(schema, str(entry["enum"])):
+            known_mask |= enum_value
+        for value in _semantic_field_values(values, str(entry["field"])):
+            try:
+                valid = int(value) & ~known_mask == 0
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                _semantic_error(decode, "bad_bitmask", f"{message_name}.{entry['field']} has unknown bits")
+
+    for entry in semantic_policy["config_key_fields"]:
+        if entry["message"] != message_name:
+            continue
+        for value in _semantic_field_values(values, str(entry["field"])):
+            try:
+                valid = int(value) in _enum_values(schema, "config_key")
+            except (TypeError, ValueError):
+                valid = False
+            if not valid:
+                _semantic_error(decode, "bad_enum", f"{message_name}.{entry['field']} has an unknown config key")
 
     scope_values: dict[str, int] = {}
     for entry in semantic_policy["scope_fields"]:
@@ -1051,8 +1270,7 @@ def _validate_payload_semantics(
         role = int(flattened[capability["role_field"]])
         scope = int(flattened[capability["scope_field"]])
         if role in _enum_values(schema, "role"):
-            role_enum = next(item for item in schema["enums"] if item.get("name") == "role")
-            role_name = next(name for name, value in role_enum["values"].items() if int(value) == role)
+            role_name = authenticated_role if authenticated_role is not None else _enum_name(schema, "role", role)
             if role_name in capability["zero_scope_roles"] and scope != 0:
                 _semantic_error(decode, "unauthorized_scope", "read-only capability advertises control scope")
             if role_name not in capability["authorized_scope_roles"] and scope != 0:
@@ -1126,7 +1344,7 @@ def encode_payload(
              if f["name"] == length_field_name or (length_field_name is None and f["name"].endswith("_length"))),
             None,
         )
-        if length_field is not None and int(values.get(length_field["name"], len(suffix))) != len(suffix):
+        if length_field is not None and int(prefix_values.get(length_field["name"], len(suffix))) != len(suffix):
             raise ValueError(f"{message['name']} suffix length field mismatch")
         if message["name"] == "COMMAND_REQUEST":
             _validate_tlv_bytes(schema["command_argument_tlv"], suffix)
@@ -1281,6 +1499,21 @@ def _validate_frame_flags(
         if decode:
             raise ProtocolDecodeError("bad_flags", f"flags are not allowed for {message['name']}")
         raise ValueError(f"flags are not allowed for {message['name']}")
+    ack_expected = message["ack"] == "required"
+    if bool(flags & 0x01) != ack_expected:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "ACK_REQUIRED does not match message policy")
+        raise ValueError("ACK_REQUIRED does not match message policy")
+    broadcast_expected = bool(message["broadcast"])
+    if bool(flags & 0x20) != broadcast_expected:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "BROADCAST does not match message policy")
+        raise ValueError("BROADCAST does not match message policy")
+    response_expected = message["name"] in schema["frame_policy"]["response_messages"]
+    if bool(flags & 0x02) != response_expected:
+        if decode:
+            raise ProtocolDecodeError("bad_flags", "RESPONSE does not match message policy")
+        raise ValueError("RESPONSE does not match message policy")
     if message["name"] == "ERROR" and not flags & 0x04:
         if decode:
             raise ProtocolDecodeError("bad_flags", "ERROR message must set ERROR")
@@ -1309,6 +1542,35 @@ def _validate_frame_flags(
         raise ValueError("read-only sender must set READ_ONLY")
 
 
+def _validate_fragment_payload(
+    schema: Mapping[str, Any],
+    message: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    flags: int,
+    *,
+    decode: bool,
+) -> None:
+    if message["name"] not in schema["frame_policy"]["fragment_messages"]:
+        return
+    try:
+        index = int(payload["fragment_index"])
+        total = int(payload["total_fragments"])
+    except (KeyError, TypeError, ValueError) as exc:
+        if decode:
+            raise ProtocolDecodeError("bad_fragment", "fragment index/total is missing") from exc
+        raise ValueError("fragment index/total is missing") from exc
+    if total <= 0 or index < 0 or index >= total:
+        if decode:
+            raise ProtocolDecodeError("bad_fragment", "fragment index is outside total")
+        raise ValueError("fragment index is outside total")
+    expected_last = index == total - 1
+    actual_last = bool(flags & 0x10)
+    if actual_last != expected_last:
+        if decode:
+            raise ProtocolDecodeError("bad_fragment", "LAST_FRAGMENT does not match fragment position")
+        raise ValueError("LAST_FRAGMENT does not match fragment position")
+
+
 def default_decode_context(
     schema: Mapping[str, Any],
     message: Mapping[str, Any],
@@ -1317,16 +1579,25 @@ def default_decode_context(
     """Return an explicit test/vector context for a declared message direction."""
 
     secure = message["name"] in set(schema["frame_policy"]["secure_messages"])
+    authenticated_session_zero = message["name"] in set(schema["frame_policy"]["authenticated_session_zero_messages"])
     return {
-        "authenticated": secure,
-        "expected_session_id": int(header.get("session_id", 0)) if secure else None,
+        "authenticated": secure or authenticated_session_zero,
+        "expected_session_id": int(header.get("session_id", 0)) if secure or authenticated_session_zero else None,
         "sender_role": message["senders"][0],
         "receiver_role": message["receivers"][0],
         "link_state": message["states"][0],
     }
 
 
-def encode_frame(schema: Mapping[str, Any], message: Mapping[str, Any], header: Mapping[str, Any], payload_values: Mapping[str, Any]) -> bytes:
+def encode_frame(
+    schema: Mapping[str, Any],
+    message: Mapping[str, Any],
+    header: Mapping[str, Any],
+    payload_values: Mapping[str, Any],
+    *,
+    sender_role: str | None = None,
+    authenticated: bool = False,
+) -> bytes:
     payload = encode_payload(message, payload_values, schema=schema)
     if len(payload) > int(schema["encoding"]["max_payload_size"]):
         raise ValueError("payload exceeds maximum")
@@ -1352,15 +1623,27 @@ def encode_frame(schema: Mapping[str, Any], message: Mapping[str, Any], header: 
         schema,
         message,
         header_values["flags"],
-        sender_role=message["senders"][0],
+        sender_role=sender_role or message["senders"][0],
         decode=False,
     )
+    if schema["frame_policy"]["response_correlation_required"] and header_values["flags"] & 0x02 and header_values["correlation_id"] == 0:
+        raise ValueError("response frame requires non-zero correlation_id")
     if message["name"] in set(schema["frame_policy"]["session_zero_messages"]):
         if header_values["session_id"] != 0:
             raise ValueError(f"{message['name']} must use session_id=0")
+        if message["name"] in set(schema["frame_policy"]["authenticated_session_zero_messages"]) and not authenticated:
+            raise ValueError(f"{message['name']} requires authenticated pre-session context")
     elif header_values["session_id"] == 0:
         raise ValueError(f"{message['name']} requires a non-zero session_id")
     decoded_payload = decode_payload(schema, message, payload)
+    _validate_payload_semantics(
+        schema,
+        message,
+        decoded_payload,
+        decode=False,
+        authenticated_role=sender_role or message["senders"][0],
+    )
+    _validate_fragment_payload(schema, message, decoded_payload, header_values["flags"], decode=False)
     if "wireless_session_id" in decoded_payload and header_values["session_id"] != int(decoded_payload["wireless_session_id"]):
         raise ValueError("header and command session IDs differ")
     zero_crc_header = _header_bytes(schema, header_values)
@@ -1427,9 +1710,18 @@ def decode_frame(
         sender_role=sender_role,
         decode=True,
     )
+    if schema["frame_policy"]["response_correlation_required"] and int(header["flags"]) & 0x02 and int(header["correlation_id"]) == 0:
+        raise ProtocolDecodeError("bad_correlation", "response frame requires non-zero correlation_id")
     if message["name"] in set(schema["frame_policy"]["session_zero_messages"]):
         if int(header["session_id"]) != 0:
             raise ProtocolDecodeError("bad_session", "pairing message must use session_id=0")
+        if message["name"] in set(schema["frame_policy"]["authenticated_session_zero_messages"]):
+            if not authenticated:
+                raise ProtocolDecodeError("unauthenticated", "encrypted pairing message requires authenticated context")
+            if expected_session_id is None or sender_role is None or receiver_role is None or link_state is None:
+                raise ProtocolDecodeError("context_required", "encrypted pairing message requires complete pre-session context")
+            if int(expected_session_id) != 0:
+                raise ProtocolDecodeError("session_mismatch", "pre-session context must use session zero")
     else:
         if int(header["session_id"]) == 0:
             raise ProtocolDecodeError("session_required", "secure message requires a non-zero session_id")
@@ -1446,6 +1738,14 @@ def decode_frame(
     if link_state is not None and link_state not in set(message["states"]):
         raise ProtocolDecodeError("invalid_state", "message is not allowed in the current link state")
     payload = decode_payload(schema, message, frame[header_size:])
+    _validate_payload_semantics(
+        schema,
+        message,
+        payload,
+        decode=True,
+        authenticated_role=sender_role,
+    )
+    _validate_fragment_payload(schema, message, payload, int(header["flags"]), decode=True)
     if "wireless_session_id" in payload and int(header["session_id"]) != int(payload["wireless_session_id"]):
         raise ProtocolDecodeError("session_mismatch", "header and command session IDs differ")
     return {"header": header, "message": message["name"], "message_id": message["id"], "payload": payload}
@@ -1453,7 +1753,13 @@ def decode_frame(
 
 def _vector_frame(schema: Mapping[str, Any], vector: Mapping[str, Any]) -> tuple[bytes, dict[str, Any]]:
     message = message_by_name(schema, str(vector["message"]))
-    frame = encode_frame(schema, message, vector.get("header", {}), vector.get("payload", {}))
+    frame = encode_frame(
+        schema,
+        message,
+        vector.get("header", {}),
+        vector.get("payload", {}),
+        authenticated=message["name"] in set(schema["frame_policy"]["authenticated_session_zero_messages"]),
+    )
     header = decode_frame(
         schema,
         frame,
@@ -1574,7 +1880,24 @@ def _canonical_schema_bytes(path: Path = SCHEMA_PATH) -> bytes:
     return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
 
 
+def _validate_vector_catalog(schema: Mapping[str, Any]) -> None:
+    golden_names = [str(vector.get("name")) for vector in schema.get("golden_vectors", ())]
+    if len(golden_names) != len(set(golden_names)):
+        raise SchemaError("golden vector names must be unique")
+    golden_set = set(golden_names)
+    for label in ("negative_vectors", "compatibility_vectors"):
+        vectors = schema.get(label, ())
+        names = [str(vector.get("name")) for vector in vectors]
+        if len(names) != len(set(names)):
+            raise SchemaError(f"{label} names must be unique")
+        for vector in vectors:
+            base = vector.get("base")
+            if base not in golden_set:
+                raise SchemaError(f"{label} references unknown golden base: {base}")
+
+
 def _expected_outputs(schema: Mapping[str, Any]) -> tuple[str, dict[str, tuple[bytes, str]], dict[str, tuple[bytes, str]], dict[str, str], str]:
+    _validate_vector_catalog(schema)
     digest = hashlib.sha256(_canonical_schema_bytes()).hexdigest()
     header = render_header(schema, digest)
     golden: dict[str, tuple[bytes, str]] = {}

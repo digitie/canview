@@ -1,7 +1,7 @@
 {
   "base": "hello",
   "expected": "bad_length",
-  "frame_hex": "435601032010020004030201443322118877665500000000560000009b195a",
+  "frame_hex": "43560103201002000403020144332211887766550100000056000000cc8c9f",
   "frame_size": 31,
   "mutation": "truncate",
   "name": "truncated-header",
