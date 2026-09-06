@@ -1,5 +1,12 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-004 UART schema/codec 시작)
+
+T-003 PR #19가 `4ee017b`로 main에 merge된 것을 확인하고 `agent/codex-t004-uart-schema-codec`에서 T-004를 시작했다. T-004는 ESP-NOW tunnel이 아닌 Communicator ESP32↔STM32 내부 UART v1.0 semantic ABI, generated C header, fixed-buffer COBS/CRC codec/parser와 host fault simulation만 다룬다. UART DMA/실물 RTS/CTS, 보드 flash, CAN/HIL, recovery UART는 후속 task와 별도 gate다.
+
+- 직접 설치한 SDK 기준은 유지한다: ESP-IDF `6.0.3` (`C:\cv\esp-idf-6.0.3`), STM32CubeG4 `1.6.3` (`C:\cv\STM32CubeG4-1.6.3`), Arm GNU `15.3.Rel1`, CMake `4.4.3`, Ninja `1.13.2`.
+- 먼저 schema→generator→semantic codec→fault/negative test→host/target build 순으로 진행하고, draft PR에 작은 커밋을 원격 반영한다. 생성 ABI drift와 실제 target warning을 별도로 기록한다.
+
 ## 2026-09-07 (codex, T-003 ESP-NOW codec/session/QoS closure)
 
 T-002 merge `c18a8a5` 이후 branch `agent/codex-t003-espnow-codec-session`에서 T-003을 구현했다. 사용자 변경은 보존했으며, target SDK를 직접 설치·검증했다: ESP-IDF `6.0.3` (`C:\cv\esp-idf-6.0.3`), STM32CubeG4 `1.6.3` (`C:\cv\STM32CubeG4-1.6.3`), Arm GNU `15.3.Rel1`, CMake `4.4.3`, Ninja `1.13.2`.

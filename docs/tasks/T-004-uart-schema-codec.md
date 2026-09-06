@@ -1,6 +1,8 @@
 # T-004 Communicator UART v1.0 schema와 codec
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
+- branch: `agent/codex-t004-uart-schema-codec`
+- PR: draft (생성 후 링크 기록)
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-001`, `T-002`

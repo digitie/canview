@@ -40,7 +40,7 @@ py -3 tools/validate_document_links.py
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-004](tasks/T-004-uart-schema-codec.md) | BLOCKED | P0 | Communicator UART v1.0 schema와 codec | T-001, T-002 |
+| [T-004](tasks/T-004-uart-schema-codec.md) | IN_PROGRESS | P0 | Communicator UART v1.0 schema와 codec | T-001, T-002 |
 | [T-005](tasks/T-005-canonical-model.md) | BLOCKED | P0 | 공통 quality, evidence, time과 owner model | T-002 |
 | [T-006](tasks/T-006-vehicle-profile-generator.md) | BLOCKED | P0 | vehicle profile schema와 분리 generator | T-001, T-005 |
 | [T-007](tasks/T-007-ota-container.md) | BLOCKED | P0 | OTA-01 서명 컨테이너와 packager | T-001 |
