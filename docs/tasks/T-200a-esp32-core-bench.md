@@ -2,6 +2,7 @@
 
 - 상태: `IN_PROGRESS`
 - branch: `codex/t200a-esp32-core-bench`
+- PR: [#22](https://github.com/digitie/canview/pull/22)
 - 우선순위: `P0`
 - Gate: `G0 / G1 준비`
 - 선행: `T-001`, `T-004`

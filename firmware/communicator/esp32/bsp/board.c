@@ -17,7 +17,9 @@ static canview_status_t enter_safe_state(void *context)
                    {CANVIEW_BOARD_STM_BOOT0_REQ_GPIO, false, false},
                    {CANVIEW_BOARD_GPS_PWR_REQ_GPIO, false, false},
                    {CANVIEW_BOARD_STM_RESET_CMD_N_GPIO, true, false},
-                   {CANVIEW_BOARD_STM_RECOVERY_N_GPIO, true, true}};
+                   {CANVIEW_BOARD_STM_RECOVERY_N_GPIO, true, true},
+                   {CANVIEW_BOARD_ESP_RTS_SRC_GPIO, true, false},
+                   {CANVIEW_BOARD_ESP_TX_SRC_GPIO, true, false}};
     for (size_t index = 0; index < sizeof(outputs) / sizeof(outputs[0]); ++index)
     {
         const canview_status_t status =
@@ -27,7 +29,18 @@ static canview_status_t enter_safe_state(void *context)
             return status;
         }
     }
-    return canview_gpio_input(CANVIEW_BOARD_RECOVERY_BUTTON_N_GPIO);
+    const uint8_t inputs[] = {CANVIEW_BOARD_RECOVERY_BUTTON_N_GPIO, CANVIEW_BOARD_STM_RTS_GPIO,
+                              CANVIEW_BOARD_STM_TX_GPIO, CANVIEW_BOARD_SERVICE_RUN_SENSE_GPIO,
+                              CANVIEW_BOARD_USB_SERVICE_SENSE_GPIO};
+    for (size_t index = 0U; index < sizeof(inputs) / sizeof(inputs[0]); ++index)
+    {
+        const canview_status_t status = canview_gpio_input(inputs[index]);
+        if (status != CANVIEW_OK)
+        {
+            return status;
+        }
+    }
+    return CANVIEW_OK;
 }
 
 canview_platform_port_t canview_board_port(void)

@@ -38,6 +38,11 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
                   "ESP32-S3-WROOM-1-N8R2": (8388608, 2097152)}
         if memory.get(board["module"]) != (board["flash_bytes"], board["psram_bytes"]):
             raise ValueError("board/module memory contract")
+        if board["id"] == "comm-r2-n16r8" and (board.get("core_profile") != "bench-health-v1" or
+                board["module"] != "ESP32-S3-WROOM-1-N16R8" or not board["psram_ecc"]):
+            raise ValueError("Communicator bench health/ECC contract")
+        if "core_profile" in board and board["id"] != "comm-r2-n16r8":
+            raise ValueError("unreviewed core profile")
         if board["flash_bytes"] not in (8388608, 16777216):
             raise ValueError("unreviewed flash size")
         if (board["psram_mode"], board["psram_bytes"]) not in (("octal", 8388608), ("quad", 2097152)):
@@ -154,6 +159,15 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
                "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y",
                "# CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE is not set",
                "# CONFIG_BOOTLOADER_APP_TEST is not set"]
+        if board.get("core_profile") == "bench-health-v1":
+            sdk += ["CONFIG_ESP_TASK_WDT_EN=y", "CONFIG_ESP_TASK_WDT_INIT=y",
+                    "CONFIG_ESP_TASK_WDT_PANIC=y", "CONFIG_ESP_TASK_WDT_TIMEOUT_S=2",
+                    "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y",
+                    "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y",
+                    "CONFIG_ESP_INT_WDT=y", "CONFIG_ESP_INT_WDT_CHECK_CPU1=y",
+                    "CONFIG_SPIRAM_MEMTEST=y", "CONFIG_SPIRAM_BOOT_INIT=y",
+                    "# CONFIG_SPIRAM_IGNORE_NOTFOUND is not set",
+                    "CONFIG_ESP_CONSOLE_SECONDARY_NONE=y", "CONFIG_FREERTOS_HZ=100"]
         result[board["path"] + "/sdkconfig.defaults"] = "\n".join(sdk + [""])
         result[board["path"] + "/partitions.csv"] = "\n".join([
             "# DO NOT EDIT. Foundation bench-only factory image, NOT OTA layout.",

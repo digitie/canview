@@ -1,6 +1,6 @@
 # Communicator ESP32 firmware
 
-`ESP32-S3-WROOM-1-N16R8`용 독립 ESP-IDF application bootstrap이다. 현재는 protocol component 경계와 target memory 설정을 검증하는 단계다.
+`ESP32-S3-WROOM-1-N16R8`용 독립 ESP-IDF application이다. 현재는 [bench core](docs/core-bench.md)의 boot/health/watchdog·고정 pool·USB 진단을 구현하고 검증하는 단계다.
 
 - 기준 ESP-IDF: `v6.0.3` (`esp32s3`)
 - Flash/PSRAM:16MiB Quad SPI /8MiB Octal SPI; ECC 사용 시 가용7.5MiB
@@ -24,4 +24,4 @@ idf.py -C firmware/communicator/esp32 size-components
 
 `sdkconfig.defaults`는16MiB Flash와80MHz Octal PSRAM/ECC를 선택한다. 기존 생성 sdkconfig의4MiB/Quad 값은 defaults만 바꿔도 자동 변경되지 않으므로 새로운 SDKCONFIG 경로로 configure하거나 설정을 명시적으로 변경한다. 현재 partitions.csv는 기존 단일 factory 부트스트랩 배치를 유지하며 남은 Flash를 아직 사용하지 않는다. [OTA 설계](../../../docs/architecture/ota.md)의 A/B/recovery 배치는 별도 구현·서명·유선 provisioning 후 적용한다. R8 ECC 온도 조건과 가용 메모리는 실제 boot log와 보드 열시험으로 확인한다.
 
-현재 공용 startup/BSP는 [기반 구조](../../../docs/architecture/firmware-foundation.md)에 따라 RUN_OK low와 복구 pin release만 설정하고 대기한다. log/radio/UART/OTA를 시작하지 않는다. 현재 저장된 v1.2 incomplete header는 application dependency로 연결하지 않는다. ESP-IDF `v6.0.3`으로 foundation image binary 생성과 warning/error scan을 통과했으며 실제 UART1 DMA/RTS-CTS, ESP-NOW session/QoS, STM32 handoff와 CAN 데이터 전달은 각각의 후속 task에서 구현한다. 실제 보드 flash·HIL은 미실행이다.
+현재 독립 app/BSP는 RUN_OK LOW와 복구 pin release, UART RTS 정지/TX idle, pull 없는 sense를 설정한다. 100ms health와 TWDT2초 panic을 사용하며 USB에 build/reset/memory·cap0/TX0 진단을 출력한다. radio/UART/OTA/NVS write는 시작하지 않는다. v1.2 incomplete header는 application dependency로 연결하지 않는다. 실제 UART1 DMA/RTS-CTS, ESP-NOW session/QoS, STM32 handoff와 CAN 전달은 후속 task다. 현재 task의 최종 검증·리뷰는 진행 중이며 실제 board flash·HIL은 미실행이다.
