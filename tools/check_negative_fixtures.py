@@ -59,6 +59,19 @@ def main() -> int:
             print("FAIL: stack overflow fixture was accepted")
             return 1
 
+        malformed_stack = root / "malformed.su"
+        malformed_stack.write_text(
+            "not-a-stack-record\\t128\\tstatic\\n",
+            encoding="utf-8",
+        )
+        try:
+            budgets.validate(stack_path=malformed_stack)
+        except ValueError:
+            pass
+        else:
+            print("FAIL: malformed stack fixture was accepted")
+            return 1
+
         bad_latency = root / "bad-latency.json"
         bad_latency.write_text(
             '{"boot_to_safe_state_ms": 999, "control_round_trip_ms": 40}\n',
@@ -94,6 +107,27 @@ def main() -> int:
             pass
         else:
             print("FAIL: malformed map fixture was accepted")
+            return 1
+
+        bad_manifest = root / "bad-manifest.yaml"
+        bad_manifest.write_text(
+            '{"schemaVersion": 1, "profile": "fixture", "evidence": '
+            '{"map": "tests/fixtures/budgets/foundation.map", '
+            '"stack": "tests/fixtures/budgets/foundation.su", '
+            '"latency": "tests/fixtures/budgets/foundation-latency.json"}, '
+            '"metrics": {"flash_used_bytes": {"limit": true, '
+            '"unit": "bytes", "source": "map"}}}\n',
+            encoding="utf-8",
+        )
+        errors = budgets.validate(
+            manifest_path=bad_manifest,
+            markdown_path=ROOT / "config/budgets/foundation.md",
+            map_path=ROOT / "tests/fixtures/budgets/foundation.map",
+            stack_path=ROOT / "tests/fixtures/budgets/foundation.su",
+            latency_path=ROOT / "tests/fixtures/budgets/foundation-latency.json",
+        )
+        if not any("invalid budget definition" in error for error in errors):
+            print("FAIL: non-integer budget limit fixture was accepted")
             return 1
 
     print("PASS: negative generated/link/budget fixtures rejected")

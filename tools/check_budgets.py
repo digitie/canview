@@ -11,7 +11,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "config/budgets/foundation.yaml"
 METRIC_RE = re.compile(r"^CANVIEW_BUDGET_METRIC\s+([a-z][a-z0-9_]*)\s*=\s*(\d+)\s*$")
-STACK_RE = re.compile(r"\t(\d+)\t(?:static|dynamic|bounded|dynamic,bounded)\s*$")
+STACK_RE = re.compile(r"^[^\t\r\n]+\t(\d+)\t(?:static|dynamic|bounded|dynamic,bounded)$")
 TABLE_RE = re.compile(r"^\|\s*`?([a-z][a-z0-9_]*)`?\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*$")
 
 
@@ -51,7 +51,7 @@ def parse_stack(path: Path) -> dict[str, int]:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        match = STACK_RE.search(line)
+        match = STACK_RE.fullmatch(stripped)
         if match is None:
             raise ValueError(f"unrecognized stack evidence line: {line}")
         sizes.append(int(match[1]))
@@ -93,7 +93,15 @@ def validate(manifest_path: Path = DEFAULT_MANIFEST,
              latency_path: Path | None = None) -> list[str]:
     errors: list[str] = []
     manifest = load_manifest(manifest_path)
-    if manifest.get("schemaVersion") != 1 or not isinstance(manifest.get("metrics"), dict):
+    if (not isinstance(manifest.get("schemaVersion"), int)
+            or isinstance(manifest.get("schemaVersion"), bool)
+            or manifest.get("schemaVersion") != 1
+            or not isinstance(manifest.get("profile"), str)
+            or set(manifest) != {"schemaVersion", "profile", "evidence", "metrics"}
+            or not isinstance(manifest.get("evidence"), dict)
+            or set(manifest["evidence"]) != {"map", "stack", "latency"}
+            or not all(isinstance(value, str) and value for value in manifest["evidence"].values())
+            or not isinstance(manifest.get("metrics"), dict)):
         return [f"unsupported budget manifest: {manifest_path}"]
     base = manifest_path.parent.parent.parent
     markdown = markdown_path or manifest_path.with_suffix(".md")
@@ -123,10 +131,16 @@ def validate(manifest_path: Path = DEFAULT_MANIFEST,
         if set(parsed[source]) != expected:
             errors.append(f"{source} evidence metric set differs from manifest")
     for name, definition in metrics.items():
-        limit = definition.get("limit")
-        unit = definition.get("unit")
-        source = definition.get("source")
-        if not isinstance(limit, int) or limit < 0 or source not in parsed:
+        if (not isinstance(definition, dict)
+                or set(definition) != {"limit", "unit", "source"}):
+            errors.append(f"invalid budget definition: {name}")
+            continue
+        limit = definition["limit"]
+        unit = definition["unit"]
+        source = definition["source"]
+        if (not isinstance(limit, int) or isinstance(limit, bool) or limit < 0
+                or not isinstance(unit, str) or not unit
+                or source not in parsed):
             errors.append(f"invalid budget definition: {name}")
             continue
         if table.get(name) != (limit, unit):

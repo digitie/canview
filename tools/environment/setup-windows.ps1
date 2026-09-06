@@ -54,6 +54,40 @@ function Assert-ArmGccVersion {
     return $version
 }
 
+function Assert-ArmGnuProvenance {
+    param([Parameter(Mandatory = $true)][string]$Root)
+
+    $provenancePath = Join-Path $Root "canview-arm-gnu-provenance.json"
+    if (-not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) {
+        throw "Verified Arm GNU provenance is missing: $provenancePath. Run tools/environment/install-arm-gnu.ps1."
+    }
+    $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+    $provenanceMatches = (($provenance.schemaVersion -eq 1) -and `
+        ($provenance.release -eq $manifest.tools.armGnuToolchain.release) -and `
+        ($provenance.archiveUrl -eq $manifest.tools.armGnuToolchain.archiveUrl) -and `
+        ($provenance.archiveSha256.ToLowerInvariant() -eq $manifest.tools.armGnuToolchain.archiveSha256.ToLowerInvariant()))
+    if (-not $provenanceMatches) {
+        throw "Arm GNU provenance does not match manifest: $provenancePath"
+    }
+
+    $requiredFiles = @(
+        "arm-none-eabi-gcc.exe",
+        "arm-none-eabi-objcopy.exe",
+        "arm-none-eabi-size.exe"
+    )
+    foreach ($file in $requiredFiles) {
+        $path = Join-Path (Join-Path $Root "bin") $file
+        $record = $provenance.files.PSObject.Properties[$file]
+        if ($null -eq $record -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Arm GNU provenance is incomplete: $path"
+        }
+        $actualHash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne $record.Value.ToLowerInvariant()) {
+            throw "Arm GNU executable hash mismatch: $path"
+        }
+    }
+}
+
 function Normalize-GitUrl {
     param([Parameter(Mandatory = $true)][string]$Value)
 
@@ -162,19 +196,24 @@ if ($ToolRoot -match "\s") {
     throw "ToolRoot cannot contain spaces because ESP-IDF does not support spaces in SDK paths: $ToolRoot"
 }
 
-$armCandidates = @()
-if ($ArmGnuRoot.Trim().Length -gt 0) {
-    $armCandidates += (Resolve-Path -LiteralPath $ArmGnuRoot -ErrorAction Stop).Path
+$armRelease = $manifest.tools.armGnuToolchain.release.ToLowerInvariant()
+$armCandidates = if ($ArmGnuRoot.Trim().Length -gt 0) {
+    @((Resolve-Path -LiteralPath $ArmGnuRoot -ErrorAction Stop).Path)
+} else {
+    @(
+        (Join-Path $ToolRoot "arm-gnu-toolchain-$armRelease"),
+        (Join-Path $env:LOCALAPPDATA "CANView\toolchains\arm-gnu-toolchain-$armRelease")
+    )
 }
-$armCandidates += (Join-Path $ToolRoot "arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())")
-$armCandidates += (Join-Path $env:LOCALAPPDATA "CANView\toolchains\arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())")
-$armBin = $armCandidates |
-    ForEach-Object { Join-Path $_ "bin" } |
-    Where-Object { Test-Path -LiteralPath (Join-Path $_ "arm-none-eabi-gcc.exe") } |
+$armRoot = $armCandidates |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Container } |
     Select-Object -First 1
-if ($null -ne $armBin) {
-    $env:Path = "$armBin;$env:Path"
+if ($null -eq $armRoot) {
+    throw "Verified Arm GNU installation was not found. Run tools/environment/install-arm-gnu.ps1 or pass -ArmGnuRoot to its verified root."
 }
+Assert-ArmGnuProvenance -Root $armRoot
+$armBin = Join-Path $armRoot "bin"
+$env:Path = "$armBin;$env:Path"
 
 $cmakeCommand = Get-RequiredCommand -Name "cmake"
 $ninjaCommand = Get-RequiredCommand -Name "ninja"
@@ -182,6 +221,13 @@ $gccCommand = Get-RequiredCommand -Name "arm-none-eabi-gcc"
 $objcopyCommand = Get-RequiredCommand -Name "arm-none-eabi-objcopy"
 $sizeCommand = Get-RequiredCommand -Name "arm-none-eabi-size"
 $null = Get-RequiredCommand -Name "git"
+
+foreach ($command in @($gccCommand, $objcopyCommand, $sizeCommand)) {
+    $resolvedCommand = (Resolve-Path -LiteralPath $command).Path
+    if (-not $resolvedCommand.StartsWith("$armBin\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Arm GNU command resolved outside the verified root: $resolvedCommand"
+    }
+}
 
 $cmakeVersion = Get-FirstVersion -Text (& cmake --version | Select-Object -First 1)
 $cmakeBin = Split-Path -Parent $cmakeCommand
@@ -231,6 +277,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $cubeG4Root "Drivers\CMSIS\Device\ST
 $env:IDF_PATH = $espIdfRoot
 $env:STM32CUBE_G4_ROOT = $cubeG4Root
 $env:CANVIEW_TOOLCHAIN_ROOT = $ToolRoot
+$env:CANVIEW_ARM_GNU_ROOT = $armRoot
 
 if (Test-Path -LiteralPath (Join-Path $espIdfRoot "export.ps1")) {
     . (Join-Path $espIdfRoot "export.ps1")

@@ -2,7 +2,7 @@ set(CANVIEW_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../..")
 idf_component_register(
     SRCS "${CANVIEW_ROOT}/firmware/app/startup.c" "../bsp/board.c"
     INCLUDE_DIRS "../bsp" "${CANVIEW_ROOT}/firmware/interface"
-    REQUIRES canview_foundation canview_esp32_platform canview_protocol esp_psram
+    REQUIRES canview_foundation canview_esp32_platform esp_psram
 )
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     CANVIEW_ENTRY_ESP_IDF=1 CANVIEW_TARGET_ROLE=CANVIEW_APP_CONTROLLER)

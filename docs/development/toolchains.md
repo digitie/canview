@@ -19,7 +19,7 @@ Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 
 
 Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. ESP-IDF v6의 CMake 최소 요구사항은 3.22.1이며, 이 저장소의 Windows 정본은 CMake `4.4.3`으로 올려 고정한다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
 
-정본 버전과 SDK commit은 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 둔다. Windows 초기화와 commit 검증은 [`tools/environment/setup-windows.ps1`](../../tools/environment/setup-windows.ps1)를 사용한다.
+정본 버전과 SDK commit은 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 둔다. Arm archive 설치와 executable provenance 검증은 [`tools/environment/install-arm-gnu.ps1`](../../tools/environment/install-arm-gnu.ps1), Windows 초기화와 SDK commit 검증은 [`tools/environment/setup-windows.ps1`](../../tools/environment/setup-windows.ps1)를 사용한다.
 
 하드웨어 생성물은 [`tools/hardware/export-review.ps1`](../../tools/hardware/export-review.ps1)가 KiCad `10.0.6`의 bundled Python과 `kicad-cli`를 사용해 재현한다. 이 별도 단계는 임베디드 SDK 준비와 분리되어 있어 KiCad가 없는 환경에서도 ESP-IDF·STM32 빌드 준비를 검증할 수 있다.
 
@@ -43,6 +43,7 @@ Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구한다. 최신 안정 b
 
 ```powershell
 . .\tools\environment\foundation-windows.ps1
+. .\tools\environment\install-arm-gnu.ps1
 . .\tools\environment\setup-windows.ps1
 ```
 
@@ -134,7 +135,7 @@ Diagnostic Bridge firmware directory는 foundation bootstrap project로 생성�
 - ST-LINK/V3 또는 동등한 SWD probe
 - STM32CubeMX는 pin/clock 검산과 초기화 코드 생성에만 선택적으로 사용
 
-STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 setup script는 PATH에 있는 GCC가 `15.3.x`인지 export 전후 모두 확인하고 CMake preset에 실제 실행 파일 경로를 전달한다.
+STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 setup script는 manifest archive provenance와 `gcc`·`objcopy`·`size` executable hash를 확인하고, verified root 밖의 ambient PATH compiler를 거부한 뒤 CMake preset에 실제 실행 파일 경로를 전달한다.
 
 ### 5.2 repository CMake scaffold
 
@@ -142,6 +143,7 @@ STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공
 
 ```powershell
 . .\tools\environment\foundation-windows.ps1
+. .\tools\environment\install-arm-gnu.ps1
 . .\tools\environment\setup-windows.ps1
 Push-Location firmware/communicator/stm32
 cmake --preset debug

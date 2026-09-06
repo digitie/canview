@@ -57,6 +57,7 @@ jobs:
         if: always()
         with:
           name: windows-foundation-evidence
+          if-no-files-found: error
           path: |
             build/api/html
             build/host-*/Testing/Temporary/LastTest.log
@@ -107,6 +108,20 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($hash -ne $manifest.tools.armGnuToolchain.archiveSha256) { throw "Arm archive SHA256 mismatch: $hash" }
           Expand-Archive -LiteralPath $archive -DestinationPath $root -Force
+          $armRoot = $root
+          $files = [ordered]@{}
+          foreach ($name in @('arm-none-eabi-gcc.exe', 'arm-none-eabi-objcopy.exe', 'arm-none-eabi-size.exe')) {
+            $path = Join-Path $armRoot "bin/$name"
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Arm archive is missing $path" }
+            $files[$name] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          [ordered]@{
+            schemaVersion = 1
+            release = $manifest.tools.armGnuToolchain.release
+            archiveUrl = $manifest.tools.armGnuToolchain.archiveUrl
+            archiveSha256 = $hash
+            files = $files
+          } | ConvertTo-Json -Depth 4 | Out-File -LiteralPath (Join-Path $armRoot "canview-arm-gnu-provenance.json") -Encoding utf8
           "CANVIEW_TARGET_TOOLROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install pinned SDKs and build all target images
         shell: pwsh
@@ -133,7 +148,10 @@ jobs:
           }
           function Assert-TargetArtifact {
             param([string]$Name, [string]$Path)
-            if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "Missing target artifact: $Name ($Path)" }
+            $item = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
+            if ($null -eq $item -or $item.PSIsContainer -or $item.Length -le 0) {
+              throw "Missing or empty target artifact: $Name ($Path)"
+            }
           }
           Push-Location firmware/communicator/stm32
           try {
@@ -154,10 +172,41 @@ jobs:
           Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
           Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
           Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
+          $artifactPaths = @(
+            "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin",
+            "firmware/communicator/stm32/build/debug/canview-communicator-stm32.elf",
+            "firmware/communicator/stm32/build/debug/canview-communicator-stm32.map",
+            "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin",
+            "firmware/communicator/stm32/build/release/canview-communicator-stm32.elf",
+            "firmware/communicator/stm32/build/release/canview-communicator-stm32.map",
+            "firmware/communicator/esp32/build/canview_communicator_esp32.bin",
+            "firmware/communicator/esp32/build/canview_communicator_esp32.elf",
+            "firmware/communicator/esp32/build/canview_communicator_esp32.map",
+            "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin",
+            "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.elf",
+            "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.map",
+            "firmware/controller/build/canview_controller.bin",
+            "firmware/controller/build/canview_controller.elf",
+            "firmware/controller/build/canview_controller.map",
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin",
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.elf",
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.map"
+          )
+          foreach ($path in $artifactPaths) { Assert-TargetArtifact "target evidence" $path }
+          $artifactManifest = foreach ($path in $artifactPaths) {
+            $item = Get-Item -LiteralPath $path
+            [ordered]@{
+              path = $path
+              bytes = $item.Length
+              sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+          }
+          $artifactManifest | ConvertTo-Json -Depth 3 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: target-firmware-images
+          if-no-files-found: error
           path: |
             firmware/communicator/stm32/build/debug/*.bin
             firmware/communicator/stm32/build/release/*.bin
@@ -174,4 +223,8 @@ jobs:
             firmware/controller/build/*.bin
             firmware/controller/build/*.elf
             firmware/controller/build/*.map
+            tests/fixtures/idf-public-component/build/*.bin
+            tests/fixtures/idf-public-component/build/*.elf
+            tests/fixtures/idf-public-component/build/*.map
             ${{ runner.temp }}/canview-target-logs/*.log
+            ${{ runner.temp }}/canview-target-logs/target-artifacts.json

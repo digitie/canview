@@ -17,17 +17,27 @@ ESP-IDF와 STM32CubeG4는 manifest에 기록한 commit까지 검증한다. 버�
 
 ## Windows 준비
 
-먼저 CMake, Ninja, Git을 Windows `PATH`에 설치한다. Arm GNU Toolchain은 manifest의 `archiveUrl`에서 직접 내려받아 압축을 풀거나 이미 설치된 `arm-none-eabi-*`를 PATH에 둔다. archive SHA-256은 `archiveSha256`과 일치해야 한다. ESP-IDF build path에는 공백을 사용할 수 없으므로 Windows 사용자 profile 경로에 공백이 있으면 공백 없는 `-ToolRoot`를 지정한다. 그 다음 PowerShell에서 다음을 실행한다.
+먼저 CMake, Ninja, Git을 Windows `PATH`에 설치한다. Arm GNU Toolchain은 아래 설치 스크립트로 manifest의 `archiveUrl`에서 직접 내려받아 archive SHA-256과 핵심 executable digest를 검증한다. `setup-windows.ps1`은 provenance marker가 없는 ambient `PATH` compiler를 사용하지 않는다. ESP-IDF build path에는 공백을 사용할 수 없으므로 Windows 사용자 profile 경로에 공백이 있으면 공백 없는 `-ToolRoot`를 지정한다. 그 다음 PowerShell에서 다음을 실행한다.
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+. .\tools\environment\install-arm-gnu.ps1
 . .\tools\environment\foundation-windows.ps1
 . .\tools\environment\setup-windows.ps1
 ```
 
-기본 직접 설치 위치는 `%LOCALAPPDATA%\CANView\toolchains\arm-gnu-toolchain-15.3.rel1`이며 setup script가 자동 탐색한다. 다른 위치에 설치했으면 다음처럼 명시한다.
+기본 직접 설치 위치는 `%LOCALAPPDATA%\CANView\toolchains\arm-gnu-toolchain-15.3.rel1`이며 setup script가 provenance marker와 핵심 executable hash를 확인한 뒤 자동 탐색한다. 이미 받은 archive를 재사용하려면 다음처럼 명시한다.
 
 ```powershell
+. .\tools\environment\install-arm-gnu.ps1 -ArchivePath C:\path\arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip -AdoptExisting
+```
+
+이미 같은 release를 수동 압축 해제한 경로라면 `-AdoptExisting`를 추가한다. 스크립트가 pinned archive와 `gcc`, `objcopy`, `size`의 SHA-256을 대조한 뒤에만 provenance marker를 만든다.
+
+다른 verified 설치 위치를 사용할 때는 설치와 setup에 같은 root를 명시한다.
+
+```powershell
+. .\tools\environment\install-arm-gnu.ps1 -Destination C:\ArmGNU
 . .\tools\environment\setup-windows.ps1 -ArmGnuRoot C:\ArmGNU\arm-gnu-toolchain-15.3.rel1
 ```
 
