@@ -29,10 +29,21 @@ static uint32_t irq_mask;
 static uint32_t reset_requests;
 static uint32_t wait_calls;
 static uint32_t systick_reload;
+static bool nmi_before_feed;
+static bool reset_returns;
 static jmp_buf stopped;
 void SysTick_Handler(void);
 void NMI_Handler(void);
 void HardFault_Handler(void);
+
+void canview_stm_test_before_feed(void)
+{
+    if (nmi_before_feed)
+    {
+        RCC->CIFR = RCC_CIFR_CSSF;
+        NMI_Handler();
+    }
+}
 
 uint32_t model_primask(void)
 {
@@ -54,6 +65,10 @@ void model_wait(void)
 void model_reset(void)
 {
     ++reset_requests;
+    if (reset_returns)
+    {
+        return;
+    }
     longjmp(stopped, 1);
 }
 uint32_t model_systick_config(uint32_t ticks)
@@ -132,6 +147,8 @@ static void initialize(uint32_t stage)
     reset_requests = 0U;
     wait_calls = 0U;
     systick_reload = 0U;
+    nmi_before_feed = false;
+    reset_returns = false;
 }
 
 static void check_no_control(void)
@@ -217,6 +234,23 @@ static void healthy_boot(void)
 static void fault_tests(void)
 {
     healthy_boot();
+    IWDG->KR = 0U;
+    nmi_before_feed = true;
+    if (setjmp(stopped) == 0)
+    {
+        (void)canview_stm_watchdog_feed(NULL);
+        CHECK(false); /* NMI에서 중단된 feed로 복귀하면 실패. */
+    }
+    CHECK(reset_requests == 1U && IWDG->KR == 0U && RCC->CICR == RCC_CICR_CSSC);
+    healthy_boot();
+    reset_returns = true;
+    if (setjmp(stopped) == 0)
+    {
+        NMI_Handler();
+        CHECK(false);
+    }
+    CHECK(reset_requests == 1U && wait_calls == 1U);
+    healthy_boot();
     SysTick_Handler();
     CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT); /* TIM2 freeze, EN은 여전히1 */
     TIM2->CNT += 1000U;
@@ -261,7 +295,12 @@ static void fault_tests(void)
         if (stage == 5U)
         {
             RCC->CIFR = RCC_CIFR_CSSF;
-            NMI_Handler();
+            if (setjmp(stopped) == 0)
+            {
+                NMI_Handler();
+                CHECK(false);
+            }
+            CHECK(reset_requests == 1U);
             CHECK(RCC->CICR == RCC_CICR_CSSC);
         }
         CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
@@ -269,7 +308,12 @@ static void fault_tests(void)
         check_no_control();
     }
     healthy_boot();
-    NMI_Handler();
+    if (setjmp(stopped) == 0)
+    {
+        NMI_Handler();
+        CHECK(false);
+    }
+    CHECK(reset_requests == 1U);
     CHECK(canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
     healthy_boot();
     if (setjmp(stopped) == 0)

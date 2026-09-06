@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-102a 구현과 적대적 리뷰 수정)
+
+`ca1a299`의 최초 2인 리뷰에서 deadline miss 소거(P1), NMI/feed 경쟁(P2), callback API 문서 실패(P1), 필수 vote 회귀시험 공백(P2), 개별 .su 누락 허용(P2)을 확인했다. [원본·교차 확인·수정 기록](reviews/adversarial/2026-09-07-T-102a.md)에 severity를 보존했다. 실제 완료 us 기반 deadline 판정, terminal NMI reset, 함수 type typedef, 독립 worker/vote 변이시험과 compile database별 stack evidence 대조를 적용했다. board flash/provisioning은 하지 않았다.
+
+초기 Windows Debug/Release·WSL ASan+UBSan은74/74 PASS였고 새 fixture·변이 검출·target gate를 재실행했다. `e928cf6` target 일괄 빌드는 리뷰 결함 수정으로 대체하므로 중단하고 부분 산출물을 최종 증거에서 제외했다. run34064143948의 Windows host는 Doxygen 다운로드 실패였으며 최종 CI로 다시 확인한다. 아직 T-102a DONE/merge가 아니다.
+
 ## 2026-09-07 (codex, T-004 merge와 T-102a 시작)
 
 PR #20의 최종 head `182f975`에서 Windows/Linux host·sanitizer와 Windows target CI10건 SUCCESS를 확인하고 merge `caafc24`를 검증했다. 추가로 같은 clean head에서 STM32 Debug/Release·ESP32 네 프로젝트를 새 디렉터리에 모두 clean build해 warning/error0과 동일 ESP version을 확인했다. [merge evidence](reviews/adversarial/evidence/2026-09-07-T-004-merge.md)에 binary hash와 CI 링크를 보존하고 T-004를 DONE archive로 이동했다.

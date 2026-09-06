@@ -243,6 +243,9 @@ canview_status_t canview_stm_watchdog_feed(void *context)
     {
         return CANVIEW_TIMEOUT;
     }
+#if defined(CANVIEW_STM_REGISTER_TEST)
+    canview_stm_test_before_feed();
+#endif
     IWDG->KR = IWDG_FEED_KEY;
     return CANVIEW_OK;
 }
@@ -260,6 +263,12 @@ void NMI_Handler(void)
         RCC->CICR = RCC_CICR_CSSC;
     }
     /* PHY request/ARM/WDI는 이 bench 전체에서 안전 latch로 고정된다. */
+    /* NMI는 중단된 feed 명령으로 복귀하지 않는다. 부팅 전 fault도 즉시 reset. */
+    NVIC_SystemReset();
+    for (;;)
+    {
+        __WFI();
+    }
 }
 
 void HardFault_Handler(void)

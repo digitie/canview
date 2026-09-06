@@ -15,7 +15,7 @@ canview_status_t canview_stm_boot_start(canview_stm_boot_t *boot,
     }
     boot->state = CANVIEW_STM_BOOT_STARTING;
     canview_stm_action_fn *const actions[] = {port->safe, port->watchdog_start, port->clock_start,
-                                             port->time_start};
+                                              port->time_start};
     for (size_t index = 0U; index < sizeof(actions) / sizeof(actions[0]); ++index)
     {
         boot->result = actions[index](port->context);

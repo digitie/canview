@@ -61,13 +61,20 @@ canview_status_t canview_stm_scheduler_init(canview_stm_scheduler_t *scheduler,
     scheduler->started_mask = 0U;
     scheduler->feeds = 0U;
     scheduler->fault = CANVIEW_STM_FAULT_NONE;
+    scheduler->running = true;
+    scheduler->initialized = true;
+    const uint32_t initialized_us = copied_port.now_us(copied_port.context);
     scheduler->running = false;
+    if (scheduler->fault != CANVIEW_STM_FAULT_NONE)
+    {
+        return CANVIEW_TIMEOUT;
+    }
     for (size_t index = 0U; index < count; ++index)
     {
         scheduler->last_run_ms[index] = now_ms;
         scheduler->last_progress_ms[index] = now_ms;
+        scheduler->last_progress_us[index] = initialized_us;
     }
-    scheduler->initialized = true;
     return CANVIEW_OK;
 }
 
@@ -81,8 +88,13 @@ static canview_status_t run_due(canview_stm_scheduler_t *scheduler, uint32_t now
         }
         const canview_stm_worker_t *const worker = &scheduler->workers[index];
         const uint16_t mask = (uint16_t)(UINT16_C(1) << index);
-        if (worker->required &&
-            (uint32_t)(now_ms - scheduler->last_progress_ms[index]) > worker->deadline_ms)
+        const uint32_t started_us = scheduler->port.now_us(scheduler->port.context);
+        if (scheduler->fault != CANVIEW_STM_FAULT_NONE)
+        {
+            return CANVIEW_TIMEOUT;
+        }
+        if (worker->required && (uint32_t)(started_us - scheduler->last_progress_us[index]) >
+                                    worker->deadline_ms * UINT32_C(1000))
         {
             return latch_fault(scheduler, CANVIEW_STM_FAULT_DEADLINE);
         }
@@ -91,13 +103,9 @@ static canview_status_t run_due(canview_stm_scheduler_t *scheduler, uint32_t now
         {
             continue;
         }
-        const uint32_t started_us = scheduler->port.now_us(scheduler->port.context);
-        if (scheduler->fault != CANVIEW_STM_FAULT_NONE)
-        {
-            return CANVIEW_TIMEOUT;
-        }
         const canview_status_t status = worker->run(worker->context);
-        const uint32_t elapsed_us = scheduler->port.now_us(scheduler->port.context) - started_us;
+        const uint32_t finished_us = scheduler->port.now_us(scheduler->port.context);
+        const uint32_t elapsed_us = finished_us - started_us;
         if (scheduler->fault != CANVIEW_STM_FAULT_NONE)
         {
             return CANVIEW_TIMEOUT;
@@ -106,11 +114,18 @@ static canview_status_t run_due(canview_stm_scheduler_t *scheduler, uint32_t now
         {
             return latch_fault(scheduler, CANVIEW_STM_FAULT_BUDGET);
         }
+        /* 이전 진척의 deadline을 확인한 뒤에만 새 성공/vote로 덮어쓴다. */
+        if (worker->required && (uint32_t)(finished_us - scheduler->last_progress_us[index]) >
+                                    worker->deadline_ms * UINT32_C(1000))
+        {
+            return latch_fault(scheduler, CANVIEW_STM_FAULT_DEADLINE);
+        }
         scheduler->last_run_ms[index] = now_ms;
         scheduler->started_mask |= mask;
         if (status == CANVIEW_OK)
         {
             scheduler->last_progress_ms[index] = now_ms;
+            scheduler->last_progress_us[index] = finished_us;
             scheduler->votes |= mask;
         }
         else if (status != CANVIEW_RESOURCE_BUSY)
@@ -143,7 +158,8 @@ canview_status_t canview_stm_scheduler_step(canview_stm_scheduler_t *scheduler, 
     scheduler->last_step_ms = now_ms;
     const uint32_t started_us = scheduler->port.now_us(scheduler->port.context);
     canview_status_t result = run_due(scheduler, now_ms);
-    const uint32_t elapsed_us = scheduler->port.now_us(scheduler->port.context) - started_us;
+    const uint32_t finished_us = scheduler->port.now_us(scheduler->port.context);
+    const uint32_t elapsed_us = finished_us - started_us;
     if (scheduler->fault != CANVIEW_STM_FAULT_NONE)
     {
         result = CANVIEW_TIMEOUT;
@@ -154,12 +170,11 @@ canview_status_t canview_stm_scheduler_step(canview_stm_scheduler_t *scheduler, 
     }
     if (result == CANVIEW_OK)
     {
-        const uint32_t effective_ms = now_ms + (elapsed_us + UINT32_C(999)) / UINT32_C(1000);
         for (size_t index = 0U; index < scheduler->count; ++index)
         {
             if (scheduler->workers[index].required &&
-                (uint32_t)(effective_ms - scheduler->last_progress_ms[index]) >
-                    scheduler->workers[index].deadline_ms)
+                (uint32_t)(finished_us - scheduler->last_progress_us[index]) >
+                    scheduler->workers[index].deadline_ms * UINT32_C(1000))
             {
                 result = latch_fault(scheduler, CANVIEW_STM_FAULT_DEADLINE);
                 break;

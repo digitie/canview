@@ -46,6 +46,8 @@ UART DMA·실물 RTS/CTS·UART diagnostic transport(T-104), FDCAN 수신(T-103),
 
 root CTest에 `stm32-core-*` fixture를 등록하고 Debug/Release/ASan+UBSan과 coverage를 실행한다. Arm Debug/Release map·`.su`·BIN SHA-256과 warning scan, ESP32 네 역할 compile regression을 보존한다. 실행 전 계획을 PASS로 표시하지 않는다.
 
+[최초 2인 리뷰와 수정 기록](../reviews/adversarial/2026-09-07-T-102a.md): P1 2건/P2 3건을 발견했다. 초기 host74/74와 target 생성만으로 완료하지 않으며 실제 완료 deadline·NMI reset·vote 변이·개별 stack evidence·API 문서를 보완한 commit의 독립 재확인과 최종 binary/CI가 남아 있다.
+
 ## rollback과 후속 gate
 
 회귀 시 이 task의 변경을 revert해 기존 safe-idle scaffold를 사용한다. 보드 flash나 옵션 byte를 자동 변경하지 않는다. T-102a 완료는 보드 G1·차량 CAN 연결·T-102 전체 완료가 아니며 후속 task의 기존 선행을 자동 해제하지 않는다.

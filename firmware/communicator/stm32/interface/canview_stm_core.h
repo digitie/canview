@@ -94,6 +94,7 @@ typedef struct
     canview_stm_worker_t workers[CANVIEW_STM_WORKERS_MAX];
     uint32_t last_run_ms[CANVIEW_STM_WORKERS_MAX];
     uint32_t last_progress_ms[CANVIEW_STM_WORKERS_MAX];
+    uint32_t last_progress_us[CANVIEW_STM_WORKERS_MAX];
     canview_stm_scheduler_port_t port;
     uint32_t last_step_ms;
     uint32_t last_feed_ms;
@@ -111,7 +112,8 @@ typedef struct
  * @param scheduler zero-init 단일 owner context. 재초기화 거부.
  * @param workers count개 descriptor. descriptor는 복사하나 callback context 수명은 caller 책임이다.
  * @param count 1..CANVIEW_STM_WORKERS_MAX.
- * @param port 필수 clock/feed/fault callback; ISR 호출 금지.
+ * @param port 필수 clock/feed/fault callback; clock은 init부터 연속 monotonic us를 제공한다. ISR
+ * 호출 금지.
  * @param now_ms monotonic u32 ms. RTC와 섞지 않는다.
  * @return 입력 오류 시 context 불변. 성공 이후 descriptor/context 변경 금지.
  */
@@ -125,7 +127,8 @@ canview_status_t canview_stm_scheduler_init(canview_stm_scheduler_t *scheduler,
  * @param now_ms 이전 tick과의 간격≤20ms. u32 wrap은 허용, backward/gap은 fault.
  * @return OK 또는 latched fault의 TIMEOUT. callback 오류도 fail-closed.
  * 필수 worker 전체의 새로운 vote와 10ms cadence 없이는 watchdog을 갱신하지 않는다.
- * callback 경과 now_us도 budget과 전체20ms 제한을 검사한다.
+ * callback 시작/완료 now_us로 이전 진척 deadline을 확인한 뒤 새 vote를 인정한다.
+ * now_ms는 dispatch/cadence용, now_us는 실제 완료 간격·budget과 전체20ms 제한용이다.
  */
 canview_status_t canview_stm_scheduler_step(canview_stm_scheduler_t *scheduler, uint32_t now_ms);
 #endif

@@ -1,5 +1,6 @@
 """STM32 bench ELF의 실제 크기/stack/TX 경계와 host register 상수를 검사한다."""
 import argparse
+import json
 from pathlib import Path
 import re
 import subprocess
@@ -39,6 +40,40 @@ def check_stack(lines):
     return max(frames)
 
 
+def stack_evidence(build, commands, symbols_for_object=None):
+    """compile database의 모든 C object와 개별 .su를 대조한다. ASM/외부 archive는 제외."""
+    build = build.resolve()
+    paths = []
+    for command in commands:
+        suffix = Path(command["file"]).suffix.lower()
+        if suffix == ".s":
+            continue
+        if suffix != ".c" or "-fstack-usage" not in command["command"].split():
+            raise RuntimeError(f"C stack-usage compile 계약 누락: {command['file']}")
+        output = Path(command["output"])
+        if not output.is_absolute():
+            output = Path(command["directory"]) / output
+        output = output.resolve()
+        if not output.is_relative_to(build) or not output.is_file():
+            raise RuntimeError(f"build 밖 또는 누락 object: {output}")
+        stack = output.with_suffix(".su")
+        if not stack.is_file():
+            raise RuntimeError(f"개별 stack evidence 누락: {stack}")
+        if stack.stat().st_size == 0:
+            # 생성된 const table 전용 C unit은 실제 code symbol이 없는 경우만 빈 .su 허용.
+            if symbols_for_object is None:
+                raise RuntimeError(f"빈 stack evidence: {stack}")
+            symbols = symbols_for_object(output).splitlines()
+            if any(len(line.split()) < 2 or line.split()[1] in ("t", "T", "w", "W") for line in symbols):
+                raise RuntimeError(f"code object의 stack evidence가 비어 있음: {stack}")
+        if stack in paths:
+            raise RuntimeError(f"중복 object stack evidence: {stack}")
+        paths.append(stack)
+    if not paths:
+        raise RuntimeError("C compile/stack evidence 목록이 비어 있음")
+    return paths
+
+
 def run(arguments, **kwargs):
     return subprocess.check_output(arguments, text=True, encoding="utf-8", **kwargs)
 
@@ -55,7 +90,10 @@ def main():
     text, data, bss = check_memory(size)
     symbols = run([str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", str(args.elf)])
     check_symbols(symbols)
-    max_frame = check_stack(line for path in args.elf.parent.rglob("*.su")
+    commands = json.loads((args.elf.parent / "compile_commands.json").read_text(encoding="utf-8"))
+    stacks = stack_evidence(args.elf.parent, commands, lambda output: run(
+        [str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", "--format=posix", str(output)]))
+    max_frame = check_stack(line for path in stacks
                            for line in path.read_text(encoding="utf-8").splitlines())
     # 모델 register의 숫자와 고정 vendor CMSIS를 독립 compile-time 비교한다.
     model = ROOT / "firmware/communicator/stm32/tests/register_model.h"
@@ -72,7 +110,8 @@ def main():
                     "-mcpu=cortex-m4", "-mthumb", "-DSTM32G474xx", f"-I{device}", f"-I{core}", "-"],
                    input=source, text=True, encoding="utf-8", check=True)
     print(f"PASS: STM32 core text={text} data={data} bss+reserved-stack={bss}; "
-          f"max individual stack frame={max_frame}; {len(constants)} CMSIS/model constants")
+          f"max individual stack frame={max_frame}; {len(stacks)} C object stack files; "
+          f"{len(constants)} CMSIS/model constants")
     return 0
 
 

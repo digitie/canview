@@ -36,7 +36,7 @@ safe GPIO는 generated pin header를 사용해 latch를 먼저 쓴다. 표준 ve
 | 실행 budget | 각 callback≤1000us·전체≤20ms | TIM2로 검사, 실물 WCET 미계측 |
 | BUSY/error | BUSY는 progress 없음, deadline 초과/error/WCET는 fault | latched, 자동 복구 없음 |
 
-호출 자체는 진척이 아니다. worker는 bounded service/check를 완료했을 때만 OK를 반환한다. 각 tick의 실제 callback 경과를 반영해 watchdog 갱신 직전에도 freshness를 재검사한다. 한 번 갱신에 쓴 vote는 소모한다. 미래 CAN/UART/safety worker를 연결할 때 required mask와 WCET·queue budget을 새로 검증해야 한다. 현재는 PHY standby·ARM LOW·WDI LOW를 계속 유지하므로 외부 watchdog을 건강하다고 허위 pulse하지 않는다.
+호출 자체는 진척이 아니다. worker는 bounded service/check를 완료했을 때만 OK를 반환한다. deadline은 init 시점부터 연속인 microsecond clock으로 이전 완료→현재 시작·완료 간격을 검사하며, 검사 성공 뒤에만 새 완료 timestamp/vote를 기록한다. ms tick은 dispatch/cadence용이고 `last_progress_ms`는 step 시작 시점 진단값일 뿐 freshness 판정에 쓰지 않는다. watchdog 갱신 직전에도 모든 필수 worker의 freshness를 재검사한다. 한 번 갱신에 쓴 vote는 소모한다. 미래 CAN/UART/safety worker를 연결할 때 required mask와 WCET·queue budget을 새로 검증해야 한다. 현재는 PHY standby·ARM LOW·WDI LOW를 계속 유지하므로 외부 watchdog을 건강하다고 허위 pulse하지 않는다.
 
 IWDG PR32·reload374는 nominal32kHz에서375ms다. DS12288 Rev6의 LSI29.5–34kHz 범위로 계산하면 약353–407ms이며 목표250–500ms 안이다. 실제 oscillator·reset·PHY 전환은 미계측이다. 초기 register 반영 feed와 런타임 health feed를 구분한다.
 
@@ -47,7 +47,7 @@ HSE16MHz crystal(non-bypass), M4/N80/R2/Q4로 SYSCLK160MHz·APB1/2=80MHz·FDCAN 
 | ISR | 책임 | 공유 데이터·처리 |
 |---|---|---|
 | SysTick | u32 monotonic ms 증가만 | ISR 단일 writer·main 원자 word read, Cortex-M4 |
-| NMI/CSS | fault latch·CSS flag clear | main이 health 실패로 수렴, feed 거부 |
+| NMI/CSS | fault latch·CSS flag clear·system reset | 중단된 watchdog write로 복귀하지 않는 terminal 예외 |
 | HardFault | fault latch·feed 없이 대기 | PHY는 원래 안전 출력 고정 |
 
 TIM2는 APB1 timer160MHz /160 =1MHz, u32 약71.6분 wrap이다. scheduler의 모든 시간차는 unsigned subtraction이고 유효 간격을 제한한다. health worker는 SysTick이 진행한 두 sample 사이 TIM2 정지·역행·과대한 경과도 fault로 고정한다. SysTick과 TIM2의 실측 정확도·IRQ latency는 G1/G2에서 확인한다. handler는 parsing/logging/heap/Flash 작업을 하지 않는다.
@@ -56,7 +56,7 @@ TIM2는 APB1 timer160MHz /160 =1MHz, u32 약71.6분 wrap이다. scheduler의 모
 
 root CTest의 `stm32-core-*`가 boot 단계 실패·clock wrap/backward·worker 정지/재진입/과실행·queue 경계와 실제 backend의 host named-register model을 실행한다. 모델은 전기적 simulator가 아니며 target build가 모델 상수47개와 실제 고정 CMSIS 값을 독립 compile-time 비교한다. test hook은 host에서만 활성화하고 Arm target에서는 compile error로 차단한다.
 
-target linker는 static RAM80KiB·reserved stack24KiB·총 RAM margin24KiB를 강제한다. 현재 stack reserve는8KiB이고 `check_stm32_core.py`는 실제 ELF 크기·필수 core symbol·금지 heap/FDCAN TX symbol·단일 `.su` frame≤2KiB를 검사한다. 단일 frame 상한은 전체 call-chain/IRQ 중첩 stack watermark 증명이 아니다. 전체 Flash bench layout은 MCUboot/OTA layout이 아니며 root/config page에 쓰는 API가 없다.
+target linker는 static RAM80KiB·reserved stack24KiB·총 RAM margin24KiB를 강제한다. 현재 stack reserve는8KiB이고 `check_stm32_core.py`는 실제 ELF 크기·필수 core symbol·금지 heap/FDCAN TX symbol·단일 `.su` frame≤2KiB를 검사한다. compile database의 모든 C object에 해당하는 개별 `.su`가 있어야 하며 일부 누락도 실패한다. 빈 파일은 `nm`으로 해당 object에 code symbol이 없음을 확인한 const table 전용 unit만 허용한다. assembly startup과 prebuilt external library는 이 frame 검사에서 제외한다. 단일 frame 상한은 전체 call-chain/IRQ 중첩 stack watermark 증명이 아니다. 전체 Flash bench layout은 MCUboot/OTA layout이 아니며 root/config page에 쓰는 API가 없다.
 
 `canview_stm_board_diagnostic()`은 reset flags·clock 상태·unknown boot/debug 인증·TX0을 caller snapshot으로 제공한다. 실제 UART diagnostic 전송, profile/hardware/protocol digest 포함 production metadata, stack watermark는 T-102/T-104/T-107에서 연결한다. 포인터/host struct를 wire로 memcpy하지 않는다.
 

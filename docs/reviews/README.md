@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-07 | T-102a STM32 최소 core | `ca1a299` boot/clock/IWDG·scheduler/queue·API/stack gate | embedded clock/runtime / build·검증·API | [report·독립 원문](adversarial/2026-09-07-T-102a.md), 최초 BLOCK·P1 2건/P2 3건 수정본 재확인 중 |
 | 2026-09-07 | T-004 UART schema/codec 최종 post-fix | `3c6967a` 구현·`d5d323f` evidence, semantic ABI·COBS/CRC·session/replay·queue ownership·실제 69.12GB duplex soak | embedded 안전/runtime / protocol·security·build | [report·독립 원문·검증](adversarial/2026-09-07-T-004.md), 코드 P0/P1 없음·A 문구 조건 반영·B 범위 PASS·최신 CI10건 PASS·PR #20 merge |
 | 2026-09-07 | T-003 ESP-NOW codec/session/QoS 최종 post-fix | `6a076a3` → `67ccee9`, session lifecycle/security binding·generated TLV·anti-replay·QoS/resource·STM32/ESP32 target evidence | embedded safety·target runtime / protocol·security·build/integration | [report·Reviewer A/B 원문·target evidence](adversarial/2026-09-07-T-003.md), 최초 B-P1-01 evidence freshness FIXED·양 reviewer post-fix PASS |
 | 2026-09-06 | T-002 ESP-NOW v1.3 schema·generated header 최종 post-fix | `fe564fe` → `fb30b29`, schema ABI·generated namespace·clear decode context·bulk bounds·golden/negative·host/target evidence | embedded safety·protocol·security / protocol·ABI·generator·reproducibility | [report·reviewer A/B evidence·target/coverage evidence](adversarial/2026-09-06-T-002.md), 최종 finding 0건·양 reviewer PASS·F-02는 T-003 이관 |

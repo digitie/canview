@@ -120,6 +120,7 @@ static void initialize(canview_stm_scheduler_t *scheduler, fixture_t *fixture, u
     const canview_stm_scheduler_port_t callbacks = port(fixture);
     fixture->scheduler = scheduler;
     CHECK(canview_stm_scheduler_init(scheduler, workers, 1U, &callbacks, start) == CANVIEW_OK);
+    fixture->time_calls = 0U;
 }
 
 static void boot_tests(void)
@@ -231,6 +232,12 @@ static void scheduler_validation(void)
           CANVIEW_OK);
     CHECK(canview_stm_scheduler_init(&scheduler, &valid, 1U, &callbacks, 0U) ==
           CANVIEW_RESOURCE_BUSY);
+    canview_stm_scheduler_t reentrant = {0};
+    fixture.scheduler = &reentrant;
+    fixture.time_calls = 0U;
+    fixture.time_reenter_call = 1U;
+    CHECK(canview_stm_scheduler_init(&reentrant, &valid, 1U, &callbacks, 0U) == CANVIEW_TIMEOUT);
+    CHECK(reentrant.fault == CANVIEW_STM_FAULT_REENTRY && !reentrant.running);
 }
 
 static void scheduler_healthy(void)
@@ -240,15 +247,17 @@ static void scheduler_healthy(void)
     {
         fixture_t fixture = {0};
         canview_stm_scheduler_t scheduler = {0};
-        initialize(&scheduler, &fixture, starts[index]);
         fixture.us = UINT32_MAX - 500U;
+        initialize(&scheduler, &fixture, starts[index]);
         fixture.duration = 10U;
         for (uint32_t tick = 0U; tick <= 100U; ++tick)
         {
+            fixture.us = UINT32_MAX - 500U + tick * 1000U;
             CHECK(canview_stm_scheduler_step(&scheduler, starts[index] + tick) == CANVIEW_OK);
         }
         CHECK(fixture.calls == 101U && fixture.feeds == 10U && fixture.faults == 0U);
         scheduler.feeds = UINT32_MAX;
+        fixture.us += 10000U;
         CHECK(canview_stm_scheduler_step(&scheduler, starts[index] + 110U) == CANVIEW_OK);
         CHECK(scheduler.feeds == UINT32_MAX);
     }
@@ -278,9 +287,79 @@ static void scheduler_healthy(void)
     CHECK(fixture.calls == 21U && fixture.feeds == 2U);
 }
 
+static void scheduler_deadline_edges(void)
+{
+    const uint32_t bases[] = {0U, UINT32_MAX - 5000U};
+    for (size_t wrap = 0U; wrap < sizeof(bases) / sizeof(bases[0]); ++wrap)
+    {
+        for (uint32_t scenario = 0U; scenario < 4U; ++scenario)
+        {
+            fixture_t fixture = {0};
+            fixture.us = bases[wrap];
+            canview_stm_scheduler_t scheduler = {0};
+            const uint32_t start_ms = wrap == 0U ? 0U : UINT32_MAX - 5U;
+            const canview_stm_worker_t workers[] = {
+                {worker, &fixture, 1U, 20U, 1000U, false},
+                {worker, &fixture, 1U, 10U, scenario == 0U ? 100U : 1000U, true}};
+            const canview_stm_scheduler_port_t callbacks = port(&fixture);
+            const size_t first = scenario == 1U ? 0U : 1U;
+            CHECK(canview_stm_scheduler_init(&scheduler, &workers[first], 2U - first, &callbacks,
+                                             start_ms) == CANVIEW_OK);
+            CHECK(canview_stm_scheduler_step(&scheduler, start_ms) == CANVIEW_OK);
+            fixture.us = bases[wrap] + 10000U;
+            fixture.duration = scenario == 0U ? 100U : (scenario == 1U ? 1000U : 0U);
+            if (scenario == 3U)
+            {
+                /* deadline까지 정확히 완료하는 작업은 허용한다. */
+                fixture.us -= 1000U;
+                fixture.duration = 1000U;
+            }
+            const canview_status_t result =
+                canview_stm_scheduler_step(&scheduler, start_ms + (scenario == 3U ? 9U : 10U));
+            if (scenario < 2U)
+            {
+                CHECK(result == CANVIEW_TIMEOUT && scheduler.fault == CANVIEW_STM_FAULT_DEADLINE);
+                CHECK(fixture.feeds == 0U && scheduler.votes == 0U);
+                CHECK(scheduler.last_progress_us[1U - first] == bases[wrap]);
+                CHECK(fixture.calls == (scenario == 0U ? 2U : 3U));
+            }
+            else
+            {
+                CHECK(result == CANVIEW_OK && scheduler.fault == CANVIEW_STM_FAULT_NONE);
+                CHECK(scheduler.last_progress_us[0] == bases[wrap] + 10000U);
+                fixture.duration = 1U;
+                CHECK(canview_stm_scheduler_step(&scheduler, start_ms + 10U) == CANVIEW_OK);
+                CHECK(fixture.feeds == 1U);
+            }
+        }
+    }
+}
+
 static void scheduler_faults(void)
 {
-    for (uint32_t scenario = 0U; scenario < 14U; ++scenario)
+    scheduler_deadline_edges();
+    for (uint32_t after_feed = 0U; after_feed <= 1U; ++after_feed)
+    {
+        fixture_t clock_worker = {0};
+        fixture_t stalled = {0};
+        canview_stm_scheduler_t scheduler = {0};
+        const canview_stm_worker_t workers[] = {{worker, &clock_worker, 1U, 20U, 1000U, true},
+                                                {worker, &stalled, 1U, 20U, 1000U, true}};
+        const canview_stm_scheduler_port_t callbacks = port(&clock_worker);
+        CHECK(canview_stm_scheduler_init(&scheduler, workers, 2U, &callbacks, 0U) == CANVIEW_OK);
+        const uint32_t last_progress = after_feed == 0U ? 0U : 10U;
+        for (uint32_t tick = 0U; tick <= last_progress + 20U; ++tick)
+        {
+            clock_worker.us = tick * 1000U;
+            stalled.status = after_feed != 0U && tick <= 10U ? CANVIEW_OK : CANVIEW_RESOURCE_BUSY;
+            CHECK(canview_stm_scheduler_step(&scheduler, tick) == CANVIEW_OK);
+            CHECK(clock_worker.feeds == (after_feed != 0U && tick >= 10U ? 1U : 0U));
+        }
+        clock_worker.us += 1000U;
+        CHECK(canview_stm_scheduler_step(&scheduler, last_progress + 21U) == CANVIEW_TIMEOUT);
+        CHECK(scheduler.fault == CANVIEW_STM_FAULT_DEADLINE && clock_worker.feeds == after_feed);
+    }
+    for (uint32_t scenario = 0U; scenario < 17U; ++scenario)
     {
         fixture_t fixture = {0};
         canview_stm_scheduler_t scheduler = {0};
@@ -332,10 +411,12 @@ static void scheduler_faults(void)
         {
             for (uint32_t tick = 100U; tick <= 120U; ++tick)
             {
+                fixture.us = (tick - 100U) * 1000U;
                 CHECK(canview_stm_scheduler_step(&scheduler, tick) == CANVIEW_OK);
             }
             CHECK(fixture.feeds == 0U);
             fixture.now = 121U;
+            fixture.us = 21000U;
             fixture.status = CANVIEW_OK; /* expired worker를 late success로 살리지 않는다. */
         }
         if (scenario >= 8U && scenario <= 11U)
@@ -354,9 +435,25 @@ static void scheduler_faults(void)
         {
             CHECK(canview_stm_scheduler_step(&scheduler, 100U) == CANVIEW_OK);
             fixture.now = 120U;
+            fixture.us = 20000U;
             fixture.status = CANVIEW_RESOURCE_BUSY;
             fixture.duration = 1U;
             expected = CANVIEW_STM_FAULT_DEADLINE;
+        }
+        if (scenario == 14U)
+        {
+            fixture.now = 119U;
+            fixture.us = 19000U;
+            fixture.status = CANVIEW_RESOURCE_BUSY;
+            fixture.time_jump_call = 4U;
+            fixture.time_jump_us = 1001U;
+            expected = CANVIEW_STM_FAULT_DEADLINE;
+        }
+        if (scenario >= 15U)
+        {
+            fixture.time_jump_call = scenario - 13U;
+            fixture.time_jump_us = UINT32_MAX;
+            expected = scenario == 15U ? CANVIEW_STM_FAULT_DEADLINE : CANVIEW_STM_FAULT_BUDGET;
         }
         CHECK(canview_stm_scheduler_step(&scheduler, fixture.now) == CANVIEW_TIMEOUT);
         CHECK(scheduler.fault == expected && fixture.faults == 1U && fixture.reason == expected);

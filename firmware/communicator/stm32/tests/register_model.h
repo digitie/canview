@@ -96,6 +96,7 @@ extern uint32_t SystemCoreClock;
 #define RCC_CICR_CSSC UINT32_C(0x100)
 void canview_stm_test_poll(void);
 void canview_stm_test_reset(void);
+void canview_stm_test_before_feed(void);
 uint32_t model_systick_config(uint32_t ticks);
 void model_wait(void);
 uint32_t model_primask(void);

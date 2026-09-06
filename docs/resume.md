@@ -18,7 +18,7 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t102a-stm32-core-bench`다. T-004의 merge를 확인하고 T-102a를 시작했다. 최신 사용자 요청에 따라 core/base부터 이어간다.
+현재 branch는 `codex/t102a-stm32-core-bench`, draft PR #21이다. T-102a boot/core 구현의 최초 2인 리뷰 finding 5건을 수정하고 재확인·최종 host/target/CI gate를 진행한다. [리뷰 상태](reviews/adversarial/2026-09-07-T-102a.md)를 확인하며 아직 완료/merge가 아니다. 최신 사용자 요청에 따라 core/base부터 이어간다.
 
 - 현재 문서: docs/tasks/T-102a-stm32-core-bench.md, docs/tasks/T-102-stm32-platform.md, docs/hardware/r1/firmware-pinmap.md, docs/architecture/implementation-readiness.md §5.1, docs/development/windows.md
 - 구현 순서: SDK 독립 boot/progress/queue/scheduler → CMSIS clock/time/IWDG backend → 최소 entry·host fault/coverage → STM32/ESP32 binary → 독립 2인 리뷰·CI·merge.
