@@ -1,10 +1,11 @@
 # T-002 ESP-NOW v1.3 schema와 생성 header 동결
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G0`
 - 선행: `T-001`
 - 후속: `T-003`, `T-005`, `T-200`, `T-300`, `T-400`
+- branch: `agent/codex-t002-espnow-schema`
 
 ## 목표
 
