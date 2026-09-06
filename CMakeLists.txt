@@ -27,11 +27,14 @@ add_subdirectory(shared/app)
 include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests/foundation)
-    # Historical v1.2 prototypes stay isolated in their existing C11 test target.
+    # Protocol ABI is generated from the v1.3 schema and tested independently
+    # before any runtime transport integration is enabled.
     add_subdirectory(tests/automation)
     add_test(NAME generated-transport COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_transport.py --check)
     add_test(NAME generated-boards COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_boards.py --check)
     add_test(NAME generated-check COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_generated.py)
+    add_test(NAME generated-protocol COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --check)
+    add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME budget-check COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_budgets.py)
     add_test(NAME negative-fixtures COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_negative_fixtures.py)
     add_test(NAME foundation-python COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_generators.py -v)

@@ -6,7 +6,17 @@
 
 이 문서는 최대 3개 차량 CAN 버스를 수집하는 **Communicator**와 `ESP32-S3-Touch-LCD-3.5` 기반 **Controller** 사이의 양방향 프로토콜을 정의한다. 단순 텔레메트리 전송뿐 아니라 최초 등록, 상호 인증, 기능 협상, 시간 동기화, 명령 확인, 오류 복구, 버전 확장을 포함한다. 미확정 CAN 신호를 휴대폰으로 검증하는 선택 장치 `Diagnostic Bridge`도 같은 보안·frame·QoS 규칙을 사용하되 차량 명령 권한은 갖지 않는다.
 
-이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 현재 check-in된 C draft는 `1.2`지만 완전한 payload ABI와 codec이 없어 runtime 구현 기준이 아니다. 첫 통합 구현은 Diagnostic Bridge의 observer/capture message까지 포함한 `1.3`으로 동결하며, 미완성 `1.2` compatibility path를 만들지 않는다. machine-readable schema, 생성 C header와 golden vector가 함께 들어가는 [T-002](../../tasks/T-002-espnow-schema-v1.3.md)가 끝나기 전에는 wire firmware를 구현하지 않는다. 전체 owner·시간 epoch·gate 기준은 [구현 준비 기준](../implementation-readiness.md)을 따른다.
+이 문서의 `MUST`, `MUST NOT`, `SHOULD`, `MAY`는 각각 필수, 금지, 권고, 선택을 뜻한다. 첫 통합 wire ABI는 Diagnostic Bridge의 observer/capture message까지 포함한 `1.3`으로 동결하며, 미완성 `1.2` compatibility path를 만들지 않는다. machine-readable schema, 생성 C header, Python reference oracle과 golden/malformed/version vector는 [T-002](../../tasks/T-002-espnow-schema-v1.3.md) 산출물이다. runtime codec, secure session, ESP-NOW callback과 보드 연결은 후속 [T-003](../../tasks/T-003-espnow-codec-session.md) 범위이며, 현재 산출물만으로 wire firmware 배포를 주장하지 않는다. 전체 owner·시간 epoch·gate 기준은 [구현 준비 기준](../implementation-readiness.md)을 따른다.
+
+### 1.1 정본과 생성 산출물
+
+`protocol/schema/espnow-v1.3.yaml`이 유일한 ABI 입력이다. `tools/generate_protocol.py`가 다음 산출물을 결정적으로 생성하고 `--check`에서 drift를 거부한다.
+
+- [`protocol/canview_protocol.h`](../../../protocol/canview_protocol.h): C packed wire layout, field offset/size assertion, message ID와 enum
+- [`protocol/golden/espnow-v1.3/`](../../../protocol/golden/espnow-v1.3/): 정상 frame, malformed frame, same-major/future-minor와 TLV compatibility vector
+- [`tests/protocol/test_schema.py`](../../../tests/protocol/test_schema.py): Python little-endian encoder/decoder oracle와 schema/security/범위 회귀시험
+
+각 message의 `since`, response, idempotency key와 sensitive-log policy는 schema의 `message_contracts` companion map에서 같은 이름으로 관리한다. `SIGNAL_BATCH`는 catalog revision을 `u32`로 유지하고, boot 누적 상태 counter는 `u64`, 공통 reason은 `u16`이다. `READ_ONLY_CONTROLLER`와 `DIAGNOSTIC_BRIDGE`는 capability control scope를 0으로 광고하며 control root를 갖지 않는다.
 
 설계 원칙은 다음과 같다.
 
@@ -809,7 +819,7 @@ counter overflow는 saturating 또는 64-bit로 처리한다. UI는 운전 화�
 
 ## 22. 구현 완료 조건
 
-- [ ] `protocol/canview_protocol.h`와 reference encoder의 golden vector 일치
+- [x] `protocol/canview_protocol.h`와 reference encoder의 golden vector 일치(호스트 oracle)
 - [ ] 모든 일반 frame 240 byte 이하
 - [ ] production에서 PMK/LMK와 encrypted peer 강제
 - [ ] unencrypted mode에서 control lease 발급 불가

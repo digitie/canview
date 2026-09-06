@@ -1,0 +1,13 @@
+{
+  "base": "hello",
+  "expected": "bad_length",
+  "frame_hex": "435601032010020004030201443322118877665500000000560000009b195a",
+  "frame_size": 31,
+  "mutation": "truncate",
+  "name": "truncated-header",
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}

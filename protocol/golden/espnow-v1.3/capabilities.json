@@ -1,0 +1,65 @@
+{
+  "crc32": "75280a87",
+  "frame_hex": "43560103201102000403020127831f118f7766550000000094000000870a28750807060504030201181716151413121100010300f0000301000020030c00110000000200000001000000404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f0100080001000000000000000200020000000300040011000000",
+  "frame_size": 180,
+  "header": {
+    "correlation_id": 0,
+    "crc32": 1965558407,
+    "flags": 2,
+    "header_len": 32,
+    "magic": 22083,
+    "major": 1,
+    "message_type": 17,
+    "minor": 3,
+    "payload_len": 148,
+    "priority": 0,
+    "reserved": 0,
+    "sender_time_ms": 1432778639,
+    "sequence": 287277863,
+    "session_id": 16909060
+  },
+  "message": "CAPABILITIES",
+  "message_id": 17,
+  "name": "capabilities",
+  "payload": {
+    "boot_id": 1230066625199609624,
+    "build_id_digest": "808182838485868788898a8b8c8d8e8f",
+    "bus_count": 3,
+    "catalog_digest": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+    "catalog_revision": 2,
+    "config_schema_version": 1,
+    "control_scope": 0,
+    "device_id": 72623859790382856,
+    "max_batch_records": 12,
+    "max_filters": 32,
+    "max_frame": 240,
+    "max_peers": 3,
+    "profile_digest": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+    "profile_id": 17,
+    "role": 0,
+    "selected_major": 1,
+    "selected_minor": 3,
+    "support_flags": 1,
+    "tlvs": [
+      {
+        "type": 1,
+        "value": "0100000000000000"
+      },
+      {
+        "type": 2,
+        "value": "0000"
+      },
+      {
+        "type": 3,
+        "value": "11000000"
+      }
+    ]
+  },
+  "payload_hex": "0807060504030201181716151413121100010300f0000301000020030c00110000000200000001000000404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f0100080001000000000000000200020000000300040011000000",
+  "payload_size": 148,
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}

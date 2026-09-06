@@ -71,19 +71,19 @@ docs/architecture/protocols/esp-now.md
 
 ## 수용 기준
 
-- [ ] 선언된 모든 message ID에 payload schema 또는 명시적 `payload: none`이 있다.
-- [ ] role/state/direction/QoS가 없는 message가 0개다.
-- [ ] 모든 count 기반 payload가 208 byte 이하임을 generator가 증명한다.
-- [ ] C header를 다시 생성해 diff가 없다.
-- [ ] protocol minor assertion과 문서가 모두 `1.3`이다.
-- [ ] RTC vehicle command와 owner 없는 config key가 남지 않는다.
-- [ ] role/control scope가 local provisioning policy보다 넓게 협상될 수 없다.
-- [ ] retry해도 command issued time과 TTL이 바뀌지 않는 golden vector가 있다.
-- [ ] Bridge용 `link_root`/LMK로 Primary Controller session이나 scope를 인증할 수 없다.
-- [ ] 모든 mutating marker 경로가 단일 message와 16-bit reason namespace를 사용한다.
-- [ ] `u8` catalog revision, plain wrapping cumulative `u32` counter, `u8` common reason이 schema에 0개다.
-- [ ] Bridge/read-only schema state에서는 control root/tag 생성 API와 nonzero control scope가 존재하지 않는다.
-- [ ] C, Python에서 모든 golden binary size/field 값이 일치한다.
+- [x] 선언된 모든 message ID에 payload schema가 있다.
+- [x] role/state/direction/QoS와 response/idempotency/log policy가 없는 message가 0개다.
+- [x] 모든 count 기반 payload가 208 byte 이하임을 generator가 증명한다.
+- [x] C header를 다시 생성해 diff가 없다.
+- [x] protocol minor assertion과 문서가 모두 `1.3`이다.
+- [x] RTC vehicle command와 owner 없는 config key가 남지 않는다.
+- [x] role/control scope가 local provisioning policy보다 넓게 협상될 수 없고 read-only role은 scope 0이다.
+- [x] retry해도 command issued time과 TTL이 바뀌지 않는 golden vector가 있다.
+- [x] Bridge용 `link_root`/LMK로 Primary Controller session이나 scope를 인증할 수 없도록 security policy를 고정했다.
+- [x] 모든 mutating marker 경로가 `CAN_EVENT_MARKER` 단일 message와 16-bit reason namespace를 사용한다.
+- [x] `u8` catalog revision, plain wrapping cumulative `u32` counter, `u8` common reason이 schema에 0개다.
+- [x] Bridge/read-only schema policy에서 control root와 nonzero control scope를 금지한다.
+- [x] C packed layout과 Python oracle에서 모든 golden binary size/field 값이 일치한다.
 
 ## 계획 보완 수용 기준
 
@@ -99,6 +99,8 @@ python -m pytest -q tests/protocol/test_schema.py
 cmake --build --preset host-debug
 ctest --preset host-debug -R protocol-schema --output-on-failure
 ```
+
+현재 실행 결과: `python -B tools/generate_protocol.py --check`, `python -B tests/protocol/test_schema.py` 16/16, host-debug CTest는 protocol/generator/legacy automation을 포함해 plan metadata 수정 전 36/37 PASS였다. 실패한 plan-validation은 T-001 archive 요약 형식 오류였고 같은 변경에서 수정했다. Release/sanitize/coverage와 두 전문 reviewer의 독립 검증은 T-002 PR closure 전에 다시 실행한다.
 
 ## 안전·rollback
 

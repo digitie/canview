@@ -1,0 +1,43 @@
+{
+  "crc32": "a45a199b",
+  "frame_hex": "435601032010020004030201443322118877665500000000560000009b195aa408070605040302011817161514131211000102030405060708090a0b0c0d0e0f00010300f000101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+  "frame_size": 118,
+  "header": {
+    "correlation_id": 0,
+    "crc32": 2757368219,
+    "flags": 2,
+    "header_len": 32,
+    "magic": 22083,
+    "major": 1,
+    "message_type": 16,
+    "minor": 3,
+    "payload_len": 86,
+    "priority": 0,
+    "reserved": 0,
+    "sender_time_ms": 1432778632,
+    "sequence": 287454020,
+    "session_id": 16909060
+  },
+  "message": "HELLO",
+  "message_id": 16,
+  "name": "hello",
+  "payload": {
+    "boot_id": 1230066625199609624,
+    "build_id_digest": "101112131415161718191a1b1c1d1e1f",
+    "capability_digest": "303132333435363738393a3b3c3d3e3f",
+    "challenge": "202122232425262728292a2b2c2d2e2f",
+    "device_id": 72623859790382856,
+    "major": 1,
+    "max_frame": 240,
+    "minor": 3,
+    "nonce": "000102030405060708090a0b0c0d0e0f",
+    "role": 0
+  },
+  "payload_hex": "08070605040302011817161514131211000102030405060708090a0b0c0d0e0f00010300f000101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+  "payload_size": 86,
+  "schema_version": {
+    "major": 1,
+    "minor": 3,
+    "wire_name": "ESP-NOW v1.3"
+  }
+}
