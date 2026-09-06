@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-004 merge와 T-102a 시작)
+
+PR #20의 최종 head `182f975`에서 Windows/Linux host·sanitizer와 Windows target CI10건 SUCCESS를 확인하고 merge `caafc24`를 검증했다. 추가로 같은 clean head에서 STM32 Debug/Release·ESP32 네 프로젝트를 새 디렉터리에 모두 clean build해 warning/error0과 동일 ESP version을 확인했다. [merge evidence](reviews/adversarial/evidence/2026-09-07-T-004-merge.md)에 binary hash와 CI 링크를 보존하고 T-004를 DONE archive로 이동했다.
+
+사용자의 재개·core/base 우선 요청에 따라 `codex/t102a-stm32-core-bench`를 만들었다. T-102의 최소 boot/fault image를 T-102a로 분리하되 G1/G2 실측 의무와 기존 후속 task의 선행은 유지한다. Windows PnP 조회에서 ST-LINK/STM32 시리얼 장비를 식별하지 못했으므로 장비 준비 정보를 사용자에게 질문했으며 자동 flash·option-byte 변경은 하지 않는다. embedded architecture/cstyle/documentation/driver/ISR 지침에 따라 SDK 독립 실패 정책·정적 queue·scheduler와 CMSIS backend를 분리한다.
+
 ## 2026-09-07 (codex, T-004 구현·검증 closure)
 
 UART 1.0 schema/generator·semantic payload 검증·COBS/CRC stream·plan transaction·command cache·link/session/replay를 구현했다. 적대적 리뷰에서 발견한 stale heartbeat/cache, 방향·auth 혼동, enqueue 전 replay commit, borrowed payload 수명, quota와 staging timeout을 수정하고 재시험했다. 동기 queue copy와 단일 worker 소유권을 공개 계약에 명시했다. 최초·중간 finding과 2인 post-fix 원문은 [T-004 통합 기록](reviews/adversarial/2026-09-07-T-004.md)에 모두 보존했다.

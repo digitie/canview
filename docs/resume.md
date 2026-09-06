@@ -2,6 +2,8 @@
 
 ## 현재 진척도
 
+2026-09-07 T-004는 [PR #20](https://github.com/digitie/canview/pull/20), merge `caafc24`로 DONE이다. 현재는 T-102의 소프트웨어 선행인 [T-102a](tasks/T-102a-stm32-core-bench.md) 최소 STM32 boot/fault 기반을 구현한다. 실제 보드·ST-LINK/계측기는 현재 PC에서 확인되지 않았으며 사용자의 장비 준비 정보를 기다린다. 코드 검증과 G1 계측을 분리한다.
+
 2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 PR #18(`c18a8a5`)로, T-003은 ESP-NOW codec/session/QoS와 target build·2인 적대적 리뷰 후 PR #19(`4ee017b`)로 main에 merge되어 `DONE`이다.
 
 2026-09-06 전체 계획 재점검: 1차 전체 읽기와 2차 요구/task/정본 대조로 [42개 요구 추적표](architecture/requirements-coverage.md)와 46개 상세 task를 정리했다. OTA 8개 구현 단계, PCB 제작 gate와 오디오/SPORT의 수신 조사→bench 송신 순환 의존성을 보완했다. 운전자·진단 웹 각 5뷰와 LVGL을 개선하고 밝기/음량/SPORT host 결함을 수정했다. 작성자 검증과 최종 독립 2인 리뷰의 범위는 새 review 기록으로 추적한다. 이는 제품 전체 구현 완료가 아니다.
@@ -16,11 +18,11 @@
 
 ## 다음 한 작업
 
-T-004 Communicator UART v1.0 schema/codec의 구현·수용 시험·2인 코드 finding closure를 완료했다. 현재 branch는 `agent/codex-t004-uart-schema-codec`, PR은 [#20](https://github.com/digitie/canview/pull/20)이다. 최종 원격 CI를 확인한 뒤 merge하고, 최신 사용자 요청에 따라 다음 task를 계속한다. 이전의 merge 후 대기 요청은 재개 요청으로 대체됐다.
+현재 branch는 `codex/t102a-stm32-core-bench`다. T-004의 merge를 확인하고 T-102a를 시작했다. 최신 사용자 요청에 따라 core/base부터 이어간다.
 
-- 현재 문서: docs/tasks/T-004-uart-schema-codec.md, docs/architecture/protocols/communicator-uart.md, docs/architecture/implementation-readiness.md, docs/development/windows.md
-- 완료된 검증: Windows Debug/Release·WSL ASan+UBSan 각각 68/68, 실제 C parser 양방향 합계 69,120,000,130 byte, STM32 Debug/Release·ESP32 네 프로젝트 binary build warning/error0. [검증·리뷰 원문](reviews/adversarial/2026-09-07-T-004.md)을 따른다.
-- 남은 순서: 최종 CI → PR #20 merge 확인 → T-004 DONE/archive 갱신 → 사용자의 core/base 우선순위와 선행 DAG에 맞는 다음 task 선택. physical UART/DMA·보드/HIL은 T-004 통과 범위가 아니다.
+- 현재 문서: docs/tasks/T-102a-stm32-core-bench.md, docs/tasks/T-102-stm32-platform.md, docs/hardware/r1/firmware-pinmap.md, docs/architecture/implementation-readiness.md §5.1, docs/development/windows.md
+- 구현 순서: SDK 독립 boot/progress/queue/scheduler → CMSIS clock/time/IWDG backend → 최소 entry·host fault/coverage → STM32/ESP32 binary → 독립 2인 리뷰·CI·merge.
+- T-004 검증은 [최종 evidence](reviews/adversarial/evidence/2026-09-07-T-004-merge.md)에 보존했다. T-102a는 실물 UART/DMA·clock waveform·watchdog reset·CAN/HIL을 통과했다고 주장하지 않는다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
@@ -31,7 +33,7 @@ T-004 Communicator UART v1.0 schema/codec의 구현·수용 시험·2인 코드 
 ## 알려진 차단 조건
 
 - 검토 schematic/BOM과 firmware 독립 TX gate 회로는 있으나 승인 PCB·실물 fault evidence가 없음
-- T-003 runtime codec/session/QoS는 main에 통합됐고, T-004 UART schema/codec이 현재 구현·target 통합 중임
+- T-003/T-004 codec은 main에 통합됐으며 실제 UART DMA/무선/CAN runtime과 보드 검증은 후속 task에 남음
 - 2017 Tucson TL의 실제 bus 종류·bitrate·connector·신호가 미확정
 - 완성 target firmware와 HIL/fault evidence가 없음
 - 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. foundation-windows.ps1와 setup-windows.ps1을 dot-source하면 Clang23.1.0/CMake4.4.3/Ninja1.13.2 및 직접 설치된 Arm15.3.Rel1/IDF6.0.3/CubeG4 1.6.3을 검증한다. target compile gate는 통과했지만 실제 보드/HIL은 미실행이다.
