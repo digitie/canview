@@ -1,0 +1,289 @@
+name: Firmware foundation
+on:
+  push:
+    branches: [main, 'agent/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-c99:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      - name: Pinned Windows tools and strict C99 gates
+        shell: pwsh
+        run: |
+          . tools/environment/foundation-windows.ps1 -IncludeDocs
+          cmake --preset host-debug
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build --preset host-debug
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ctest --preset host-debug
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --preset host-release
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build --preset host-release
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ctest --preset host-release
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --preset host-coverage
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build --preset host-coverage
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/check_coverage.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/check_generated.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/check_budgets.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/check_negative_fixtures.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/validate_plan.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/validate_document_links.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B -m unittest discover -s tests -p "test_*.py"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m pip install --require-hashes -r tools/requirements-docs.lock
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/build_docs.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: windows-foundation-evidence
+          if-no-files-found: error
+          path: |
+            build/api/html
+            build/host-*/Testing/Temporary/LastTest.log
+            build/host-coverage/coverage-*/summary.json
+  linux-portability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      - name: Supplemental GNU and sanitizer builds (not Windows/target qualification)
+        run: |
+          cmake -S . -B build/${{ matrix.compiler }} -G Ninja -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/${{ matrix.compiler }}
+          ctest --test-dir build/${{ matrix.compiler }} --output-on-failure --no-tests=error
+  linux-sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Clang ASan and UBSan
+        run: |
+          cmake --preset host-sanitize
+          cmake --build --preset host-sanitize
+          ctest --preset host-sanitize
+  target-firmware-windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.14'
+      - name: Install pinned Arm GNU archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
+          try {
+            New-Item -ItemType Directory -Force $logRoot | Out-Null
+            & git config --global core.longpaths true
+            if ($LASTEXITCODE -ne 0) { throw "Failed to enable Git long paths" }
+            $manifest = Get-Content -Raw tools/toolchain-versions.json | ConvertFrom-Json
+            $toolchainBase = Join-Path $env:RUNNER_TEMP "canview-toolchains"
+            $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
+            New-Item -ItemType Directory -Force $toolchainBase | Out-Null
+            $partialArchive = "$archive.partial"
+            $downloaded = $false
+            for ($attempt = 1; $attempt -le 5; $attempt++) {
+              if (Test-Path -LiteralPath $partialArchive) { Remove-Item -LiteralPath $partialArchive -Force }
+              & curl.exe --fail --location --retry 3 --retry-delay 2 --retry-all-errors --silent --show-error --output $partialArchive $manifest.tools.armGnuToolchain.archiveUrl
+              $downloadExitCode = $LASTEXITCODE
+              if (($downloadExitCode -eq 0) -and (Test-Path -LiteralPath $partialArchive -PathType Leaf) -and ((Get-Item -LiteralPath $partialArchive).Length -gt 0)) {
+                Move-Item -LiteralPath $partialArchive -Destination $archive
+                $downloaded = $true
+                break
+              }
+              if ($attempt -lt 5) { Start-Sleep -Seconds $attempt }
+            }
+            if (-not $downloaded) { throw "Arm GNU archive download failed or returned an empty response after retries" }
+            & pwsh -NoProfile -File tools/environment/install-arm-gnu.ps1 -Destination $toolchainBase -ArchivePath $archive
+            if ($LASTEXITCODE -ne 0) { throw "install-arm-gnu.ps1 failed with exit code $LASTEXITCODE" }
+            $armRoot = Join-Path $toolchainBase "arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())"
+            $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
+            if (-not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) { throw "Arm provenance marker is missing: $provenancePath" }
+            Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance.json") -Force
+            "CANVIEW_TARGET_TOOLROOT=$toolchainBase" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CANVIEW_TARGET_ARM_GNU_ROOT=$armRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CANVIEW_TARGET_ARM_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } catch {
+            $_ | Out-String | Out-File -LiteralPath (Join-Path $logRoot "toolchain-install-error.log") -Encoding utf8
+            throw
+          }
+      - name: Install pinned SDKs and build all target images
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
+          try {
+            New-Item -ItemType Directory -Force $logRoot | Out-Null
+            . tools/environment/foundation-windows.ps1
+            $armRoot = $env:CANVIEW_TARGET_ARM_GNU_ROOT
+            . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
+            $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
+            Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance-after-setup.json") -Force
+            function Invoke-TargetCommand {
+              param([string]$Name, [scriptblock]$Command)
+              $log = Join-Path $logRoot "$Name.log"
+              & $Command *> $log
+              if ($LASTEXITCODE -ne 0) {
+                Get-Content -LiteralPath $log
+                throw "$Name failed with exit code $LASTEXITCODE"
+              }
+              $diagnostics = @(Select-String -LiteralPath $log -Pattern 'warning:|CMake Warning|ld\.exe: warning|error:' -CaseSensitive:$false)
+              if ($diagnostics.Count -gt 0) {
+                $diagnostics | ForEach-Object { $_.Line }
+                throw "$Name emitted compiler/linker warning or error diagnostics"
+              }
+            }
+            function Assert-TargetArtifact {
+              param([string]$Name, [string]$Path)
+              $item = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
+              if ($null -eq $item -or $item.PSIsContainer -or $item.Length -le 0) {
+                throw "Missing or empty target artifact: $Name ($Path)"
+              }
+            }
+            function Assert-Esp32Target {
+              param([string]$Project, [string]$ExpectedProjectName, [string]$ExpectedBinary)
+              $descriptionPath = Join-Path $Project "build/project_description.json"
+              if (-not (Test-Path -LiteralPath $descriptionPath -PathType Leaf)) {
+                throw "ESP-IDF project description is missing: $descriptionPath"
+              }
+              $description = Get-Content -Raw -LiteralPath $descriptionPath | ConvertFrom-Json
+              if ($description.project_name -ne $ExpectedProjectName) {
+                throw "ESP-IDF project name mismatch in $descriptionPath`: expected $ExpectedProjectName, found $($description.project_name)"
+              }
+              $expectedProjectPath = (Resolve-Path -LiteralPath $Project).Path.TrimEnd('\', '/')
+              $actualProjectPath = [System.IO.Path]::GetFullPath($description.project_path).TrimEnd('\', '/')
+              if (-not [string]::Equals($actualProjectPath, $expectedProjectPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "ESP-IDF project path mismatch in $descriptionPath`: expected $expectedProjectPath, found $($description.project_path)"
+              }
+              if ($description.target -ne 'esp32s3') {
+                throw "ESP-IDF target mismatch in $descriptionPath`: expected esp32s3, found $($description.target)"
+              }
+              if ($description.app_bin -ne $ExpectedBinary) {
+                throw "ESP-IDF app binary mismatch in $descriptionPath`: expected $ExpectedBinary, found $($description.app_bin)"
+              }
+            }
+            Push-Location firmware/communicator/stm32
+            try {
+              Invoke-TargetCommand "stm32-debug-configure" { cmake --preset debug }
+              Invoke-TargetCommand "stm32-debug-build" { cmake --build --preset debug --clean-first }
+              Invoke-TargetCommand "stm32-release-configure" { cmake --preset release }
+              Invoke-TargetCommand "stm32-release-build" { cmake --build --preset release --clean-first }
+            } finally { Pop-Location }
+            Assert-TargetArtifact "stm32 debug" "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin"
+            Assert-TargetArtifact "stm32 release" "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin"
+            foreach ($project in @('firmware/communicator/esp32', 'firmware/diagnostic-bridge', 'firmware/controller')) {
+              $name = ($project -replace '[^A-Za-z0-9]+', '-')
+              Invoke-TargetCommand "$name-fullclean" { idf.py -C $project fullclean }
+              Invoke-TargetCommand "$name-set-target" { idf.py -C $project set-target esp32s3 }
+              Invoke-TargetCommand "$name-build" { idf.py -C $project build }
+            }
+            Invoke-TargetCommand "public-component-fullclean" { idf.py -C tests/fixtures/idf-public-component fullclean }
+            Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
+            Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
+            Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32" "canview_communicator_esp32.bin"
+            Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge" "canview_diagnostic_bridge.bin"
+            Assert-Esp32Target "firmware/controller" "canview_controller" "canview_controller.bin"
+            Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture" "canview_public_component_fixture.bin"
+            Assert-TargetArtifact "communicator esp32" "firmware/communicator/esp32/build/canview_communicator_esp32.bin"
+            Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
+            Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
+            Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
+            $artifactPaths = @(
+            "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin",
+            "firmware/communicator/stm32/build/debug/canview-communicator-stm32.elf",
+            "firmware/communicator/stm32/build/debug/canview-communicator-stm32.map",
+            "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin",
+            "firmware/communicator/stm32/build/release/canview-communicator-stm32.elf",
+            "firmware/communicator/stm32/build/release/canview-communicator-stm32.map",
+            "firmware/communicator/esp32/build/canview_communicator_esp32.bin",
+            "firmware/communicator/esp32/build/canview_communicator_esp32.elf",
+            "firmware/communicator/esp32/build/canview_communicator_esp32.map",
+            "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin",
+            "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.elf",
+            "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.map",
+            "firmware/controller/build/canview_controller.bin",
+            "firmware/controller/build/canview_controller.elf",
+            "firmware/controller/build/canview_controller.map",
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin",
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.elf",
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.map"
+            )
+            foreach ($path in $artifactPaths) { Assert-TargetArtifact "target evidence" $path }
+            $artifactManifest = foreach ($path in $artifactPaths) {
+              $item = Get-Item -LiteralPath $path
+              [ordered]@{
+                path = $path
+                bytes = $item.Length
+                sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+              }
+            }
+            $toolchainProvenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+            [ordered]@{
+              schemaVersion = 1
+              toolchainProvenance = $toolchainProvenance
+              artifacts = @($artifactManifest)
+            } | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8
+          } catch {
+            $_ | Out-String | Out-File -LiteralPath (Join-Path $logRoot "target-build-error.log") -Encoding utf8
+            throw
+          }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: success()
+        with:
+          name: target-firmware-images
+          if-no-files-found: error
+          path: |
+            firmware/communicator/stm32/build/debug/*.bin
+            firmware/communicator/stm32/build/release/*.bin
+            firmware/communicator/stm32/build/debug/*.elf
+            firmware/communicator/stm32/build/release/*.elf
+            firmware/communicator/stm32/build/debug/*.map
+            firmware/communicator/stm32/build/release/*.map
+            firmware/communicator/esp32/build/*.bin
+            firmware/communicator/esp32/build/*.elf
+            firmware/communicator/esp32/build/*.map
+            firmware/diagnostic-bridge/build/*.bin
+            firmware/diagnostic-bridge/build/*.elf
+            firmware/diagnostic-bridge/build/*.map
+            firmware/controller/build/*.bin
+            firmware/controller/build/*.elf
+            firmware/controller/build/*.map
+            tests/fixtures/idf-public-component/build/*.bin
+            tests/fixtures/idf-public-component/build/*.elf
+            tests/fixtures/idf-public-component/build/*.map
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: target-firmware-logs
+          if-no-files-found: warn
+          path: ${{ runner.temp }}/canview-target-logs/*

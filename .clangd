@@ -1,0 +1,4 @@
+CompileFlags:
+  CompilationDatabase: build/host-debug
+Diagnostics:
+  UnusedIncludes: Strict

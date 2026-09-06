@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "status": "FOUNDATION_ENVELOPE_ONLY_NOT_RUNTIME_ABI",
+  "crc": {
+    "name": "CRC-32/ISO-HDLC",
+    "polynomial_reflected": 3988292384,
+    "initial": 4294967295,
+    "xor_out": 4294967295,
+    "check_123456789": 3421780262
+  },
+  "espnow": {
+    "major": 1,
+    "minor": 3,
+    "magic": 22083,
+    "max_frame": 240,
+    "flags_mask": 127,
+    "max_priority": 4,
+    "header": [
+      [
+        "magic",
+        2
+      ],
+      [
+        "major",
+        1
+      ],
+      [
+        "minor",
+        1
+      ],
+      [
+        "header_len",
+        1
+      ],
+      [
+        "message_type",
+        1
+      ],
+      [
+        "flags",
+        1
+      ],
+      [
+        "priority",
+        1
+      ],
+      [
+        "session_id",
+        4
+      ],
+      [
+        "sequence",
+        4
+      ],
+      [
+        "sender_time_ms",
+        4
+      ],
+      [
+        "correlation_id",
+        4
+      ],
+      [
+        "payload_len",
+        2
+      ],
+      [
+        "reserved",
+        2
+      ],
+      [
+        "crc32",
+        4
+      ]
+    ]
+  },
+  "uart": {
+    "major": 1,
+    "minor": 0,
+    "magic": 21827,
+    "max_frame": 1024,
+    "flags_mask": 31,
+    "baud": 4000000,
+    "header": [
+      [
+        "magic",
+        2
+      ],
+      [
+        "major",
+        1
+      ],
+      [
+        "minor",
+        1
+      ],
+      [
+        "message_type",
+        1
+      ],
+      [
+        "flags",
+        1
+      ],
+      [
+        "header_len",
+        2
+      ],
+      [
+        "payload_len",
+        2
+      ],
+      [
+        "reserved",
+        2
+      ],
+      [
+        "sequence",
+        4
+      ],
+      [
+        "correlation_id",
+        4
+      ],
+      [
+        "sender_time_us",
+        8
+      ],
+      [
+        "crc32",
+        4
+      ]
+    ]
+  },
+  "can_batch": {
+    "espnow_message": 32,
+    "uart_message": 16,
+    "prefix_size": 12,
+    "record_size": 16,
+    "max_records": 12,
+    "bus_count": 3,
+    "max_dlc": 8,
+    "standard_id_max": 2047,
+    "extended_id_max": 536870911
+  },
+  "scope": {
+    "implemented": [
+      "envelope",
+      "crc",
+      "cobs",
+      "classic_can_batch",
+      "sequence_window"
+    ],
+    "not_implemented": [
+      "message_catalog",
+      "payloads_other_than_can_batch",
+      "peer_auth",
+      "pairing",
+      "session_admission",
+      "qos",
+      "control",
+      "ota_recovery"
+    ],
+    "navigation_companion": "navigation-v1.json"
+  }
+}

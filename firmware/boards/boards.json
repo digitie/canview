@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "status": "REVIEW_FOUNDATION_NOT_QUALIFIED_HARDWARE",
+  "boards": [
+    {
+      "id": "controller-waveshare35-adapter-r1_1",
+      "path": "firmware/controller",
+      "kind": "esp32s3",
+      "module": "ESP32-S3R8",
+      "flash_bytes": 16777216,
+      "psram_bytes": 8388608,
+      "psram_mode": "octal",
+      "psram_ecc": false,
+      "recovery_gpio": 41,
+      "source": "firmware/boards/waveshare35-pins.json",
+      "reference": null,
+      "required_nets": [
+        "LCD_BL",
+        "RECOVERY_BUTTON_N"
+      ],
+      "factory_size": 4194304,
+      "ota": {
+        "recovery_offset": 262144,
+        "recovery_size": 1048576,
+        "slot0": 1310720,
+        "slot1": 5505024,
+        "slot_size": 4194304,
+        "data_offset": 9699328,
+        "data_size": 7077888
+      }
+    },
+    {
+      "id": "comm-r2-n16r8",
+      "path": "firmware/communicator/esp32",
+      "kind": "esp32s3",
+      "module": "ESP32-S3-WROOM-1-N16R8",
+      "flash_bytes": 16777216,
+      "psram_bytes": 8388608,
+      "psram_mode": "octal",
+      "psram_ecc": true,
+      "recovery_gpio": 8,
+      "source": "hardware/communicator/pinmap.csv",
+      "reference": "U11",
+      "required_nets": [
+        "ESP_RUN_OK",
+        "STM_RESET_CMD_N",
+        "STM_BOOT0_REQ",
+        "STM_RECOVERY_N",
+        "ESP_RTS_SRC",
+        "STM_RTS",
+        "ESP_TX_SRC",
+        "STM_TX",
+        "SERVICE_RUN_SENSE"
+      ],
+      "factory_size": 4194304,
+      "ota": {
+        "recovery_offset": 262144,
+        "recovery_size": 2097152,
+        "slot0": 2359296,
+        "slot1": 6553600,
+        "slot_size": 4194304,
+        "data_offset": 10747904,
+        "data_size": 6029312,
+        "staging_size": 4718592
+      }
+    },
+    {
+      "id": "bridge-r1-n8r2",
+      "path": "firmware/diagnostic-bridge",
+      "kind": "esp32s3",
+      "module": "ESP32-S3-WROOM-1-N8R2",
+      "flash_bytes": 8388608,
+      "psram_bytes": 2097152,
+      "psram_mode": "quad",
+      "psram_ecc": false,
+      "recovery_gpio": 4,
+      "source": "hardware/bridge/pinmap.csv",
+      "reference": "U11",
+      "required_nets": [
+        "PAIR_BUTTON_N",
+        "STATUS_LED"
+      ],
+      "factory_size": 2621440,
+      "ota": {
+        "recovery_offset": 262144,
+        "recovery_size": 1048576,
+        "slot0": 1310720,
+        "slot1": 3932160,
+        "slot_size": 2621440,
+        "data_offset": 6553600,
+        "data_size": 1835008
+      }
+    },
+    {
+      "id": "comm-r2-stm32g474ceu6",
+      "path": "firmware/communicator/stm32",
+      "kind": "stm32g474",
+      "module": "STM32G474CEU6",
+      "flash_bytes": 524288,
+      "sram_bytes": 98304,
+      "ccm_bytes": 32768,
+      "source": "hardware/communicator/pinmap.csv",
+      "reference": "U10",
+      "required_nets": [
+        "STB1_REQ",
+        "STB2_REQ",
+        "FT_EN_REQ",
+        "STM_ARM_EDGE",
+        "WD_PULSE",
+        "CAN1_TX_REQ",
+        "CAN2_TX_REQ",
+        "CAN3_TX_REQ"
+      ],
+      "clock": {
+        "hse_hz": 16000000,
+        "pll_m": 4,
+        "pll_n": 80,
+        "pll_r": 2,
+        "pll_q": 4,
+        "sysclk_hz": 160000000,
+        "pclk1_hz": 80000000,
+        "fdcan_hz": 80000000,
+        "uart_baud": 4000000,
+        "uart_brr": 20
+      }
+    }
+  ]
+}

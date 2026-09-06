@@ -1,0 +1,36 @@
+{
+  "source": "https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/tree/283ec84c566c096f8c30493b93dcd4b0bb608de7",
+  "contract": "docs/hardware/controller.md + docs/hardware/r1/bridge-controller-microphone.md",
+  "camera_enabled": false,
+  "pins": {
+    "LCD_MOSI": 1,
+    "LCD_MISO": 2,
+    "LCD_DC": 3,
+    "LCD_SCLK": 5,
+    "LCD_BL": 6,
+    "I2C_SCL": 7,
+    "I2C_SDA": 8,
+    "I2S_MCLK": 12,
+    "I2S_BCLK": 13,
+    "I2S_PLAY_DATA": 16,
+    "I2S_WS": 15,
+    "I2S_REC_DATA": 14,
+    "USB_DM": 19,
+    "USB_DP": 20,
+    "MIC_BCLK": 38,
+    "MIC_WS": 39,
+    "MIC_SD": 40,
+    "RECOVERY_BUTTON_N": 41,
+    "DEBUG_TX": 43,
+    "DEBUG_RX": 44
+  },
+  "lcd": {
+    "width": 320,
+    "height": 480
+  },
+  "i2c": {
+    "hz": 400000,
+    "rtc_address": 81,
+    "io_expander_address": 32
+  }
+}

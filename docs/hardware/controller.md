@@ -105,7 +105,7 @@ Waveshare의 Arduino 예제와 ESP-IDF 예제에서 확인한 기본 점유는 �
 | onboard I2C SCL/SDA | `GPIO7` / `GPIO8` | 400 kHz 예제; 여러 장치가 공유 |
 | LCD reset/확장 | `TCA9554`, I2C address `0x20` | 예제는 TCA9554 output 1로 LCD reset 제어 |
 | TF card | `GPIO9`, `GPIO10`, `GPIO11` | 보드 저장장치와 충돌 |
-| audio I²S | `GPIO12` MCLK, `GPIO13` BCLK, `GPIO14` playback DIN, `GPIO15` LRCLK, `GPIO16` recording DOUT | ES8311·speaker·SMD microphone; Arduino 예제 기준 |
+| audio I²S | `GPIO12` MCLK, `GPIO13` BCLK, `GPIO14` MCU DIN(녹음), `GPIO15` LRCLK, `GPIO16` MCU DOUT(재생) | [고정 Waveshare IDF의 실제 gpio_cfg](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/blob/283ec84c566c096f8c30493b93dcd4b0bb608de7/ESP-IDF/01_factory/components/esp_port/esp_es8311_port.cpp#L20) 기준. 예제의 혼동되는 녹음/재생 주석 대신 MCU 데이터 방향을 사용 |
 | camera | `GPIO17`, `18`, `21`, `38`–`42`, `45`–`48` | 카메라 사용 시 외부 GPIO로 사용 금지 |
 | USB | `GPIO19`, `GPIO20` | USB D−/D+ |
 | UART | `GPIO43`, `GPIO44` | TX/RX |
@@ -127,7 +127,7 @@ PCF85063의 BCD 시간·날짜 레지스터, oscillator stop/invalid 상태, bac
 
 ### 5.1 채널 수와 물리계층
 
-Communicator는 `ESP32-S3-MINI-1-N4R2`와 `STM32G474CEU6`, 2채널 `TCAN1046AV-Q1`, 1채널 `MAX3055`로 구성한다. 현행 검토 회로는 [Communicator hardware](communicator.md), 기계 판독용 표는 [R1 물리 pin/net 표](../../hardware/communicator/pinmap.csv)를 따른다. Controller 원격 마이크 addon은 [R1 상세](r1/bridge-controller-microphone.md)를 사용한다.
+Communicator는 `ESP32-S3-WROOM-1-N16R8`와 `STM32G474CEU6`, 2채널 `TCAN1046AV-Q1`, 1채널 `MAX3055`로 구성한다. 현행 검토 회로는 [Communicator hardware](communicator.md), 기계 판독용 표는 [R1 물리 pin/net 표](../../hardware/communicator/pinmap.csv)를 따른다. Controller 원격 마이크 addon은 [R1 상세](r1/bridge-controller-microphone.md)를 사용한다.
 
 Communicator는 최소 다음을 만족해야 한다.
 
@@ -140,9 +140,9 @@ Communicator는 최소 다음을 만족해야 한다.
 7. 차량 연결부의 역전압·서지·ESD·과전류를 고려한 전원·보호 회로
 8. 종단저항은 차량 네트워크의 실제 종단 상태를 확인한 뒤 필요한 위치에만 배치
 
-CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2는 `TCAN1046AV-Q1`의 두 high-speed 채널에, CAN3는 `MAX3055`의 125 kbps fault-tolerant 채널에 연결한다. MAX3055를 고속 CAN 버스에 연결하거나 일반 120 Ω 종단을 그대로 적용하지 않는다. ESP32-S3-MINI-1-N4R2는 CAN frame 처리보다 ESP-NOW, provisioning, update를 맡고 STM32와 4 Mbps UART/RTS/CTS로 통신한다.
+CAN controller 3개는 STM32G474CEU6의 FDCAN1–3을 사용한다. CAN1·CAN2는 `TCAN1046AV-Q1`의 두 high-speed 채널에, CAN3는 `MAX3055`의 125 kbps fault-tolerant 채널에 연결한다. MAX3055를 고속 CAN 버스에 연결하거나 일반 120 Ω 종단을 그대로 적용하지 않는다. ESP32-S3-WROOM-1-N16R8는 CAN frame 처리보다 ESP-NOW, provisioning, update를 맡고 STM32와 4 Mbps UART/RTS/CTS로 통신한다.
 
-전원 기준안은 `LM74800-Q1 + back-to-back N-FET → MAX20040B 5 V → PGOOD-gated TPS629210 3.3 V → TLV803EA30DPWR 공통 reset`이다. MCU reset과 무전원 상태에서는 외부 pull resistor만으로 CAN1·2가 standby, CAN3가 Power-On Standby, UART가 flow-stop 상태가 되어야 한다. 구체 회로와 핀은 [Communicator hardware](communicator.md)를 정본으로 사용한다.
+전원·독립 ESP/STM reset·외부 송신 gate의 현행 기준은 [Communicator hardware](communicator.md)와 [ADR-007](../adr/007-n16r8-independent-recoverable-ota.md)을 따른다. 이전 공통 reset 요약을 재사용하지 않는다. MCU reset·무전원 상태의 CAN standby와 UART flow-stop은 외부 pull뿐 아니라 gate·buffer·rail sequencing 및 실측 증거로 확인해야 한다.
 
 1차 차량이 classic CAN인지 실제 차량 캡처로 확인하기 전까지 bitrate, connector pin, bus 이름을 고정하지 않는다. 특히 `CAN1/2/3`은 프로젝트 내부 논리 이름이며 차량의 실제 CAN 버스 명칭과 같다고 가정하지 않는다.
 

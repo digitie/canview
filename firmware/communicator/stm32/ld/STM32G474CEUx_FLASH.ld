@@ -1,14 +1,15 @@
-/* STM32G474CEU6: 512 KiB Flash, 96 KiB SRAM, 32 KiB CCM SRAM. */
+/* BENCH FOUNDATION ONLY; NOT the immutable-loader/slot OTA linker layout.
+ * STM32G474CEU6: 512 KiB Flash, 96 KiB SRAM, 32 KiB CCM SRAM. */
 ENTRY(Reset_Handler)
 
-_Min_Heap_Size = 0x200;
-_Min_Stack_Size = 0x800;
+_Min_Heap_Size = 0;
+_Min_Stack_Size = 0x2000;
 
 MEMORY
 {
   FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 512K
-  RAM   (xrw) : ORIGIN = 0x20000000, LENGTH = 96K
-  CCMRAM (xrw): ORIGIN = 0x10000000, LENGTH = 32K
+  RAM   (rw)  : ORIGIN = 0x20000000, LENGTH = 96K
+  CCMRAM (rw) : ORIGIN = 0x10000000, LENGTH = 32K
 }
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
@@ -56,14 +57,14 @@ SECTIONS
     __exidx_end = .;
   } > FLASH
 
-  .preinit_array :
+  .preinit_array (READONLY) :
   {
     PROVIDE_HIDDEN(__preinit_array_start = .);
     KEEP(*(.preinit_array*))
     PROVIDE_HIDDEN(__preinit_array_end = .);
   } > FLASH
 
-  .init_array :
+  .init_array (READONLY) :
   {
     PROVIDE_HIDDEN(__init_array_start = .);
     KEEP(*(SORT(.init_array.*)))
@@ -71,7 +72,7 @@ SECTIONS
     PROVIDE_HIDDEN(__init_array_end = .);
   } > FLASH
 
-  .fini_array :
+  .fini_array (READONLY) :
   {
     PROVIDE_HIDDEN(__fini_array_start = .);
     KEEP(*(SORT(.fini_array.*)))

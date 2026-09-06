@@ -6,6 +6,8 @@
 
 ### Added
 
+- 네 MCU의 안전 idle/BSP/platform 프로젝트, MCU 독립 C99 framing·CRC·COBS·classic CAN batch·sequence window를 추가했다. 보드 pin/config 생성, 넓은 host 시험·coverage·strict API 문서를 포함하며 실제 통신·차량 송신·OTA 기능은 후속 구현이다.
+
 - 전체 계획 2차 대조용 요구사항 추적표와 누락된 OTA·PCB·오디오/SPORT evidence 작업 11개, task metadata/선행 DAG 검증을 추가했다. 제품 구현·차량 승인과 계획 완료를 분리했다.
 - 운전자/진단 웹 5뷰씩의 오프라인 동작 검사와 공식 LVGL8.4 실제 host 수명·상태 회귀시험을 추가했다.
 - Bridge 없이 가능한 장치별 브라우저 OTA, STM 내부 이중 슬롯 복구와 설치 승인·버전 정책을 단일 [설계·리뷰 문서](docs/architecture/ota.md)에 추가했다. OTA 펌웨어 구현은 후속 단계다.

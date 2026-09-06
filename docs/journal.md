@@ -1,5 +1,22 @@
 # CANView 작업 일지
 
+## 2026-09-06 (codex, C99 기반 코드·넓은 시험·생성 API)
+
+기준선 b529a722fb813d5b60ab667675d73996895ea3fc에서 agent/codex-firmware-foundation을 만들었다. 사용자 dirty 변경 없이 시작했으며 기존 v1.2 prototype은 수정하지 않고 별도 host 회귀로 보존했다. embedded-architecture/cstyle/documentation 원칙으로 SDK-free codec/app, BSP/platform, caller ownership, API 오류·수명 계약을 분리했다.
+
+- 세 장치·네 MCU startup/BSP/config와 생성 pin header, strict C99 envelope/CRC/COBS/classic CAN batch/sequence를 추가했다. radio/CAN/OTA 활성화 경로는 없다.
+- 사용자가 Doxygen 허용을 명확히 한 뒤 Sphinx9.1.0/Breathe4.36.0/Doxygen1.18.0/Furo2025.12.19와 hash lock을 선택했다. 공개 함수14개 계약 검사 및 warning0 사이트 build를 실행했다.
+- 독립 C 표준 자문 Boole(01a074a0-9ee0-7883-83da-4e4a79fbe3ea)은 C17을 권고했으나 사용자 C99 지시를 유지했다. SDK GNU23과 공용 C99를 분리하고 C99 정적 검사를 추가했다. 자문은 2인 코드 리뷰 PASS를 대체하지 않는다.
+- 공식 archive SHA256 검증 후 .tools의 Clang23.1.0/CMake4.4.3/Ninja1.13.2/Doxygen1.18.0으로 Windows Debug/Release 각각31/31 CTest를 통과했다. core9그룹·독립 Python/C2195 vector·BSP4종 실패 주입·generator·legacy12회귀·문서/plan gate 포함.
+- 새 profile coverage: core 실행line546/546(100%), function20/20(100%), branch295/296(99.66%). BSP/SDK/Python/legacy를 분모에 포함하지 않았다.
+- tools/build_docs.py 실제 통과. 작성 중 Doxygen output parent 부재와 Sphinx 함수 pointer 표기 경고를 발견하고 builder 및 명시적인 함수 type typedef로 수정한 뒤 재검증했다.
+- tools/environment/setup-windows.ps1 -VerifyOnly: 일반 shell CMake 부재, 고정 host shell에서는 arm-none-eabi-gcc 부재로 실패. target SDK build/실보드/단전/차량 gate는 NOT_RUN이다.
+- T-001은 IN_PROGRESS이고 전체 ABI·SDK target CI·HIL acceptance는 열어 둔다. 새 2인 독립 리뷰와 remote CI 결과는 후속 review closure에 기록한다.
+- 최초 remote CI에서 Windows cp1252 한글 출력 오류와 GCC 정수 승격 경고를 확인했다. CTest Python -X utf8/host PYTHONUTF8, byte version 손상의 XOR 복원과 기존 brightness 시험 비교 상수 한 곳을 수정했다. v1.2 runtime 동작은 변경하지 않았다. beae8a9의 [CI34009610099](https://github.com/digitie/canview/actions/runs/34009610099)는 Windows 전체 gate와 Linux GCC Release/Clang ASan+UBSan 모두 PASS다.
+- 새 .tools/api-venv의 hash-locked 설치가 끝나기 전에 문서 생성을 실행한 한 차례는 Sphinx 미설치로 실패했다. 설치 완료 후 동일 명령의 strict build 및 pip check를 통과했으며 이 초기 순서 오류를 성공으로 집계하지 않았다. 기존 plan validator 부정 fixture35개도 별도로 통과했다.
+- 59ac404의 독립 리뷰 A(P2 세 건)·B(P2 두 건) 원문을 각각 보존한 뒤 비교했다. GPIO 검증 finding은 중복이며, 오디오 PLAY16/REC14 교정·SoC/module allowlist·IDF GNU adapter 분리·startup4역할 C99 compile·CAN 전체 필드/독립208 golden을 반영했다. core runtime byte 알고리즘은 변경하지 않았다.
+- 수정 후 Windows Debug/Release 각31/31, generator7그룹, envelope/COBS2195+CAN208 vector, coverage546/546·295/296, API strict14계약 PASS. bus 상수0·bus offset 오기·encode/decode 동시 delta endian 반전의 시험용 변이3종은 새 golden gate가 모두 검출했다. 원문에 포함된 임시 worktree 링크는 literal evidence로 보존했다. post-fix 재검토와 최종 CI는 closure report에서 추적한다.
+
 ## 2026-09-06 (codex, 전체 계획 두 차례 점검·UI 개선)
 
 기준선 `4aeb2912da063c6fcb0d8715aa46f84c7d1d1b0f`의 사용자 변경을 보존하고 기존 PR16 branch에서 작업했다. 계획/자동화/LVGL/진단 웹을 분리한 작업자와 main의 2차 대조를 수행했다. [요구 추적표](architecture/requirements-coverage.md)에 42개 요구와 46개 상세 task, 남은 실제 gate를 연결했다. embedded-architecture/documentation/cstyle 원칙으로 의미 명령·상태 소유권·ISR/queue 경계·실행되지 않은 gate를 분리했다. Hallmark는 사용하지 않았다.

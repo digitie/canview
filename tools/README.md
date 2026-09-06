@@ -17,11 +17,28 @@ ESP-IDF와 STM32CubeG4는 manifest에 기록한 commit까지 검증한다. 버�
 
 ## Windows 준비
 
-먼저 CMake, Ninja, Arm GNU Toolchain, Git을 Windows `PATH`에 설치한다. 공식 배포 위치는 manifest의 `source`를 사용한다. ESP-IDF build path에는 공백을 사용할 수 없으므로 Windows 사용자 profile 경로에 공백이 있으면 공백 없는 `-ToolRoot`를 지정한다. 그 다음 PowerShell에서 다음을 실행한다.
+먼저 CMake, Ninja, Git을 Windows `PATH`에 설치한다. Arm GNU Toolchain은 아래 설치 스크립트로 manifest의 `archiveUrl`에서 직접 내려받아 archive SHA-256, ZIP entry layout, 설치 root 전체 파일 inventory를 검증한다. `setup-windows.ps1`은 archive SHA-256과 provenance의 전체 파일 hash를 다시 확인하며 provenance marker가 없는 ambient `PATH` compiler를 사용하지 않는다. ESP-IDF build path에는 공백을 사용할 수 없으므로 Windows 사용자 profile 경로에 공백이 있으면 공백 없는 `-ToolRoot`를 지정한다. 그 다음 PowerShell에서 다음을 실행한다.
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+. .\tools\environment\install-arm-gnu.ps1
+. .\tools\environment\foundation-windows.ps1
 . .\tools\environment\setup-windows.ps1
+```
+
+기본 직접 설치 위치는 `%LOCALAPPDATA%\CANView\toolchains\arm-gnu-toolchain-15.3.rel1`이며 setup script가 provenance marker와 설치 root 전체 파일 hash를 확인한 뒤 자동 탐색한다. 이미 받은 archive를 재사용하려면 다음처럼 명시한다.
+
+```powershell
+. .\tools\environment\install-arm-gnu.ps1 -ArchivePath C:\path\arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip -AdoptExisting
+```
+
+이미 같은 release를 수동 압축 해제한 경로라면 `-AdoptExisting`를 추가한다. 스크립트가 pinned archive의 layout과 전체 파일 SHA-256을 대조한 뒤에만 provenance marker를 만든다. 설치 후 파일을 추가·삭제·변조하면 다음 setup 검증이 실패한다.
+
+다른 verified 설치 위치를 사용할 때는 설치와 setup에 같은 root를 명시한다.
+
+```powershell
+. .\tools\environment\install-arm-gnu.ps1 -Destination C:\ArmGNU
+. .\tools\environment\setup-windows.ps1 -ArmGnuRoot C:\ArmGNU\arm-gnu-toolchain-15.3.rel1 -ArmGnuArchive C:\path\arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip
 ```
 
 예를 들어 사용자 profile에 공백이 있는 경우:
@@ -32,13 +49,13 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 스크립트는 최신으로 임의 갱신하지 않고, manifest에 고정된 ESP-IDF와 STM32CubeG4를 `%LOCALAPPDATA%\CANView\toolchains` 아래에 clone한다. ESP-IDF Python 도구를 설치한 뒤 현재 세션에 `IDF_PATH`와 `STM32CUBE_G4_ROOT`를 설정한다.
 
-이미 SDK를 준비한 뒤 검증만 할 때는 다음처럼 실행한다.
+이미 SDK를 준비한 뒤 검증만 할 때는 archive가 설치 때 기록한 경로에 남아 있거나, `-ArmGnuArchive`로 같은 archive를 명시해야 한다.
 
 ```powershell
-. .\tools\environment\setup-windows.ps1 -VerifyOnly
+. .\tools\environment\setup-windows.ps1 -VerifyOnly -ArmGnuArchive C:\path\arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip
 ```
 
-`-VerifyOnly`에서도 CMake·Ninja·Arm GCC 버전과 SDK commit, `idf.py`, STM32G4 device header를 모두 확인한다.
+`-VerifyOnly`에서도 archive SHA-256, 설치 root 전체 파일 inventory, CMake·Ninja·Arm GCC 버전과 SDK commit, `idf.py`, STM32G4 device header를 모두 확인한다.
 
 ## 대상별 빌드
 
@@ -50,6 +67,10 @@ idf.py -C firmware/controller build
 # Communicator ESP32: ESP32-S3-WROOM-1-N16R8, 16 MB Flash / 8 MB Octal PSRAM (ECC)
 idf.py -C firmware/communicator/esp32 set-target esp32s3
 idf.py -C firmware/communicator/esp32 build
+
+# 외부 component의 public protocol 의존성 compile fixture
+idf.py -C tests/fixtures/idf-public-component set-target esp32s3
+idf.py -C tests/fixtures/idf-public-component build
 
 # Communicator STM32: Debug 또는 Release
 Push-Location firmware/communicator/stm32
@@ -68,4 +89,4 @@ KiCad `10.0.6`의 bundled Python으로 회로도 원본을 재생성하고, `kic
 
 이 스크립트는 `hardware/`의 Communicator·Bridge·Controller adapter·microphone 네 보드를 갱신하고, ERC·BOM·netlist·named-pad 정합성 및 정적 전원/WD 계산까지 검사한다. 검사 실패 시 nonzero로 종료한다. [상세 사용법과 제작 전 제한](../hardware/README.md)을 따른다. 실제 전원·PCB·HIL 승인을 뜻하지 않는다.
 
-PowerShell에서 `idf.py`를 찾지 못하면 새 세션에서 다시 dot-source하고, STM32 configure가 실패하면 `ARM_GNU_TOOLCHAIN_ROOT`와 `STM32CUBE_G4_ROOT`를 확인한다. target build가 실제로 실행되지 않은 상태를 성공으로 기록하지 않는다.
+PowerShell에서 `idf.py`를 찾지 못하면 새 세션에서 다시 dot-source하고, STM32 configure가 실패하면 Arm archive 경로와 `STM32CUBE_G4_ROOT`를 확인한다. target build가 실제로 실행되지 않은 상태를 성공으로 기록하지 않는다.

@@ -19,7 +19,7 @@ Controller, Communicator ESP32, 선택 장치 Diagnostic Bridge와 STM32는 한 
 
 Controller, Communicator ESP32와 Diagnostic Bridge는 같은 ESP-IDF baseline을 사용해 ESP-NOW API와 보안 설정 차이를 줄인다. ESP-IDF v6의 CMake 최소 요구사항은 3.22.1이며, 이 저장소의 Windows 정본은 CMake `4.4.3`으로 올려 고정한다. 버전 업그레이드는 한 장치만 독립적으로 올리지 않고 wire compatibility, RF regression, flash/PSRAM 사용량을 함께 확인한다.
 
-정본 버전과 SDK commit은 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 둔다. Windows 초기화와 commit 검증은 [`tools/environment/setup-windows.ps1`](../../tools/environment/setup-windows.ps1)를 사용한다.
+정본 버전과 SDK commit은 [`tools/toolchain-versions.json`](../../tools/toolchain-versions.json)에 둔다. Arm archive 설치와 executable provenance 검증은 [`tools/environment/install-arm-gnu.ps1`](../../tools/environment/install-arm-gnu.ps1), Windows 초기화와 SDK commit 검증은 [`tools/environment/setup-windows.ps1`](../../tools/environment/setup-windows.ps1)를 사용한다.
 
 하드웨어 생성물은 [`tools/hardware/export-review.ps1`](../../tools/hardware/export-review.ps1)가 KiCad `10.0.6`의 bundled Python과 `kicad-cli`를 사용해 재현한다. 이 별도 단계는 임베디드 SDK 준비와 분리되어 있어 KiCad가 없는 환경에서도 ESP-IDF·STM32 빌드 준비를 검증할 수 있다.
 
@@ -42,6 +42,8 @@ Waveshare 공식 문서는 ESP-IDF 5.5.0 이상을 요구한다. 최신 안정 b
 ### 2.2 설치와 빌드
 
 ```powershell
+. .\tools\environment\foundation-windows.ps1
+. .\tools\environment\install-arm-gnu.ps1
 . .\tools\environment\setup-windows.ps1
 ```
 
@@ -97,7 +99,7 @@ ESP32 Communicator firmware는 DBC 표시 catalog를 필요로 하지 않는다.
 
 첫 prototype은 `ESP32-S3-WROOM-1-N8R2` 개발보드를 권장한다. 8 MB Flash는 OTA A/B와 gzip web asset을 담고, 2 MB PSRAM은 제한된 pre-trigger ring과 HTTP buffer에 사용한다. 차량 상시 설치에서 온도 여유가 중요하므로 기본 권장 주변온도가 65 °C인 `N8R8`보다 -40~85 °C의 `N8R2`를 우선한다.
 
-Diagnostic Bridge firmware directory는 아직 생성되지 않았다. T-400에서 top-level project를 추가한 뒤 Controller·Communicator와 같은 `setup-windows.ps1` 및 `idf.py -C firmware/diagnostic-bridge ...` 순서를 적용한다.
+Diagnostic Bridge firmware directory는 foundation bootstrap project로 생성되어 있다. 실제 SoftAP·capture·web 기능은 T-400에서 추가하며 현재는 Controller·Communicator와 같은 `setup-windows.ps1` 및 `idf.py -C firmware/diagnostic-bridge ...` 순서로 image compile만 검증한다.
 
 필수 configuration 기준은 다음과 같다.
 
@@ -133,13 +135,15 @@ Diagnostic Bridge firmware directory는 아직 생성되지 않았다. T-400에�
 - ST-LINK/V3 또는 동등한 SWD probe
 - STM32CubeMX는 pin/clock 검산과 초기화 코드 생성에만 선택적으로 사용
 
-STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 setup script는 PATH에 있는 GCC가 `15.3.x`인지 export 전후 모두 확인하고 CMake preset에 실제 실행 파일 경로를 전달한다.
+STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 설치 script는 manifest archive SHA-256과 ZIP entry layout을 확인하고 설치 root 전체 파일 inventory를 provenance marker에 기록한다. setup script는 archive와 전체 inventory를 다시 검증하고 verified root 밖의 ambient PATH compiler를 거부한 뒤 CMake preset에 실제 실행 파일 경로를 전달한다.
 
 ### 5.2 repository CMake scaffold
 
 [`../firmware/communicator/stm32/`](../../firmware/communicator/stm32/)의 CMake project는 STM32CubeG4를 repository 밖 dependency로 참조한다. vendor package를 이 저장소에 무분별하게 복사하지 않는다.
 
 ```powershell
+. .\tools\environment\foundation-windows.ps1
+. .\tools\environment\install-arm-gnu.ps1
 . .\tools\environment\setup-windows.ps1
 Push-Location firmware/communicator/stm32
 cmake --preset debug
@@ -213,7 +217,11 @@ DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32�
 
 두 산출물에는 DBC 파일 SHA-256, opendbc commit, generator version을 넣는다. 실차에서 검증하지 않은 신호는 runtime quality와 별개인 `CANDIDATE` evidence grade를 유지한다. 새로운 signal이 기존 CAN ID를 사용하면 Communicator firmware를 바꾸지 않고 Controller catalog만 갱신한다. 새로운 ID를 사용하면 Controller allow-list entry와 upstream subscription을 함께 추가한다.
 
-## 7. CI 권고 gate
+## 7. foundation target build evidence
+
+2026-09-06에 Arm GNU `15.3.Rel1`, ESP-IDF `v6.0.3`, STM32CubeG4 `v1.6.3`을 manifest commit/SHA로 준비했다. STM32 debug/release와 Communicator ESP32, Diagnostic Bridge, Controller의 ESP32-S3 foundation binary 및 public component fixture를 생성했다. 네 target log에서 컴파일·링커 warning/error 진단은 0개였다. 이 결과는 compile gate만 닫으며 실제 flash, reset/brownout, clock, PSRAM, UART/CAN, RF와 HIL은 닫지 않는다.
+
+## 8. CI 권고 gate
 
 - Controller/Communicator ESP32: `idf.py build`, partition size, `sdkconfig` drift
 - STM32: CMake configure/build, warnings, ELF size, linker overflow
@@ -223,7 +231,7 @@ DBC 원본은 수정하지 않고, generator가 Controller용 catalog와 STM32�
 - Diagnostic Bridge: ESP-IDF build, web asset offline check, REST schema, WebSocket reconnect, 390×844 screenshot diff
 - hardware docs: pinmap CSV 중복 pin/net 검사
 
-## 8. 공식 출처
+## 9. 공식 출처
 
 - [Waveshare ESP-IDF 안내](https://docs.waveshare.com/ESP32-S3-Touch-LCD-3.5/ESP-IDF)
 - [Waveshare example repository](https://github.com/waveshareteam/ESP32-S3-Touch-LCD-3.5/)

@@ -18,7 +18,9 @@
       "release": "15.3.Rel1",
       "compilerVersionPrefix": "15.3",
       "triplet": "arm-none-eabi",
-      "source": "https://gitlab.arm.com/gnu-t/gnu-toolchain-for-arm/-/releases"
+      "source": "https://gitlab.arm.com/gnu-t/gnu-toolchain-for-arm/-/releases",
+      "archiveUrl": "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-mingw-w64-x86_64-arm-none-eabi.zip",
+      "archiveSha256": "b85669d3408e2ae713b17b0cc59bc4ea26369a7f2bd19108fd11df7095f159e6"
     }
   },
   "eda": {
@@ -39,7 +41,7 @@
     },
     "stm32CubeG4": {
       "version": "v1.6.3",
-      "gitCommit": "d11b194a9f05d1b143d154771f3dbc282c8052a",
+      "gitCommit": "d11b194a9f05d1b143d154771f3dbc282c8052a5",
       "repository": "https://github.com/STMicroelectronics/STM32CubeG4.git",
       "mcu": "STM32G474CEU6"
     }
