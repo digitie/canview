@@ -57,11 +57,29 @@ if(BUILD_TESTING)
         add_test(NAME espnow-${scenario} COMMAND canview-espnow-tests ${scenario})
         set_tests_properties(espnow-${scenario} PROPERTIES TIMEOUT 60)
     endforeach()
+    add_executable(canview-uart-tests tests/protocol/test_uart.c)
+    target_include_directories(canview-uart-tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/protocol
+        ${PROJECT_SOURCE_DIR}/shared/protocol/include
+        ${PROJECT_SOURCE_DIR}/shared/interface)
+    target_link_libraries(canview-uart-tests PRIVATE canview_wire canview_warnings)
+    foreach(scenario matrix malformed stream plan command link limits)
+        add_test(NAME uart-${scenario} COMMAND canview-uart-tests ${scenario})
+        set_tests_properties(uart-${scenario} PROPERTIES TIMEOUT 60)
+    endforeach()
     add_subdirectory(tests/automation)
     add_test(NAME generated-transport COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_transport.py --check)
     add_test(NAME generated-boards COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_boards.py --check)
     add_test(NAME generated-check COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/check_generated.py)
     add_test(NAME generated-protocol COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --check)
+    add_test(NAME generated-uart COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --schema
+        ${PROJECT_SOURCE_DIR}/protocol/schema/uart-v1.0.yaml --check)
+    add_test(NAME uart-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
+    add_test(NAME uart-fault-stream COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 3600)
+    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 60)
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)

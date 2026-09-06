@@ -103,7 +103,8 @@ static canview_status_t validate_plan_packet(const uint8_t *payload, size_t size
     const uint8_t operation = payload[0];
     if (operation == CANVIEW_UART_PLAN_OP_BEGIN)
     {
-        if (size != UART_PLAN_BEGIN_SIZE || read_le(payload + 20U, 2U) == 0U ||
+        if (size != UART_PLAN_BEGIN_SIZE || read_le(payload + 4U, 8U) == 0U ||
+            read_le(payload + 20U, 2U) == 0U ||
             read_le(payload + 20U, 2U) > CANVIEW_UART_PLAN_MAX_CHUNKS ||
             read_le(payload + 22U, 2U) > CANVIEW_UART_PLAN_MAX_FILTERS ||
             (payload[30] & (uint8_t)~UINT8_C(0x07)) != 0U || !zero_range(payload, size, 31U, 1U))
@@ -121,7 +122,8 @@ static canview_status_t validate_plan_packet(const uint8_t *payload, size_t size
     }
     if (operation == CANVIEW_UART_PLAN_OP_CHUNK)
     {
-        if (size < UART_PLAN_HEADER_SIZE || read_le(payload + 18U, 2U) == 0U ||
+        if (size < UART_PLAN_HEADER_SIZE || read_le(payload + 4U, 8U) == 0U ||
+            read_le(payload + 18U, 2U) == 0U ||
             read_le(payload + 18U, 2U) > CANVIEW_UART_PLAN_MAX_CHUNKS ||
             read_le(payload + 16U, 2U) >= read_le(payload + 18U, 2U) || payload[20] >
                 CANVIEW_UART_PLAN_CHUNK_MAX_FILTERS ||
@@ -146,11 +148,14 @@ static canview_status_t validate_plan_packet(const uint8_t *payload, size_t size
     }
     if (operation == CANVIEW_UART_PLAN_OP_COMMIT)
     {
-        return size == UART_PLAN_COMMIT_SIZE ? CANVIEW_OK : CANVIEW_MALFORMED;
+        return size == UART_PLAN_COMMIT_SIZE && read_le(payload + 4U, 8U) != 0U
+                   ? CANVIEW_OK
+                   : CANVIEW_MALFORMED;
     }
     if (operation == CANVIEW_UART_PLAN_OP_ABORT)
     {
-        if (size != UART_PLAN_ABORT_SIZE || !zero_range(payload, size, 18U, 2U))
+        if (size != UART_PLAN_ABORT_SIZE || read_le(payload + 4U, 8U) == 0U ||
+            !zero_range(payload, size, 18U, 2U))
         {
             return CANVIEW_MALFORMED;
         }
@@ -387,7 +392,8 @@ canview_status_t canview_uart_message_validate(const canview_wire_view_t *wire,
     {
         return CANVIEW_UNSUPPORTED_MESSAGE;
     }
-    if ((wire->header.flags & (uint8_t)~policy->allowed_flags) != 0U ||
+    if (wire->header.priority != 0U || wire->header.session_id != 0U ||
+        (wire->header.flags & (uint8_t)~policy->allowed_flags) != 0U ||
         (wire->header.flags & policy->required_flags) != policy->required_flags ||
         wire->payload_size < policy->min_payload || wire->payload_size > policy->max_payload ||
         (wire->payload == NULL && wire->payload_size != 0U))
@@ -484,9 +490,13 @@ canview_status_t canview_uart_codec_feed(canview_uart_codec_t *codec, uint8_t by
     const canview_status_t semantic = canview_uart_message_validate(&wire, view);
     if (semantic != CANVIEW_OK)
     {
-        if (semantic == CANVIEW_MALFORMED || semantic == CANVIEW_UNSUPPORTED_MESSAGE)
+        if (semantic == CANVIEW_MALFORMED)
         {
             increment_counter(&codec->malformed_packets);
+        }
+        else if (semantic == CANVIEW_UNSUPPORTED_MESSAGE)
+        {
+            increment_counter(&codec->unsupported_messages);
         }
         return semantic;
     }
@@ -555,7 +565,8 @@ static canview_status_t plan_chunk(canview_uart_plan_context_t *context, const u
         return CANVIEW_MALFORMED;
     }
     const size_t count = payload[20];
-    if (count > (size_t)context->expected_filter_count - context->received_filter_count)
+    if (context->received_filter_count > context->expected_filter_count ||
+        count > (size_t)context->expected_filter_count - context->received_filter_count)
     {
         return CANVIEW_MALFORMED;
     }
@@ -739,6 +750,10 @@ canview_status_t canview_uart_command_cache_record_result(
     canview_uart_command_entry_t *entry = &cache->entries[entry_index];
     if (!entry->valid || entry_expired(entry, now_ms))
     {
+        if (entry->valid)
+        {
+            memset(entry, 0, sizeof(*entry));
+        }
         return CANVIEW_STALE;
     }
     memcpy(entry->result, result, result_size);

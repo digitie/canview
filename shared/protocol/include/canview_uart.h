@@ -42,6 +42,7 @@ typedef struct
     canview_uart_stream_t stream;
     uint32_t packets_ok;
     uint32_t malformed_packets;
+    uint32_t unsupported_messages;
     uint32_t crc_failures;
     uint32_t oversize_packets;
 } canview_uart_codec_t;
