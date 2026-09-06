@@ -38,17 +38,17 @@ delimiter까지 buffer가 넘치면 다음 `0x00`까지 버리고 한 번만 ove
 
 ## 수용 기준
 
-- [ ] message ID마다 exact/bounded payload schema가 있다.
-- [ ] 0, max, max+1 packet과 COBS `0x00` 포함 payload가 round-trip한다.
-- [ ] random insert/delete/flip 뒤 다음 정상 delimiter packet을 복구한다.
-- [ ] observer plan의 missing/duplicate/out-of-order chunk가 active plan을 바꾸지 않는다.
-- [ ] 같은 marker가 capture-control과 marker message 두 경로로 중복 기록될 수 없다.
-- [ ] result-before-ACK와 duplicate command가 재실행되지 않는다.
-- [ ] 4 Mbps 상당 host stream 24시간 simulation에서 parser leak/overflow가 없다.
+- [x] message ID마다 exact/bounded payload schema가 있다.
+- [x] 0, max, max+1 packet과 COBS `0x00` 포함 payload가 round-trip한다.
+- [x] random insert/delete/flip 뒤 다음 정상 delimiter packet을 복구한다.
+- [x] observer plan의 missing/duplicate/out-of-order chunk가 active plan을 바꾸지 않는다.
+- [x] 같은 marker가 capture-control과 marker message 두 경로로 중복 기록될 수 없다.
+- [x] result-before-ACK와 duplicate command가 재실행되지 않는다.
+- [x] 4 Mbps 상당 host stream 24시간 simulation에서 parser leak/overflow가 없다.
 
 ## 계획 보완 수용 기준
 
-- [ ] UART 1.1 CLOCK_ANCHOR QUERY/REPLY는 navigation companion schema에서 생성하며 1.0 peer에는 보내지 않는다. recovery UART는 T-108의 별도 schema/CRC/baud로 분리한다.
+- [x] UART 1.1 CLOCK_ANCHOR QUERY/REPLY는 navigation companion schema에서 생성하며 1.0 peer에는 보내지 않는다. recovery UART는 T-108의 별도 schema/CRC/baud로 분리한다.
 
 ## 검증 명령
 
@@ -77,3 +77,11 @@ UART error가 vehicle command retry로 직접 변환되면 안 된다. link resy
 - 가상시간 Python 시험은 방향당 초당 10개 primary frame의 결함 복구 시험이다. 이것만으로 4 Mbps 24시간 바이트 부하를 증명하지 않는다. 별도 C `soak-24h`는 8-N-1의 10 bit/byte를 적용해 방향당 최소 34,560,000,000 byte를 실제 production decoder에 전달하고 계수한다.
 - command enqueue는 반환 전 bounded queue의 소유 버퍼로 header와 payload를 복사한다. parser를 다음 command로 덮어쓴 뒤 queue-full·reset에도 보관 command가 유지되는 `uart-payload-lifetime` 회귀시험으로 확인한다.
 - link/plan/cache/replay는 단일 worker가 소유한다. ISR/DMA와 다른 task는 event를 전달하고 같은 context를 직접 변경하지 않는다. T-104/T-202가 실제 queue flush·DMA/ISR, T-105/T-106이 local auth/safety와 TX 직전 검사, T-203이 observer reserve·실제 예산을 소유한다. 이 task의 codec 성공은 차량 admission 승인이 아니다.
+
+## 검증 evidence
+
+- [2인 적대적 리뷰·각 finding disposition](../reviews/adversarial/2026-09-07-T-004.md)
+- [최종 68개 host 검증·coverage·target binary SHA-256](../reviews/adversarial/evidence/2026-09-07-T-004-validation-final.md)
+- [방향당 34.56GB 실제 C parser soak](../reviews/adversarial/evidence/2026-09-07-T-004-soak-final.md)
+
+수용 기준 시험은 완료했으며 reviewer 최종 판정·원격 CI·PR merge 완료 전까지 상태는 IN_PROGRESS다. physical/HIL gate는 위 범위 경계를 따른다.
