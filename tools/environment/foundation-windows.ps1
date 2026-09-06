@@ -59,6 +59,11 @@ foreach ($name in $names) {
         Invoke-VerifiedDownload -Url $item.url -Destination $archive -ExpectedSha256 $item.sha256
     } elseif ((Get-Item -LiteralPath $archive).Length -le 0) {
         throw "Cached archive is empty: $archive. Remove it and rerun the setup script."
+    } elseif ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $item.sha256.ToLowerInvariant()) {
+        $quarantine = "$archive.invalid.$([guid]::NewGuid().ToString('N'))"
+        Move-Item -LiteralPath $archive -Destination $quarantine
+        Write-Output "Quarantined cached archive with invalid SHA256: $quarantine"
+        Invoke-VerifiedDownload -Url $item.url -Destination $archive -ExpectedSha256 $item.sha256
     }
     if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $item.sha256) {
         throw "Archive SHA256 mismatch: $archive. No automatic overwrite/removal."
