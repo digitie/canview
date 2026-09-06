@@ -50,6 +50,10 @@
   "frame_policy": {
     "response_messages": ["HELLO", "CAPABILITIES", "TIME_SYNC_RESPONSE", "ACK", "ERROR", "STATE_SNAPSHOT", "CAN_FILTER_RESULT", "CAN_STREAM_STATUS", "CAN_ID_STATS", "CAN_CAPTURE_STATUS", "COMMAND_RESULT", "CONTROL_LEASE_STATUS", "CONFIG_RESULT", "REMOTE_CONFIG_STATUS", "BULK_ACK"],
     "response_variants": [{"message": "DIAGNOSTIC_LEASE", "variant": "response"}],
+    "variant_policies": [
+      {"message": "DIAGNOSTIC_LEASE", "variant": "request", "senders": ["DIAGNOSTIC_BRIDGE"], "receivers": ["COMMUNICATOR"]},
+      {"message": "DIAGNOSTIC_LEASE", "variant": "response", "senders": ["COMMUNICATOR"], "receivers": ["DIAGNOSTIC_BRIDGE"]}
+    ],
     "response_correlation_required": true,
     "fragment_messages": ["BULK_FRAGMENT"],
     "session_zero_messages": ["DISCOVERY", "PAIR_REQUEST", "PAIR_CHALLENGE", "PAIR_CONFIRM", "PAIR_RESULT"],
@@ -123,15 +127,23 @@
     ],
     "fixed_bitmask_fields": [
       {"message": "CAN_OBSERVER_CONFIG", "field": "bus_mask", "known_mask": 7},
-      {"message": "CAN_OBSERVER_CONFIG", "field": "flags", "known_mask": 0}
+      {"message": "CAN_OBSERVER_CONFIG", "field": "flags", "known_mask": 0},
+      {"message": "BULK_ACK", "field": "received_bitmap", "known_mask": 15}
+    ],
+    "cross_field_constraints": [
+      {"message": "BULK_ACK", "kind": "bitmap_with_window", "bitmap_field": "received_bitmap", "window_field": "window_size"}
     ],
     "range_fields": [
       {"message": "COMMAND_REQUEST", "field": "ttl_ms", "minimum": 500, "maximum": 30000},
       {"message": "BULK_BEGIN", "field": "total_size", "minimum": 1, "maximum": 65536},
       {"message": "BULK_BEGIN", "field": "fragment_size", "minimum": 1, "maximum": 192},
       {"message": "BULK_BEGIN", "field": "window_size", "minimum": 1, "maximum": 4},
+      {"message": "BULK_BEGIN", "field": "timeout_ms", "minimum": 1000, "maximum": 120000},
       {"message": "BULK_FRAGMENT", "field": "total_fragments", "minimum": 1, "maximum": 65536},
-      {"message": "BULK_FRAGMENT", "field": "payload_len", "minimum": 1, "maximum": 180}
+      {"message": "BULK_FRAGMENT", "field": "payload_len", "minimum": 1, "maximum": 180},
+      {"message": "BULK_ACK", "field": "window_size", "minimum": 1, "maximum": 4},
+      {"message": "BULK_ACK", "field": "received_bytes", "minimum": 0, "maximum": 65536},
+      {"message": "BULK_END", "field": "total_size", "minimum": 1, "maximum": 65536}
     ],
     "capability_authorization": {
       "message": "CAPABILITIES",
@@ -185,7 +197,7 @@
     {"name": "value_type", "c_type": "canview_value_type_t", "c_prefix": "CANVIEW_VALUE", "values": {"BOOL": 0, "U32": 1, "I32": 2, "F32": 3, "ENUM": 4, "BITSET": 5}},
     {"name": "can_flag", "c_type": "canview_can_flag_t", "c_prefix": "CANVIEW_BUS_FLAG", "value_kind": "bitmask", "values": {"EXTENDED_ID": 1, "REMOTE_FRAME": 2, "ERROR_FRAME": 4, "TX_ECHO": 8}},
     {"name": "precondition", "c_type": "canview_precondition_flag_t", "c_prefix": "CANVIEW_PRECOND", "value_kind": "bitmask", "values": {"IGNITION_ON": 1, "ENGINE_RUNNING": 2, "FORWARD_GEAR": 4, "NOT_BRAKING": 8, "ABS_ESC_INACTIVE": 16, "SIGNALS_FRESH": 32, "CONTROL_LEASE": 64, "VEHICLE_STOPPED": 128}},
-    {"name": "control_scope", "c_type": "canview_control_scope_t", "c_prefix": "CANVIEW_CONTROL_SCOPE", "macro_prefix": "CANVIEW_SCOPE", "value_kind": "bitmask", "values": {"AUDIO_PROFILE": 1, "AUDIO_VOLUME_OFFSET": 2, "AUDIO_FADER": 4, "AUDIO_BALANCE": 8, "AUDIO_MUTE": 16, "AUDIO_REAR_MUTE": 32, "AUDIO_SDVC": 64, "AUDIO_RESTORE": 128, "DRIVE_MODE_PULSE": 256, "ADAPTIVE_VOLUME_AUTOMATION": 512, "AUTO_SPORT_AUTOMATION": 1024}},
+    {"name": "control_scope", "c_type": "canview_control_scope_t", "c_prefix": "CANVIEW_SCOPE", "alias_prefixes": ["CANVIEW_CONTROL_SCOPE"], "macro_prefix": "CANVIEW_SCOPE", "value_kind": "bitmask", "values": {"AUDIO_PROFILE": 1, "AUDIO_VOLUME_OFFSET": 2, "AUDIO_FADER": 4, "AUDIO_BALANCE": 8, "AUDIO_MUTE": 16, "AUDIO_REAR_MUTE": 32, "AUDIO_SDVC": 64, "AUDIO_RESTORE": 128, "DRIVE_MODE_PULSE": 256, "ADAPTIVE_VOLUME_AUTOMATION": 512, "AUTO_SPORT_AUTOMATION": 1024}},
     {"name": "command_id", "c_type": "canview_command_id_t", "c_prefix": "CANVIEW_COMMAND_ID", "values": {"AUDIO_PROFILE_SET": 257, "AUDIO_VOLUME_OFFSET_SET": 258, "AUDIO_RESTORE_SNAPSHOT": 259, "DRIVE_MODE_BUTTON_PULSE": 513, "AUTOMATION_ARM": 514, "AUTOMATION_DISARM": 515}},
     {"name": "automation_id", "c_type": "canview_automation_id_t", "c_prefix": "CANVIEW_AUTOMATION", "values": {"ADAPTIVE_VOLUME": 1, "AUTO_SPORT": 2}},
     {"name": "config_key", "c_type": "canview_config_key_t", "c_prefix": "CANVIEW_CONFIG", "values": {"SPORT_AUTOMATION_ENABLED": 513, "SPORT_ENTRY_SPEED_TENTH_KPH": 514, "SPORT_ACCELERATION_ENABLED": 515, "RTC_LOCAL_TIME": 769, "SUNRISE_MINUTES": 770, "SUNSET_MINUTES": 771, "HEADLAMP_WARNING_ENABLED": 772, "CAN_RX_STREAM_PERIOD_MS": 1025, "CAN_RX_STREAM_MAX_RECORDS": 1026, "CAN_RX_BYTES_PER_SECOND": 1027}},

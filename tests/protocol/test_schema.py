@@ -250,6 +250,28 @@ class EspNowSchemaTests(unittest.TestCase):
             **generator.default_decode_context(self.schema, pair_confirm, {}),
         )
 
+        for message_name, flags in (("DISCOVERY", 0x20), ("PAIR_REQUEST", 0), ("PAIR_CHALLENGE", 0)):
+            message = self.messages[message_name]
+            with self.subTest(clear_context=message_name):
+                with self.assertRaises(ValueError):
+                    generator.encode_frame(
+                        self.schema,
+                        message,
+                        {"flags": flags, "session_id": 0},
+                        self._zero_payload(message_name),
+                    )
+                with self.assertRaises(ValueError):
+                    generator.encode_frame(
+                        self.schema,
+                        message,
+                        {"flags": flags, "session_id": 0},
+                        self._zero_payload(message_name),
+                        sender_role="",
+                        receiver_role=message["receivers"][0],
+                        link_state=message["states"][0],
+                        expected_session_id=0,
+                    )
+
         for message_name, field_name, invalid_value in (
             ("CONTROL_LEASE_REQUEST", "requested_scope", 0x8000),
             ("CONTROL_LEASE_STATUS", "granted_scope", 0x8000),
@@ -416,6 +438,45 @@ class EspNowSchemaTests(unittest.TestCase):
                 expected_session_id=1,
                 authenticated=True,
             )
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                diagnostic,
+                request_header,
+                request_values,
+                sender_role="COMMUNICATOR",
+                receiver_role="DIAGNOSTIC_BRIDGE",
+                link_state="ONLINE",
+                expected_session_id=1,
+                authenticated=True,
+            )
+        with self.assertRaises(ValueError):
+            generator.encode_frame(
+                self.schema,
+                diagnostic,
+                response_header,
+                response_values,
+                sender_role="DIAGNOSTIC_BRIDGE",
+                receiver_role="COMMUNICATOR",
+                link_state="ONLINE",
+                expected_session_id=1,
+                authenticated=True,
+            )
+        with self.assertRaises(generator.ProtocolDecodeError) as context:
+            reverse_response = bytearray(response_frame)
+            reverse_response[6] |= 0x40
+            reverse_response[28:32] = b"\x00\x00\x00\x00"
+            reverse_response[28:32] = (zlib.crc32(reverse_response) & 0xFFFFFFFF).to_bytes(4, "little")
+            generator.decode_frame(
+                self.schema,
+                bytes(reverse_response),
+                sender_role="DIAGNOSTIC_BRIDGE",
+                receiver_role="COMMUNICATOR",
+                link_state="ONLINE",
+                authenticated=True,
+                expected_session_id=1,
+            )
+        self.assertEqual(context.exception.code, "unauthorized_sender")
 
         filter_record = {
             "filter_id": 1,
@@ -460,10 +521,17 @@ class EspNowSchemaTests(unittest.TestCase):
             ("BULK_BEGIN", "fragment_size", 193),
             ("BULK_BEGIN", "window_size", 0),
             ("BULK_BEGIN", "window_size", 5),
+            ("BULK_BEGIN", "timeout_ms", 999),
+            ("BULK_BEGIN", "timeout_ms", 120001),
             ("BULK_FRAGMENT", "total_fragments", 0),
             ("BULK_FRAGMENT", "total_fragments", 65537),
             ("BULK_FRAGMENT", "payload_len", 0),
             ("BULK_FRAGMENT", "payload_len", 181),
+            ("BULK_ACK", "window_size", 0),
+            ("BULK_ACK", "window_size", 5),
+            ("BULK_ACK", "received_bytes", 65537),
+            ("BULK_END", "total_size", 0),
+            ("BULK_END", "total_size", 65537),
         ):
             with self.subTest(range_field=f"{message_name}.{field_name}={invalid_value}"):
                 values = self._zero_payload(message_name)
@@ -478,6 +546,16 @@ class EspNowSchemaTests(unittest.TestCase):
                         values["fragment_bytes"] = "00" * max(0, min(invalid_value, 180))
                 with self.assertRaises(ValueError):
                     generator.encode_payload(self.messages[message_name], values)
+
+        bulk_ack_values = self._zero_payload("BULK_ACK")
+        bulk_ack_values["window_size"] = 4
+        bulk_ack_values["received_bitmap"] = 0x10
+        with self.assertRaises(ValueError):
+            generator.encode_payload(self.messages["BULK_ACK"], bulk_ack_values)
+        bulk_ack_values["window_size"] = 1
+        bulk_ack_values["received_bitmap"] = 0x02
+        with self.assertRaises(ValueError):
+            generator.encode_payload(self.messages["BULK_ACK"], bulk_ack_values)
 
         with self.assertRaises(ValueError):
             generator.encode_frame(
@@ -619,6 +697,10 @@ class EspNowSchemaTests(unittest.TestCase):
         changed["enums"][0]["values"]["PRIMARY_CONTROLLER"] = 0
         invalid_cases.append(("enum numeric alias", changed))
 
+        changed = copy.deepcopy(self.schema)
+        next(enum for enum in changed["enums"] if enum["name"] == "role")["macro_prefix"] = "CANVIEW_SCOPE"
+        invalid_cases.append(("enum macro prefix collision", changed))
+
         for name, invalid_schema in invalid_cases:
             with self.subTest(case=name):
                 with self.assertRaises(generator.SchemaError):
@@ -714,7 +796,8 @@ class EspNowSchemaTests(unittest.TestCase):
         self.assertIn("CANVIEW_BUS_FLAG_KNOWN_MASK UINT32_C(0x0000000F)", expected)
         self.assertIn("CANVIEW_PRECOND_KNOWN_MASK UINT32_C(0x000000FF)", expected)
         self.assertIn("CANVIEW_MSG_CLASS_KNOWN_MASK UINT32_C(0x0000000F)", expected)
-        self.assertIn("CANVIEW_CONTROL_SCOPE_AUDIO_PROFILE", expected)
+        self.assertIn("CANVIEW_SCOPE_AUDIO_PROFILE", expected)
+        self.assertIn("#define CANVIEW_CONTROL_SCOPE_AUDIO_PROFILE CANVIEW_SCOPE_AUDIO_PROFILE", expected)
         self.assertIn("CANVIEW_SCOPE_KNOWN_MASK UINT32_C(0x000007FF)", expected)
 
     def test_schema_digest_is_platform_independent(self) -> None:
