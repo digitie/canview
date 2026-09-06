@@ -6,7 +6,7 @@
 - 선행: `T-002`
 - 병렬 가능: `T-004`, `T-005`
 - 작업 branch: `agent/codex-t003-espnow-codec-session`
-- PR: draft 생성 후 기록
+- PR: [#19](https://github.com/digitie/canview/pull/19) (draft)
 
 ## 목표
 
