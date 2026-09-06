@@ -75,35 +75,44 @@ function Assert-ArmGnuProvenance {
     }
     $archiveToVerify = $Archive
     $recordedArchive = $provenance.PSObject.Properties["archivePath"]
-    $recordedArchiveExists = ($null -ne $recordedArchive)
-    if ($recordedArchiveExists) {
-        $recordedArchiveExists = Test-Path -LiteralPath $recordedArchive.Value -PathType Leaf
-    }
-    if ($archiveToVerify.Trim().Length -eq 0 -and $recordedArchiveExists) {
+    if ($archiveToVerify.Trim().Length -eq 0 -and $null -ne $recordedArchive) {
         $archiveToVerify = $recordedArchive.Value
     }
-    if ($archiveToVerify.Trim().Length -gt 0) {
-        $archivePath = (Resolve-Path -LiteralPath $archiveToVerify -ErrorAction Stop).Path
-        $archiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($archiveHash -ne $manifest.tools.armGnuToolchain.archiveSha256.ToLowerInvariant()) {
-            throw "Arm GNU archive SHA256 mismatch: $archivePath"
-        }
+    if ($archiveToVerify.Trim().Length -eq 0) {
+        throw "Arm GNU archive is required to verify the installed root against the pinned release. Pass -ArmGnuArchive or preserve the archivePath recorded in $provenancePath."
+    }
+    $archivePath = (Resolve-Path -LiteralPath $archiveToVerify -ErrorAction Stop).Path
+    $archiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($archiveHash -ne $manifest.tools.armGnuToolchain.archiveSha256.ToLowerInvariant()) {
+        throw "Arm GNU archive SHA256 mismatch: $archivePath"
     }
 
-    $requiredFiles = @(
-        "arm-none-eabi-gcc.exe",
-        "arm-none-eabi-objcopy.exe",
-        "arm-none-eabi-size.exe"
-    )
-    foreach ($file in $requiredFiles) {
-        $path = Join-Path (Join-Path $Root "bin") $file
-        $record = $provenance.files.PSObject.Properties[$file]
-        if ($null -eq $record -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "Arm GNU provenance is incomplete: $path"
+    $filesProperty = $provenance.PSObject.Properties["files"]
+    if ($null -eq $filesProperty) {
+        throw "Arm GNU provenance has no file inventory: $provenancePath"
+    }
+    $provenanceRecords = @($filesProperty.Value.PSObject.Properties)
+    if ($provenance.fileCount -ne $provenanceRecords.Count) {
+        throw "Arm GNU provenance file count is inconsistent: $provenancePath"
+    }
+    $resolvedRoot = (Resolve-Path -LiteralPath $Root -ErrorAction Stop).Path.TrimEnd('\', '/')
+    $actualFiles = [ordered]@{}
+    $items = Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse -Force |
+        Where-Object { $_.Name -ne "canview-arm-gnu-provenance.json" } |
+        Sort-Object FullName
+    foreach ($item in $items) {
+        $relative = $item.FullName.Substring($resolvedRoot.Length).TrimStart('\', '/') -replace '\\', '/'
+        $actualFiles[$relative] = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+    if ($actualFiles.Count -ne $provenanceRecords.Count) {
+        throw "Arm GNU installation file count differs from provenance: expected $($provenanceRecords.Count), found $($actualFiles.Count)"
+    }
+    foreach ($record in $provenanceRecords) {
+        if (-not $actualFiles.Contains($record.Name)) {
+            throw "Arm GNU installation is missing provenance file: $($record.Name)"
         }
-        $actualHash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actualHash -ne $record.Value.ToLowerInvariant()) {
-            throw "Arm GNU executable hash mismatch: $path"
+        if ($actualFiles[$record.Name] -ne $record.Value.ToLowerInvariant()) {
+            throw "Arm GNU file hash mismatch: $($record.Name)"
         }
     }
 }

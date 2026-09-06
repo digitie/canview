@@ -100,81 +100,101 @@ jobs:
       - name: Install pinned Arm GNU archive
         shell: pwsh
         run: |
-          $manifest = Get-Content -Raw tools/toolchain-versions.json | ConvertFrom-Json
-          $root = Join-Path $env:RUNNER_TEMP "canview-toolchains"
-          $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
-          New-Item -ItemType Directory -Force $root | Out-Null
-          Invoke-WebRequest -Uri $manifest.tools.armGnuToolchain.archiveUrl -OutFile $archive
-          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($hash -ne $manifest.tools.armGnuToolchain.archiveSha256) { throw "Arm archive SHA256 mismatch: $hash" }
-          Expand-Archive -LiteralPath $archive -DestinationPath $root -Force
-          $armRoot = $root
-          $files = [ordered]@{}
-          foreach ($name in @('arm-none-eabi-gcc.exe', 'arm-none-eabi-objcopy.exe', 'arm-none-eabi-size.exe')) {
-            $path = Join-Path $armRoot "bin/$name"
-            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Arm archive is missing $path" }
-            $files[$name] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-          }
-          [ordered]@{
-            schemaVersion = 1
-            release = $manifest.tools.armGnuToolchain.release
-            archiveUrl = $manifest.tools.armGnuToolchain.archiveUrl
-            archivePath = $archive
-            archiveSha256 = $hash
-            files = $files
-          } | ConvertTo-Json -Depth 4 | Out-File -LiteralPath (Join-Path $armRoot "canview-arm-gnu-provenance.json") -Encoding utf8
-          "CANVIEW_TARGET_TOOLROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "CANVIEW_TARGET_ARM_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Install pinned SDKs and build all target images
-        shell: pwsh
-        run: |
-          . tools/environment/foundation-windows.ps1
-          $armRoot = $env:CANVIEW_TARGET_TOOLROOT
-          . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
           $ErrorActionPreference = 'Stop'
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
           New-Item -ItemType Directory -Force $logRoot | Out-Null
-          function Invoke-TargetCommand {
-            param([string]$Name, [scriptblock]$Command)
-            $log = Join-Path $logRoot "$Name.log"
-            & $Command *> $log
-            if ($LASTEXITCODE -ne 0) {
-              Get-Content -LiteralPath $log
-              throw "$Name failed with exit code $LASTEXITCODE"
-            }
-            $diagnostics = @(Select-String -LiteralPath $log -Pattern 'warning:|CMake Warning|ld\.exe: warning|error:' -CaseSensitive:$false)
-            if ($diagnostics.Count -gt 0) {
-              $diagnostics | ForEach-Object { $_.Line }
-              throw "$Name emitted compiler/linker warning or error diagnostics"
-            }
-          }
-          function Assert-TargetArtifact {
-            param([string]$Name, [string]$Path)
-            $item = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
-            if ($null -eq $item -or $item.PSIsContainer -or $item.Length -le 0) {
-              throw "Missing or empty target artifact: $Name ($Path)"
-            }
-          }
-          Push-Location firmware/communicator/stm32
+          $manifest = Get-Content -Raw tools/toolchain-versions.json | ConvertFrom-Json
+          $toolchainBase = Join-Path $env:RUNNER_TEMP "canview-toolchains"
+          $archive = Join-Path $env:RUNNER_TEMP "arm-gnu-toolchain.zip"
           try {
-            Invoke-TargetCommand "stm32-debug-configure" { cmake --preset debug }
-            Invoke-TargetCommand "stm32-debug-build" { cmake --build --preset debug --clean-first }
-            Invoke-TargetCommand "stm32-release-configure" { cmake --preset release }
-            Invoke-TargetCommand "stm32-release-build" { cmake --build --preset release --clean-first }
-          } finally { Pop-Location }
-          Assert-TargetArtifact "stm32 debug" "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin"
-          Assert-TargetArtifact "stm32 release" "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin"
-          foreach ($project in @('firmware/communicator/esp32', 'firmware/diagnostic-bridge', 'firmware/controller')) {
-            $name = ($project -replace '[^A-Za-z0-9]+', '-')
-            Invoke-TargetCommand "$name-build" { idf.py -C $project build }
+            New-Item -ItemType Directory -Force $toolchainBase | Out-Null
+            Invoke-WebRequest -Uri $manifest.tools.armGnuToolchain.archiveUrl -OutFile $archive
+            & pwsh -NoProfile -File tools/environment/install-arm-gnu.ps1 -Destination $toolchainBase -ArchivePath $archive
+            if ($LASTEXITCODE -ne 0) { throw "install-arm-gnu.ps1 failed with exit code $LASTEXITCODE" }
+            $armRoot = Join-Path $toolchainBase "arm-gnu-toolchain-$($manifest.tools.armGnuToolchain.release.ToLowerInvariant())"
+            $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
+            if (-not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) { throw "Arm provenance marker is missing: $provenancePath" }
+            Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance.json") -Force
+            "CANVIEW_TARGET_TOOLROOT=$armRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "CANVIEW_TARGET_ARM_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } catch {
+            $_ | Out-String | Out-File -LiteralPath (Join-Path $logRoot "toolchain-install-error.log") -Encoding utf8
+            throw
           }
-          Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
-          Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
-          Assert-TargetArtifact "communicator esp32" "firmware/communicator/esp32/build/canview_communicator_esp32.bin"
-          Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
-          Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
-          Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
-          $artifactPaths = @(
+      - name: Install pinned SDKs and build all target images
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
+          New-Item -ItemType Directory -Force $logRoot | Out-Null
+          try {
+            . tools/environment/foundation-windows.ps1
+            $armRoot = $env:CANVIEW_TARGET_TOOLROOT
+            . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
+            $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
+            Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance-after-setup.json") -Force
+            function Invoke-TargetCommand {
+              param([string]$Name, [scriptblock]$Command)
+              $log = Join-Path $logRoot "$Name.log"
+              & $Command *> $log
+              if ($LASTEXITCODE -ne 0) {
+                Get-Content -LiteralPath $log
+                throw "$Name failed with exit code $LASTEXITCODE"
+              }
+              $diagnostics = @(Select-String -LiteralPath $log -Pattern 'warning:|CMake Warning|ld\.exe: warning|error:' -CaseSensitive:$false)
+              if ($diagnostics.Count -gt 0) {
+                $diagnostics | ForEach-Object { $_.Line }
+                throw "$Name emitted compiler/linker warning or error diagnostics"
+              }
+            }
+            function Assert-TargetArtifact {
+              param([string]$Name, [string]$Path)
+              $item = Get-Item -LiteralPath $Path -ErrorAction SilentlyContinue
+              if ($null -eq $item -or $item.PSIsContainer -or $item.Length -le 0) {
+                throw "Missing or empty target artifact: $Name ($Path)"
+              }
+            }
+            function Assert-Esp32Target {
+              param([string]$Project, [string]$ExpectedBinary)
+              $descriptionPath = Join-Path $Project "build/project_description.json"
+              if (-not (Test-Path -LiteralPath $descriptionPath -PathType Leaf)) {
+                throw "ESP-IDF project description is missing: $descriptionPath"
+              }
+              $description = Get-Content -Raw -LiteralPath $descriptionPath | ConvertFrom-Json
+              if ($description.target -ne 'esp32s3') {
+                throw "ESP-IDF target mismatch in $descriptionPath`: expected esp32s3, found $($description.target)"
+              }
+              if ($description.app_bin -ne $ExpectedBinary) {
+                throw "ESP-IDF app binary mismatch in $descriptionPath`: expected $ExpectedBinary, found $($description.app_bin)"
+              }
+            }
+            Push-Location firmware/communicator/stm32
+            try {
+              Invoke-TargetCommand "stm32-debug-configure" { cmake --preset debug }
+              Invoke-TargetCommand "stm32-debug-build" { cmake --build --preset debug --clean-first }
+              Invoke-TargetCommand "stm32-release-configure" { cmake --preset release }
+              Invoke-TargetCommand "stm32-release-build" { cmake --build --preset release --clean-first }
+            } finally { Pop-Location }
+            Assert-TargetArtifact "stm32 debug" "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin"
+            Assert-TargetArtifact "stm32 release" "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin"
+            foreach ($project in @('firmware/communicator/esp32', 'firmware/diagnostic-bridge', 'firmware/controller')) {
+              $name = ($project -replace '[^A-Za-z0-9]+', '-')
+              Invoke-TargetCommand "$name-fullclean" { idf.py -C $project fullclean }
+              Invoke-TargetCommand "$name-set-target" { idf.py -C $project set-target esp32s3 }
+              Invoke-TargetCommand "$name-build" { idf.py -C $project build }
+            }
+            Invoke-TargetCommand "public-component-fullclean" { idf.py -C tests/fixtures/idf-public-component fullclean }
+            Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
+            Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
+            Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32.bin"
+            Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge.bin"
+            Assert-Esp32Target "firmware/controller" "canview_controller.bin"
+            Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture.bin"
+            Assert-TargetArtifact "communicator esp32" "firmware/communicator/esp32/build/canview_communicator_esp32.bin"
+            Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
+            Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
+            Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
+            $artifactPaths = @(
             "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin",
             "firmware/communicator/stm32/build/debug/canview-communicator-stm32.elf",
             "firmware/communicator/stm32/build/debug/canview-communicator-stm32.map",
@@ -193,17 +213,26 @@ jobs:
             "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin",
             "tests/fixtures/idf-public-component/build/canview_public_component_fixture.elf",
             "tests/fixtures/idf-public-component/build/canview_public_component_fixture.map"
-          )
-          foreach ($path in $artifactPaths) { Assert-TargetArtifact "target evidence" $path }
-          $artifactManifest = foreach ($path in $artifactPaths) {
-            $item = Get-Item -LiteralPath $path
-            [ordered]@{
-              path = $path
-              bytes = $item.Length
-              sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            )
+            foreach ($path in $artifactPaths) { Assert-TargetArtifact "target evidence" $path }
+            $artifactManifest = foreach ($path in $artifactPaths) {
+              $item = Get-Item -LiteralPath $path
+              [ordered]@{
+                path = $path
+                bytes = $item.Length
+                sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+              }
             }
+            $toolchainProvenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+            [ordered]@{
+              schemaVersion = 1
+              toolchainProvenance = $toolchainProvenance
+              artifacts = @($artifactManifest)
+            } | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8
+          } catch {
+            $_ | Out-String | Out-File -LiteralPath (Join-Path $logRoot "target-build-error.log") -Encoding utf8
+            throw
           }
-          $artifactManifest | ConvertTo-Json -Depth 3 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: success()
         with:

@@ -135,7 +135,7 @@ Diagnostic Bridge firmware directory는 foundation bootstrap project로 생성�
 - ST-LINK/V3 또는 동등한 SWD probe
 - STM32CubeMX는 pin/clock 검산과 초기화 코드 생성에만 선택적으로 사용
 
-STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 setup script는 manifest archive provenance와 `gcc`·`objcopy`·`size` executable hash를 확인하고, verified root 밖의 ambient PATH compiler를 거부한 뒤 CMake preset에 실제 실행 파일 경로를 전달한다.
+STM32CubeCLT는 GNU Arm toolchain, GDB, STM32CubeProgrammer를 한 번에 제공하며 Linux, Windows, macOS를 지원한다. 이 저장소의 설치 script는 manifest archive SHA-256과 ZIP entry layout을 확인하고 설치 root 전체 파일 inventory를 provenance marker에 기록한다. setup script는 archive와 전체 inventory를 다시 검증하고 verified root 밖의 ambient PATH compiler를 거부한 뒤 CMake preset에 실제 실행 파일 경로를 전달한다.
 
 ### 5.2 repository CMake scaffold
 

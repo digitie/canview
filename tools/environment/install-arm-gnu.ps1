@@ -16,39 +16,105 @@ $installRoot = Join-Path $Destination "arm-gnu-toolchain-$release"
 $provenancePath = Join-Path $installRoot "canview-arm-gnu-provenance.json"
 $requiredNames = @("arm-none-eabi-gcc.exe", "arm-none-eabi-objcopy.exe", "arm-none-eabi-size.exe")
 
-function Get-RequiredToolHashes {
+function Get-FileInventory {
     param([Parameter(Mandatory = $true)][string]$Root)
 
+    $resolvedRoot = (Resolve-Path -LiteralPath $Root -ErrorAction Stop).Path.TrimEnd('\', '/')
     $files = [ordered]@{}
-    foreach ($name in $requiredNames) {
-        $path = Join-Path (Join-Path $Root "bin") $name
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "Arm GNU installation is missing required executable: $path"
-        }
-        $files[$name] = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    $items = Get-ChildItem -LiteralPath $resolvedRoot -File -Recurse -Force |
+        Where-Object { $_.Name -ne "canview-arm-gnu-provenance.json" } |
+        Sort-Object FullName
+    foreach ($item in $items) {
+        $relative = $item.FullName.Substring($resolvedRoot.Length).TrimStart('\', '/') -replace '\\', '/'
+        $files[$relative] = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     }
     return $files
+}
+
+function Assert-FileInventoriesEqual {
+    param(
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Expected,
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Actual,
+        [Parameter(Mandatory = $true)][string]$Description
+    )
+
+    if ($Expected.Count -ne $Actual.Count) {
+        throw "$Description file count mismatch: expected $($Expected.Count), found $($Actual.Count)"
+    }
+    foreach ($path in $Expected.Keys) {
+        if (-not $Actual.Contains($path)) {
+            throw "$Description is missing file: $path"
+        }
+        if ($Expected[$path] -ne $Actual[$path]) {
+            throw "$Description file hash mismatch: $path"
+        }
+    }
 }
 
 function Find-ExtractedRoot {
     param([Parameter(Mandatory = $true)][string]$Parent)
 
-    $candidates = @(
-        $Parent,
-        (Join-Path $Parent "arm-gnu-toolchain-$release")
-    )
-    foreach ($candidate in $candidates) {
-        if (Test-Path -LiteralPath (Join-Path $candidate "bin\arm-none-eabi-gcc.exe") -PathType Leaf) {
-            return $candidate
+    $candidates = @()
+    $gccFiles = Get-ChildItem -LiteralPath $Parent -Filter "arm-none-eabi-gcc.exe" -File -Recurse -Force
+    foreach ($gccFile in $gccFiles) {
+        $binRoot = $gccFile.Directory.FullName
+        $candidate = $gccFile.Directory.Parent.FullName
+        $complete = $true
+        foreach ($name in $requiredNames) {
+            if (-not (Test-Path -LiteralPath (Join-Path $binRoot $name) -PathType Leaf)) {
+                $complete = $false
+                break
+            }
+        }
+        if ($complete) {
+            $candidates += $candidate
         }
     }
-    throw "Unexpected Arm GNU archive layout under: $Parent"
+    $uniqueCandidates = @($candidates | Sort-Object -Unique)
+    if ($uniqueCandidates.Count -ne 1) {
+        throw "Expected one complete Arm GNU root under $Parent, found $($uniqueCandidates.Count)"
+    }
+    return $uniqueCandidates[0]
+}
+
+function Assert-ArchiveLayout {
+    param([Parameter(Mandatory = $true)][string]$Archive)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [System.IO.Compression.ZipFile]::OpenRead($Archive)
+    try {
+        $entryNames = @($zip.Entries | ForEach-Object { $_.FullName.TrimStart('/') -replace '\\', '/' })
+        $gccEntries = @($entryNames | Where-Object { $_ -match '(?:^|/)bin/arm-none-eabi-gcc\.exe$' })
+        $rootPrefixes = @()
+        foreach ($entry in $gccEntries) {
+            $binIndex = $entry.LastIndexOf('/bin/')
+            $prefix = if ($binIndex -lt 0) { "" } else { $entry.Substring(0, $binIndex) }
+            $hasAllTools = $true
+            foreach ($name in $requiredNames) {
+                $expected = if ($prefix.Length -eq 0) { "bin/$name" } else { "$prefix/bin/$name" }
+                if ($entryNames -notcontains $expected) {
+                    $hasAllTools = $false
+                    break
+                }
+            }
+            if ($hasAllTools) {
+                $rootPrefixes += $prefix
+            }
+        }
+        $uniquePrefixes = @($rootPrefixes | Sort-Object -Unique)
+        if ($uniquePrefixes.Count -ne 1) {
+            throw "Unexpected Arm GNU archive layout in ${Archive}: expected one complete bin root, found $($uniquePrefixes.Count)"
+        }
+        Write-Host "Verified Arm GNU archive layout root prefix: '$($uniquePrefixes[0])'"
+    } finally {
+        $zip.Dispose()
+    }
 }
 
 function Write-Provenance {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
-        [Parameter(Mandatory = $true)][hashtable]$Files
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$Files
     )
 
     [ordered]@{
@@ -57,6 +123,7 @@ function Write-Provenance {
         archiveUrl = $tool.archiveUrl
         archivePath = $archive
         archiveSha256 = $archiveHash
+        fileCount = $Files.Count
         files = $Files
     } | ConvertTo-Json -Depth 4 | Out-File -LiteralPath (Join-Path $Root "canview-arm-gnu-provenance.json") -Encoding utf8
 }
@@ -79,6 +146,7 @@ $archiveHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLow
 if ($archiveHash -ne $tool.archiveSha256.ToLowerInvariant()) {
     throw "Arm GNU archive SHA256 mismatch: $archiveHash"
 }
+Assert-ArchiveLayout -Archive $archive
 
 $existingRootHandled = $false
 if (Test-Path -LiteralPath $installRoot -PathType Container) {
@@ -89,15 +157,11 @@ if (Test-Path -LiteralPath $installRoot -PathType Container) {
     try {
         Expand-Archive -LiteralPath $archive -DestinationPath $adoptStaging
         $extractedRoot = Find-ExtractedRoot -Parent $adoptStaging
-        $expectedFiles = Get-RequiredToolHashes -Root $extractedRoot
-        $existingFiles = Get-RequiredToolHashes -Root $installRoot
-        foreach ($name in $requiredNames) {
-            if ($expectedFiles[$name] -ne $existingFiles[$name]) {
-                throw "Existing Arm GNU executable differs from the pinned archive: $name"
-            }
-        }
+        $expectedFiles = Get-FileInventory -Root $extractedRoot
+        $existingFiles = Get-FileInventory -Root $installRoot
+        Assert-FileInventoriesEqual -Expected $expectedFiles -Actual $existingFiles -Description "Existing Arm GNU installation"
         Write-Provenance -Root $installRoot -Files $existingFiles
-        Write-Host "Adopted existing Arm GNU installation after pinned executable comparison: $installRoot"
+        Write-Host "Adopted existing Arm GNU installation after complete pinned archive comparison: $installRoot"
         $existingRootHandled = $true
     } finally {
         if (Test-Path -LiteralPath $adoptStaging -PathType Container) {
@@ -112,7 +176,7 @@ if (-not $existingRootHandled) {
         Expand-Archive -LiteralPath $archive -DestinationPath $staging
         $extractedRoot = Find-ExtractedRoot -Parent $staging
         Move-Item -LiteralPath $extractedRoot -Destination $installRoot
-        $files = Get-RequiredToolHashes -Root $installRoot
+        $files = Get-FileInventory -Root $installRoot
         Write-Provenance -Root $installRoot -Files $files
         Write-Host "Installed verified Arm GNU Toolchain $($tool.release) at $installRoot"
     } catch {

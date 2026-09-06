@@ -14,7 +14,7 @@ cmake --build --preset debug
 Pop-Location
 ```
 
-Arm GNU Toolchain `15.3.Rel1` (`arm-none-eabi-gcc` 15.3.x), CMake `4.4.3`, Ninja `1.13.2`가 필요하다. `ARM_GNU_TOOLCHAIN_ROOT`를 설정하면 toolchain file이 해당 `bin`을 먼저 검색한다.
+Arm GNU Toolchain `15.3.Rel1` (`arm-none-eabi-gcc` 15.3.x), CMake `4.4.3`, Ninja `1.13.2`가 필요하다. setup script가 설정하는 `CANVIEW_ARM_GNU_ROOT`가 해당 `bin`을 먼저 검색하며, 기존 개발 shell 호환을 위해 `ARM_GNU_TOOLCHAIN_ROOT`도 fallback으로 지원한다.
 
 ## build
 
