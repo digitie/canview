@@ -1,5 +1,13 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400a immutable evidence와 독립 재검토)
+
+post-fix source candidate `5d6fac4`를 Git object-only 기준선으로 새 execution ID A-05/B-05에 독립 전달했다. A-05는 지정 embedded runtime 범위에서 P0–P3 없음 `CONDITIONAL`을 반환했다. B-05는 source/config 정적 대조에서 새 P0/P2/P3는 없었으나, candidate 안의 target evidence가 temporary working-tree만 가리키는 provenance P1로 `BLOCK`을 반환했다. 두 raw report는 evidence 디렉터리에 원문으로 보존한다. B-05 시작 시각은 reviewer service가 `NOT_RECORDED`로 반환해 coordinator가 추정값으로 채우지 않았다.
+
+`5d6fac4` source에서 새 STM32 Debug/Release 및 Bridge·Communicator·Controller ESP-IDF target build의 명령·hash·warning scan을 target evidence에 분리 기록했다. public-component fixture도 추가 build/warning scan을 했지만, evidence Markdown을 편집한 dirty worktree에서 시작돼 `5d6fac4-dirty` version이므로 clean candidate artifact로 승격하지 않았다. clean CI target artifact와 B-05 원 reviewer 재검토가 이를 닫아야 한다.
+
+CI run `34112160182`는 Linux GCC/Clang portability와 Linux ASan/UBSan이 성공했고 Windows C99 job은 실패했다. target-firmware job의 완료 로그와 Windows failure log를 확인하기 전까지 CI PASS, PR ready/merge, 다음 T-400 시작을 주장하지 않는다. flash/HIL, 전원/reset/brownout, 장시간 PSRAM/clock/watchdog, 차량 CAN/evidence, provisioning, TX release는 계속 `NOT_RUN`이다.
+
 ## 2026-09-07 (codex, T-400a ESP target 복구와 commit 준비)
 
 Windows native ESP-IDF 6.0.3를 직접 초기화해 Communicator ESP32, Diagnostic Bridge, Controller의 새 build directory에서 실제 target build를 다시 실행했다. 세 대상 모두 bootloader/app BIN, ELF, MAP를 생성했고 compiler·linker·CMake `warning:`은 0건이었다. Bridge/Communicator의 생성 sdkconfig도 각 보드 계약으로 재검증했다. 부트로더 configure 출력의 `CONFIG_ESP_INT_WDT_TIMEOUT_MS=800`은 기본값 300과의 명시적 설정 차이를 알리는 Kconfig notification이며 compiler warning으로 분류하지 않았다.
