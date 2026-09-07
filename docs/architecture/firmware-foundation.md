@@ -59,7 +59,7 @@ transaction ID, timeout, 중복 결과 캐시, 상태 재조회, 전원 재부�
 ## 보드와 초기 출력
 
 핀의 제작/전기적 정본은 hardware/*/pinmap.csv와 하드웨어 문서다.
-BSP header와 sdkconfig.defaults/partition은 `python tools/generate_boards.py`로 생성하고 `--check`로 drift를 검출한다. 생성 header의 0이 아닌 compile-time `CANVIEW_BOARD_PROFILE`은 wire/runtime 입력이 아니며 Communicator ESP와 Bridge runtime이 링크된 BSP profile을 open 전에 대조하는 기준이다.
+BSP header와 sdkconfig.defaults/partition은 `python tools/generate_boards.py`로 생성하고 `--check`로 drift를 검출한다. 생성 header의 0이 아닌 compile-time `CANVIEW_BOARD_PROFILE`은 wire/runtime 입력이 아니며 canonical board manifest 항목과 pin source를 digest한다. Communicator ESP와 Bridge `app_main()`은 BSP port를 복사한 직후 preflight로 runtime object의 profile을 GPIO·idle·SDK open 전에 대조하고, runtime도 다시 확인한다. 따라서 교차 link나 같은 ID의 stale pin source는 board callback을 실행하기 전에 거부한다.
 Controller 본체 핀은 고정 Waveshare commit과 adapter 계약을 기록한 waveshare35-pins.json을 입력으로 쓴다.
 I²S 데이터 방향은 MCU 기준 재생 DOUT16/녹음 DIN14다. SoC 유효 GPIO와 실제 모듈 외부 pad·메모리 점유 범위를 구분해 JSON/CSV 양쪽을 검사한다. Controller S3R8 및 N16R8은 GPIO22..37을, N8R2는 GPIO22..34를 허용하지 않는다. 근거는 [고정 IDF GPIO 계약](https://github.com/espressif/esp-idf/blob/76f5dedd9950a3012fee8fb7d5586df21fc67802/docs/en/api-reference/peripherals/gpio/esp32s3.inc)과 해당 보드 pinmap이다.
 

@@ -29,7 +29,7 @@ GPIO는 latch를 먼저 기록한 뒤 mode를 바꾼다. Communicator ESP와 Bri
 | Communicator N16R8 | 16777216 /7864320B, Octal80MHz·ECC | 3: bit0 GPIO48 RUN sense, bit1 GPIO38 USB sense | canview_communicator_esp32 |
 | Bridge N8R2 | 8388608 /2097152B, Quad80MHz·ECC 없음 | 1: bit0 GPIO4 PAIR_BUTTON_N, LOW=눌림, bit1 부재 | canview_diagnostic_bridge |
 
-메모리는 board manifest/generator가 raw 용량과 ECC overhead를 구분하여 BSP header로 제공한다. generator는 wire와 무관한 0이 아닌 `CANVIEW_BOARD_PROFILE`도 header에 고정한다. Communicator/Bridge runtime은 링크된 `canview_board_port()`의 profile과 자기 생성 profile을 platform open 전 비교하므로 서로 다른 BSP object를 교차 link하면 거부한다. SDK sample은 측정값이며 boot/health의 고정 계약을 바꾸지 않는다. 다른 보드의 Flash 또는 PSRAM 값을 섞으면 terminal memory fault다. 공용 core는 SKU나 GPIO를 알지 않는다. 역할 표시는 SDK의 고정 project metadata에서 오며 외부 패킷으로 선택하지 않는다.
+메모리는 board manifest/generator가 raw 용량과 ECC overhead를 구분하여 BSP header로 제공한다. generator는 wire와 무관한 0이 아닌 `CANVIEW_BOARD_PROFILE`도 header에 고정한다. 이 tag는 board ID만이 아니라 canonical board manifest 항목과 pin source를 함께 digest하므로 같은 ID의 stale pin contract도 다른 profile이 된다. `app_main()`은 BSP port를 한 번 복사한 뒤 `canview_esp_board_preflight()`로 runtime object의 생성 profile을 GPIO·idle·SDK open보다 먼저 대조한다. Communicator/Bridge runtime은 다시 같은 preflight를 적용하므로 서로 다른 BSP object를 교차 link하면 GPIO 0회·runtime open 0회로 거부한다. SDK sample은 측정값이며 boot/health의 고정 계약을 바꾸지 않는다. 다른 보드의 Flash 또는 PSRAM 값을 섞으면 terminal memory fault다. 공용 core는 SKU나 GPIO를 알지 않는다. 역할 표시는 SDK의 고정 project metadata에서 오며 외부 패킷으로 선택하지 않는다.
 
 runtime은 입력 수1..2, SoC GPIO 유효성·중복·미사용 원소0을 검사한다. 실제 모듈 pad 제한은 generator가 별도로 검사하고, 독립 BSP fixture는 고정 핀을 대조한다. 로그의 input-valid는 존재하고 읽은 입력, input-level은 그 bit의 전기적 HIGH다. 미존재 bit를 LOW로 해석하지 않는다. Bridge 버튼은 폴링 진단이며 debounce/ISR/서비스 window/OTA/페어링을 시작하지 않는다. 어떤 sense 조합에서도 cap/TX0은 변하지 않는다.
 
@@ -50,7 +50,7 @@ core는 sample 완료 뒤 시간을 검사하고, adapter는 자신의 critical 
 
 ## 고정 pool 계약
 
-정적16slot × payload256B, capacity1..16이다. task 또는 SDK callback이 동일 bounded lock을 통해 acquire/copy/release/stats를 호출한다. platform context validator는 lock 진입 전에 ISR을 거부한다. pool은 lock을 잡은 채 client callback을 실행하지 않으며, consumer가 lock 내부에서 다시 pool API를 호출하는 것은 금지한다. ISR·lock 내부 callback·token의 동시 다중 owner 사용은 금지한다. 256B 복사/clear는 lock 아래 수행하며 실제 critical WCET는 아직 계측하지 않았다. radio ingress에 사용하기 전 T-202에서 예산을 측정한다.
+정적16slot × payload256B, capacity1..16이다. 초기화와 acquire/copy/release/stats 모두 platform context validator를 먼저 호출해 ISR을 상태 변경·lock 진입 전에 거부한다. task 또는 SDK callback이 동일 bounded lock을 통해 acquire/copy/release/stats를 호출한다. pool은 lock을 잡은 채 client callback을 실행하지 않으며, consumer가 lock 내부에서 다시 pool API를 호출하는 것은 금지한다. ISR·lock 내부 callback·token의 동시 다중 owner 사용은 금지한다. 256B 복사/clear는 lock 아래 수행하며 실제 critical WCET는 아직 계측하지 않았다. radio ingress에 사용하기 전 T-202에서 예산을 측정한다.
 
 acquire는 payload를 복사하고 pool 주소·slot·generation token을 반환한다. 내부 pointer를 노출하지 않는다. context/output/source alias와 크기 오류를 거부한다. 해제는 payload를 지우고 generation이 UINT32_MAX인 slot은 영구 retire하여 wrap ABA를 막는다. token은 RAM 전용이며 serialize/reboot 뒤 재사용하지 않는다. exhaustion/stale은 UINT32_MAX에서 포화하며 used/high-water/retired를 lock 아래 snapshot으로 반환한다. 부족하거나 잘못된 token이면 출력 버퍼/길이를 변경하지 않는다.
 

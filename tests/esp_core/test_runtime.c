@@ -281,6 +281,17 @@ static void argument_tests(void)
     config.board_profile = 0U;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
     config.board_profile = CANVIEW_BOARD_PROFILE;
+    runtime = (canview_esp_runtime_t){0};
+    memset(&port, 0xA5, sizeof(port));
+    const canview_esp_runtime_port_t saved_port = port;
+    fake.in_isr = true;
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(!runtime.initialized && memcmp(&port, &saved_port, sizeof(port)) == 0);
+    runtime = (canview_esp_runtime_t){0};
+    memset(&port, 0xA5, sizeof(port));
+    CHECK(canview_esp_board_runtime(&runtime, &port) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(!runtime.initialized && memcmp(&port, &saved_port, sizeof(port)) == 0);
+    fake.in_isr = false;
     fake.owner = NULL;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
     fake.owner = &owner_token;
@@ -331,7 +342,8 @@ static void callback_context_tests(void)
     CHECK(fake.safe_calls == 0U && fake.add_calls == 0U && fake.reset_calls == 0U &&
           fake.logs == 0U);
     canview_esp_pool_t pool = {0};
-    CHECK(canview_esp_pool_init(&pool, 1U, &port.pool) == CANVIEW_OK);
+    CHECK(canview_esp_pool_init(&pool, 1U, &port.pool) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(!pool.initialized && pool.capacity == 0U && fake.enters == 0U);
     const uint8_t payload[] = {1U};
     canview_esp_pool_token_t token = {0x1234U, 1U, 1U};
     CHECK(canview_esp_pool_acquire(&pool, payload, sizeof(payload), &token) ==
@@ -339,6 +351,7 @@ static void callback_context_tests(void)
     CHECK(token.owner == 0x1234U && token.generation == 1U && token.slot == 1U &&
           fake.enters == 0U);
     fake.in_isr = false;
+    CHECK(canview_esp_pool_init(&pool, 1U, &port.pool) == CANVIEW_OK);
     CHECK(canview_esp_pool_acquire(&pool, payload, sizeof(payload), &token) == CANVIEW_OK);
     CHECK(canview_esp_pool_release(&pool, token) == CANVIEW_OK);
     active_runtime = &runtime;

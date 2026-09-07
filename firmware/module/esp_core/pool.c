@@ -50,6 +50,10 @@ canview_status_t canview_esp_pool_init(canview_esp_pool_t *pool, uint16_t capaci
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    if (port->valid_context(port->context) != CANVIEW_OK)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
     if (pool->initialized)
     {
         return CANVIEW_RESOURCE_BUSY;

@@ -116,6 +116,10 @@ canview_platform_port_t canview_board_port(void)
     const canview_platform_port_t port = {safe, idle, &fake, 0U};
     return port;
 }
+canview_status_t canview_esp_board_preflight(const canview_platform_port_t *board)
+{
+    return board == NULL || selected("preflight") ? CANVIEW_INVALID_ARGUMENT : CANVIEW_OK;
+}
 canview_status_t canview_esp_board_runtime(canview_esp_runtime_t *runtime,
                                            canview_esp_runtime_port_t *port)
 {
@@ -139,7 +143,7 @@ int main(int argc, char **argv)
     fake.scenario = argv[1];
     CHECK(selected("open") || selected("gpio") || selected("watchdog") || selected("memory") ||
           selected("pool") || selected("wait") || selected("late") || selected("healthy") ||
-          selected("null-safe") || selected("null-idle"));
+          selected("null-safe") || selected("null-idle") || selected("preflight"));
     fake.time = 1000U;
     if (setjmp(fake.stopped) == 0)
     {
@@ -155,7 +159,7 @@ int main(int argc, char **argv)
     {
         CHECK(fake.safe == 1U && fake.watchdog == 0U && fake.reports == 0U);
     }
-    else if (selected("null-safe") || selected("null-idle"))
+    else if (selected("null-safe") || selected("null-idle") || selected("preflight"))
     {
         CHECK(fake.safe == 0U && fake.watchdog == 0U && fake.reports == 0U);
     }

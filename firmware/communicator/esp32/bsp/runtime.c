@@ -3,11 +3,20 @@
 #include "canview_board.h"
 #include "board_pins.h"
 
+canview_status_t canview_esp_board_preflight(const canview_platform_port_t *board)
+{
+    if (board == NULL || board->board_profile != CANVIEW_BOARD_PROFILE)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    return CANVIEW_OK;
+}
+
 canview_status_t canview_esp_board_runtime(canview_esp_runtime_t *runtime,
                                            canview_esp_runtime_port_t *port)
 {
     const canview_platform_port_t board = canview_board_port();
-    if (board.board_profile != CANVIEW_BOARD_PROFILE)
+    if (canview_esp_board_preflight(&board) != CANVIEW_OK)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }

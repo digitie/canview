@@ -6,6 +6,7 @@
 #define CANVIEW_ESP_RUNTIME_H
 #include "canview_esp_core.h"
 #include "canview_esp_pool.h"
+#include "canview_platform_port.h"
 
 #define CANVIEW_ESP_RUNTIME_INPUTS (2U)
 
@@ -56,10 +57,16 @@ canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
                                           const canview_esp_runtime_config_t *config,
                                           canview_esp_runtime_port_t *port);
 /**
- * @brief 보드의 고정 safe/sense mapping으로 runtime을 연다.
+ * @brief BSP 정체성을 GPIO 또는 SDK 동작 전에 확인한다.
+ * @param board app이 한 번 복사한 BSP port. 이 호출은 board callback을 실행하지 않는다.
+ * @return 고정 생성 profile 불일치나 NULL이면 INVALID_ARGUMENT이다.
+ */
+canview_status_t canview_esp_board_preflight(const canview_platform_port_t *board);
+/**
+ * @brief preflight된 보드의 고정 safe/sense mapping으로 runtime을 연다.
  * @param runtime zero-init 정적 저장소.
  * @param port 성공 시 BSP/platform callback.
- * @return platform open의 결과. 성공도 차량 권한은 항상0이다.
+ * @return profile 불일치 또는 platform open의 결과. 성공도 차량 권한은 항상0이다.
  */
 canview_status_t canview_esp_board_runtime(canview_esp_runtime_t *runtime,
                                            canview_esp_runtime_port_t *port);

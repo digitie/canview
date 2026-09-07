@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400 P2 initial review와 post-fix 검증)
+
+PR #25 source candidate `f35779a78603dd8241ead9a8baa7307d629bf33a`를 독립 object-only reviewer A/B가 실제 읽었다. 두 reviewer는 runtime profile 비교가 `app_main()`의 `enter_safe_state()` 뒤에 있어 wrong BSP GPIO가 먼저 실행되는 P1을 확인했다. A는 runtime open과 pool init의 ISR state mutation P2를, B는 board ID만 hash한 profile이 stale pin contract를 구분하지 못하는 P2를 추가로 확인했다. 원문·첫 object 부재 incomplete attempt와 disposition은 [T-400 review](reviews/adversarial/2026-09-07-T-400.md)에 보존한다. incomplete report를 PASS로 바꾸지 않았고 PR은 Draft를 유지한다.
+
+post-fix source는 app preflight를 GPIO·idle·SDK open보다 앞에 두고, profile 입력을 canonical board manifest+pin source로 확장했다. runtime open과 pool init은 ISR validator를 상태 변경 전에 호출한다. 실제 app+BSP wrong-link 두 방향은 GPIO와 runtime open 0회로 terminal idle만 호출하는 host negative test를 추가했다. pinned Windows host Debug/Release는 `uart-fault-stream` 86,400초 장시간 시험 제외 각각 110/110, ESP coverage gate는 PASS다. ESP-IDF 6.0.3과 Arm GNU 15.3에서 STM32 Debug/Release 및 Communicator·Bridge·Controller·fixture의 BIN/ELF/MAP 18개를 다시 생성했다. 이 작업 트리 target output은 post-fix commit 전 `f35779a-dirty` metadata였으므로 final immutable commit의 target artifact와 CI warning scan은 다음 단계에서 재확인한다. physical/HIL, flash, rail/reset/brownout, 장시간 watchdog/PSRAM, vehicle CAN/evidence, provisioning, vehicle TX release는 `NOT_RUN`이며 CAN TX는 NO-GO다.
+
 ## 2026-09-07 (codex, T-400 P2 runtime/BSP source 검증)
 
 T-400a handoff의 compile-time board profile을 generator와 모든 BSP port에 추가하고, Communicator ESP/Bridge runtime이 링크된 board profile을 platform open 전에 대조하게 했다. 실제 교차 object link 두 방향은 runtime open을 호출하지 않은 채 거부한다. ESP runtime core callback은 open owner task·non-ISR·non-reentrant latch를 요구하고, fixed pool은 lock 전 context validator로 ISR/무효 context를 거부한다. Communicator ESP와 Bridge safe GPIO는 partial failure에도 모든 지정 safe pin을 시도하고 최초 오류를 보존한 뒤 lifecycle을 중단한다. Bridge의 read-only 경계와 CAN TX NO-GO는 변경하지 않았고 SoftAP·HTTP·인증은 시작하지 않았다.

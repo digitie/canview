@@ -24,7 +24,7 @@ T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가
 
 ### 현재 handoff 실행 상태
 
-2026-09-07 source 구현은 생성 board profile의 실제 교차-link 음성 시험, callback ISR/재진입·pool 문맥 시험, partial safe GPIO all-pin 시험을 포함한다. Windows strict C99 Debug/Release 108/108(별도 86,400초 stream 제외), ESP core coverage, actual STM32 Debug/Release와 Communicator·Bridge·Controller ESP-IDF binary, generated sdkconfig 및 warning scan 0을 재확인했다. fresh immutable candidate의 독립 2인 adversarial review, CI와 G1 물리 gate는 아직 열려 있다. 이 기록은 G1 물리 gate를 닫지 않으며, target binary·독립 2인 review·G1 power/reset evidence가 완료되기 전 SoftAP·HTTP·인증 또는 CAN/TX 범위는 열지 않는다.
+2026-09-07 immutable source candidate `f35779a`의 독립 2인 review는 wrong-BSP profile preflight가 safe GPIO 뒤에 있음을 P1로, profile digest 입력과 ISR 초기화 contract를 P2로 확인해 `BLOCK`을 반환했다. raw report는 [T-400 review](../reviews/adversarial/2026-09-07-T-400.md)에 보존한다. 후속 source는 app preflight를 GPIO·idle·SDK open보다 앞으로 옮기고, board manifest+pin source profile digest 및 runtime/pool ISR 무변경 거부를 추가했다. 실제 app+BSP 교차-link의 GPIO/runtime open 0회 negative test, profile mutation test를 포함하며 Windows strict C99 Debug/Release는 각각 110/110(별도 86,400초 stream 제외), ESP core coverage와 STM32 Debug/Release·Communicator·Bridge·Controller ESP-IDF BIN/ELF/MAP 재생성을 통과했다. 이 post-fix candidate의 동일 reviewer 2인 재검토, PR CI와 G1 물리 gate는 아직 열려 있다. 이 기록은 G1 물리 gate를 닫지 않으며, target binary·독립 2인 review·G1 power/reset evidence가 완료되기 전 SoftAP·HTTP·인증 또는 CAN/TX 범위는 열지 않는다.
 
 ## 고정 target
 

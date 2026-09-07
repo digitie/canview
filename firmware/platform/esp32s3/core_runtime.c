@@ -285,6 +285,10 @@ canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    if (xPortInIsrContext() != pdFALSE)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
     for (uint8_t index = 0U; index < CANVIEW_ESP_RUNTIME_INPUTS; ++index)
     {
         if (index < config->input_count ? !GPIO_IS_VALID_GPIO(config->input_pins[index])

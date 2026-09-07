@@ -10,14 +10,14 @@ void app_main(void)
     static canview_esp_runtime_t runtime;
     canview_esp_runtime_port_t port = {0};
     const canview_platform_port_t board = canview_board_port();
-    /* runtime_open 이전에도 외부 gate가 볼 수 있는 safe latch를 먼저 설정한다. */
-    canview_status_t status = CANVIEW_INVALID_ARGUMENT;
-    if (board.enter_safe_state == NULL || board.idle == NULL)
+    /* GPIO 또는 SDK 호출 전, runtime object가 기대한 BSP profile인지 fail-closed로 확인한다. */
+    canview_status_t status = canview_esp_board_preflight(&board);
+    if (status == CANVIEW_OK && (board.enter_safe_state == NULL || board.idle == NULL))
     {
         /* 필수 BSP callback이 없으면 초기화나 report 없이 terminal path로 간다. */
         status = CANVIEW_INVALID_ARGUMENT;
     }
-    else
+    else if (status == CANVIEW_OK)
     {
         status = board.enter_safe_state(board.context);
     }
