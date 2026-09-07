@@ -1,5 +1,5 @@
 /* DO NOT EDIT. generate_boards.py v1; GPL-3.0-only
- * board+pin input SHA256: 0faddc6457f01c313de659bcfb815d9c8baa7d517481059e68e444a5890ed391
+ * board+pin input SHA256: a2d41982a60a5dd7fe97aacc334bf7fe3e79e5fdbb55a35e7688012bff519915
  * Review board contract; not fabrication/vehicle approval. */
 #ifndef CANVIEW_BOARD_PINS_H
 #define CANVIEW_BOARD_PINS_H
@@ -14,5 +14,6 @@
 #define CANVIEW_BOARD_USB_DP_GPIO (20U)
 #define CANVIEW_BOARD_PSRAM_BYTES (2097152U)
 #define CANVIEW_BOARD_RECOVERY_GPIO (4U)
+#define CANVIEW_BOARD_PSRAM_AVAILABLE_BYTES (2097152U)
 
 #endif

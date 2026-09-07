@@ -7,12 +7,16 @@
 #include "canview_esp_core.h"
 #include "canview_esp_pool.h"
 
+#define CANVIEW_ESP_RUNTIME_INPUTS (2U)
+
+/** BSP 고정 값. 입력은 진단 전용이며 미사용 배열 원소는 0이다. */
 typedef struct
 {
     canview_esp_core_stage_fn_t *safe_gpio;
     void *safe_context;
-    uint8_t service_run_pin;
-    uint8_t usb_service_pin;
+    canview_esp_core_memory_t memory;
+    uint8_t input_count;
+    uint8_t input_pins[CANVIEW_ESP_RUNTIME_INPUTS];
 } canview_esp_runtime_config_t;
 
 /** Caller 소유 정적 저장소. zero-init 뒤 open 한 번, 필드 직접 접근 금지. */
@@ -41,7 +45,7 @@ typedef struct
 /**
  * @brief 현재 SDK main task를 단일 owner로 결합한다. GPIO/driver를 시작하지 않는다.
  * @param runtime zero-init 저장소. port와 모든 사용자의 수명보다 길어야 한다.
- * @param config BSP의 safe 함수와 입력 pin. 복사한다.
+ * @param config BSP의 safe 함수·메모리·입력 pin. 값으로 복사한다.
  * @param port 성공 시 callback 사본을 반환한다. runtime과 겹치지 않는 저장소다.
  * @return 인자/소유권 오류 또는 재초기화는 거부한다.
  */

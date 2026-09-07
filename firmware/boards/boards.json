@@ -67,6 +67,7 @@
     },
     {
       "id": "bridge-r1-n8r2",
+      "core_profile": "bench-health-v1",
       "path": "firmware/diagnostic-bridge",
       "kind": "esp32s3",
       "module": "ESP32-S3-WROOM-1-N8R2",

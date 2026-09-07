@@ -20,6 +20,7 @@ typedef struct
 {
     char version[32];
     char idf_ver[32];
+    char project_name[32];
 } esp_app_desc_t;
 #define ESP_OK (0)
 #define ESP_ERR_INVALID_STATE (1)

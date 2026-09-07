@@ -12,6 +12,7 @@ idf_build_get_property(core_python PYTHON)
 set(core_config_gate "${CMAKE_CURRENT_LIST_DIR}/../../../tools/check_sdkconfig.py")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${core_config_gate}")
 execute_process(COMMAND "${core_python}" -B "${core_config_gate}" "${core_sdkconfig}"
+    --board comm-r2-n16r8
     RESULT_VARIABLE core_config_result)
 if(NOT core_config_result EQUAL 0)
     message(FATAL_ERROR "Communicator bench sdkconfig contract failed")

@@ -18,7 +18,7 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t400a-bridge-core-bench`다. T-400a에서 Communicator의 health/pool·bench app·SDK adapter를 공용화하고 Bridge N8R2의 메모리·GPIO 진단 계약을 연결한다. T-200a 리뷰의 P1 2건/P2 2건은 모두 원 reviewer FIXED이며 PR #22는 merge 완료다. T-400a는 새 코드 변경의 별도 회귀·2인 리뷰·target/CI 검증이 필요하다.
+현재 branch는 `codex/t400a-bridge-core-bench`, draft [PR #23](https://github.com/digitie/canview/pull/23)이다. T-400a에서 Communicator의 health/pool·bench app·SDK adapter를 공용화하고 Bridge N8R2의 메모리·GPIO 진단 계약을 연결한다. T-200a 리뷰의 P1 2건/P2 2건은 모두 원 reviewer FIXED이며 PR #22는 merge 완료다. T-400a는 새 코드 변경의 별도 회귀·2인 리뷰·target/CI 검증이 필요하다.
 
 - 현재 문서: docs/tasks/T-400a-bridge-core-bench.md, docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
 - 구현 순서: 공용 C99 core·board 계약 → Bridge BSP/SDK·actual config gate → 두 역할 host/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.

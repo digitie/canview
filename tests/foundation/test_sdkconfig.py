@@ -23,9 +23,9 @@ GATE = load("check_sdkconfig")
 BOARDS = load("generate_boards")
 
 # 명세의 독립 oracle. 구현의 FORBIDDEN을 가져오면 항목 삭제 변이가 시험에서도 사라진다.
-EXPECTED_FORBIDDEN = (
+EXPECTED_COMMON_FORBIDDEN = (
     "CONFIG_SPIRAM_IGNORE_NOTFOUND", "CONFIG_SPIRAM_SPEED_120M",
-    "CONFIG_SPIRAM_MODE_QUAD", "CONFIG_ESP_CONSOLE_UART_DEFAULT",
+    "CONFIG_ESP_CONSOLE_UART_DEFAULT",
     "CONFIG_ESP_CONSOLE_UART_CUSTOM", "CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG",
     "CONFIG_FREERTOS_UNICORE", "CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE",
     "CONFIG_BOOTLOADER_APP_TEST", "CONFIG_SECURE_BOOT", "CONFIG_SECURE_FLASH_ENC_ENABLED",
@@ -35,6 +35,12 @@ EXPECTED_FORBIDDEN = (
     "CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT", "CONFIG_ESP_SYSTEM_PANIC_GDBSTUB",
     "CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT", "CONFIG_ESP_SYSTEM_GDBSTUB_RUNTIME",
 )
+
+EXPECTED_FORBIDDEN = {
+    "comm-r2-n16r8": EXPECTED_COMMON_FORBIDDEN + ("CONFIG_SPIRAM_MODE_QUAD", "CONFIG_ESPTOOLPY_FLASHSIZE_8MB"),
+    "bridge-r1-n8r2": EXPECTED_COMMON_FORBIDDEN + ("CONFIG_SPIRAM_MODE_OCT", "CONFIG_SPIRAM_ECC_ENABLE",
+                                               "CONFIG_ESPTOOLPY_FLASHSIZE_16MB"),
+}
 
 
 class SdkConfigTests(unittest.TestCase):
@@ -69,21 +75,36 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_PARTITION_TABLE_OFFSET=0x8000
 '''
 
+    @classmethod
+    def fixtures(cls):
+        bridge = cls.GOOD.replace("FLASHSIZE_16MB", "FLASHSIZE_8MB").replace('"16MB"', '"8MB"')
+        bridge = bridge.replace("MODE_OCT", "MODE_QUAD").replace("CONFIG_SPIRAM_ECC_ENABLE=y\n", "")
+        return {"comm-r2-n16r8": cls.GOOD, "bridge-r1-n8r2": bridge}
+
     def test_positive_and_crlf(self):
-        GATE.validate(self.GOOD)
-        GATE.validate(self.GOOD.replace("\n", "\r\n") + "# CONFIG_SPIRAM_IGNORE_NOTFOUND is not set\r\n")
+        for board, good in self.fixtures().items():
+            GATE.validate(good, board)
+            GATE.validate(good.replace("\n", "\r\n") + "# CONFIG_SPIRAM_IGNORE_NOTFOUND is not set\r\n", board)
+        with self.assertRaises(ValueError):
+            GATE.validate(self.GOOD, "unreviewed")
+        for board, other in (("bridge-r1-n8r2", self.GOOD),
+                             ("comm-r2-n16r8", self.fixtures()["bridge-r1-n8r2"])):
+            with self.subTest(board=board), self.assertRaises(ValueError):
+                GATE.validate(other, board)
 
     def test_every_required_missing_or_mutated(self):
-        for line in self.GOOD.splitlines():
-            key, value = line.split("=", 1)
-            for replacement in ("", f"{key}=n" if value != "n" else f"{key}=y"):
-                with self.subTest(key=key, replacement=replacement), self.assertRaises(ValueError):
-                    GATE.validate(self.GOOD.replace(line + "\n", replacement + "\n"))
+        for board, good in self.fixtures().items():
+            for line in good.splitlines():
+                key, value = line.split("=", 1)
+                for replacement in ("", f"{key}=n" if value != "n" else f"{key}=y"):
+                    with self.subTest(board=board, key=key, replacement=replacement), self.assertRaises(ValueError):
+                        GATE.validate(good.replace(line + "\n", replacement + "\n"), board)
 
     def test_forbidden_settings(self):
-        for key in EXPECTED_FORBIDDEN:
-            with self.subTest(key=key), self.assertRaises(ValueError):
-                GATE.validate(self.GOOD + f"{key}=y\n")
+        for board, good in self.fixtures().items():
+            for key in EXPECTED_FORBIDDEN[board]:
+                with self.subTest(board=board, key=key), self.assertRaises(ValueError):
+                    GATE.validate(good + f"{key}=y\n", board)
 
     def test_duplicates_and_malformed(self):
         for extra in ('CONFIG_SPIRAM=y', '# CONFIG_SPIRAM is not set', 'CONFIG_SPIRAM=garbage',
@@ -92,13 +113,15 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
                 GATE.validate(self.GOOD + extra + "\n")
 
     def test_forbidden_removal_mutants_are_killed(self):
-        for key in EXPECTED_FORBIDDEN:
-            altered = tuple(item for item in GATE.FORBIDDEN if item != key)
-            with self.subTest(key=key), mock.patch.object(GATE, "FORBIDDEN", altered):
-                result = unittest.TestResult()
-                SdkConfigTests("test_forbidden_settings").run(result)
-                self.assertFalse(result.wasSuccessful(), "금지 항목 삭제 변이가 살아남음: " + key)
-                self.assertFalse(result.errors, "assertion이 아닌 시험 오류로 실패함")
+        for board in self.fixtures():
+            for key in EXPECTED_FORBIDDEN[board]:
+                altered = dict(GATE.FORBIDDEN)
+                altered[board] = tuple(item for item in GATE.FORBIDDEN[board] if item != key)
+                with self.subTest(board=board, key=key), mock.patch.object(GATE, "FORBIDDEN", altered):
+                    result = unittest.TestResult()
+                    SdkConfigTests("test_forbidden_settings").run(result)
+                    self.assertFalse(result.wasSuccessful(), "금지 항목 삭제 변이가 살아남음: " + key)
+                    self.assertFalse(result.errors, "assertion이 아닌 시험 오류로 실패함")
 
     def test_factory_erase_and_panic_policy(self):
         factory = ('CONFIG_BOOTLOADER_FACTORY_RESET=y\n'
@@ -150,6 +173,34 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
         self.assertEqual(defaults["CONFIG_BOOTLOADER_FACTORY_RESET"], "n")
         self.assertEqual(defaults["CONFIG_EFUSE_VIRTUAL"], "n")
 
+    def test_bridge_board_and_defaults(self):
+        manifest = BOARDS.canonical(BOARDS.SOURCE)
+        board = next(item for item in json.loads(manifest)["boards"] if item["id"] == "bridge-r1-n8r2")
+        source = BOARDS.canonical(ROOT / board["source"])
+        for key, value in (("module", "ESP32-S3-WROOM-1-N16R8"), ("psram_ecc", True),
+                           ("core_profile", None), ("flash_bytes", 16777216),
+                           ("psram_bytes", 8388608), ("psram_mode", "octal"), ("recovery_gpio", 5)):
+            altered = copy.deepcopy(board)
+            altered[key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                BOARDS.board_outputs(altered, manifest, source)
+        for old, new in ((b",IO4,", b",IO6,"), (b",IO5,", b",IO4,"), (b",IO5,", b",IO22,")):
+            altered = source.replace(old, new)
+            self.assertNotEqual(source, altered)
+            with self.subTest(pin=new), self.assertRaises(ValueError):
+                BOARDS.board_outputs(board, manifest, altered)
+        generated = BOARDS.board_outputs(board, manifest, source)
+        defaults = GATE.parse(generated[board["path"] + "/sdkconfig.defaults"])
+        for key, expected in (("CONFIG_ESPTOOLPY_FLASHSIZE", '"8MB"'),
+                              ("CONFIG_SPIRAM_MODE_QUAD", "y"), ("CONFIG_SPIRAM_ECC_ENABLE", "n"),
+                              ("CONFIG_ESP_TASK_WDT_PANIC", "y"), ("CONFIG_ESP_TASK_WDT_TIMEOUT_S", "2"),
+                              ("CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT", "y"),
+                              ("CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS", "0"),
+                              ("CONFIG_BOOTLOADER_FACTORY_RESET", "n"), ("CONFIG_EFUSE_VIRTUAL", "n")):
+            self.assertEqual(defaults[key], expected)
+        self.assertIn("#define CANVIEW_BOARD_PSRAM_AVAILABLE_BYTES (2097152U)",
+                      generated[board["path"] + "/bsp/board_pins.h"])
+
     def test_cli_missing_invalid_valid(self):
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "sdkconfig"
@@ -157,8 +208,10 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
             self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
             config.write_text("", encoding="utf-8")
             self.assertNotEqual(subprocess.run(command, capture_output=True).returncode, 0)
-            config.write_text(self.GOOD, encoding="utf-8")
-            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 0)
+            for board, good in self.fixtures().items():
+                config.write_text(good, encoding="utf-8")
+                self.assertEqual(subprocess.run(command + ["--board", board], capture_output=True).returncode, 0)
+                self.assertNotEqual(subprocess.run(command + ["--board", "bad-board"], capture_output=True).returncode, 0)
 
 
 if __name__ == "__main__":

@@ -14,10 +14,11 @@ static canview_status_t fail(canview_esp_core_t *core, canview_esp_core_fault_t 
     return status == CANVIEW_OK ? CANVIEW_TIMEOUT : status;
 }
 
-static bool memory_valid(const canview_esp_core_sample_t *sample)
+static bool memory_valid(const canview_esp_core_sample_t *sample,
+                         const canview_esp_core_memory_t *memory)
 {
-    return sample->flash_bytes == CANVIEW_ESP_CORE_FLASH_BYTES &&
-           sample->psram_bytes == CANVIEW_ESP_CORE_PSRAM_BYTES &&
+    return sample->flash_bytes == memory->flash_bytes &&
+           sample->psram_bytes == memory->psram_bytes &&
            sample->heap_free_bytes >= CANVIEW_ESP_CORE_HEAP_MIN &&
            sample->heap_free_bytes <= CANVIEW_ESP_CORE_INTERNAL_MAX &&
            sample->largest_block_bytes >= CANVIEW_ESP_CORE_BLOCK_MIN &&
@@ -38,7 +39,8 @@ canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
                                        const canview_esp_core_port_t *port)
 {
     if (core == NULL || port == NULL || port->safe_gpio == NULL || port->watchdog_start == NULL ||
-        port->now_us == NULL || port->sample == NULL || port->feed == NULL)
+        port->now_us == NULL || port->sample == NULL || port->feed == NULL ||
+        port->memory.flash_bytes == 0U || port->memory.psram_bytes == 0U)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -73,7 +75,8 @@ canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
     }
     canview_esp_core_sample_t sample = {0};
     status = core->port.sample(core->port.context, &sample);
-    if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT || !memory_valid(&sample))
+    if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT ||
+        !memory_valid(&sample, &core->port.memory))
     {
         return fail(core, CANVIEW_ESP_FAULT_MEMORY, status);
     }
@@ -122,7 +125,8 @@ canview_status_t canview_esp_core_step(canview_esp_core_t *core)
     }
     canview_esp_core_sample_t sample = {0};
     status = core->port.sample(core->port.context, &sample);
-    if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT || !memory_valid(&sample))
+    if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT ||
+        !memory_valid(&sample, &core->port.memory))
     {
         return fail(core, CANVIEW_ESP_FAULT_MEMORY, status);
     }

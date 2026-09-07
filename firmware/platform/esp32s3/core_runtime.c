@@ -113,8 +113,15 @@ static canview_status_t sample(void *context, canview_esp_core_sample_t *output)
     /* ESP-IDF6 task.h는 byte 단위다. upstream FreeRTOS의 word 변환을 적용하지 않는다. */
     value.stack_free_bytes = (uint32_t)uxTaskGetStackHighWaterMark(NULL);
     value.reset_reason = (uint32_t)esp_reset_reason();
-    value.service_run_sense = gpio_get_level((gpio_num_t)runtime->config.service_run_pin) != 0;
-    value.usb_service_sense = gpio_get_level((gpio_num_t)runtime->config.usb_service_pin) != 0;
+    for (uint8_t index = 0U; index < runtime->config.input_count; ++index)
+    {
+        const uint8_t bit = (uint8_t)(1U << index);
+        value.input_valid_mask |= bit;
+        if (gpio_get_level((gpio_num_t)runtime->config.input_pins[index]) != 0)
+        {
+            value.input_level_mask |= bit;
+        }
+    }
     *output = value;
     return CANVIEW_OK;
 }
@@ -129,7 +136,7 @@ static canview_status_t feed(void *context, uint64_t not_before, uint64_t deadli
     }
     canview_status_t status = CANVIEW_TIMEOUT;
     /* Timer 검사와 SDK reset 사이의 task 선점을 막는다. SDK 내부 lock은 별개다.
-     * ISR/NMI·cache 정지와 SDK lock 대기의 실제 상한은 T-200 HIL로 검증해야 한다. */
+     * ISR/NMI·cache 정지와 SDK lock 대기의 실제 상한은 T-200/T-400 HIL로 검증해야 한다. */
     portENTER_CRITICAL(&feed_mux);
     const int64_t value = esp_timer_get_time();
     if (value >= 0 && (uint64_t)value >= not_before && (uint64_t)value <= deadline)
@@ -187,15 +194,17 @@ static void report(void *context, const canview_esp_core_t *core, canview_status
     }
     const esp_app_desc_t *description = esp_app_get_description();
     ESP_LOGI("core",
-             "bench-only build=%s idf=%s cap=0 tx=0 state=%u fault=%u status=%u reset=%" PRIu32,
-             description->version, description->idf_ver, (unsigned)core->state,
-             (unsigned)core->fault, (unsigned)service_status, core->sample.reset_reason);
+             "bench-only project=%s build=%s idf=%s cap=0 tx=0 state=%u fault=%u status=%u "
+             "reset=%" PRIu32,
+             description->project_name, description->version, description->idf_ver,
+             (unsigned)core->state, (unsigned)core->fault, (unsigned)service_status,
+             core->sample.reset_reason);
     ESP_LOGI("core",
              "flash=%" PRIu32 " psram=%" PRIu32 " internal=%" PRIu32 " block=%" PRIu32
-             " stack-free=%" PRIu32 " run-sense=%u usb-sense=%u",
+             " stack-free=%" PRIu32 " input-valid=%u input-level=%u",
              core->sample.flash_bytes, core->sample.psram_bytes, core->sample.heap_free_bytes,
              core->sample.largest_block_bytes, core->sample.stack_free_bytes,
-             (unsigned)core->sample.service_run_sense, (unsigned)core->sample.usb_service_sense);
+             (unsigned)core->sample.input_valid_mask, (unsigned)core->sample.input_level_mask);
 }
 
 canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
@@ -203,9 +212,21 @@ canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
                                           canview_esp_runtime_port_t *port)
 {
     if (runtime == NULL || config == NULL || port == NULL || config->safe_gpio == NULL ||
-        !GPIO_IS_VALID_GPIO(config->service_run_pin) ||
-        !GPIO_IS_VALID_GPIO(config->usb_service_pin) ||
-        config->service_run_pin == config->usb_service_pin)
+        config->memory.flash_bytes == 0U || config->memory.psram_bytes == 0U ||
+        config->input_count == 0U || config->input_count > CANVIEW_ESP_RUNTIME_INPUTS)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    for (uint8_t index = 0U; index < CANVIEW_ESP_RUNTIME_INPUTS; ++index)
+    {
+        if (index < config->input_count ? !GPIO_IS_VALID_GPIO(config->input_pins[index])
+                                        : config->input_pins[index] != 0U)
+        {
+            return CANVIEW_INVALID_ARGUMENT;
+        }
+    }
+    if (config->input_count == CANVIEW_ESP_RUNTIME_INPUTS &&
+        config->input_pins[0] == config->input_pins[1])
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -222,7 +243,8 @@ canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
     runtime->owner = owner;
     runtime->wake_tick = (uint32_t)xTaskGetTickCount();
     runtime->initialized = true;
-    *port = (canview_esp_runtime_port_t){{safe_gpio, watchdog_start, now_us, sample, feed, runtime},
+    *port = (canview_esp_runtime_port_t){{safe_gpio, watchdog_start, now_us, sample, feed, runtime,
+                                           config->memory},
                                          {pool_enter, pool_leave, NULL},
                                          wait_period,
                                          report,

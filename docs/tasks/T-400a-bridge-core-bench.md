@@ -2,6 +2,7 @@
 
 - 상태: `IN_PROGRESS`
 - branch: `codex/t400a-bridge-core-bench`
+- PR: [#23](https://github.com/digitie/canview/pull/23)
 - 우선순위: `P0`
 - Gate: `G0 / G1 준비`
 - 선행: `T-001`, `T-200a`

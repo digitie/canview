@@ -6,7 +6,7 @@
 MCU 독립 framing/CRC/COBS/classic CAN batch/sequence window, 안전 idle 부팅, host 검증을 제공한다.
 언어와 문서 도구 결정은 [ADR-008](../adr/008-portable-foundation-and-api-docs.md)을 따른다.
 
-2026-09-07 T-200a에서 Communicator ESP32는 별도 [bench core](../../firmware/communicator/esp32/docs/core-bench.md)를 사용한다. `communicator/esp32/app`이 boot/health·고정 pool을 조합하고, 같은 project의 `interface`/`module`은 SDK 독립 C99, `platform/esp32s3/runtime.c`와 project-local `canview_communicator_runtime` component만 IDF/TWDT 경계를 소유한다. 아래 공용 startup 설명은 Controller/Bridge의 아직 교체하지 않은 safe-idle 경로에 해당한다.
+2026-09-07 T-200a의 Communicator ESP32 core를 T-400a에서 Bridge와 [공용 bench core](../../firmware/docs/esp-core-bench.md)로 추출했다. `firmware/app/esp_core.c`가 boot/health·고정 pool을 조합하고 `firmware/module/esp_core`와 interface는 SDK 독립 C99다. `firmware/platform/esp32s3/core_runtime.c`와 `canview_esp32_runtime` component가 IDF/TWDT 경계를 소유한다. 보드별 BSP가 메모리·진단 입력을 고정하며 아래 기존 startup 설명은 Controller의 아직 교체하지 않은 safe-idle 경로에 해당한다.
 
 전체 ESP-NOW/UART message ABI 동결, 인증·pairing·ACK/command lifecycle, filter·QoS, FDCAN/DMA,
 LVGL·센서·차량 자동화, OTA loader·복구·서명 검증은 **아직 구현하지 않았다**.
@@ -17,8 +17,8 @@ Controller/Bridge에 raw CAN TX 경로를 추가하지 않았으며, 차량 송�
 
 | 계층 | 실제 코드 | 책임·허용 의존 |
 |---|---|---|
-| app | firmware/app/startup.c, shared/app, communicator/stm32/app | ESP 역할 고정·안전 idle, STM32 boot와 cooperative worker 조합; interface만 의존 |
-| 공용 module | shared/protocol | 전송 바이트 검증/인코딩; 표준 C99와 shared/interface만 의존 |
+| app | firmware/app/startup.c, firmware/app/esp_core.c, shared/app, communicator/stm32/app | 보드 역할 고정·bench health/안전 idle, STM32 boot와 cooperative worker 조합; interface만 의존 |
+| 공용 module | shared/protocol, firmware/module/esp_core | 전송 바이트 검증/인코딩·ESP health/pool; 표준 C99와 interface만 의존 |
 | interface | shared/interface, firmware/interface | 상태·함수 계약만 선언. SDK 타입/전역 singleton 없음 |
 | BSP | firmware/<target>/bsp | 생성 pin 이름으로 보드별 초기화 순서 조합 |
 | platform | firmware/platform/esp32s3, communicator/stm32/platform/stm32g474 | IDF GPIO/FreeRTOS 대기 또는 CMSIS register 접근 |
@@ -27,7 +27,7 @@ Controller/Bridge에 raw CAN TX 경로를 추가하지 않았으며, 차량 송�
 
 구체 드라이버·미들웨어·RTOS task를 구현하지 않았으므로 비어 있는 미래 디렉터리나 가짜 HAL을 만들지 않는다.
 후속 드라이버는 bus port와 device context로 분리하고 app/codec에 HAL header를 가져오지 않는다.
-Controller/Bridge IDF app_main은 공용 startup, Communicator ESP app_main과 STM main은 각 core bench composition root를 사용한다. 역할은 빌드 상수이고 무선 입력으로 변경할 수 없다.
+Controller IDF app_main은 기존 startup, Communicator ESP/Bridge app_main은 공용 ESP core, STM main은 STM core bench composition root를 사용한다. 역할은 BSP/project 빌드 상수이고 무선 입력으로 변경할 수 없다.
 
 ## 프로토콜 구현 계약
 
@@ -96,7 +96,7 @@ partition 변경은 데이터 손실/boot 불가 위험이 있어 T-007·T-204·
 실행 명령과 실제 검증 결과는 [기반 개발 절차](../development/foundation.md)에 한 번만 둔다.
 공용 코드는 strict C99, 경고를 오류로 처리하며 C99 typedef 기반 정적 검사를 유지한다.
 IDF platform adapter는 SDK GNU 언어 모드를 유지하고 자체 코드의 -Wall/-Wextra/-Werror를 적용한다.
-공용 GPIO/idle은 canview_esp32_platform, Communicator ESP health의 IDF adapter는 canview_communicator_runtime component가 소유한다. main의 app/startup/BSP 및 canview_foundation은 strict C99이고 네 역할의 실제 startup은 host object compile gate에도 포함한다.
+공용 GPIO/idle은 canview_esp32_platform, 공용 ESP health의 IDF adapter는 canview_esp32_runtime component가 소유한다. main의 app/startup/BSP 및 canview_foundation/canview_esp_core는 strict C99이고 네 역할의 실제 startup은 host object compile gate에도 포함한다.
 기존 C11 자동화 prototype 시험은 별도 target이다. 이를 C99 gate나 새 firmware 기능으로 합산하지 않는다.
 
 .clang-format은 formatting만 설정하며 C++ 언어 전환을 의미하지 않는다.

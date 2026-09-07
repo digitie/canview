@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+#include "board_fixture.h"
 #include "canview_esp_runtime.h"
 #include "canview_board.h"
 #include <setjmp.h>
@@ -55,8 +56,8 @@ static canview_status_t sample(void *context, canview_esp_core_sample_t *value)
 {
     CHECK(context == &fake && fake.watchdog == 1U);
     ++fake.samples;
-    *value = (canview_esp_core_sample_t){CANVIEW_ESP_CORE_FLASH_BYTES,
-                                         CANVIEW_ESP_CORE_PSRAM_BYTES,
+    *value = (canview_esp_core_sample_t){TEST_FLASH_BYTES,
+                                         TEST_PSRAM_BYTES,
                                          CANVIEW_ESP_CORE_HEAP_MIN,
                                          CANVIEW_ESP_CORE_BLOCK_MIN,
                                          CANVIEW_ESP_CORE_STACK_MIN,
@@ -110,7 +111,8 @@ canview_status_t canview_esp_board_runtime(canview_esp_runtime_t *runtime,
         return CANVIEW_NOT_IMPLEMENTED;
     }
     *port = (canview_esp_runtime_port_t){
-        {safe, watchdog, now, sample, feed, &fake}, {lock, lock, &fake}, wait, report, &fake};
+        {safe, watchdog, now, sample, feed, &fake, {TEST_FLASH_BYTES, TEST_PSRAM_BYTES}},
+        {lock, lock, &fake}, wait, report, &fake};
     if (selected("pool"))
     {
         port->pool.enter = NULL;

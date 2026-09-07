@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /** @file canview_esp_core.h
- * @brief N16R8 bench boot/health 정책. SDK·차량 권한과 독립이다.
+ * @brief 보드 독립 bench boot/health 정책. SDK·차량 권한과 독립이다.
  */
 #ifndef CANVIEW_ESP_CORE_H
 #define CANVIEW_ESP_CORE_H
@@ -12,8 +12,6 @@
 #define CANVIEW_ESP_CORE_DEADLINE_US (UINT64_C(250000))
 #define CANVIEW_ESP_CORE_BUDGET_US (UINT64_C(20000))
 #define CANVIEW_ESP_CORE_WATCHDOG_MS (2000U)
-#define CANVIEW_ESP_CORE_FLASH_BYTES (16777216U)
-#define CANVIEW_ESP_CORE_PSRAM_BYTES (7864320U)
 #define CANVIEW_ESP_CORE_HEAP_MIN (81920U)
 #define CANVIEW_ESP_CORE_BLOCK_MIN (32768U)
 #define CANVIEW_ESP_CORE_INTERNAL_MAX (524288U)
@@ -40,7 +38,14 @@ typedef enum
     CANVIEW_ESP_FAULT_REENTRY
 } canview_esp_core_fault_t;
 
-/** 측정 단위는 모두 byte. sense 값은 진단이며 RUN/TX 승인 입력이 아니다. */
+/** BSP가 고정하고 boot에서 복사하는 메모리 계약. 외부 설정/패킷으로 변경하지 않는다. */
+typedef struct
+{
+    uint32_t flash_bytes;
+    uint32_t psram_bytes; /**< ECC overhead를 제외한 SDK 가용 byte. */
+} canview_esp_core_memory_t;
+
+/** 측정 단위는 byte. GPIO bit는 BSP 순서의 진단일 뿐 RUN/TX/서비스 승인이 아니다. */
 typedef struct
 {
     uint32_t flash_bytes;
@@ -49,8 +54,8 @@ typedef struct
     uint32_t largest_block_bytes;
     uint32_t stack_free_bytes;
     uint32_t reset_reason;
-    bool service_run_sense;
-    bool usb_service_sense;
+    uint8_t input_valid_mask; /**< 존재하고 읽은 입력만 1. absent는 low와 다르다. */
+    uint8_t input_level_mask; /**< valid bit에 대응하는 전기적 HIGH; active-low 의미는 BSP 문서. */
 } canview_esp_core_sample_t;
 
 typedef canview_status_t canview_esp_core_stage_fn_t(void *context);
@@ -68,6 +73,7 @@ typedef struct
     canview_esp_core_sample_fn_t *sample;
     canview_esp_core_feed_fn_t *feed;
     void *context;
+    canview_esp_core_memory_t memory; /**< 0이 아닌 BSP 메모리 계약; boot가 복사한다. */
 } canview_esp_core_port_t;
 
 /** Zero-init 후 단일 main service owner만 사용한다. callback 재진입은 terminal fault다. */

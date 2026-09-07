@@ -10,8 +10,7 @@ canview_status_t canview_esp_board_runtime(canview_esp_runtime_t *runtime,
     const canview_esp_runtime_config_t config = {board.enter_safe_state, board.context,
                                                  {CANVIEW_BOARD_FLASH_BYTES,
                                                   CANVIEW_BOARD_PSRAM_AVAILABLE_BYTES},
-                                                 2U,
-                                                 {CANVIEW_BOARD_SERVICE_RUN_SENSE_GPIO,
-                                                  CANVIEW_BOARD_USB_SERVICE_SENSE_GPIO}};
+                                                 1U,
+                                                 {CANVIEW_BOARD_PAIR_BUTTON_N_GPIO, 0U}};
     return canview_esp_runtime_open(runtime, &config, port);
 }

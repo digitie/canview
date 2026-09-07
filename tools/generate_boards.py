@@ -41,7 +41,10 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
         if board["id"] == "comm-r2-n16r8" and (board.get("core_profile") != "bench-health-v1" or
                 board["module"] != "ESP32-S3-WROOM-1-N16R8" or not board["psram_ecc"]):
             raise ValueError("Communicator bench health/ECC contract")
-        if "core_profile" in board and board["id"] != "comm-r2-n16r8":
+        if board["id"] == "bridge-r1-n8r2" and (board.get("core_profile") != "bench-health-v1" or
+                board["module"] != "ESP32-S3-WROOM-1-N8R2" or board["psram_ecc"] is not False):
+            raise ValueError("Bridge bench health/Quad memory contract")
+        if "core_profile" in board and board["id"] not in ("comm-r2-n16r8", "bridge-r1-n8r2"):
             raise ValueError("unreviewed core profile")
         if board["flash_bytes"] not in (8388608, 16777216):
             raise ValueError("unreviewed flash size")
@@ -139,6 +142,9 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
             lines.append(f"#define {prefix}{key.upper()} ({board[key]}U)")
     for key, value in board.get("clock", {}).items():
         lines.append(f"#define {prefix}{key.upper()} ({value}U)")
+    if board["kind"] == "esp32s3":
+        available = board["psram_bytes"] * 15 // 16 if board["psram_ecc"] else board["psram_bytes"]
+        lines.append(f"#define {prefix}PSRAM_AVAILABLE_BYTES ({available}U)")
     result = {board["path"] + "/bsp/board_pins.h": "\n".join(lines + ["", "#endif", ""])}
     if board["kind"] == "esp32s3":
         flash_mb = board["flash_bytes"] // 1048576
