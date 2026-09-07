@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400 P2 source/CI/PR closure)
+
+PR #25의 final candidate `5b6a2994d676784ab02bdbda54f1e50a9454b45c`에서 CI `34126431204`의 Windows C99, target-firmware-windows, Linux GCC/Clang portability, Linux ASan/UBSan 다섯 job이 모두 success로 종료했다. 업로드 artifact를 별도 디렉터리에 내려받아 `target-artifacts.json`의 18개 path·byte·SHA-256을 재계산해 모두 일치시켰고, target build log의 compiler/linker/CMake warning scan은 0건이었다.
+
+GitHub GraphQL quota가 일시 소진되어 Draft 해제는 reset 뒤에만 재시도했다. REST로 head·mergeability를 다시 대조한 뒤 ready-for-review mutation, check 5/5 success와 `CLEAN`을 확인하고 remote branch 삭제 없이 merge했다. PR #25의 merge commit `d8d80578050a9d368f6b4f81fae8301d27084fc2`는 `origin/main`과 일치하며 ancestor 검증을 통과했다. T400-P2-04를 포함한 source P0/P1은 남지 않았지만, board flash/HIL, ST-LINK/serial, rail/reset/brownout, PSRAM/clock/watchdog 장시간, vehicle CAN/evidence, provisioning, vehicle TX release는 계속 `NOT_RUN`이고 CAN TX는 NO-GO다. 따라서 T-400은 G1 physical evidence 전까지 `IN_PROGRESS`이며 SoftAP·HTTP·인증·차량 CAN/TX 범위에 진입하지 않는다.
+
 ## 2026-09-07 (codex, T-400 post-fix coverage evidence P2)
 
 `8f32c07810d76cd3e652ccd08b801400aac5a770`의 첫 post-fix A/B 실행은 whole diff가 상대 raw evidence를 포함해 독립성이 무효가 되었고, 두 원문을 `BLOCK`으로 그대로 보존했다. 이를 PASS나 source finding으로 바꾸지 않았다. 이후 raw evidence를 읽지 않은 fresh source-only A는 P0–P3 없음·physical/HIL 조건부, B는 P0/P1 없음과 coverage evidence P2를 반환했다. B의 P2는 app coverage runner가 `preflight` scenario 및 실제 두 wrong-BSP cross-link executable을 profile/export 대상으로 포함하지 않은 점이다.
