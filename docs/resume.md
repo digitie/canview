@@ -18,10 +18,10 @@
 
 ## 다음 한 작업
 
-현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)의 T-400a P2 handoff다. 최초 immutable review는 wrong-BSP GPIO preflight P1과 profile digest·ISR initialization P2를 확인해 차단했고, immutable `8f32c07`은 host Debug/Release 110/110, coverage와 local target binary 18개 재생성까지 끝냈다. 전체 diff가 raw evidence를 노출한 첫 post-fix A/B execution은 무효 `BLOCK`으로 보존했으며, fresh source-only A/B는 P0/P1 없음과 coverage evidence P2를 반환했다. 그 P2는 immutable `813d19c`에서 app preflight 및 두 wrong-BSP composition profile/export·app function evidence를 coverage runner에 추가해 수정했다. C3 delta A 조건부/B PASS는 P0–P3 없고 B P2를 닫았으며, PR CI와 G1 physical evidence가 남았다. 이 둘이 닫히기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
+현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)이며, T-400a P2 source handoff는 [PR #25](https://github.com/digitie/canview/pull/25) merge `d8d8057`으로 main에 통합됐다. final candidate `5b6a299`의 CI `34126431204`는 Windows C99·target firmware·Linux GCC/Clang·ASan/UBSan 다섯 job이 성공했고, CI artifact 18/18의 path·size·SHA-256과 target warning 0을 독립 대조했다. fresh source-only delta A는 physical/HIL `NOT_RUN` 조건부, B는 T400-P2-04 `CLOSED/PASS`로 P0/P1은 남지 않았다. 남은 blocker는 G1 physical evidence뿐이며, 이 근거가 생기기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
 
 - 현재 문서: docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/reviews/adversarial/2026-09-07-T-400.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
-- 구현 순서: T-400a handoff core/BSP 계약 → host·target negative test → 독립2인 review → G1 physical evidence가 있을 때만 SoftAP·인증·무선 단계.
+- 다음 구현 순서: G1 board flash·ST-LINK/serial·rail/reset/brownout physical evidence → SoftAP·인증·무선 단계. 장비가 없으면 해당 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
 - Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
