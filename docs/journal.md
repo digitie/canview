@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400a merge와 T-400 handoff)
+
+PR #23은 final branch CI `34114919104`의 Windows C99, target-firmware-windows, Linux GCC/Clang portability, Linux ASan/UBSan 다섯 job success 뒤 merge commit `25eba080907257c6d90abaeec6d578d9dff6585a`로 `origin/main`에 통합됐다. candidate `0e1edb6`가 `origin/main`의 조상임을 확인했다. A-05/B-07의 `CONDITIONAL` raw review는 unresolved P0/P1 없음으로 닫았고, P2 세 건은 owner=T-400, G1 gate, 목표=2026-09-14로 유지했다.
+
+T-400은 board identity/profile binding, callback stage/ISR contract, partial safe GPIO failure policy를 SoftAP·HTTP·인증보다 먼저 구현한다. actual board flash/HIL, rail·reset/brownout, 장시간 PSRAM/clock/watchdog, 차량 CAN/capture, provisioning, vehicle TX release는 장비 부재로 `NOT_RUN`이며 CAN TX는 계속 NO-GO다. 사용자 소유 `docs/session-continuation-prompt.md`는 untracked로 보존하고 stage하지 않았다.
+
 ## 2026-09-07 (codex, T-400a clean CI target artifact audit)
 
 CI run `34112160182`의 target-firmware-windows는 PR merge ref `2e49280`에서 success로 종료했다. 업로드한 target image와 log artifact를 직접 내려받고 `target-artifacts.json`의 18개 path/byte/SHA-256을 재계산한 결과 모두 일치했다. STM32 Debug/Release, Communicator ESP32, Diagnostic Bridge, Controller 및 public-component fixture의 BIN/ELF/MAP를 포함하며 target command의 compiler/linker/CMake warning scan도 success condition으로 통과했다. PR merge version/source-path가 달라 local ELF/MAP/ESP app hash와 byte-identical하다고 주장하지 않는다.

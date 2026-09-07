@@ -1,6 +1,6 @@
 # T-400 Diagnostic Bridge ESP-IDF, SoftAP와 인증 bootstrap
 
-- 상태: `BLOCKED`
+- 상태: `READY`
 - 우선순위: `P1`
 - Gate: `G2`
 - 선행: `T-001`, `T-003`, `T-400a`
@@ -11,6 +11,16 @@
 `ESP32-S3-WROOM-1-N8R2` 개발보드에 read-only ESP-NOW observer와 phone-only SoftAP web shell을 올린다. 차량 command surface는 build에 포함하지 않는다.
 
 최소 boot/health/watchdog·고정 pool 소프트웨어는 [T-400a](T-400a-bridge-core-bench.md)에서 먼저 구현한다. 그 완료가 아래 SoftAP·인증·무선·휴대폰·실물 수용 기준을 대신하지 않는다.
+
+## T-400a review handoff
+
+T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가하기 전에 아래 항목을 source와 시험으로 먼저 닫고, 실제 외부 gate는 G1 물리 evidence로 별도 확인한다.
+
+- Communicator/Bridge BSP의 compile-time board identity/profile binding과 wrong-BSP 거부
+- callback visibility/stage latch 및 ISR-context 금지 정책의 계약·시험
+- partial safe GPIO 실패의 output ordering·all-pin failure 정책과 외부 gate/power-reset 실측 계획
+
+물리 board·power/reset gate가 현재 `NOT_RUN`인 상태에서는 위 source 검증을 진행할 수 있어도 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다. 원 disposition, owner, gate와 목표일은 [T-400a 통합 review](../reviews/adversarial/2026-09-07-T-400a.md)에 보존한다.
 
 ## 고정 target
 

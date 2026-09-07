@@ -1,10 +1,9 @@
 # T-400a Bridge 최소 core와 ESP 공용화
 
-- 상태: `IN_PROGRESS`
-- branch: `codex/t400a-bridge-core-bench`
-- PR: [#23](https://github.com/digitie/canview/pull/23)
+- 상태: `DONE`
+- merge: [PR #23](https://github.com/digitie/canview/pull/23), `25eba080907257c6d90abaeec6d578d9dff6585a`
 - 우선순위: `P0`
-- Gate: `G0 / G1 준비`
+- Gate: `G0 / G1 software 준비`; 실제 G1/G2 물리 gate는 `NOT_RUN`
 - 선행: `T-001`, `T-200a`
 
 ## 목표와 분리 이유
@@ -30,18 +29,22 @@ Communicator ESP32 core merge 다음으로 Bridge N8R2의 boot/health/watchdog �
 
 ## 수용 기준
 
-- [ ] 공용 core/app에 vendor/FreeRTOS 의존 또는 Communicator 전용 GPIO 가정이 없다.
-- [ ] 두 BSP가 올바른 메모리 계약을 선택하며 잘못된 값·profile 혼용·sense mapping 오류를 거부한다.
-- [ ] Bridge의 safe GPIO→watchdog→메모리→주기 health를 실제 app/SDK fixture로 실행하고 모든 실패 단계에서 추가 feed/통신이 없다.
-- [ ] Communicator 기존 boot·clock/deadline·pool·SDK/BSP 실패 회귀를 보존하고 두 보드 입력·role 진단을 구분한다.
-- [ ] actual SDKCONFIG에서 wrong Flash/PSRAM mode/ECC/watchdog/panic/console 및 금지 Flash 변경을 차단한다. 독립 fixture·금지 항목 삭제 변이를 유지한다.
-- [ ] Windows Debug/Release, GCC·ASan+UBSan, pool 동시성, coverage와 strict API가 통과한다.
-- [ ] STM32 Debug/Release·ESP4종 최종 BIN/ELF/MAP가 경고0으로 빌드되고 digest/CI를 기록한다.
-- [ ] 서로 다른 전문 리뷰어2명의 독립 적대적 리뷰·finding 수정·재확인을 완료하고 PR을 merge한다.
+- [x] 공용 core/app에 vendor/FreeRTOS 의존 또는 Communicator 전용 GPIO 가정이 없다.
+- [x] 두 BSP가 올바른 메모리 계약을 선택하며 잘못된 값·profile 혼용·sense mapping 오류를 거부한다.
+- [x] Bridge의 safe GPIO→watchdog→메모리→주기 health를 실제 app/SDK fixture로 실행하고 모든 실패 단계에서 추가 feed/통신이 없다.
+- [x] Communicator 기존 boot·clock/deadline·pool·SDK/BSP 실패 회귀를 보존하고 두 보드 입력·role 진단을 구분한다.
+- [x] actual SDKCONFIG에서 wrong Flash/PSRAM mode/ECC/watchdog/panic/console 및 금지 Flash 변경을 차단한다. 독립 fixture·금지 항목 삭제 변이를 유지한다.
+- [x] Windows Debug/Release, GCC·ASan+UBSan, pool 동시성, coverage와 strict API가 통과한다.
+- [x] STM32 Debug/Release·ESP4종 최종 BIN/ELF/MAP가 경고0으로 빌드되고 digest/CI를 기록한다.
+- [x] 서로 다른 전문 리뷰어2명의 독립 적대적 리뷰·finding 수정·재확인을 완료하고 PR을 merge한다.
 
 ## 검증·evidence
 
 root CMake/CTest presets, generated check, 실제 sdkconfig gate, core coverage와 strict API를 사용한다. 새 board matrix는 구현 후 테스트 이름·개수·실제 결과를 기록한다. target은 SDK/commit·BIN/ELF/MAP·SHA-256·warning scan으로 식별한다. 기존 T-200a PASS를 변경된 공용화 코드의 성공으로 재사용하지 않는다.
+
+PR #23은 `25eba080907257c6d90abaeec6d578d9dff6585a`로 merge됐다. final CI [run `34114919104`](https://github.com/digitie/canview/actions/runs/34114919104)는 Windows C99, target firmware, Linux GCC/Clang portability, ASan/UBSan 다섯 job 모두 success다. immutable target artifact 18/18의 path·size·SHA-256 대조와 warning 0 결과는 [post-fix evidence](../reviews/adversarial/evidence/2026-09-07-T-400a-target-postfix.md)에 있다. A-05/B-07의 `CONDITIONAL` review와 unresolved P0/P1 없음, P2 handoff는 [통합 review](../reviews/adversarial/2026-09-07-T-400a.md)에 보존한다.
+
+실제 board flash, ST-LINK/USB serial, rail·brownout/reset, 장시간 PSRAM/clock/watchdog, 차량 CAN/capture evidence, production provisioning 및 vehicle TX release는 실행할 장비가 없어 계속 `NOT_RUN`이다. 이 task의 완료는 차량 송신 또는 물리 qualification 완료를 뜻하지 않는다.
 
 ## 범위 밖·rollback
 
