@@ -19,6 +19,7 @@ T-200의 실물 bring-up 전에 N16R8에서 빌드 가능한 boot/health/watchdo
 - bench core에서는 UART driver·radio·CAN·OTA·NVS write·key/eFuse provisioning을 시작하지 않는다. capability/TX permit은 항상0이다.
 - main service owner 하나가 고정 주기100ms로 health를 검사한다. 이전 진척250ms deadline·한 번 실행20ms budget을 검사한 뒤에만 자신의 TWDT 진척을 갱신한다. TWDT2초 panic과 idle core 감시는 SDK 설정/adapter에서 확인한다. 이 수치는 소프트웨어 제한이며 실측 WCET가 아니다.
 - core/pool은 정적 저장소를 사용한다. SDK의 boot-time watchdog 등록과 내부 allocation은 별도로 구분하며 runtime core에 heap API를 넣지 않는다.
+- 디버거 미연결 기준 panic PRINT_REBOOT/추가 지연0초를 고정한다. bootloader factory reset·Flash 변경/provisioning 옵션은 거부하며 금지 항목 삭제 변이도 독립 fixture로 검증한다.
 
 ## 구현 범위·예상 파일
 

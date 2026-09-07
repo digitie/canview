@@ -18,7 +18,7 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t200a-esp32-core-bench`다. T-200a에서 SDK 독립 boot/health·고정 pool과 IDF watchdog/memory/USB 진단을 구현하고 실제 sdkconfig 부정 검사를 추가한다. 이전 T-102a는 merge 완료했으며 최신 사용자 요청에 따라 core/base부터 계속한다.
+현재 branch는 `codex/t200a-esp32-core-bench`, [Draft PR #22](https://github.com/digitie/canview/pull/22)다. SDK 독립 boot/health·고정 pool과 IDF watchdog/memory/USB 진단을 구현했고 host89/89·coverage·strict API·clean6종 target warning0을 확인했다. [최초 독립 리뷰](reviews/adversarial/2026-09-07-T-200a.md)의 P1 2건/P2 2건은 수정 적용했으며 immutable 수정본의 두 reviewer 재확인과 최종 CI/target gate를 진행한다. 아직 DONE/merge가 아니다.
 
 - 현재 문서: docs/tasks/T-200a-esp32-core-bench.md, docs/tasks/T-200-communicator-esp32-bootstrap.md, docs/hardware/r1/firmware-pinmap.md, docs/architecture/implementation-readiness.md §5.2, docs/development/windows.md
 - 구현 순서: SDK 독립 boot/health·pool → BSP/IDF adapter·sdkconfig gate → host fault/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.

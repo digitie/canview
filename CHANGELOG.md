@@ -6,6 +6,8 @@
 
 ### Added
 
+- Communicator ESP32 bench core에 C99 health·고정 pool, 단일 owner TWDT·메모리·USB 진단과 실제 SDK 설정 차단을 추가했다. 넓은 실패·동시성·coverage 시험을 포함하며 실제 통신/OTA/HIL은 후속 gate다.
+
 - STM32 최소 boot/fault bench core에 bounded HSE/PLL·IWDG·TIM2/SysTick, 진척 감시 scheduler·고정 queue와 host fault 검증을 추가했다. 실제 UART/CAN/OTA·보드 G1/G2는 포함하지 않는다.
 
 - 네 MCU의 안전 idle/BSP/platform 프로젝트, MCU 독립 C99 framing·CRC·COBS·classic CAN batch·sequence window를 추가했다. 보드 pin/config 생성, 넓은 host 시험·coverage·strict API 문서를 포함하며 실제 통신·차량 송신·OTA 기능은 후속 구현이다.

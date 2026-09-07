@@ -44,7 +44,9 @@ acquire는 payload를 복사하고 pool 주소·slot·generation token을 반환
 
 ## 설정과 검증
 
-`boards.json`의 bench-health-v1이 defaults를 생성한다. 기존 sdkconfig는 defaults 변경으로 갱신되지 않으므로 별도 SDKCONFIG 경로로 빌드한다. `tools/check_sdkconfig.py`는 실제 생성 설정의 메모리·watchdog panic/idle·USB console·factory layout을 검사한다. OTA/security provisioning을 자동 선택하지 않는다.
+`boards.json`의 bench-health-v1이 defaults를 생성한다. 기존 sdkconfig는 defaults 변경으로 갱신되지 않으므로 별도 SDKCONFIG 경로로 빌드한다. `tools/check_sdkconfig.py`는 실제 생성 설정의 메모리·watchdog panic/idle·USB console·factory layout을 검사하며 CMake configure와 CI에서도 실행한다. Panic은 PRINT_REBOOT, 추가 지연0초로 고정하고 HALT/GDBSTUB를 거부한다. factory reset/OTA data erase, secure boot/Flash encryption, anti-rollback, 가상 eFuse와 Flash core dump도 이 bench에서 거부한다. OTA/security provisioning을 자동 선택하지 않는다.
+
+자동 watchdog 복구 정책은 디버거 미연결 기준이다. JTAG/OCD 연결 중에는 SDK/debugger가 watchdog·panic 처리를 바꿀 수 있으므로 실제 reset 시험은 debugger 조건을 기록하고 분리한다. GPIO·CAN 외부 gate는 그 조건에서도 별도 필수다.
 
 host 시험은 boot 단계별 오류/재진입, memory/clock/deadline 경계, pool stale/alias/포화와 generation retire, 실제 adapter의 SDK 실패 및 owner/critical feed gate를 포함한다. 4 native host thread가 2slot에서8000개 payload를 교차 검증한다. 이는 ESP32 dual-core RTOS 스케줄링 검증이 아니다. coverage는 portable과 adapter profile을 분리하고 function100%/line≥95%/branch≥90%를 요구한다.
 

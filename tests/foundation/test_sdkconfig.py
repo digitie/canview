@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,6 +21,20 @@ def load(name):
 
 GATE = load("check_sdkconfig")
 BOARDS = load("generate_boards")
+
+# 명세의 독립 oracle. 구현의 FORBIDDEN을 가져오면 항목 삭제 변이가 시험에서도 사라진다.
+EXPECTED_FORBIDDEN = (
+    "CONFIG_SPIRAM_IGNORE_NOTFOUND", "CONFIG_SPIRAM_SPEED_120M",
+    "CONFIG_SPIRAM_MODE_QUAD", "CONFIG_ESP_CONSOLE_UART_DEFAULT",
+    "CONFIG_ESP_CONSOLE_UART_CUSTOM", "CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG",
+    "CONFIG_FREERTOS_UNICORE", "CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE",
+    "CONFIG_BOOTLOADER_APP_TEST", "CONFIG_SECURE_BOOT", "CONFIG_SECURE_FLASH_ENC_ENABLED",
+    "CONFIG_BOOTLOADER_FACTORY_RESET", "CONFIG_BOOTLOADER_OTA_DATA_ERASE",
+    "CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK", "CONFIG_EFUSE_VIRTUAL",
+    "CONFIG_EFUSE_VIRTUAL_KEEP_IN_FLASH", "CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH",
+    "CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT", "CONFIG_ESP_SYSTEM_PANIC_GDBSTUB",
+    "CONFIG_ESP_SYSTEM_PANIC_SILENT_REBOOT", "CONFIG_ESP_SYSTEM_GDBSTUB_RUNTIME",
+)
 
 
 class SdkConfigTests(unittest.TestCase):
@@ -42,6 +57,8 @@ CONFIG_ESP_TASK_WDT_EN=y
 CONFIG_ESP_TASK_WDT_INIT=y
 CONFIG_ESP_TASK_WDT_PANIC=y
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=2
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y
+CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS=0
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
 CONFIG_ESP_INT_WDT=y
@@ -63,14 +80,40 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
                 with self.subTest(key=key, replacement=replacement), self.assertRaises(ValueError):
                     GATE.validate(self.GOOD.replace(line + "\n", replacement + "\n"))
 
-    def test_forbidden_and_duplicates(self):
-        for key in GATE.FORBIDDEN:
+    def test_forbidden_settings(self):
+        for key in EXPECTED_FORBIDDEN:
             with self.subTest(key=key), self.assertRaises(ValueError):
                 GATE.validate(self.GOOD + f"{key}=y\n")
+
+    def test_duplicates_and_malformed(self):
         for extra in ('CONFIG_SPIRAM=y', '# CONFIG_SPIRAM is not set', 'CONFIG_SPIRAM=garbage',
                       'CONFIG_SPIRAM_SPEED=80 trailing', 'CONFIG_IDF_TARGET="unterminated'):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 GATE.validate(self.GOOD + extra + "\n")
+
+    def test_forbidden_removal_mutants_are_killed(self):
+        for key in EXPECTED_FORBIDDEN:
+            altered = tuple(item for item in GATE.FORBIDDEN if item != key)
+            with self.subTest(key=key), mock.patch.object(GATE, "FORBIDDEN", altered):
+                result = unittest.TestResult()
+                SdkConfigTests("test_forbidden_settings").run(result)
+                self.assertFalse(result.wasSuccessful(), "금지 항목 삭제 변이가 살아남음: " + key)
+                self.assertFalse(result.errors, "assertion이 아닌 시험 오류로 실패함")
+
+    def test_factory_erase_and_panic_policy(self):
+        factory = ('CONFIG_BOOTLOADER_FACTORY_RESET=y\n'
+                   'CONFIG_BOOTLOADER_NUM_PIN_FACTORY_RESET=18\n'
+                   'CONFIG_BOOTLOADER_DATA_FACTORY_RESET="nvs"\n')
+        with self.assertRaisesRegex(ValueError, "CONFIG_BOOTLOADER_FACTORY_RESET"):
+            GATE.validate(self.GOOD + factory)
+        for key in ("CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT", "CONFIG_ESP_SYSTEM_PANIC_GDBSTUB"):
+            altered = self.GOOD.replace("CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y",
+                                       "# CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT is not set")
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                GATE.validate(altered + key + "=y\n")
+        with self.assertRaisesRegex(ValueError, "CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS"):
+            GATE.validate(self.GOOD.replace("CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS=0",
+                                           "CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS=99"))
 
     def test_explicit_memory_watchdog_console(self):
         for before, after in (("CONFIG_SPIRAM_SPEED=80", "CONFIG_SPIRAM_SPEED=120"),
@@ -102,6 +145,10 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
                     "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0", "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1"):
             self.assertEqual(defaults[key], "y")
         self.assertEqual(defaults["CONFIG_ESP_TASK_WDT_TIMEOUT_S"], "2")
+        self.assertEqual(defaults["CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT"], "y")
+        self.assertEqual(defaults["CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS"], "0")
+        self.assertEqual(defaults["CONFIG_BOOTLOADER_FACTORY_RESET"], "n")
+        self.assertEqual(defaults["CONFIG_EFUSE_VIRTUAL"], "n")
 
     def test_cli_missing_invalid_valid(self):
         with tempfile.TemporaryDirectory() as directory:

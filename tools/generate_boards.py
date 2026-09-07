@@ -162,6 +162,10 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
         if board.get("core_profile") == "bench-health-v1":
             sdk += ["CONFIG_ESP_TASK_WDT_EN=y", "CONFIG_ESP_TASK_WDT_INIT=y",
                     "CONFIG_ESP_TASK_WDT_PANIC=y", "CONFIG_ESP_TASK_WDT_TIMEOUT_S=2",
+                    "CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y",
+                    "CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS=0",
+                    "# CONFIG_BOOTLOADER_FACTORY_RESET is not set",
+                    "# CONFIG_EFUSE_VIRTUAL is not set",
                     "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y",
                     "CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y",
                     "CONFIG_ESP_INT_WDT=y", "CONFIG_ESP_INT_WDT_CHECK_CPU1=y",

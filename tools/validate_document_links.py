@@ -8,6 +8,24 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def without_fences(body: str) -> str:
+    """CommonMark의 3개 이상 backtick/tilde fence 안 원문은 navigation이 아니다."""
+    result = []
+    fence = None
+    for line in body.splitlines(keepends=True):
+        if fence is not None:
+            character, length = fence
+            if re.fullmatch(r" {0,3}" + re.escape(character) + "{" + str(length) + r",}[ \t]*(?:\r?\n)?", line):
+                fence = None
+            continue
+        match = re.match(r" {0,3}(`{3,}|~{3,})([^\r\n]*)", line)
+        if match and (match[1][0] == "~" or "`" not in match[2]):
+            fence = (match[1][0], len(match[1]))
+        else:
+            result.append(line)
+    return "".join(result)
+
+
 def validate(root: Path) -> tuple[list[str], int, int]:
     root = root.resolve()
     errors = []
@@ -20,7 +38,7 @@ def validate(root: Path) -> tuple[list[str], int, int]:
         files.append(tools_readme)
     for path in sorted(set(files)):
         # Fenced examples are not clickable document navigation.
-        body = re.sub(r'```.*?```', '', path.read_text(encoding='utf-8'), flags=re.S)
+        body = without_fences(path.read_text(encoding='utf-8'))
         for target in re.findall(r'!?\[[^\]\n]*\]\(([^)\n]+)\)', body):
             target = target.strip().strip('<>')
             # Keep immutable reviewer text unchanged while resolving the two
