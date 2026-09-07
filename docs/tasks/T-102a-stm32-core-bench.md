@@ -1,6 +1,6 @@
 # T-102a STM32 최소 boot/fault 기반과 host 검증
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - branch: `codex/t102a-stm32-core-bench`
 - PR: [#21](https://github.com/digitie/canview/pull/21)
 - 우선순위: `P0`
@@ -33,20 +33,20 @@ UART DMA·실물 RTS/CTS·UART diagnostic transport(T-104), FDCAN 수신(T-103),
 
 ## 수용 기준
 
-- [ ] host fault fixture에서 safe GPIO→watchdog/clock→worker 순서와 실패별 latched fault를 검증한다.
-- [ ] HSE·PLL timeout과 clock-loss 경로에서 control capability/TX permit이 0이며 watchdog 무조건 refresh가 없다.
-- [ ] progress 누락·deadline 초과·clock wrap/backward·재진입·queue full/empty/용량/소유권 경계를 회귀시험한다.
-- [ ] SysTick ISR은 시간 계수만 하며 protocol parsing·logging·heap을 하지 않는다. critical section은 이전 interrupt mask를 복원한다.
-- [ ] STM32 Debug/Release ELF/BIN/MAP·stack-usage를 실제 생성하고 memory budget과 금지 TX symbol 부재를 검사한다.
-- [ ] 공용 host Debug/Release/ASan+UBSan, 새 module coverage와 ESP32 네 프로젝트 최종 binary를 경고 없이 검증한다.
-- [ ] public header와 README에 수명·소유권·주기·budget·overflow/fault·미계측 항목을 기록한다.
-- [ ] 독립 전문 리뷰어 2명 finding disposition·재시험·원격 CI를 통과한다.
+- [x] host fault fixture에서 safe GPIO→watchdog/clock→worker 순서와 실패별 latched fault를 검증한다.
+- [x] HSE·PLL timeout과 clock-loss 경로에서 control capability/TX permit이 0이며 watchdog 무조건 refresh가 없다.
+- [x] progress 누락·deadline 초과·clock wrap/backward·재진입·queue full/empty/용량/소유권 경계를 회귀시험한다.
+- [x] SysTick ISR은 시간 계수만 하며 protocol parsing·logging·heap을 하지 않는다. critical section은 이전 interrupt mask를 복원한다.
+- [x] STM32 Debug/Release ELF/BIN/MAP·stack-usage를 실제 생성하고 memory budget과 금지 TX symbol 부재를 검사한다.
+- [x] 공용 host Debug/Release/ASan+UBSan, 새 module coverage와 ESP32 네 프로젝트 최종 binary를 경고 없이 검증한다.
+- [x] public header와 README에 수명·소유권·주기·budget·overflow/fault·미계측 항목을 기록한다.
+- [x] 독립 전문 리뷰어 2명 finding disposition·재시험·원격 CI를 통과한다.
 
 ## 검증 계획과 evidence
 
 root CTest에 `stm32-core-*` fixture를 등록하고 Debug/Release/ASan+UBSan과 coverage를 실행한다. Arm Debug/Release map·`.su`·BIN SHA-256과 warning scan, ESP32 네 역할 compile regression을 보존한다. 실행 전 계획을 PASS로 표시하지 않는다.
 
-[최초 2인 리뷰와 수정 기록](../reviews/adversarial/2026-09-07-T-102a.md): P1 2건/P2 3건을 발견했다. 초기 host74/74와 target 생성만으로 완료하지 않으며 실제 완료 deadline·NMI reset·vote 변이·개별 stack evidence·API 문서를 보완한 commit의 독립 재확인과 최종 binary/CI가 남아 있다.
+[최초 2인 리뷰와 수정 기록](../reviews/adversarial/2026-09-07-T-102a.md)의 P1 2건/P2 3건과 추가 GCC gate P1을 모두 수정하고 두 원 reviewer가 재확인했다. 최종 head `3fd2b86`의 clean6종 binary warning0·CI5개 SUCCESS 후 PR #21을 `db5ed19`로 merge했다. [최종 evidence](../reviews/adversarial/evidence/2026-09-07-T-102a-merge.md)에 host74/74·coverage·변이·artifact hash·NOT_RUN을 보존한다.
 
 ## rollback과 후속 gate
 

@@ -23,7 +23,7 @@ def check_api(xml_dir):
             if not brief or parameters != documented or returns is None:
                 raise RuntimeError(f"API 계약 누락: {name}: {parameters - documented}")
             count += 1
-    if count != 20:
+    if count != 29:
         raise RuntimeError(f"API 추출 개수 변경: {count}; 기대 목록과 함께 검토")
     print(f"PASS: {count} public API briefs/parameters/returns")
 

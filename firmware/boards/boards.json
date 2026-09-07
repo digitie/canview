@@ -31,6 +31,7 @@
     },
     {
       "id": "comm-r2-n16r8",
+      "core_profile": "bench-health-v1",
       "path": "firmware/communicator/esp32",
       "kind": "esp32s3",
       "module": "ESP32-S3-WROOM-1-N16R8",

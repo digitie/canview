@@ -60,9 +60,11 @@ int main(void)
 #if CANVIEW_TEST_BOARD == 0
     const call_t expected[] = {{0, 6, false, false, false}, {0, 41, false, false, true}};
 #elif CANVIEW_TEST_BOARD == 1
-    const call_t expected[] = {{0, 7, false, false, false},  {0, 2, false, false, false},
-                               {0, 47, false, false, false}, {0, 1, true, false, false},
-                               {0, 9, true, true, false},    {0, 8, false, false, true}};
+    const call_t expected[] = {
+        {0, 7, false, false, false}, {0, 2, false, false, false}, {0, 47, false, false, false},
+        {0, 1, true, false, false},  {0, 9, true, true, false},   {0, 15, true, false, false},
+        {0, 17, true, false, false}, {0, 8, false, false, true},  {0, 16, false, false, true},
+        {0, 18, false, false, true}, {0, 48, false, false, true}, {0, 38, false, false, true}};
 #elif CANVIEW_TEST_BOARD == 2
     const call_t expected[] = {{0, 5, false, false, false}, {0, 4, false, false, true}};
 #else

@@ -2,6 +2,14 @@
 
 완료·종료 task를 newest-first로 이동해 기록한다. 설계 감사와 문서 구조 정리는 구현 task 완료 이력과 분리해 PR·journal에 기록한다.
 
+## 2026-09-07 T-102a
+
+| ID | 상태 | 우선순위 | 작업 | 선행 |
+|---|---|---:|---|---|
+| [T-102a](tasks/T-102a-stm32-core-bench.md) | DONE | P0 | STM32 최소 boot/fault 기반과 host 검증 | T-001 |
+
+PR [#21](https://github.com/digitie/canview/pull/21)은 `db5ed19`로 main에 merge됐다. 전체 host Debug/Release/ASan 각각74/74, core coverage·변이·2인 리뷰·최종 head의 STM32/ESP32 clean6종 binary warning0·CI5개를 확인했다. [최종 evidence](reviews/adversarial/evidence/2026-09-07-T-102a-merge.md)에 물리 G1/G2·HIL NOT_RUN을 구분한다. T-102 전체는 BLOCKED다.
+
 ## 2026-09-07 T-004
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |

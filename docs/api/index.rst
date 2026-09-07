@@ -8,7 +8,7 @@ CANView 기반 C API
 호출 규칙
 ---------
 
-* 모든 context와 버퍼는 호출자가 소유한다. heap 할당과 내부 전역 상태는 없다.
+* portable context와 버퍼는 호출자가 소유하며 heap 할당이 없다. ESP32 SDK adapter의 정적 lock과 SDK 초기화 allocation은 별도다.
 * codec과 stream parser는 단일 worker에서 호출한다. ISR은 후속 adapter의 queue에 바이트/완료 사실만 전달한다.
 * encode 입력과 출력은 겹치면 안 된다. decode view는 복사본이 아니며 입력 또는 stream의 다음 수정까지만 유효하다.
 * encode 실패 시 유효한 written은 0이다. 출력 바이트 일부는 변경될 수 있으므로 송신하면 안 된다.
@@ -50,3 +50,4 @@ CANView 기반 C API
    protocol
    app
    stm32_core
+   esp32_core

@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-07 T-004는 [PR #20](https://github.com/digitie/canview/pull/20), merge `caafc24`로 DONE이다. 현재는 T-102의 소프트웨어 선행인 [T-102a](tasks/T-102a-stm32-core-bench.md) 최소 STM32 boot/fault 기반을 구현한다. 실제 보드·ST-LINK/계측기는 현재 PC에서 확인되지 않았으며 사용자의 장비 준비 정보를 기다린다. 코드 검증과 G1 계측을 분리한다.
+2026-09-07 T-102a는 [PR #21](https://github.com/digitie/canview/pull/21), merge `db5ed19`로 DONE이다. 최종 STM32/ESP32 binary6종 warning0·host74/74·독립2인 리뷰·CI5개를 [evidence](reviews/adversarial/evidence/2026-09-07-T-102a-merge.md)에 보존했다. 현재는 [T-200a](tasks/T-200a-esp32-core-bench.md) Communicator ESP32 core를 진행한다. 실제 보드·ST-LINK/계측기는 현재 PC에서 확인되지 않았으며 코드 검증과 G1/G2 계측을 분리한다.
 
 2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 PR #18(`c18a8a5`)로, T-003은 ESP-NOW codec/session/QoS와 target build·2인 적대적 리뷰 후 PR #19(`4ee017b`)로 main에 merge되어 `DONE`이다.
 
@@ -18,11 +18,11 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t102a-stm32-core-bench`, draft PR #21이다. T-102a boot/core 구현의 최초 2인 리뷰 finding 5건을 수정하고 재확인·최종 host/target/CI gate를 진행한다. [리뷰 상태](reviews/adversarial/2026-09-07-T-102a.md)를 확인하며 아직 완료/merge가 아니다. 최신 사용자 요청에 따라 core/base부터 이어간다.
+현재 branch는 `codex/t200a-esp32-core-bench`, [Draft PR #22](https://github.com/digitie/canview/pull/22)다. SDK 독립 boot/health·고정 pool과 IDF watchdog/memory/USB 진단을 구현했고 host89/89·coverage·strict API·clean6종 target warning0을 확인했다. [최초 독립 리뷰](reviews/adversarial/2026-09-07-T-200a.md)의 P1 2건/P2 2건은 수정 적용했으며 immutable 수정본의 두 reviewer 재확인과 최종 CI/target gate를 진행한다. 아직 DONE/merge가 아니다.
 
-- 현재 문서: docs/tasks/T-102a-stm32-core-bench.md, docs/tasks/T-102-stm32-platform.md, docs/hardware/r1/firmware-pinmap.md, docs/architecture/implementation-readiness.md §5.1, docs/development/windows.md
-- 구현 순서: SDK 독립 boot/progress/queue/scheduler → CMSIS clock/time/IWDG backend → 최소 entry·host fault/coverage → STM32/ESP32 binary → 독립 2인 리뷰·CI·merge.
-- T-004 검증은 [최종 evidence](reviews/adversarial/evidence/2026-09-07-T-004-merge.md)에 보존했다. T-102a는 실물 UART/DMA·clock waveform·watchdog reset·CAN/HIL을 통과했다고 주장하지 않는다.
+- 현재 문서: docs/tasks/T-200a-esp32-core-bench.md, docs/tasks/T-200-communicator-esp32-bootstrap.md, docs/hardware/r1/firmware-pinmap.md, docs/architecture/implementation-readiness.md §5.2, docs/development/windows.md
+- 구현 순서: SDK 독립 boot/health·pool → BSP/IDF adapter·sdkconfig gate → host fault/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.
+- T-200a는 UART/radio/CAN/OTA를 시작하지 않는다. T-200의 실물 메모리·USB log·GPIO/reset 검증은 미실행으로 남긴다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 

@@ -1,5 +1,17 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-200a 구현·독립 리뷰 수정)
+
+ESP32 C99 health/fixed pool·safe BSP·IDF TWDT/PSRAM/heap/USB adapter와 단일 owner app을 구현했다. Windows89/89, SDK fixture·app 실패 단계·동시 pool·coverage와 clean6종 warning0을 확인했다. [검증 evidence](reviews/adversarial/evidence/2026-09-07-T-200a-validation.md)는 commit별 결과와 미실행 HIL을 분리한다.
+
+`55c7801`의 독립 리뷰 원본을 모두 저장한 후 비교했다. panic HALT 허용(P2), uintptr_t strict API 실패(P1), bootloader factory-reset/NVS 삭제 config 허용(P1), 자기참조 금지 목록 시험(P2)을 수정했다. PRINT_REBOOT/지연0·비휘발성 변경 차단과 독립21개 삭제 변이를 추가하고 실제 SDK 정상 build 및 factory/HALT configure 거부를 확인했다. 원문 내부 fence를 보존하기 위해 문서 link validator의 fence 처리를 보강하고 회귀4개를 추가했다. 모든 delta는 post-fix 독립 재검토 대상이며 아직 merge 승인이 아니다.
+
+## 2026-09-07 (codex, T-102a merge와 T-200a 시작)
+
+최종 head `3fd2b86`의 Windows/GCC/Clang/sanitizer/target CI5개 SUCCESS와 clean6종 binary warning0을 확인하고 PR #21을 `db5ed19`로 merge했다. 최초 리뷰5건 및 GCC portability1건은 두 reviewer가 독립 재확인해 모두 FIXED다. [최종 merge evidence](reviews/adversarial/evidence/2026-09-07-T-102a-merge.md)에 정확한 hash·원격 artifact·전체 host74/74를 보존했다. 보드 flash/HIL·차량 gate는 닫지 않았다.
+
+사용자 요청의 MCU/core 순서에 따라 `codex/t200a-esp32-core-bench`에서 T-200의 boot/health/watchdog·고정 pool·config 검증 소프트웨어를 T-200a로 분리한다. 기존 실제 PSRAM/heap/USB/GPIO/UART 계측 acceptance는 T-200에 유지한다. ESP-IDF SDK API와 생성 board 설정을 먼저 대조했고 RTOS·C·구조·문서·driver 지침을 적용한다. 전체 phase를 건너뛰어 radio/CAN/OTA/provisioning을 활성화하지 않는다.
+
 ## 2026-09-07 (codex, T-102a 구현과 적대적 리뷰 수정)
 
 `ca1a299`의 최초 2인 리뷰에서 deadline miss 소거(P1), NMI/feed 경쟁(P2), callback API 문서 실패(P1), 필수 vote 회귀시험 공백(P2), 개별 .su 누락 허용(P2)을 확인했다. [원본·교차 확인·수정 기록](reviews/adversarial/2026-09-07-T-102a.md)에 severity를 보존했다. 실제 완료 us 기반 deadline 판정, terminal NMI reset, 함수 type typedef, 독립 worker/vote 변이시험과 compile database별 stack evidence 대조를 적용했다. board flash/provisioning은 하지 않았다.

@@ -39,6 +39,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/check_stm32_coverage.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tools/check_esp32_core_coverage.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/check_generated.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/check_budgets.py
@@ -65,6 +67,7 @@ jobs:
             build/host-*/Testing/Temporary/LastTest.log
             build/host-coverage/coverage-*/summary.json
             build/host-coverage/stm32-coverage-*/**/export.json
+            build/host-coverage/esp32-coverage-*/**/export.json
   linux-portability:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -214,6 +217,7 @@ jobs:
             Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
             Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32" "canview_communicator_esp32.bin"
+            Invoke-TargetCommand "communicator-sdkconfig" { python -B tools/check_sdkconfig.py firmware/communicator/esp32/sdkconfig }
             Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge" "canview_diagnostic_bridge.bin"
             Assert-Esp32Target "firmware/controller" "canview_controller" "canview_controller.bin"
             Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture" "canview_public_component_fixture.bin"
