@@ -30,6 +30,21 @@ class GeneratorTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual((ROOT / path).read_text(encoding="utf-8"), output)
 
+    def test_board_profiles_are_generated_and_unique(self):
+        manifest = json.loads(BOARDS.canonical(BOARDS.SOURCE))
+        profiles = set()
+        for board in manifest["boards"]:
+            profile = BOARDS.board_profile(board["id"])
+            self.assertNotEqual(profile, 0)
+            self.assertNotIn(profile, profiles)
+            profiles.add(profile)
+            header = ROOT / board["path"] / "bsp" / "board_pins.h"
+            self.assertIn(f"#define CANVIEW_BOARD_PROFILE (0x{profile:08X}U)",
+                          header.read_text(encoding="utf-8"))
+        with mock.patch.object(BOARDS, "board_profile", return_value=1):
+            with self.assertRaises(ValueError):
+                BOARDS.outputs()
+
     def test_transport_rejects_bad_contract(self):
         base = json.loads(TRANSPORT.SOURCE.read_bytes())
         changes = [

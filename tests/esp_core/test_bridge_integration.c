@@ -93,6 +93,10 @@ void *xTaskGetCurrentTaskHandle(void)
 {
     return fake.owner;
 }
+BaseType_t xPortInIsrContext(void)
+{
+    return pdFALSE;
+}
 
 TickType_t xTaskGetTickCount(void)
 {

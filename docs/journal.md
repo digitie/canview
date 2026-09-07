@@ -1,5 +1,13 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400 P2 runtime/BSP source 검증)
+
+T-400a handoff의 compile-time board profile을 generator와 모든 BSP port에 추가하고, Communicator ESP/Bridge runtime이 링크된 board profile을 platform open 전에 대조하게 했다. 실제 교차 object link 두 방향은 runtime open을 호출하지 않은 채 거부한다. ESP runtime core callback은 open owner task·non-ISR·non-reentrant latch를 요구하고, fixed pool은 lock 전 context validator로 ISR/무효 context를 거부한다. Communicator ESP와 Bridge safe GPIO는 partial failure에도 모든 지정 safe pin을 시도하고 최초 오류를 보존한 뒤 lifecycle을 중단한다. Bridge의 read-only 경계와 CAN TX NO-GO는 변경하지 않았고 SoftAP·HTTP·인증은 시작하지 않았다.
+
+Windows pinned Clang23.1.0/CMake4.4.3/Ninja1.13.2에서 host Debug/Release는 각각 108/108을 통과했다. 별도 86,400초 `uart-fault-stream`은 이번 실행에서 제외되어 `NOT_RUN`이다. ESP core coverage는 portable/pool 및 SDK fixture 각각 function/line100%, branch98.04% 이상과 adapter branch92.13% 이상을 통과했고, generator·actual sdkconfig·plan/link·Python43/43·Sphinx/Doxygen strict(공개 API29개)도 통과했다.
+
+검증된 ESP-IDF6.0.3/Arm GNU15.3.Rel1/STM32CubeG4 1.6.3에서 STM32 Debug/Release, Communicator ESP32, Diagnostic Bridge, Controller 및 public-component fixture의 BIN/ELF/MAP 18개를 생성했다. 경고/error 패턴 scan은 0건이었다. 첫 Bridge `fullclean`은 partial non-CMake build directory를 안전하게 거부했고, 삭제 없이 남아 있던 `sdkconfig`의 esp32s3 target으로 새 configure·`idf.py build`를 실행해 artifact를 생성했다. 실제 flash/HIL, rail·reset/brownout, 장시간 PSRAM/clock/watchdog, 차량 CAN/capture, provisioning, vehicle TX release와 local WSL sanitizer는 `NOT_RUN`이며 CAN TX는 계속 NO-GO다. immutable commit, fresh 2인 adversarial review와 CI 전에는 이 handoff나 T-400을 완료로 표시하지 않는다.
+
 ## 2026-09-07 (codex, T-400a merge와 T-400 handoff)
 
 PR #23은 final branch CI `34114919104`의 Windows C99, target-firmware-windows, Linux GCC/Clang portability, Linux ASan/UBSan 다섯 job success 뒤 merge commit `25eba080907257c6d90abaeec6d578d9dff6585a`로 `origin/main`에 통합됐다. candidate `0e1edb6`가 `origin/main`의 조상임을 확인했다. A-05/B-07의 `CONDITIONAL` raw review는 unresolved P0/P1 없음으로 닫았고, P2 세 건은 owner=T-400, G1 gate, 목표=2026-09-14로 유지했다.

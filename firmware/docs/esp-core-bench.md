@@ -6,7 +6,7 @@
 
 `firmware/app/esp_core.c`는 SDK가 생성한 main task에서 BSP/runtime → portable boot → 고정 pool → 주기 health를 조합한다. `firmware/module/esp_core/health.c`, `pool.c`와 `firmware/interface/canview_esp_*.h`는 strict C99이며 HAL·SDK·FreeRTOS·heap API를 포함하지 않는다. 각 project의 `bsp/board.c`는 생성 pin 정본으로 안전 출력을 설정하고, `bsp/runtime.c`는 메모리와 진단 입력 pin을 SDK 독립 config에 연결한다. 실제 SDK include와 호출은 `firmware/platform/esp32s3/core_runtime.c`/`canview_esp32_runtime` component 하나에 둔다.
 
-core·pool·runtime은 app의 정적 저장소이며 reset 전 재초기화하지 않는다. app stack에는 작은 port 사본만 둔다. 입력 config와 port, 0이 아닌 Flash/PSRAM 가용 byte 계약은 값으로 복사하며 callback context는 사용 완료까지 살아 있어야 한다. runtime의 main owner identity와 고정 주기 tick은 다른 task에서 접근하지 않는다. SDK adapter의 private 정적 spinlock 두 개는 watchdog과 pool용으로 분리한다. core callback 재진입은 terminal fault이며 ISR 호출은 금지한다.
+core·pool·runtime은 app의 정적 저장소이며 reset 전 재초기화하지 않는다. app stack에는 작은 port 사본만 둔다. 입력 config와 port, 0이 아닌 Flash/PSRAM 가용 byte 계약은 값으로 복사하며 callback context는 사용 완료까지 살아 있어야 한다. runtime의 main owner identity와 고정 주기 tick은 다른 task에서 접근하지 않는다. SDK adapter의 private 정적 spinlock 두 개는 watchdog과 pool용으로 분리한다. core callback은 open한 main owner task만 호출할 수 있으며 ISR과 같은 runtime callback의 재진입을 `INVALID_ARGUMENT`으로 거부한다. app은 그 실패를 service fault로 처리해 feed를 중단한다.
 
 ## Boot와 실패
 
@@ -20,7 +20,7 @@ core·pool·runtime은 app의 정적 저장소이며 reset 전 재초기화하�
 
 state는 UNINITIALIZED → STARTING → SAFE_BENCH 또는 FAULT다. boot 성공 자체는 watchdog feed가 아니다. clock backward/freeze, 이전 진척250ms 초과, health 실행20ms 초과, SDK 오류 또는 메모리 하한 위반이면 FAULT로 고정한다. callback에서 이미 latch한 fault도 덮어쓰지 않는다. wait/pool 오류도 app의 service status로 기록하고 loop를 빠져나가 더 이상 feed하지 않는다. `core.state`는 마지막 core 검사 상태이며 로그의 `status`와 함께 해석한다.
 
-GPIO는 latch를 먼저 기록한 뒤 mode를 바꾼다. RTS HIGH는 송신 흐름 정지, TX HIGH는 idle이다. UART driver를 설치하지 않는다. sense48은 서비스 RUN 감지, sense38은 USB mux 선택 진단일 뿐 rail PGOOD나 차량 권한이 아니다. cap/TX는 항상0이다. MCU 코드 실행 이전 reset/brownout 안전은 외부 pull/gate와 실물 계측 없이는 증명할 수 없다.
+GPIO는 latch를 먼저 기록한 뒤 mode를 바꾼다. Communicator ESP와 Bridge는 partial GPIO 오류가 나도 이 표의 모든 safe output/input을 순서대로 시도하고 최초 오류를 보존한 뒤 다음 lifecycle 단계로 가지 않는다. RTS HIGH는 송신 흐름 정지, TX HIGH는 idle이다. UART driver를 설치하지 않는다. sense48은 서비스 RUN 감지, sense38은 USB mux 선택 진단일 뿐 rail PGOOD나 차량 권한이 아니다. cap/TX는 항상0이다. MCU 코드 실행 이전 reset/brownout 안전은 외부 pull/gate와 실물 계측 없이는 증명할 수 없다.
 
 ## 보드별 계약과 진단
 
@@ -29,7 +29,7 @@ GPIO는 latch를 먼저 기록한 뒤 mode를 바꾼다. RTS HIGH는 송신 흐�
 | Communicator N16R8 | 16777216 /7864320B, Octal80MHz·ECC | 3: bit0 GPIO48 RUN sense, bit1 GPIO38 USB sense | canview_communicator_esp32 |
 | Bridge N8R2 | 8388608 /2097152B, Quad80MHz·ECC 없음 | 1: bit0 GPIO4 PAIR_BUTTON_N, LOW=눌림, bit1 부재 | canview_diagnostic_bridge |
 
-메모리는 board manifest/generator가 raw 용량과 ECC overhead를 구분하여 BSP header로 제공한다. SDK sample은 측정값이며 boot/health의 고정 계약을 바꾸지 않는다. 다른 보드의 Flash 또는 PSRAM 값을 섞으면 terminal memory fault다. 공용 core는 SKU나 GPIO를 알지 않는다. 역할 표시는 SDK의 고정 project metadata에서 오며 외부 패킷으로 선택하지 않는다.
+메모리는 board manifest/generator가 raw 용량과 ECC overhead를 구분하여 BSP header로 제공한다. generator는 wire와 무관한 0이 아닌 `CANVIEW_BOARD_PROFILE`도 header에 고정한다. Communicator/Bridge runtime은 링크된 `canview_board_port()`의 profile과 자기 생성 profile을 platform open 전 비교하므로 서로 다른 BSP object를 교차 link하면 거부한다. SDK sample은 측정값이며 boot/health의 고정 계약을 바꾸지 않는다. 다른 보드의 Flash 또는 PSRAM 값을 섞으면 terminal memory fault다. 공용 core는 SKU나 GPIO를 알지 않는다. 역할 표시는 SDK의 고정 project metadata에서 오며 외부 패킷으로 선택하지 않는다.
 
 runtime은 입력 수1..2, SoC GPIO 유효성·중복·미사용 원소0을 검사한다. 실제 모듈 pad 제한은 generator가 별도로 검사하고, 독립 BSP fixture는 고정 핀을 대조한다. 로그의 input-valid는 존재하고 읽은 입력, input-level은 그 bit의 전기적 HIGH다. 미존재 bit를 LOW로 해석하지 않는다. Bridge 버튼은 폴링 진단이며 debounce/ISR/서비스 window/OTA/페어링을 시작하지 않는다. 어떤 sense 조합에서도 cap/TX0은 변하지 않는다.
 
@@ -50,7 +50,7 @@ core는 sample 완료 뒤 시간을 검사하고, adapter는 자신의 critical 
 
 ## 고정 pool 계약
 
-정적16slot × payload256B, capacity1..16이다. task 또는 SDK callback이 동일 bounded lock을 통해 acquire/copy/release/stats를 호출한다. ISR·lock 내부 callback·token의 동시 다중 owner 사용은 금지한다. 256B 복사/clear는 lock 아래 수행하며 실제 critical WCET는 아직 계측하지 않았다. radio ingress에 사용하기 전 T-202에서 예산을 측정한다.
+정적16slot × payload256B, capacity1..16이다. task 또는 SDK callback이 동일 bounded lock을 통해 acquire/copy/release/stats를 호출한다. platform context validator는 lock 진입 전에 ISR을 거부한다. pool은 lock을 잡은 채 client callback을 실행하지 않으며, consumer가 lock 내부에서 다시 pool API를 호출하는 것은 금지한다. ISR·lock 내부 callback·token의 동시 다중 owner 사용은 금지한다. 256B 복사/clear는 lock 아래 수행하며 실제 critical WCET는 아직 계측하지 않았다. radio ingress에 사용하기 전 T-202에서 예산을 측정한다.
 
 acquire는 payload를 복사하고 pool 주소·slot·generation token을 반환한다. 내부 pointer를 노출하지 않는다. context/output/source alias와 크기 오류를 거부한다. 해제는 payload를 지우고 generation이 UINT32_MAX인 slot은 영구 retire하여 wrap ABA를 막는다. token은 RAM 전용이며 serialize/reboot 뒤 재사용하지 않는다. exhaustion/stale은 UINT32_MAX에서 포화하며 used/high-water/retired를 lock 아래 snapshot으로 반환한다. 부족하거나 잘못된 token이면 출력 버퍼/길이를 변경하지 않는다.
 
@@ -60,7 +60,7 @@ acquire는 payload를 복사하고 pool 주소·slot·generation token을 반환
 
 자동 watchdog 복구 정책은 디버거 미연결 기준이다. JTAG/OCD 연결 중에는 SDK/debugger가 watchdog·panic 처리를 바꿀 수 있으므로 실제 reset 시험은 debugger 조건을 기록하고 분리한다. GPIO·CAN 외부 gate는 그 조건에서도 별도 필수다.
 
-두 보드 matrix의 host 시험은 교차 메모리·config 사본·입력 valid/level·BSP 고정 핀과 boot 단계별 오류/재진입, memory/clock/deadline 경계, pool stale/alias/포화와 generation retire, 실제 adapter의 SDK 실패 및 owner/critical feed gate를 포함한다. `esp32-bridge-app-integration`은 실제 Bridge app+BSP/runtime와 SDK adapter를 fixture에 결합하여 boot→pool→health→terminal idle 경로를 실행한다. 4 native host thread가 2slot에서8000개 payload를 교차 검증한다. 이는 ESP32 dual-core RTOS 스케줄링 검증이 아니다. coverage는 보드별 portable·adapter·app profile을 분리하고 function100%/line≥95%/branch≥90%를 요구한다.
+두 보드 matrix의 host 시험은 교차 메모리·config 사본·입력 valid/level·BSP 고정 핀과 boot 단계별 오류/재진입, memory/clock/deadline 경계, pool stale/alias/포화와 generation retire, 실제 adapter의 SDK 실패 및 owner/critical feed gate를 포함한다. SDK fixture는 ISR callback·pool 문맥 거부와 callback reentry latch를, `esp32-wrong-bsp-*`는 실제 Communicator/Bridge BSP-runtime 교차 link 거부를 검사한다. `esp32-bridge-app-integration`은 실제 Bridge app+BSP/runtime와 SDK adapter를 fixture에 결합하여 boot→pool→health→terminal idle 경로를 실행한다. 4 native host thread가 2slot에서8000개 payload를 교차 검증한다. 이는 ESP32 dual-core RTOS 스케줄링 검증이 아니다. coverage는 보드별 portable·adapter·app profile을 분리하고 function100%/line≥95%/branch≥90%를 요구한다.
 
 근거 SDK는 설치된 ESP-IDF v6.0.3의 `esp_system/include/esp_task_wdt.h`, `task_wdt/task_wdt.c`, `esp_psram/include/esp_psram.h`, `freertos/FreeRTOS-Kernel/include/freertos/task.h`다. 공식 원문은 [ESP-IDF v6.0.3](https://github.com/espressif/esp-idf/tree/v6.0.3/components)이며 고정 commit/digest 정본은 저장소 toolchain manifest다.
 

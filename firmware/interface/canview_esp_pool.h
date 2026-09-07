@@ -12,10 +12,12 @@
 #define CANVIEW_ESP_POOL_SLOTS (16U)
 #define CANVIEW_ESP_POOL_BYTES (256U)
 typedef void canview_esp_pool_lock_fn_t(void *context);
+typedef canview_status_t canview_esp_pool_context_fn_t(void *context);
 typedef struct
 {
     canview_esp_pool_lock_fn_t *enter;
     canview_esp_pool_lock_fn_t *leave;
+    canview_esp_pool_context_fn_t *valid_context;
     void *context;
 } canview_esp_pool_port_t;
 typedef struct
@@ -53,7 +55,8 @@ typedef struct
  * @brief 고정 저장소를 초기화한다. 모든 사용자 시작 전에 단일 owner가 호출한다.
  * @param pool zero-init context. 이후 재초기화는 거부한다.
  * @param capacity 사용할 slot 수, 1..16. 나머지 저장소를 재사용하지 않는다.
- * @param port task 문맥의 bounded/non-reentrant critical lock. pool보다 오래 살아야 한다.
+ * @param port ISR을 거부하는 task 문맥 validator와 bounded/non-reentrant critical lock.
+ *             pool보다 오래 살아야 한다.
  * @return 잘못된 인자는 INVALID_ARGUMENT, 이미 초기화했으면 RESOURCE_BUSY다.
  */
 canview_status_t canview_esp_pool_init(canview_esp_pool_t *pool, uint16_t capacity,

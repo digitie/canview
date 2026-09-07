@@ -1,6 +1,6 @@
 # T-400 Diagnostic Bridge ESP-IDF, SoftAP와 인증 bootstrap
 
-- 상태: `READY`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P1`
 - Gate: `G2`
 - 선행: `T-001`, `T-003`, `T-400a`
@@ -21,6 +21,10 @@ T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가
 - partial safe GPIO 실패의 output ordering·all-pin failure 정책과 외부 gate/power-reset 실측 계획
 
 물리 board·power/reset gate가 현재 `NOT_RUN`인 상태에서는 위 source 검증을 진행할 수 있어도 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다. 원 disposition, owner, gate와 목표일은 [T-400a 통합 review](../reviews/adversarial/2026-09-07-T-400a.md)에 보존한다.
+
+### 현재 handoff 실행 상태
+
+2026-09-07 source 구현은 생성 board profile의 실제 교차-link 음성 시험, callback ISR/재진입·pool 문맥 시험, partial safe GPIO all-pin 시험을 포함한다. Windows strict C99 Debug/Release 108/108(별도 86,400초 stream 제외), ESP core coverage, actual STM32 Debug/Release와 Communicator·Bridge·Controller ESP-IDF binary, generated sdkconfig 및 warning scan 0을 재확인했다. fresh immutable candidate의 독립 2인 adversarial review, CI와 G1 물리 gate는 아직 열려 있다. 이 기록은 G1 물리 gate를 닫지 않으며, target binary·독립 2인 review·G1 power/reset evidence가 완료되기 전 SoftAP·HTTP·인증 또는 CAN/TX 범위는 열지 않는다.
 
 ## 고정 target
 

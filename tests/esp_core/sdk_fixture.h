@@ -31,6 +31,7 @@ typedef struct
 #define MALLOC_CAP_8BIT (2U)
 #define portMUX_INITIALIZER_UNLOCKED (0U)
 #define pdTRUE (1)
+#define pdFALSE (0)
 #define pdMS_TO_TICKS(ms) ((ms) / 10U)
 #define GPIO_IS_VALID_GPIO(pin) (mock_valid_pin(pin))
 #define portENTER_CRITICAL(mux) mock_enter(mux)
@@ -45,6 +46,7 @@ void mock_log(const char *tag, const char *format, ...)
 #endif
     ;
 void *xTaskGetCurrentTaskHandle(void);
+BaseType_t xPortInIsrContext(void);
 TickType_t xTaskGetTickCount(void);
 BaseType_t xTaskDelayUntil(TickType_t *tick, TickType_t period);
 UBaseType_t uxTaskGetStackHighWaterMark(void *task);

@@ -46,6 +46,10 @@ static void lock_leave(void *context)
     CHECK(pthread_mutex_unlock(context) == 0);
 #endif
 }
+static canview_status_t lock_context(void *context)
+{
+    return context != NULL ? CANVIEW_OK : CANVIEW_INVALID_ARGUMENT;
+}
 static void yield_thread(void)
 {
 #if defined(_WIN32)
@@ -112,7 +116,7 @@ int main(void)
     pthread_t threads[THREADS];
 #endif
     canview_esp_pool_t pool = {0};
-    const canview_esp_pool_port_t port = {lock_enter, lock_leave, &mutex};
+    const canview_esp_pool_port_t port = {lock_enter, lock_leave, lock_context, &mutex};
     CHECK(canview_esp_pool_init(&pool, 2U, &port) == CANVIEW_OK);
     worker_t workers[THREADS];
     for (unsigned index = 0U; index < THREADS; ++index)

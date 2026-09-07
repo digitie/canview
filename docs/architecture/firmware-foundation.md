@@ -59,7 +59,7 @@ transaction ID, timeout, 중복 결과 캐시, 상태 재조회, 전원 재부�
 ## 보드와 초기 출력
 
 핀의 제작/전기적 정본은 hardware/*/pinmap.csv와 하드웨어 문서다.
-BSP header와 sdkconfig.defaults/partition은 `python tools/generate_boards.py`로 생성하고 `--check`로 drift를 검출한다.
+BSP header와 sdkconfig.defaults/partition은 `python tools/generate_boards.py`로 생성하고 `--check`로 drift를 검출한다. 생성 header의 0이 아닌 compile-time `CANVIEW_BOARD_PROFILE`은 wire/runtime 입력이 아니며 Communicator ESP와 Bridge runtime이 링크된 BSP profile을 open 전에 대조하는 기준이다.
 Controller 본체 핀은 고정 Waveshare commit과 adapter 계약을 기록한 waveshare35-pins.json을 입력으로 쓴다.
 I²S 데이터 방향은 MCU 기준 재생 DOUT16/녹음 DIN14다. SoC 유효 GPIO와 실제 모듈 외부 pad·메모리 점유 범위를 구분해 JSON/CSV 양쪽을 검사한다. Controller S3R8 및 N16R8은 GPIO22..37을, N8R2는 GPIO22..34를 허용하지 않는다. 근거는 [고정 IDF GPIO 계약](https://github.com/espressif/esp-idf/blob/76f5dedd9950a3012fee8fb7d5586df21fc67802/docs/en/api-reference/peripherals/gpio/esp32s3.inc)과 해당 보드 pinmap이다.
 
@@ -70,7 +70,7 @@ I²S 데이터 방향은 MCU 기준 재생 DOUT16/녹음 DIN14다. SoC 유효 GP
 | Bridge WROOM-1-N8R2 | 8 MiB Flash, 2 MiB Quad PSRAM | LED5 low, 버튼4 입력. RF/웹 미시작 |
 | STM32G474CEU6 | Flash512 KiB/SRAM96 KiB/CCM32 KiB | STB PA4/5 high; FT_EN PA6, ARM PA7, WD PB0 low; TX PA12/PB13/PA15 high |
 
-출력 latch를 mode보다 먼저 설정한다. GPIO 오류는 FAULT에 고정하고 다음 출력을 실행하지 않는다.
+출력 latch를 mode보다 먼저 설정한다. Controller와 STM32 BSP는 GPIO 오류에서 다음 출력을 실행하지 않는다. Communicator ESP와 Bridge BSP는 partial 오류에서도 모든 지정 safe pin을 시도하고 최초 오류를 보존한 뒤 FAULT에 고정하며 다음 lifecycle 단계로 가지 않는다.
 reset 이전·brownout·rail 이상 시 안전은 외부 pull/gate/supervisor에 의존한다. host BSP mock은 전기적 안전 증거가 아니다.
 UART TX/RTS, FDCAN alternate function, watchdog pulse는 활성화하지 않는다.
 

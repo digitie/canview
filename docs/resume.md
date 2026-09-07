@@ -18,7 +18,7 @@
 
 ## 다음 한 작업
 
-다음 작업은 `READY`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)이다. T-400a P2 handoff인 board identity/profile binding, callback stage/ISR policy, partial safe GPIO failure policy를 먼저 source/host·target 시험으로 닫는다. 이 셋과 G1 physical evidence가 닫히기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
+현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)의 T-400a P2 handoff다. board identity/profile binding, callback stage/ISR policy, partial safe GPIO failure policy의 source·host·target 확인은 끝났고, fresh immutable candidate의 독립 2인 review·CI와 G1 physical evidence가 남았다. 이 셋과 G1 physical evidence가 닫히기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
 
 - 현재 문서: docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/reviews/adversarial/2026-09-07-T-400a.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
 - 구현 순서: T-400a handoff core/BSP 계약 → host·target negative test → 독립2인 review → G1 physical evidence가 있을 때만 SoftAP·인증·무선 단계.
