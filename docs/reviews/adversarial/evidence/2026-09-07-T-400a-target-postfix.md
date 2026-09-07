@@ -110,6 +110,25 @@ idf.py -C firmware/controller -B F:/dev/canview/build/t400a-5d6fac-controller bu
 
 public-component fixture는 `build/t400a-5d6fac-public-component`에서 추가로 `fullclean`, `set-target esp32s3`, `build` exit 0과 warning scan 0을 확인했다. app BIN/ELF/MAP SHA-256은 각각 `26201bf36f5d51102c1257fd7675e5d6a2570e8ea16498c258485110acdfacd3`, `baa21b414f53566683b72a5064b2202fed52c394e3149f6ac00d2727baedae7f`, `902322a04cd360184e40ff9a99ee083c44de3468f089dc313e7e011e92346e58`이다. 단, 이 실행은 위 evidence Markdown을 편집한 dirty worktree에서 시작돼 IDF app version이 `5d6fac4-dirty`로 기록됐다. 따라서 이는 component integration 보조 증거일 뿐 clean immutable `5d6fac4` artifact evidence로 사용하지 않으며, 해당 clean target gate는 CI run `34112160182`의 결과로 별도 확인한다.
 
+## Clean CI target artifact와 manifest 대조
+
+GitHub Actions run [`34112160182`](https://github.com/digitie/canview/actions/runs/34112160182)는 PR #23의 clean merge ref `2e49280b06271ab1509fa1b34181f81b09c2be31`에서 source candidate `5d6fac4`를 base `2222290`에 적용해 target-firmware-windows job을 실행했다. 해당 job은 2026-09-07 10:50 UTC에 success로 끝났고, workflow의 target command wrapper가 각 build log에서 compiler/linker/CMake `warning:` 및 `error:`를 검사해 0건일 때만 artifact를 생성하도록 했다.
+
+- CI artifact `target-firmware-images` ID `10015285217`, ZIP SHA-256 `b132dda36219d657fbc68772ee00d7e409076784a15369922b872dba5f216579`, 18개 BIN/ELF/MAP를 포함한다.
+- CI artifact `target-firmware-logs` ID `10015286065`, ZIP SHA-256 `486a502e6102a2de44fd19e81bab963fbc0677fdad477a9d695a5637d24977f8`에는 CI가 작성한 `target-artifacts.json`이 있다.
+- coordinator가 두 artifact를 내려받아 manifest 18개 entry의 path, byte length, SHA-256을 각각 재계산해 대조했고 `18/18` 일치했다. 이는 local build와 byte-identical하다는 주장이 아니다. source path와 PR merge version 차이로 ELF/MAP 및 ESP app hash는 달라질 수 있다.
+
+| 대상 | CI manifest SHA-256 (BIN / ELF / MAP) |
+|---|---|
+| STM32 Debug | `18592ca77f5d374e8c3a29dac7d35d7c7352ab707569d63cc4f7cf787fecdc95` / `7888f684d105947174b3a4246717237a58e80d3c45f07afa6f2737944707e737` / `32a0965942bca67ba24274c742acde214e52bbb1ac935ed17cfb5ff9b266108e` |
+| STM32 Release | `17a6673aa65629ca51e873f012de080a5adb36c73a063c09540fbdd0053f87a6` / `f8d0946731091f80a7daf05b14e9634eb1849aa925ef62b726df14d6ba2f203f` / `e1ba368b1575a42d3fe0faf3d3ea19808232fd5e9766c692eb77f7a366b357a2` |
+| Communicator ESP32 | `3324fc64c125890c958357b3b25d4cccda3d2ab6f37f34d29832d78c7022a6e2` / `73a1eaac1f3c48e9115c8a7698dc5c049ef1ca748b09543a709ef216504d3915` / `2deb5a2ac17810078d58e299543fa6731794c19713b2f4b2246c35d082caf916` |
+| Diagnostic Bridge | `fec198dbfad312477c51cafde7833bfd458ccde0f264079001847de0661ac32c` / `cf3c27028fc3ff2500284ada34b3dd94c9115a6e95cebb748e59de1cd7c0b6ed` / `c5eba7b856989a525cdbceac9c80fe44533c28f22aee5608495e9fb459177bb4` |
+| Controller | `549650ef276947a4bff286fb0e9eacdbe5c18a2a90926a966511da6832270c94` / `4189e9c3a56728724371fd75a072f887853b20c40f03045a82571189e8059aed` / `ed9af036286bb710adb38cf4b591eb2b7d24b57f0acd089c8006a9322e8a490c` |
+| Public component fixture | `02137ecab9991a8a14cf982ac27c93c8e042a454e0182ca147128ce1b67e1ad7` / `b1a6907500b6176f38c79bbb8d9d5091ff53972be2888e6bc4a57b139b5310f2` / `9511493077906e7b3189df32caa4b62470b6a16d142e2aa9f42372e80340b292` |
+
+run 전체는 별도 `windows-c99` job이 Doxygen archive의 반복 빈 응답으로 실패해 `failure`다. target-firmware success와 18/18 manifest 대조는 그 download failure를 CI 전체 PASS로 바꾸지 않는다.
+
 ## physical gate
 
 board flash, ST-LINK/USB serial, reset/brownout/power rail, PSRAM/ECC/clock/watchdog 장시간 측정, 차량 CAN/capture, security provisioning, TX release는 모두 `NOT_RUN`이다. host Bridge integration fixture는 SDK API model일 뿐 실제 보드/HIL이 아니다.
