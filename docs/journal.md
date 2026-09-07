@@ -6,6 +6,8 @@
 
 이를 defer하지 않고 `tools/check_esp32_core_coverage.py`가 app `preflight`를 수집하고 두 wrong-BSP executable의 독립 `.profraw`, `esp_core.c` export와 app function coverage가 없으면 실패하도록 수정했다. early fail-closed composition report는 full app threshold 분모와 분리한다. pinned LLVM 23.1.0 coverage gate는 portable·adapter·app 기준을 통과하고 두 새 profile/export도 확인했다. 이 coverage-evidence delta의 immutable commit, fresh A/B re-review, CI target artifact/warning scan이 남아 있으며 physical/HIL, flash, rail/reset/brownout, 장시간 watchdog/PSRAM, vehicle CAN/evidence, provisioning, vehicle TX release는 계속 `NOT_RUN`이고 CAN TX는 NO-GO다.
 
+immutable `813d19cfaf0893e67c9591750f73363e9b67aaa1`의 delta를 raw evidence와 다른 reviewer output을 제외한 allowlist에서 A/B가 다시 읽었다. A는 P0–P3 없음·실행/HIL `NOT_RUN`의 `CONDITIONAL`, B는 T400-P2-04 `CLOSED`·P0–P3 없음의 `PASS`를 반환했다. P0/P1은 남지 않았지만 CI target artifact/warning scan과 G1 physical evidence 전에는 PR merge·SoftAP 진입 또는 차량 safety release를 승인하지 않는다.
+
 ## 2026-09-07 (codex, T-400 P2 initial review와 post-fix 검증)
 
 PR #25 source candidate `f35779a78603dd8241ead9a8baa7307d629bf33a`를 독립 object-only reviewer A/B가 실제 읽었다. 두 reviewer는 runtime profile 비교가 `app_main()`의 `enter_safe_state()` 뒤에 있어 wrong BSP GPIO가 먼저 실행되는 P1을 확인했다. A는 runtime open과 pool init의 ISR state mutation P2를, B는 board ID만 hash한 profile이 stale pin contract를 구분하지 못하는 P2를 추가로 확인했다. 원문·첫 object 부재 incomplete attempt와 disposition은 [T-400 review](reviews/adversarial/2026-09-07-T-400.md)에 보존한다. incomplete report를 PASS로 바꾸지 않았고 PR은 Draft를 유지한다.
