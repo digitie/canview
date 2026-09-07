@@ -30,6 +30,26 @@ class GeneratorTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual((ROOT / path).read_text(encoding="utf-8"), output)
 
+    def test_board_profiles_are_generated_and_unique(self):
+        manifest = json.loads(BOARDS.canonical(BOARDS.SOURCE))
+        profiles = set()
+        for board in manifest["boards"]:
+            source = BOARDS.canonical(ROOT / board["source"])
+            profile = BOARDS.board_profile(board, source)
+            self.assertNotEqual(profile, 0)
+            self.assertNotIn(profile, profiles)
+            profiles.add(profile)
+            header = ROOT / board["path"] / "bsp" / "board_pins.h"
+            self.assertIn(f"#define CANVIEW_BOARD_PROFILE (0x{profile:08X}U)",
+                          header.read_text(encoding="utf-8"))
+            changed_board = copy.deepcopy(board)
+            changed_board["required_nets"] = [*board["required_nets"], "PROFILE_MUTATION"]
+            self.assertNotEqual(profile, BOARDS.board_profile(changed_board, source))
+            self.assertNotEqual(profile, BOARDS.board_profile(board, source + b"\n"))
+        with mock.patch.object(BOARDS, "board_profile", return_value=1):
+            with self.assertRaises(ValueError):
+                BOARDS.outputs()
+
     def test_transport_rejects_bad_contract(self):
         base = json.loads(TRANSPORT.SOURCE.read_bytes())
         changes = [
@@ -90,11 +110,17 @@ class GeneratorTests(unittest.TestCase):
             BOARDS.board_outputs(board, manifest, json.dumps(source).encode())
         for board in spec["boards"][1:]:
             raw = BOARDS.canonical(ROOT / board["source"]).removeprefix(b"\xef\xbb\xbf")
-            # Input provenance digest changes, actual pin lines do not.
+            # Input provenance와 stale-source 방어 profile은 바뀌지만 실제 pin 계약은 같다.
             normal = BOARDS.board_outputs(board, manifest, raw)
             bom = BOARDS.board_outputs(board, manifest, b"\xef\xbb\xbf" + raw)
             header = board["path"] + "/bsp/board_pins.h"
-            self.assertEqual(normal[header].splitlines()[2:], bom[header].splitlines()[2:])
+            self.assertNotEqual(BOARDS.board_profile(board, raw),
+                                BOARDS.board_profile(board, b"\xef\xbb\xbf" + raw))
+            normal_contract = [line for line in normal[header].splitlines()
+                               if "SHA256:" not in line and "CANVIEW_BOARD_PROFILE" not in line]
+            bom_contract = [line for line in bom[header].splitlines()
+                            if "SHA256:" not in line and "CANVIEW_BOARD_PROFILE" not in line]
+            self.assertEqual(normal_contract, bom_contract)
 
     def test_bridge_usb_gpio_contract(self):
         manifest = BOARDS.canonical(BOARDS.SOURCE)

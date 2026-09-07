@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-07 | T-400 P2 Bridge handoff | `c8a725d` → `813d19c`, board identity/profile·ISR/pool·safe GPIO·coverage evidence | embedded runtime / SDK·generator·CMake | [report](adversarial/2026-09-07-T-400.md), initial A/B `BLOCK` P1/P2; first post-fix A/B whole-diff execution은 독립성 무효 `BLOCK`, fresh source-only A/B P0/P1 없음, coverage P2는 C3 A 조건부/B PASS로 `FIXED`. CI 및 physical/HIL `NOT_RUN` |
 | 2026-09-07 | T-400a Bridge core post-fix closure | `5821fca`→`5d6fac4`→`a5ae85b`, 공용 ESP core/app·BSP·sdkconfig·generator·host/target | embedded runtime / SDK·build·evidence | [report](adversarial/2026-09-07-T-400a.md), A-05/B-07 `CONDITIONAL`, unresolved P0/P1 없음; B artifact provenance P1은 `FIXED`. PR #23은 final CI `34114919104` success 뒤 merge됐고 physical/HIL은 `NOT_RUN` |
 | 2026-09-07 | T-200a ESP32 bench core | `55c7801`→`8e958c9`→`999ef06` health/pool·SDK/RTOS·config·host/API/target | embedded runtime·안전 / SDK·build·검증 독립성 | [최초](adversarial/2026-09-07-T-200a.md)·[post-fix·문서 원문](adversarial/2026-09-07-T-200a-02.md), P1 2건/P2 2건 FIXED·양 reviewer 수정 PASS·최종 통합 gate 별도 |
 | 2026-09-07 | T-102a STM32 최소 core와 최종 portability | `ca1a299`→`6d4757c`→`5ee60bc` boot/clock/IWDG·scheduler/queue·API/stack·GCC gate | embedded clock/runtime / build·검증·API | [최초 report](adversarial/2026-09-07-T-102a.md)·[최종 delta와 원문](adversarial/2026-09-07-T-102a-02.md), P1 3건/P2 3건 FIXED·양 reviewer 코드 PASS·통합 CI/target 별도 |

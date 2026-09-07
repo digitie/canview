@@ -27,62 +27,118 @@ static bool owned(const canview_esp_runtime_t *runtime)
     return runtime != NULL && runtime->initialized && runtime->owner == xTaskGetCurrentTaskHandle();
 }
 
-static canview_status_t safe_gpio(void *context)
+static canview_status_t callback_enter(canview_esp_runtime_t *runtime)
 {
-    canview_esp_runtime_t *runtime = context;
-    if (!owned(runtime))
+    if (runtime == NULL || xPortInIsrContext() != pdFALSE || !owned(runtime) ||
+        runtime->callback_active)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
-    return runtime->config.safe_gpio(runtime->config.safe_context);
+    runtime->callback_active = true;
+    return CANVIEW_OK;
+}
+
+static void callback_leave(canview_esp_runtime_t *runtime)
+{
+    runtime->callback_active = false;
+}
+
+static canview_status_t pool_context_valid(void *context)
+{
+    const canview_esp_runtime_t *runtime = context;
+    if (runtime == NULL || !runtime->initialized || xPortInIsrContext() != pdFALSE)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    return CANVIEW_OK;
+}
+
+static canview_status_t safe_gpio(void *context)
+{
+    canview_esp_runtime_t *runtime = context;
+    const canview_status_t entry = callback_enter(runtime);
+    if (entry != CANVIEW_OK)
+    {
+        return entry;
+    }
+    const canview_status_t status = runtime->config.safe_gpio(runtime->config.safe_context);
+    callback_leave(runtime);
+    return status;
 }
 
 static canview_status_t watchdog_start(void *context)
 {
     canview_esp_runtime_t *runtime = context;
-    if (!owned(runtime) || runtime->watchdog_ready)
+    const canview_status_t entry = callback_enter(runtime);
+    if (entry != CANVIEW_OK)
     {
-        return CANVIEW_INVALID_ARGUMENT;
+        return entry;
     }
-    const esp_err_t status = esp_task_wdt_status(NULL);
-    if (status != ESP_ERR_NOT_FOUND)
+    canview_status_t result = CANVIEW_OK;
+    if (runtime->watchdog_ready)
     {
-        /* IDF startup가 global TWDT를 초기화한다. 다른 subscription이나 설정을 가로채지 않는다. */
-        return status == ESP_OK ? CANVIEW_RESOURCE_BUSY : CANVIEW_NOT_IMPLEMENTED;
+        result = CANVIEW_INVALID_ARGUMENT;
     }
-    if (esp_task_wdt_add(NULL) != ESP_OK)
+    else
     {
-        return CANVIEW_NOT_IMPLEMENTED;
+        const esp_err_t status = esp_task_wdt_status(NULL);
+        if (status != ESP_ERR_NOT_FOUND)
+        {
+            /* IDF startup가 global TWDT를 초기화한다. 다른 subscription이나 설정을 가로채지 않는다. */
+            result = status == ESP_OK ? CANVIEW_RESOURCE_BUSY : CANVIEW_NOT_IMPLEMENTED;
+        }
+        else if (esp_task_wdt_add(NULL) != ESP_OK)
+        {
+            result = CANVIEW_NOT_IMPLEMENTED;
+        }
+        else
+        {
+            runtime->watchdog_ready = true;
+        }
     }
-    runtime->watchdog_ready = true;
-    return CANVIEW_OK;
+    callback_leave(runtime);
+    return result;
 }
 
 static canview_status_t now_us(void *context, uint64_t *now)
 {
-    if (!owned(context) || now == NULL)
+    canview_esp_runtime_t *runtime = context;
+    if (now == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
+    }
+    const canview_status_t entry = callback_enter(runtime);
+    if (entry != CANVIEW_OK)
+    {
+        return entry;
     }
     const int64_t value = esp_timer_get_time();
     if (value < 0)
     {
+        callback_leave(runtime);
         return CANVIEW_TIMEOUT;
     }
     *now = (uint64_t)value;
+    callback_leave(runtime);
     return CANVIEW_OK;
 }
 
 static canview_status_t sample(void *context, canview_esp_core_sample_t *output)
 {
     const canview_esp_runtime_t *runtime = context;
-    if (!owned(runtime) || output == NULL)
+    if (output == NULL)
     {
         return CANVIEW_INVALID_ARGUMENT;
+    }
+    const canview_status_t entry = callback_enter((canview_esp_runtime_t *)runtime);
+    if (entry != CANVIEW_OK)
+    {
+        return entry;
     }
     canview_esp_core_sample_t value = {0};
     if (!esp_psram_is_initialized() || esp_flash_get_size(NULL, &value.flash_bytes) != ESP_OK)
     {
+        callback_leave((canview_esp_runtime_t *)runtime);
         return CANVIEW_NOT_IMPLEMENTED;
     }
     const size_t psram = esp_psram_get_size();
@@ -91,6 +147,7 @@ static canview_status_t sample(void *context, canview_esp_core_sample_t *output)
 #if SIZE_MAX > UINT32_MAX
     if (psram > UINT32_MAX || heap > UINT32_MAX || block > UINT32_MAX)
     {
+        callback_leave((canview_esp_runtime_t *)runtime);
         return CANVIEW_OVERSIZE;
     }
 #endif
@@ -110,15 +167,26 @@ static canview_status_t sample(void *context, canview_esp_core_sample_t *output)
         }
     }
     *output = value;
+    callback_leave((canview_esp_runtime_t *)runtime);
     return CANVIEW_OK;
 }
 
 static canview_status_t feed(void *context, uint64_t not_before, uint64_t deadline,
                              uint64_t *fed_at)
 {
-    const canview_esp_runtime_t *runtime = context;
-    if (!owned(runtime) || !runtime->watchdog_ready || fed_at == NULL || not_before > deadline)
+    canview_esp_runtime_t *runtime = context;
+    if (fed_at == NULL || not_before > deadline)
     {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    const canview_status_t entry = callback_enter(runtime);
+    if (entry != CANVIEW_OK)
+    {
+        return entry;
+    }
+    if (!runtime->watchdog_ready)
+    {
+        callback_leave(runtime);
         return CANVIEW_INVALID_ARGUMENT;
     }
     canview_status_t status = CANVIEW_TIMEOUT;
@@ -144,6 +212,7 @@ static canview_status_t feed(void *context, uint64_t not_before, uint64_t deadli
         }
     }
     portEXIT_CRITICAL(&feed_mux);
+    callback_leave(runtime);
     return status;
 }
 
@@ -162,9 +231,10 @@ static void pool_leave(void *context)
 static canview_status_t wait_period(void *context)
 {
     canview_esp_runtime_t *runtime = context;
-    if (!owned(runtime))
+    const canview_status_t entry = callback_enter(runtime);
+    if (entry != CANVIEW_OK)
     {
-        return CANVIEW_INVALID_ARGUMENT;
+        return entry;
     }
     TickType_t tick = (TickType_t)runtime->wake_tick;
     if (!runtime->wait_started)
@@ -175,12 +245,14 @@ static canview_status_t wait_period(void *context)
     /* 늦게 호출하면 즉시 반환한다. health의 절대 deadline이 catch-up feed를 차단한다. */
     const BaseType_t delayed = xTaskDelayUntil(&tick, pdMS_TO_TICKS(CANVIEW_ESP_CORE_PERIOD_MS));
     runtime->wake_tick = (uint32_t)tick;
+    callback_leave(runtime);
     return delayed == pdTRUE ? CANVIEW_OK : CANVIEW_TIMEOUT;
 }
 
 static void report(void *context, const canview_esp_core_t *core, canview_status_t service_status)
 {
-    if (!owned(context) || core == NULL)
+    canview_esp_runtime_t *runtime = context;
+    if (core == NULL || callback_enter(runtime) != CANVIEW_OK)
     {
         return;
     }
@@ -199,6 +271,7 @@ static void report(void *context, const canview_esp_core_t *core, canview_status
              sample.flash_bytes, sample.psram_bytes, sample.heap_free_bytes,
              sample.largest_block_bytes, sample.stack_free_bytes,
              (unsigned)sample.input_valid_mask, (unsigned)sample.input_level_mask);
+    callback_leave(runtime);
 }
 
 canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
@@ -207,7 +280,12 @@ canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
 {
     if (runtime == NULL || config == NULL || port == NULL || config->safe_gpio == NULL ||
         config->memory.flash_bytes == 0U || config->memory.psram_bytes == 0U ||
-        config->input_count == 0U || config->input_count > CANVIEW_ESP_RUNTIME_INPUTS)
+        config->input_count == 0U || config->input_count > CANVIEW_ESP_RUNTIME_INPUTS ||
+        config->board_profile == 0U)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (xPortInIsrContext() != pdFALSE)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
@@ -239,7 +317,7 @@ canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,
     runtime->initialized = true;
     *port = (canview_esp_runtime_port_t){{safe_gpio, watchdog_start, now_us, sample, feed, runtime,
                                            config->memory},
-                                         {pool_enter, pool_leave, NULL},
+                                         {pool_enter, pool_leave, pool_context_valid, runtime},
                                          wait_period,
                                          report,
                                          runtime};

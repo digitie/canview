@@ -40,7 +40,7 @@ if(BUILD_TESTING)
         endif()
         add_executable(${esp_prefix}-app-tests tests/esp_core/test_app.c firmware/app/esp_core.c)
         target_link_libraries(${esp_prefix}-app-tests PRIVATE canview_esp_core canview_warnings)
-        foreach(scenario open gpio watchdog memory pool wait late healthy null-safe null-idle)
+        foreach(scenario open gpio watchdog memory pool wait late healthy null-safe null-idle preflight)
             add_test(NAME ${esp_test_prefix}-app-${scenario} COMMAND ${esp_prefix}-app-tests ${scenario})
             set_tests_properties(${esp_test_prefix}-app-${scenario} PROPERTIES TIMEOUT 30)
         endforeach()
@@ -79,6 +79,27 @@ if(BUILD_TESTING)
         canview_esp_core canview_warnings)
     add_test(NAME esp32-bridge-app-integration COMMAND canview-esp32-bridge-integration-tests)
     set_tests_properties(esp32-bridge-app-integration PROPERTIES TIMEOUT 30)
+    # 실제 서로 다른 BSP object와 runtime object를 교차 link해 app preflight가
+    # GPIO 또는 platform open보다 먼저 mismatch를 거부하는지 확인한다.
+    add_executable(canview-esp32-wrong-bsp-communicator-runtime
+        tests/esp_core/test_wrong_bsp.c
+        firmware/app/esp_core.c
+        firmware/communicator/esp32/bsp/runtime.c
+        firmware/diagnostic-bridge/bsp/board.c)
+    target_link_libraries(canview-esp32-wrong-bsp-communicator-runtime PRIVATE
+        canview_esp_core canview_warnings)
+    add_test(NAME esp32-wrong-bsp-communicator-runtime
+        COMMAND canview-esp32-wrong-bsp-communicator-runtime)
+    set_tests_properties(esp32-wrong-bsp-communicator-runtime PROPERTIES TIMEOUT 30)
+    add_executable(canview-esp32-wrong-bsp-bridge-runtime
+        tests/esp_core/test_wrong_bsp.c
+        firmware/app/esp_core.c
+        firmware/diagnostic-bridge/bsp/runtime.c
+        firmware/communicator/esp32/bsp/board.c)
+    target_link_libraries(canview-esp32-wrong-bsp-bridge-runtime PRIVATE
+        canview_esp_core canview_warnings)
+    add_test(NAME esp32-wrong-bsp-bridge-runtime COMMAND canview-esp32-wrong-bsp-bridge-runtime)
+    set_tests_properties(esp32-wrong-bsp-bridge-runtime PROPERTIES TIMEOUT 30)
     find_package(Threads REQUIRED)
     add_executable(canview-esp32-pool-threads tests/esp_core/test_pool_threads.c)
     target_link_libraries(canview-esp32-pool-threads PRIVATE canview_esp_core canview_warnings Threads::Threads)

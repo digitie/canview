@@ -15,7 +15,9 @@ static bool overlap(const void *a, size_t a_size, const void *b, size_t b_size)
 
 static bool ready(const canview_esp_pool_t *pool)
 {
-    return pool != NULL && pool->initialized;
+    return pool != NULL && pool->initialized && pool->port.enter != NULL && pool->port.leave != NULL &&
+           pool->port.valid_context != NULL &&
+           pool->port.valid_context(pool->port.context) == CANVIEW_OK;
 }
 
 static void increment(uint32_t *value)
@@ -44,7 +46,11 @@ canview_status_t canview_esp_pool_init(canview_esp_pool_t *pool, uint16_t capaci
                                        const canview_esp_pool_port_t *port)
 {
     if (pool == NULL || port == NULL || port->enter == NULL || port->leave == NULL ||
-        capacity == 0U || capacity > CANVIEW_ESP_POOL_SLOTS)
+        port->valid_context == NULL || capacity == 0U || capacity > CANVIEW_ESP_POOL_SLOTS)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (port->valid_context(port->context) != CANVIEW_OK)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }

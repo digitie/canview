@@ -84,8 +84,10 @@ int main(void)
         count = 0U;
         fail_at = fault;
         const canview_status_t status = port.enter_safe_state(port.context);
-        if ((fault == 0U && (status != CANVIEW_OK || count != length)) ||
-            (fault != 0U && (status != CANVIEW_INVALID_ARGUMENT || count != fault)))
+        const bool attempt_all = CANVIEW_TEST_BOARD == 1 || CANVIEW_TEST_BOARD == 2;
+        const size_t expected_count = fault == 0U || attempt_all ? length : fault;
+        if ((fault == 0U && (status != CANVIEW_OK || count != expected_count)) ||
+            (fault != 0U && (status != CANVIEW_INVALID_ARGUMENT || count != expected_count)))
         {
             return 1;
         }

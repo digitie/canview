@@ -5,6 +5,7 @@
 #ifndef CANVIEW_PLATFORM_PORT_H
 #define CANVIEW_PLATFORM_PORT_H
 #include "canview_status.h"
+#include <stdint.h>
 
 /** @brief 안전 초기화 callback. 성공 전후로 차량 송신을 허용하지 않는다. */
 typedef canview_status_t canview_safe_state_fn(void *context);
@@ -16,12 +17,15 @@ typedef void canview_idle_fn(void *context);
  *
  * context는 app 종료까지 유효해야 한다. safe callback은 초기 출력 latch를
  * 설정한 후 pin mode를 전환하며 TX arm, NVS 삭제, radio 시작을 하지 않는다.
- * idle은 MCU별 대기만 수행한다. ISR 또는 다른 thread에서 함께 호출하지 않는다.
+ * idle은 MCU별 대기만 수행한다. board_profile은 generator가 만든 compile-time
+ * BSP profile이며 무선 입력이나 runtime config로 바꾸지 않는다. ISR 또는 다른
+ * thread에서 함께 호출하지 않는다.
  */
 typedef struct
 {
     canview_safe_state_fn *enter_safe_state;
     canview_idle_fn *idle;
     void *context;
+    uint32_t board_profile;
 } canview_platform_port_t;
 #endif

@@ -20,13 +20,14 @@ static canview_status_t enter_safe_state(void *context)
                    {CANVIEW_BOARD_STM_RECOVERY_N_GPIO, true, true},
                    {CANVIEW_BOARD_ESP_RTS_SRC_GPIO, true, false},
                    {CANVIEW_BOARD_ESP_TX_SRC_GPIO, true, false}};
-    for (size_t index = 0; index < sizeof(outputs) / sizeof(outputs[0]); ++index)
+    canview_status_t first_error = CANVIEW_OK;
+    for (size_t index = 0U; index < sizeof(outputs) / sizeof(outputs[0]); ++index)
     {
         const canview_status_t status =
             canview_gpio_output(outputs[index].pin, outputs[index].high, outputs[index].open_drain);
-        if (status != CANVIEW_OK)
+        if (first_error == CANVIEW_OK && status != CANVIEW_OK)
         {
-            return status;
+            first_error = status;
         }
     }
     const uint8_t inputs[] = {CANVIEW_BOARD_RECOVERY_BUTTON_N_GPIO, CANVIEW_BOARD_STM_RTS_GPIO,
@@ -35,16 +36,17 @@ static canview_status_t enter_safe_state(void *context)
     for (size_t index = 0U; index < sizeof(inputs) / sizeof(inputs[0]); ++index)
     {
         const canview_status_t status = canview_gpio_input(inputs[index]);
-        if (status != CANVIEW_OK)
+        if (first_error == CANVIEW_OK && status != CANVIEW_OK)
         {
-            return status;
+            first_error = status;
         }
     }
-    return CANVIEW_OK;
+    return first_error;
 }
 
 canview_platform_port_t canview_board_port(void)
 {
-    const canview_platform_port_t port = {enter_safe_state, canview_platform_idle, NULL};
+    const canview_platform_port_t port = {enter_safe_state, canview_platform_idle, NULL,
+                                          CANVIEW_BOARD_PROFILE};
     return port;
 }

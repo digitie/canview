@@ -1,5 +1,27 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400 post-fix coverage evidence P2)
+
+`8f32c07810d76cd3e652ccd08b801400aac5a770`의 첫 post-fix A/B 실행은 whole diff가 상대 raw evidence를 포함해 독립성이 무효가 되었고, 두 원문을 `BLOCK`으로 그대로 보존했다. 이를 PASS나 source finding으로 바꾸지 않았다. 이후 raw evidence를 읽지 않은 fresh source-only A는 P0–P3 없음·physical/HIL 조건부, B는 P0/P1 없음과 coverage evidence P2를 반환했다. B의 P2는 app coverage runner가 `preflight` scenario 및 실제 두 wrong-BSP cross-link executable을 profile/export 대상으로 포함하지 않은 점이다.
+
+이를 defer하지 않고 `tools/check_esp32_core_coverage.py`가 app `preflight`를 수집하고 두 wrong-BSP executable의 독립 `.profraw`, `esp_core.c` export와 app function coverage가 없으면 실패하도록 수정했다. early fail-closed composition report는 full app threshold 분모와 분리한다. pinned LLVM 23.1.0 coverage gate는 portable·adapter·app 기준을 통과하고 두 새 profile/export도 확인했다. 이 coverage-evidence delta의 immutable commit, fresh A/B re-review, CI target artifact/warning scan이 남아 있으며 physical/HIL, flash, rail/reset/brownout, 장시간 watchdog/PSRAM, vehicle CAN/evidence, provisioning, vehicle TX release는 계속 `NOT_RUN`이고 CAN TX는 NO-GO다.
+
+immutable `813d19cfaf0893e67c9591750f73363e9b67aaa1`의 delta를 raw evidence와 다른 reviewer output을 제외한 allowlist에서 A/B가 다시 읽었다. A는 P0–P3 없음·실행/HIL `NOT_RUN`의 `CONDITIONAL`, B는 T400-P2-04 `CLOSED`·P0–P3 없음의 `PASS`를 반환했다. P0/P1은 남지 않았지만 CI target artifact/warning scan과 G1 physical evidence 전에는 PR merge·SoftAP 진입 또는 차량 safety release를 승인하지 않는다.
+
+## 2026-09-07 (codex, T-400 P2 initial review와 post-fix 검증)
+
+PR #25 source candidate `f35779a78603dd8241ead9a8baa7307d629bf33a`를 독립 object-only reviewer A/B가 실제 읽었다. 두 reviewer는 runtime profile 비교가 `app_main()`의 `enter_safe_state()` 뒤에 있어 wrong BSP GPIO가 먼저 실행되는 P1을 확인했다. A는 runtime open과 pool init의 ISR state mutation P2를, B는 board ID만 hash한 profile이 stale pin contract를 구분하지 못하는 P2를 추가로 확인했다. 원문·첫 object 부재 incomplete attempt와 disposition은 [T-400 review](reviews/adversarial/2026-09-07-T-400.md)에 보존한다. incomplete report를 PASS로 바꾸지 않았고 PR은 Draft를 유지한다.
+
+post-fix source는 app preflight를 GPIO·idle·SDK open보다 앞에 두고, profile 입력을 canonical board manifest+pin source로 확장했다. runtime open과 pool init은 ISR validator를 상태 변경 전에 호출한다. 실제 app+BSP wrong-link 두 방향은 GPIO와 runtime open 0회로 terminal idle만 호출하는 host negative test를 추가했다. pinned Windows host Debug/Release는 `uart-fault-stream` 86,400초 장시간 시험 제외 각각 110/110, ESP coverage gate는 PASS다. ESP-IDF 6.0.3과 Arm GNU 15.3에서 STM32 Debug/Release 및 Communicator·Bridge·Controller·fixture의 BIN/ELF/MAP 18개를 다시 생성했다. 이 작업 트리 target output은 post-fix commit 전 `f35779a-dirty` metadata였으므로 final immutable commit의 target artifact와 CI warning scan은 다음 단계에서 재확인한다. physical/HIL, flash, rail/reset/brownout, 장시간 watchdog/PSRAM, vehicle CAN/evidence, provisioning, vehicle TX release는 `NOT_RUN`이며 CAN TX는 NO-GO다.
+
+## 2026-09-07 (codex, T-400 P2 runtime/BSP source 검증)
+
+T-400a handoff의 compile-time board profile을 generator와 모든 BSP port에 추가하고, Communicator ESP/Bridge runtime이 링크된 board profile을 platform open 전에 대조하게 했다. 실제 교차 object link 두 방향은 runtime open을 호출하지 않은 채 거부한다. ESP runtime core callback은 open owner task·non-ISR·non-reentrant latch를 요구하고, fixed pool은 lock 전 context validator로 ISR/무효 context를 거부한다. Communicator ESP와 Bridge safe GPIO는 partial failure에도 모든 지정 safe pin을 시도하고 최초 오류를 보존한 뒤 lifecycle을 중단한다. Bridge의 read-only 경계와 CAN TX NO-GO는 변경하지 않았고 SoftAP·HTTP·인증은 시작하지 않았다.
+
+Windows pinned Clang23.1.0/CMake4.4.3/Ninja1.13.2에서 host Debug/Release는 각각 108/108을 통과했다. 별도 86,400초 `uart-fault-stream`은 이번 실행에서 제외되어 `NOT_RUN`이다. ESP core coverage는 portable/pool 및 SDK fixture 각각 function/line100%, branch98.04% 이상과 adapter branch92.13% 이상을 통과했고, generator·actual sdkconfig·plan/link·Python43/43·Sphinx/Doxygen strict(공개 API29개)도 통과했다.
+
+검증된 ESP-IDF6.0.3/Arm GNU15.3.Rel1/STM32CubeG4 1.6.3에서 STM32 Debug/Release, Communicator ESP32, Diagnostic Bridge, Controller 및 public-component fixture의 BIN/ELF/MAP 18개를 생성했다. 경고/error 패턴 scan은 0건이었다. 첫 Bridge `fullclean`은 partial non-CMake build directory를 안전하게 거부했고, 삭제 없이 남아 있던 `sdkconfig`의 esp32s3 target으로 새 configure·`idf.py build`를 실행해 artifact를 생성했다. 실제 flash/HIL, rail·reset/brownout, 장시간 PSRAM/clock/watchdog, 차량 CAN/capture, provisioning, vehicle TX release와 local WSL sanitizer는 `NOT_RUN`이며 CAN TX는 계속 NO-GO다. immutable commit, fresh 2인 adversarial review와 CI 전에는 이 handoff나 T-400을 완료로 표시하지 않는다.
+
 ## 2026-09-07 (codex, T-400a merge와 T-400 handoff)
 
 PR #23은 final branch CI `34114919104`의 Windows C99, target-firmware-windows, Linux GCC/Clang portability, Linux ASan/UBSan 다섯 job success 뒤 merge commit `25eba080907257c6d90abaeec6d578d9dff6585a`로 `origin/main`에 통합됐다. candidate `0e1edb6`가 `origin/main`의 조상임을 확인했다. A-05/B-07의 `CONDITIONAL` raw review는 unresolved P0/P1 없음으로 닫았고, P2 세 건은 owner=T-400, G1 gate, 목표=2026-09-14로 유지했다.

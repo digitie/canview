@@ -17,6 +17,7 @@ static canview_status_t enter_safe_state(void *context)
 
 canview_platform_port_t canview_board_port(void)
 {
-    const canview_platform_port_t port = {enter_safe_state, canview_platform_idle, NULL};
+    const canview_platform_port_t port = {enter_safe_state, canview_platform_idle, NULL,
+                                          CANVIEW_BOARD_PROFILE};
     return port;
 }

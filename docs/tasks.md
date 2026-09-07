@@ -87,7 +87,7 @@ py -3 tools/validate_document_links.py
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md) | READY | P1 | Diagnostic Bridge ESP-IDF, SoftAP와 인증 bootstrap | T-001, T-003, T-400a |
+| [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md) | IN_PROGRESS | P1 | Diagnostic Bridge ESP-IDF, SoftAP와 인증 bootstrap | T-001, T-003, T-400a |
 | [T-401](tasks/T-401-capture-cvtrace.md) | BLOCKED | P1 | observer, capture와 `.cvtrace` storage | T-203, T-400, T-103, T-204 |
 | [T-402](tasks/T-402-diagnostic-api-web.md) | BLOCKED | P1 | Diagnostic OpenAPI, REST/WS와 모바일 web 통합 | T-401, T-304, T-305 |
 | [T-403](tasks/T-403-signal-lab-evidence.md) | BLOCKED | P1 | Signal Lab, candidate와 evidence export | T-006, T-402 |

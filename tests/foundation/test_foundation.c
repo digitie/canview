@@ -482,7 +482,7 @@ static int test_app(void)
     for (uint32_t role = 0U; role < 4U; ++role)
     {
         fake_port_t fake = {0};
-        canview_platform_port_t port = {fake_safe, fake_idle, &fake};
+        canview_platform_port_t port = {fake_safe, fake_idle, &fake, 0U};
         canview_app_t app = {0};
         CHECK(canview_app_start(&app, (canview_app_role_t)role, &port) == CANVIEW_OK);
         CHECK(app.state == CANVIEW_APP_SAFE_IDLE && fake.safe_calls == 1U);
@@ -491,7 +491,7 @@ static int test_app(void)
     }
     fake_port_t fake = {0};
     fake.result = CANVIEW_NOT_IMPLEMENTED;
-    canview_platform_port_t port = {fake_safe, fake_idle, &fake};
+    canview_platform_port_t port = {fake_safe, fake_idle, &fake, 0U};
     canview_app_t app = {0};
     CHECK(canview_app_step(&app) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_app_step(NULL) == CANVIEW_INVALID_ARGUMENT);

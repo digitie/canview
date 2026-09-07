@@ -395,6 +395,7 @@ typedef struct
     uint32_t depth;
     uint32_t enters;
     uint32_t leaves;
+    bool context_valid;
 } lock_t;
 static void enter(void *context)
 {
@@ -409,12 +410,17 @@ static void leave(void *context)
     --lock->depth;
     ++lock->leaves;
 }
+static canview_status_t lock_context(void *context)
+{
+    const lock_t *lock = context;
+    return lock != NULL && lock->context_valid ? CANVIEW_OK : CANVIEW_INVALID_ARGUMENT;
+}
 static void pool_tests(void)
 {
     canview_esp_pool_t pool = {0};
     canview_esp_pool_t other = {0};
-    lock_t lock = {2U, 0U, 0U};
-    const canview_esp_pool_port_t port = {enter, leave, &lock};
+    lock_t lock = {2U, 0U, 0U, true};
+    const canview_esp_pool_port_t port = {enter, leave, lock_context, &lock};
     uint8_t data[256];
     uint8_t output[256];
     memset(data, 0x5a, sizeof(data));
@@ -430,6 +436,9 @@ static void pool_tests(void)
     invalid = port;
     invalid.leave = NULL;
     CHECK(canview_esp_pool_init(&pool, 1U, &invalid) == CANVIEW_INVALID_ARGUMENT);
+    invalid = port;
+    invalid.valid_context = NULL;
+    CHECK(canview_esp_pool_init(&pool, 1U, &invalid) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_pool_init(&pool, 0U, &port) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_pool_init(&pool, 17U, &port) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_pool_release(&pool, token) == CANVIEW_INVALID_ARGUMENT);
@@ -440,6 +449,26 @@ static void pool_tests(void)
     CHECK(canview_esp_pool_init(&pool, 2U, &port) == CANVIEW_OK);
     CHECK(canview_esp_pool_init(&pool, 2U, &port) == CANVIEW_RESOURCE_BUSY);
     CHECK(canview_esp_pool_init(&other, 1U, &port) == CANVIEW_OK);
+    lock.context_valid = false;
+    const canview_esp_pool_token_t blocked_token = {0x1234U, 1U, 1U};
+    token = blocked_token;
+    length = 7U;
+    output[0] = 0xa5U;
+    CHECK(canview_esp_pool_acquire(&pool, data, 1U, &token) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_pool_copy(&pool, token, output, sizeof(output), &length) ==
+          CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_pool_release(&pool, token) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_pool_stats(&pool, &stats) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(token.owner == blocked_token.owner && token.generation == blocked_token.generation &&
+          token.slot == blocked_token.slot && length == 7U && output[0] == 0xa5U &&
+          lock.enters == 0U);
+    lock.context_valid = true;
+    pool.port.enter = NULL;
+    CHECK(canview_esp_pool_acquire(&pool, data, 1U, &token) == CANVIEW_INVALID_ARGUMENT);
+    pool.port.enter = enter;
+    pool.port.leave = NULL;
+    CHECK(canview_esp_pool_acquire(&pool, data, 1U, &token) == CANVIEW_INVALID_ARGUMENT);
+    pool.port.leave = leave;
     CHECK(canview_esp_pool_acquire(&pool, NULL, 1U, &token) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_pool_acquire(&pool, data, 1U, NULL) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_pool_acquire(&pool, data, 0U, &token) == CANVIEW_INVALID_ARGUMENT);

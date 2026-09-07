@@ -25,6 +25,18 @@ BRIDGE_USB_CONTRACT = {
 }
 
 
+def board_profile(board: dict, source: bytes) -> int:
+    """Return a board-contract tag; it is not a wire-visible identifier."""
+    board_bytes = json.dumps(board, ensure_ascii=True, sort_keys=True,
+                            separators=(",", ":")).encode("ascii")
+    digest = hashlib.sha256(b"canview-board-profile-v2\0" + board["id"].encode("ascii") +
+                            b"\0" + board_bytes + b"\0" + source).digest()
+    value = int.from_bytes(digest[:4], byteorder="big")
+    if value == 0:
+        raise ValueError("zero board profile")
+    return value
+
+
 def canonical(path: Path) -> bytes:
     return path.read_bytes().replace(b"\r\n", b"\n")
 
@@ -88,6 +100,7 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
              " * Review board contract; not fabrication/vehicle approval. */",
              "#ifndef CANVIEW_BOARD_PINS_H", "#define CANVIEW_BOARD_PINS_H", "",
              f'#define {prefix}ID "{board["id"]}"',
+             f"#define {prefix}PROFILE (0x{board_profile(board, source):08X}U)",
              f'#define {prefix}MODULE "{board["module"]}"',
              f'#define {prefix}FLASH_BYTES ({board["flash_bytes"]}U)']
     nets = {}
@@ -231,8 +244,14 @@ def outputs() -> dict[str, str]:
     if spec["schema_version"] != 1:
         raise ValueError("board schema version")
     result = {}
+    profiles = set()
     for board in spec["boards"]:
-        generated = board_outputs(board, manifest, canonical(ROOT / board["source"]))
+        source = canonical(ROOT / board["source"])
+        profile = board_profile(board, source)
+        if profile in profiles:
+            raise ValueError("board profile collision")
+        profiles.add(profile)
+        generated = board_outputs(board, manifest, source)
         if set(result) & set(generated):
             raise ValueError("duplicate output")
         result.update(generated)
