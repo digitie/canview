@@ -1,6 +1,6 @@
 # T-200a Communicator ESP32 최소 core와 host 검증
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - branch: `codex/t200a-esp32-core-bench`
 - PR: [#22](https://github.com/digitie/canview/pull/22)
 - 우선순위: `P0`
@@ -31,16 +31,18 @@ T-200의 실물 bring-up 전에 N16R8에서 빌드 가능한 boot/health/watchdo
 
 ## 수용 기준
 
-- [ ] safe GPIO→watchdog 등록→메모리 검사→bench health 순서와 단계별 실패·재진입·재초기화 거부를 host에서 검증한다.
-- [ ] Flash16MiB, PSRAM7.5MiB, internal free heap80KiB/largest32KiB, main stack 여유1024B와 backward/늦은 clock/실행 budget 실패가 feed를 막는다.
-- [ ] 고정 pool의 exhaustion·high-water/drop counter·copy ownership·double/stale release·generation/크기/alias 경계를 시험한다.
-- [ ] 실제 IDF adapter 논리를 host SDK fixture로 시험하고, 실제 SDK compile과 구분해 기록한다.
-- [ ] generated defaults와 실제 sdkconfig를 검사한다. MINI·reserved pin·ECC off·120MHz·watchdog panic off·UART console 등 부정 입력이 실패한다.
-- [ ] BSP safe pin 순서·각 GPIO 실패·pull 없는 sense와 control capability/TX0를 검증한다.
-- [ ] Windows Debug/Release, GCC·ASan+UBSan 전체 회귀, core coverage·strict API와 STM32/ESP32 최종 binary warning0을 확인한다.
-- [ ] 독립 전문 리뷰어 2명의 적대적 리뷰·finding 재확인·최종 CI를 통과한다.
+- [x] safe GPIO→watchdog 등록→메모리 검사→bench health 순서와 단계별 실패·재진입·재초기화 거부를 host에서 검증한다.
+- [x] Flash16MiB, PSRAM7.5MiB, internal free heap80KiB/largest32KiB, main stack 여유1024B와 backward/늦은 clock/실행 budget 실패가 feed를 막는다.
+- [x] 고정 pool의 exhaustion·high-water/drop counter·copy ownership·double/stale release·generation/크기/alias 경계를 시험한다.
+- [x] 실제 IDF adapter 논리를 host SDK fixture로 시험하고, 실제 SDK compile과 구분해 기록한다.
+- [x] generated defaults와 실제 sdkconfig를 검사한다. MINI·reserved pin·ECC off·120MHz·watchdog panic off·UART console 등 부정 입력이 실패한다.
+- [x] BSP safe pin 순서·각 GPIO 실패·pull 없는 sense와 control capability/TX0를 검증한다.
+- [x] Windows Debug/Release, GCC·ASan+UBSan 전체 회귀, core coverage·strict API와 STM32/ESP32 최종 binary warning0을 확인한다.
+- [x] 독립 전문 리뷰어 2명의 적대적 리뷰·finding 재확인·최종 CI를 통과한다.
 
 ## 검증과 evidence
+
+2026-09-07 PR #22가 `2222290`으로 merge됐다. [최종 검증·binary·CI·merge evidence](../reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 host89/89·coverage·두 리뷰어의 네 finding FIXED·최종 head6종 warning0·원격18개 artifact digest를 보존했다. 부모 T-200 물리 gate는 BLOCKED다.
 
 root `cmake --preset host-debug/host-release/host-coverage`와 CTest, `check_sdkconfig.py`, `check_esp32_core_coverage.py`, strict API, pinned IDF build를 사용한다. 새 검사기는 이 task의 산출물이며 생성/실행 전 PASS로 표시하지 않는다. Linux GCC를 초기 검증에 포함한다. target 산출물은 commit·SDK·BIN/ELF/MAP·SHA-256·warning scan에 연결한다.
 

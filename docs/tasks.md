@@ -4,7 +4,7 @@
 
 열린 task의 요약은 이 문서, 완료 이력은 [tasks-done.md](tasks-done.md), 현재 진척은 [resume.md](resume.md)에 둔다. [상세 task](tasks/)의 수용 기준과 [작성 규약](tasks-rule.md)을 따른다. 요구→정본→task→남은 gate는 [요구사항 coverage](architecture/requirements-coverage.md)에 둔다.
 
-이 directory에는 48개의 상세 작업이 있다. 기존 35개에서 PCB 설계·audio 송신 시험·SPORT 수신 근거 3개와 OTA 8단계, STM32/ESP32 최소 core 소프트웨어 선행 T-102a/T-200a를 추가했다. task 분리는 실제 구현이나 실차 검증 완료가 아니다.
+이 directory에는 49개의 상세 작업이 있다. 기존 35개에서 PCB 설계·audio 송신 시험·SPORT 수신 근거 3개와 OTA 8단계, STM32/ESP32/Bridge 최소 core 소프트웨어 선행 T-102a/T-200a/T-400a를 추가했다. task 분리는 실제 구현이나 실차 검증 완료가 아니다.
 
 | 상태 | 의미 |
 |---|---|
@@ -64,7 +64,6 @@ py -3 tools/validate_document_links.py
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-200a](tasks/T-200a-esp32-core-bench.md) | IN_PROGRESS | P0 | Communicator ESP32 최소 core와 host 검증 | T-001, T-004 |
 | [T-200](tasks/T-200-communicator-esp32-bootstrap.md) | BLOCKED | P0 | Communicator ESP32-S3-WROOM-1-N16R8 bootstrap | T-001, T-004, T-200a |
 | [T-201](tasks/T-201-communicator-espnow.md) | BLOCKED | P0 | Communicator ESP-NOW provisioning, session과 QoS | T-003, T-200 |
 | [T-202](tasks/T-202-communicator-uart-router.md) | BLOCKED | P0 | Communicator ESP32 UART link, router와 boot epoch | T-104, T-200 |
@@ -88,7 +87,8 @@ py -3 tools/validate_document_links.py
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md) | BLOCKED | P1 | Diagnostic Bridge ESP-IDF, SoftAP와 인증 bootstrap | T-001, T-003 |
+| [T-400a](tasks/T-400a-bridge-core-bench.md) | IN_PROGRESS | P0 | Bridge 최소 core와 ESP 공용화 | T-001, T-200a |
+| [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md) | BLOCKED | P1 | Diagnostic Bridge ESP-IDF, SoftAP와 인증 bootstrap | T-001, T-003, T-400a |
 | [T-401](tasks/T-401-capture-cvtrace.md) | BLOCKED | P1 | observer, capture와 `.cvtrace` storage | T-203, T-400, T-103, T-204 |
 | [T-402](tasks/T-402-diagnostic-api-web.md) | BLOCKED | P1 | Diagnostic OpenAPI, REST/WS와 모바일 web 통합 | T-401, T-304, T-305 |
 | [T-403](tasks/T-403-signal-lab-evidence.md) | BLOCKED | P1 | Signal Lab, candidate와 evidence export | T-006, T-402 |

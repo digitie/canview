@@ -3,12 +3,14 @@
 - 상태: `BLOCKED`
 - 우선순위: `P1`
 - Gate: `G2`
-- 선행: `T-001`, `T-003`
+- 선행: `T-001`, `T-003`, `T-400a`
 - 병렬 가능: `T-300`
 
 ## 목표
 
 `ESP32-S3-WROOM-1-N8R2` 개발보드에 read-only ESP-NOW observer와 phone-only SoftAP web shell을 올린다. 차량 command surface는 build에 포함하지 않는다.
+
+최소 boot/health/watchdog·고정 pool 소프트웨어는 [T-400a](T-400a-bridge-core-bench.md)에서 먼저 구현한다. 그 완료가 아래 SoftAP·인증·무선·휴대폰·실물 수용 기준을 대신하지 않는다.
 
 ## 고정 target
 
