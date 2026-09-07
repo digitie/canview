@@ -42,7 +42,7 @@ static canview_status_t safe(void *context)
 }
 static canview_status_t watchdog(void *context)
 {
-    CHECK(context == &fake && fake.safe == 1U);
+    CHECK(context == &fake && fake.safe == 2U);
     ++fake.watchdog;
     return selected("watchdog") ? CANVIEW_NOT_IMPLEMENTED : CANVIEW_OK;
 }
@@ -99,6 +99,16 @@ static void idle(void *context)
 }
 canview_platform_port_t canview_board_port(void)
 {
+    if (selected("null-safe"))
+    {
+        const canview_platform_port_t port = {NULL, idle, &fake};
+        return port;
+    }
+    if (selected("null-idle"))
+    {
+        const canview_platform_port_t port = {safe, NULL, &fake};
+        return port;
+    }
     const canview_platform_port_t port = {safe, idle, &fake};
     return port;
 }
@@ -124,21 +134,30 @@ int main(int argc, char **argv)
     CHECK(argc == 2);
     fake.scenario = argv[1];
     CHECK(selected("open") || selected("gpio") || selected("watchdog") || selected("memory") ||
-          selected("pool") || selected("wait") || selected("late") || selected("healthy"));
+          selected("pool") || selected("wait") || selected("late") || selected("healthy") ||
+          selected("null-safe") || selected("null-idle"));
     fake.time = 1000U;
     if (setjmp(fake.stopped) == 0)
     {
         app_main();
-        CHECK(false);
+        CHECK(selected("null-idle"));
+    }
+    else
+    {
+        CHECK(!selected("null-idle"));
     }
     CHECK(fake.feeds == (selected("healthy") ? 2U : 0U));
-    if (selected("open"))
+    if (selected("open") || selected("gpio"))
+    {
+        CHECK(fake.safe == 1U && fake.watchdog == 0U && fake.reports == 0U);
+    }
+    else if (selected("null-safe") || selected("null-idle"))
     {
         CHECK(fake.safe == 0U && fake.watchdog == 0U && fake.reports == 0U);
     }
     else
     {
-        CHECK(fake.safe == 1U && fake.reports == 2U && fake.last_status != CANVIEW_OK);
+        CHECK(fake.safe == 2U && fake.reports == 2U && fake.last_status != CANVIEW_OK);
         CHECK(fake.watchdog == (selected("gpio") ? 0U : 1U));
         if (selected("gpio") || selected("watchdog") || selected("memory") || selected("late"))
         {

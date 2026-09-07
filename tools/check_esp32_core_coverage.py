@@ -25,7 +25,8 @@ def main():
             (board + "-sdk", binary + "-runtime-tests",
              ["firmware/platform/esp32s3/core_runtime.c", f"firmware/{bsp}/bsp/runtime.c"], [None]),
             (board + "-app", binary + "-app-tests", ["firmware/app/esp_core.c"],
-             ["open", "gpio", "watchdog", "memory", "pool", "wait", "late", "healthy"]),
+             ["open", "gpio", "watchdog", "memory", "pool", "wait", "late", "healthy",
+              "null-safe", "null-idle"]),
         ]
     for group, binary, sources, arguments in groups:
         directory = report / group

@@ -1,5 +1,17 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400a ESP target 복구와 commit 준비)
+
+Windows native ESP-IDF 6.0.3를 직접 초기화해 Communicator ESP32, Diagnostic Bridge, Controller의 새 build directory에서 실제 target build를 다시 실행했다. 세 대상 모두 bootloader/app BIN, ELF, MAP를 생성했고 compiler·linker·CMake `warning:`은 0건이었다. Bridge/Communicator의 생성 sdkconfig도 각 보드 계약으로 재검증했다. 부트로더 configure 출력의 `CONFIG_ESP_INT_WDT_TIMEOUT_MS=800`은 기본값 300과의 명시적 설정 차이를 알리는 Kconfig notification이며 compiler warning으로 분류하지 않았다.
+
+현재 commit 이전 working tree에서 생성한 artifact hash와 명령은 [target post-fix evidence](reviews/adversarial/evidence/2026-09-07-T-400a-target-postfix.md)에 기록했다. commit 후 immutable hash 기준으로 target artifact를 재생성하고, 독립 post-fix reviewer 2명의 raw report와 CI가 닫히기 전에는 PR #23을 ready/merge하지 않는다. WSL sanitizer, Windows bootstrap verifier, flash/HIL/전원/차량/보안 provisioning은 여전히 `NOT_RUN` 또는 별도 실패 원인을 유지한다.
+
+## 2026-09-07 (codex, T-400a post-fix review closure 시도)
+
+T-400a 최초 독립 리뷰의 P1 (safe callback preflight, stale watchdog feed time, sdkconfig allowlist)을 수정하고, P2 (USB bridge generator contract와 app composition fixture)는 후속 T-400 owner와 gate를 지정해 defer했다. host Debug/Release 106/106, strict documentation, generator·sdkconfig negative case와 STM32 Debug/Release target을 재실행했다.
+
+새 reviewer execution A-03/B-03과 제한 범위 재시도 A-04/B-04는 source line-level raw report를 반환하지 못해 모두 `incomplete BLOCK`으로 보존했다. 이를 PASS로 변환하지 않았으며, T400a 통합 review, PR merge와 Task 완료는 두 독립 post-fix raw report가 실제 읽은 파일·명령·finding·verdict를 남길 때까지 차단한다. 이 시점의 ESP target build와 GitHub CLI 접근은 별도 recovery가 필요했다.
+
 ## 2026-09-07 (codex, T-200a merge와 T-400a 시작)
 
 PR #22의 최종 `84080fe`에서 clean STM32 Debug/Release·ESP4종 binary warning0, local26개/원격18개 artifact 크기·SHA-256, CI5개 SUCCESS를 확인했다. 두 reviewer가 최초 P1 2건/P2 2건 모두 FIXED와 최종 문서 delta PASS를 독립 확인했다. `--match-head-commit` merge 결과는 `2222290`이며 [최종 evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 원문·검증·NOT_RUN을 연결했다.

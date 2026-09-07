@@ -11,6 +11,7 @@ static canview_status_t fail(canview_esp_core_t *core, canview_esp_core_fault_t 
     }
     core->state = CANVIEW_ESP_CORE_FAULT;
     core->busy = false;
+    core->sample_valid = false;
     return status == CANVIEW_OK ? CANVIEW_TIMEOUT : status;
 }
 
@@ -91,6 +92,7 @@ canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
         return fail(core, CANVIEW_ESP_FAULT_BUDGET, CANVIEW_TIMEOUT);
     }
     core->sample = sample;
+    core->sample_valid = true;
     core->last_progress_us = finished;
     core->state = CANVIEW_ESP_CORE_SAFE_BENCH;
     core->busy = false;
@@ -158,6 +160,7 @@ canview_status_t canview_esp_core_step(canview_esp_core_t *core)
         return fail(core, CANVIEW_ESP_FAULT_CLOCK, CANVIEW_TIMEOUT);
     }
     core->sample = sample;
+    core->sample_valid = true;
     core->last_progress_us = fed_at;
     increment(&core->checks);
     increment(&core->feeds);

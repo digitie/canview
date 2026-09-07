@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-07 T-200a는 [PR #22](https://github.com/digitie/canview/pull/22), merge `2222290`으로 DONE이다. 최종 head6종 binary warning0·host89/89·독립2인 리뷰·CI5개·원격18개 artifact digest 대조를 [evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 보존했다. T-102a(PR #21) 다음 Communicator ESP32 core를 마쳤으며 현재는 [T-400a](tasks/T-400a-bridge-core-bench.md) Bridge core와 ESP 공용화를 진행한다. 실제 보드·ST-LINK/계측기는 식별되지 않아 코드 검증과 G1/G2 계측을 분리한다.
+2026-09-07 T-200a는 [PR #22](https://github.com/digitie/canview/pull/22), merge `2222290`으로 DONE이다. 최종 head6종 binary warning0·host89/89·독립2인 리뷰·CI5개·원격18개 artifact digest 대조를 [evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 보존했다. 현재 [T-400a](tasks/T-400a-bridge-core-bench.md)는 post-fix host/STM32와 세 ESP32 target image evidence까지 확보했다. T-400a 독립 post-fix reviewer A/B 두 쌍은 결과 없이 incomplete/BLOCK으로 종료되어 merge하지 않았다. 실제 보드·ST-LINK/계측기는 식별되지 않아 코드 검증과 G1/G2 계측을 분리한다.
 
 2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 PR #18(`c18a8a5`)로, T-003은 ESP-NOW codec/session/QoS와 target build·2인 적대적 리뷰 후 PR #19(`4ee017b`)로 main에 merge되어 `DONE`이다.
 
@@ -18,7 +18,7 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t400a-bridge-core-bench`, draft [PR #23](https://github.com/digitie/canview/pull/23)이다. T-400a에서 Communicator의 health/pool·bench app·SDK adapter를 공용화하고 Bridge N8R2의 메모리·GPIO 진단 계약을 연결한다. T-200a 리뷰의 P1 2건/P2 2건은 모두 원 reviewer FIXED이며 PR #22는 merge 완료다. T-400a는 새 코드 변경의 별도 회귀·2인 리뷰·target/CI 검증이 필요하다.
+현재 branch는 `codex/t400a-bridge-core-bench`, PR #23은 Draft·OPEN·CLEAN이다. T-400a는 Communicator의 health/pool·bench app·SDK adapter를 공용화하고 Bridge N8R2의 메모리·GPIO 진단 계약을 연결했다. post-fix host/coverage/docs, STM32 Debug/Release와 Diagnostic Bridge·Communicator·Controller ESP32 actual build는 통과했지만, immutable post-fix commit·완전한 독립 2인 재검토·CI·physical gate가 남아 `IN_PROGRESS/BLOCK`이다.
 
 - 현재 문서: docs/tasks/T-400a-bridge-core-bench.md, docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
 - 구현 순서: 공용 C99 core·board 계약 → Bridge BSP/SDK·actual config gate → 두 역할 host/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.
@@ -36,9 +36,10 @@
 - T-003/T-004 codec은 main에 통합됐으며 실제 UART DMA/무선/CAN runtime과 보드 검증은 후속 task에 남음
 - 2017 Tucson TL의 실제 bus 종류·bitrate·connector·신호가 미확정
 - 완성 target firmware와 HIL/fault evidence가 없음
-- 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. foundation-windows.ps1와 setup-windows.ps1을 dot-source하면 Clang23.1.0/CMake4.4.3/Ninja1.13.2 및 직접 설치된 Arm15.3.Rel1/IDF6.0.3/CubeG4 1.6.3을 검증한다. target compile gate는 통과했지만 실제 보드/HIL은 미실행이다.
+- 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. pinned CMake4.4.3/Ninja1.13.2/Arm15.3.1/CubeG4 1.6.3을 명시한 STM32 Debug/Release와 ESP-IDF v6.0.3의 세 ESP32 actual build는 통과했다. `setup-windows.ps1 -VerifyOnly`는 managed Git shell의 `basename`/`sed`/`git-sh-setup` 탐색 실패로 여전히 중단한다.
 - KiCad ERC/정합성은 통과했으나 MAX20040 footprint PROVISIONAL, PCB/routing/thermal/SI/transient 검증 미완료
-- ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3` checkout, Arm archive digest와 target binary는 확보했지만 실제 board flash/HIL 및 production security provisioning은 미실행
+- ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3` checkout 및 Arm archive digest는 확인했고 post-fix target binary도 생성했다. CI, 실제 board flash/HIL 및 production security provisioning은 미실행
+- `.git` index/ref와 GitHub CLI ACL은 복구돼 commit/push/PR 조작이 가능하다. WSL `E_ACCESSDENIED`로 ASan/UBSan current 실행은 `NOT_RUN`.
 
 ## 문서 정본
 

@@ -1,5 +1,5 @@
 /* DO NOT EDIT. generate_boards.py v1; GPL-3.0-only
- * board+pin input SHA256: 236afe934a2219abced8da7f5b59a8d9c71800d5a1e93429e72b88b715e28205
+ * board+pin input SHA256: d9228c5fd044998500191eaabd990da81177aa63b247ceaa9110eb06d7f59d18
  * Review board contract; not fabrication/vehicle approval. */
 #ifndef CANVIEW_BOARD_PINS_H
 #define CANVIEW_BOARD_PINS_H

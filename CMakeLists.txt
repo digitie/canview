@@ -40,7 +40,7 @@ if(BUILD_TESTING)
         endif()
         add_executable(${esp_prefix}-app-tests tests/esp_core/test_app.c firmware/app/esp_core.c)
         target_link_libraries(${esp_prefix}-app-tests PRIVATE canview_esp_core canview_warnings)
-        foreach(scenario open gpio watchdog memory pool wait late healthy)
+        foreach(scenario open gpio watchdog memory pool wait late healthy null-safe null-idle)
             add_test(NAME ${esp_test_prefix}-app-${scenario} COMMAND ${esp_prefix}-app-tests ${scenario})
             set_tests_properties(${esp_test_prefix}-app-${scenario} PROPERTIES TIMEOUT 30)
         endforeach()
@@ -62,6 +62,23 @@ if(BUILD_TESTING)
             target_compile_definitions(${esp_prefix}-${kind}-tests PRIVATE CANVIEW_TEST_BRIDGE=${bridge})
         endforeach()
     endforeach()
+    # Run the real Bridge app+BSP+SDK adapter composition against the SDK fixture.
+    # The fixture stops app_main at its terminal idle callback, so this is not a
+    # substitute for an ESP-IDF build or physical board/HIL test.
+    add_executable(canview-esp32-bridge-integration-tests
+        tests/esp_core/test_bridge_integration.c
+        firmware/app/esp_core.c
+        firmware/platform/esp32s3/core_runtime.c
+        firmware/diagnostic-bridge/bsp/board.c
+        firmware/diagnostic-bridge/bsp/runtime.c)
+    target_compile_definitions(canview-esp32-bridge-integration-tests PRIVATE
+        CANVIEW_ESP_SDK_TEST=1 CANVIEW_TEST_BRIDGE=1)
+    target_include_directories(canview-esp32-bridge-integration-tests PRIVATE
+        tests/esp_core firmware/diagnostic-bridge/bsp)
+    target_link_libraries(canview-esp32-bridge-integration-tests PRIVATE
+        canview_esp_core canview_warnings)
+    add_test(NAME esp32-bridge-app-integration COMMAND canview-esp32-bridge-integration-tests)
+    set_tests_properties(esp32-bridge-app-integration PROPERTIES TIMEOUT 30)
     find_package(Threads REQUIRED)
     add_executable(canview-esp32-pool-threads tests/esp_core/test_pool_threads.c)
     target_link_libraries(canview-esp32-pool-threads PRIVATE canview_esp_core canview_warnings Threads::Threads)

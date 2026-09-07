@@ -6,6 +6,7 @@ import io
 import json
 from pathlib import Path
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -94,6 +95,16 @@ class GeneratorTests(unittest.TestCase):
             bom = BOARDS.board_outputs(board, manifest, b"\xef\xbb\xbf" + raw)
             header = board["path"] + "/bsp/board_pins.h"
             self.assertEqual(normal[header].splitlines()[2:], bom[header].splitlines()[2:])
+
+    def test_bridge_usb_gpio_contract(self):
+        manifest = BOARDS.canonical(BOARDS.SOURCE)
+        spec = json.loads(manifest)
+        board = spec["boards"][2]
+        source = BOARDS.canonical(ROOT / board["source"])
+        contract = copy.deepcopy(BOARDS.BRIDGE_USB_CONTRACT)
+        contract["USB_DM"]["gpio"] = 18
+        with mock.patch.object(BOARDS, "BRIDGE_USB_CONTRACT", contract), self.assertRaises(ValueError):
+            BOARDS.board_outputs(board, manifest, source)
 
     def test_sdk_commits_full_length(self):
         manifest = json.loads((ROOT / "tools/toolchain-versions.json").read_text())

@@ -120,7 +120,8 @@ static void boot_healthy(fixture_t *fixture, canview_esp_core_t *core)
     initialize(fixture, core);
     CHECK(canview_esp_core_boot(core, &fixture->port) == CANVIEW_OK);
     CHECK(strcmp(fixture->trace, "SWTMT") == 0);
-    CHECK(core->state == CANVIEW_ESP_CORE_SAFE_BENCH && core->watchdog_ready);
+    CHECK(core->state == CANVIEW_ESP_CORE_SAFE_BENCH && core->watchdog_ready &&
+          core->sample_valid);
     CHECK(core->feeds == 0U && fixture->feeds == 0U);
     fixture->calls = 0U;
 }
@@ -207,7 +208,7 @@ static void boot_tests(void)
             fixture.sample.psram_bytes = TEST_OTHER_PSRAM;
         }
         CHECK(canview_esp_core_boot(&core, &fixture.port) == CANVIEW_TIMEOUT);
-        CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && fixture.feeds == 0U);
+        CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && !core.sample_valid && fixture.feeds == 0U);
     }
     /* Caller의 계약을 바꿔도 이미 boot한 context는 사본을 사용한다. */
     boot_healthy(&fixture, &core);
@@ -219,13 +220,13 @@ static void boot_tests(void)
     fixture.sample.psram_bytes = TEST_OTHER_PSRAM;
     fixture.now += 100000U;
     CHECK(canview_esp_core_step(&core) == CANVIEW_TIMEOUT);
-    CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && fixture.feeds == 1U);
+    CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && !core.sample_valid && fixture.feeds == 1U);
     for (uint32_t stage = 1U; stage <= 5U; ++stage)
     {
         initialize(&fixture, &core);
         fixture.fail_at = stage;
         CHECK(canview_esp_core_boot(&core, &fixture.port) == CANVIEW_NOT_IMPLEMENTED);
-        CHECK(core.state == CANVIEW_ESP_CORE_FAULT && !core.busy);
+        CHECK(core.state == CANVIEW_ESP_CORE_FAULT && !core.busy && !core.sample_valid);
         CHECK(fixture.calls == stage && fixture.feeds == 0U);
         const canview_esp_core_fault_t fault = core.fault;
         CHECK(canview_esp_core_boot(&core, &fixture.port) == CANVIEW_RESOURCE_BUSY);
@@ -244,7 +245,7 @@ static void boot_tests(void)
         initialize(&fixture, &core);
         make_bad_memory(&fixture.sample, scenario);
         CHECK(canview_esp_core_boot(&core, &fixture.port) == CANVIEW_TIMEOUT);
-        CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && fixture.feeds == 0U);
+        CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && !core.sample_valid && fixture.feeds == 0U);
     }
     initialize(&fixture, &core);
     fixture.now = UINT64_MAX - CANVIEW_ESP_CORE_DEADLINE_US + 1U;
@@ -377,7 +378,7 @@ static void fault_tests(void)
             break;
         }
         CHECK(canview_esp_core_step(&core) == CANVIEW_TIMEOUT);
-        CHECK(core.fault == expected && core.last_progress_us == 0U);
+        CHECK(core.fault == expected && core.last_progress_us == 0U && !core.sample_valid);
         CHECK(fixture.feeds == (scenario == 8U ? 1U : 0U));
         CHECK(canview_esp_core_step(&core) == CANVIEW_TIMEOUT);
     }

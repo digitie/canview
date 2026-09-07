@@ -21,6 +21,7 @@ typedef struct
     void *owner;
     int64_t time;
     int64_t critical_delay;
+    int64_t reset_advance;
     size_t psram;
     size_t heap;
     size_t block;
@@ -152,6 +153,7 @@ esp_err_t esp_task_wdt_reset(void)
 {
     CHECK(fake.depth == 1U);
     ++fake.reset_calls;
+    fake.time += fake.reset_advance;
     return fake.reset;
 }
 int64_t esp_timer_get_time(void)
@@ -291,45 +293,40 @@ static void argument_tests(void)
 }
 static void watchdog_tests(void)
 {
-    for (unsigned fault = 0U; fault < 7U; ++fault)
+    reset_fake();
+    canview_esp_runtime_t runtime = {0};
+    const canview_esp_runtime_port_t port = open_runtime(&runtime);
+    CHECK(port.core.watchdog_start(&runtime) == CANVIEW_OK);
+    CHECK(runtime.watchdog_ready && fake.add_calls == 1U && fake.init_calls == 0U &&
+          fake.reconfigure_calls == 0U);
+    CHECK(port.core.watchdog_start(&runtime) == CANVIEW_INVALID_ARGUMENT);
+
+    reset_fake();
+    runtime = (canview_esp_runtime_t){0};
+    const canview_esp_runtime_port_t invalid_state_port = open_runtime(&runtime);
+    fake.status = ESP_ERR_INVALID_STATE;
+    CHECK(invalid_state_port.core.watchdog_start(&runtime) == CANVIEW_NOT_IMPLEMENTED);
+    CHECK(!runtime.watchdog_ready && fake.add_calls == 0U && fake.init_calls == 0U &&
+          fake.reconfigure_calls == 0U);
+
+    reset_fake();
+    runtime = (canview_esp_runtime_t){0};
+    const canview_esp_runtime_port_t add_failure_port = open_runtime(&runtime);
+    fake.add = ESP_FAIL;
+    CHECK(add_failure_port.core.watchdog_start(&runtime) == CANVIEW_NOT_IMPLEMENTED);
+    CHECK(!runtime.watchdog_ready && fake.add_calls == 1U && fake.init_calls == 0U &&
+          fake.reconfigure_calls == 0U);
+
+    const esp_err_t status_values[] = {ESP_OK, ESP_ERR_INVALID_STATE, ESP_FAIL};
+    for (size_t index = 0U; index < sizeof(status_values) / sizeof(status_values[0]); ++index)
     {
         reset_fake();
-        canview_esp_runtime_t runtime = {0};
-        const canview_esp_runtime_port_t port = open_runtime(&runtime);
-        if (fault == 0U || fault == 1U)
-        {
-            fake.status = ESP_ERR_INVALID_STATE;
-        }
-        if (fault == 1U)
-        {
-            fake.init = ESP_FAIL;
-        }
-        if (fault == 2U)
-        {
-            fake.reconfigure = ESP_FAIL;
-        }
-        if (fault == 3U)
-        {
-            fake.add = ESP_FAIL;
-        }
-        if (fault == 4U)
-        {
-            fake.status = ESP_OK;
-        }
-        if (fault == 5U)
-        {
-            fake.status = ESP_FAIL;
-        }
-        const canview_status_t status = port.core.watchdog_start(&runtime);
-        CHECK((status == CANVIEW_OK) == (fault == 0U || fault == 6U));
-        CHECK(runtime.watchdog_ready == (status == CANVIEW_OK));
-        CHECK(fake.add_calls == ((fault == 0U || fault == 3U || fault == 6U) ? 1U : 0U));
-        if (status == CANVIEW_OK)
-        {
-            CHECK(port.core.watchdog_start(&runtime) == CANVIEW_INVALID_ARGUMENT);
-        }
-        CHECK(fake.init_calls == (fault < 2U ? 1U : 0U));
-        CHECK(fake.reconfigure_calls == ((fault == 2U || fault == 3U || fault == 6U) ? 1U : 0U));
+        runtime = (canview_esp_runtime_t){0};
+        const canview_esp_runtime_port_t busy_port = open_runtime(&runtime);
+        fake.status = status_values[index];
+        CHECK(busy_port.core.watchdog_start(&runtime) != CANVIEW_OK);
+        CHECK(!runtime.watchdog_ready && fake.add_calls == 0U && fake.init_calls == 0U &&
+              fake.reconfigure_calls == 0U);
     }
 }
 static void memory_time_tests(void)
@@ -396,7 +393,7 @@ static void memory_time_tests(void)
 }
 static void feed_tests(void)
 {
-    for (unsigned fault = 0U; fault < 8U; ++fault)
+    for (unsigned fault = 0U; fault < 9U; ++fault)
     {
         reset_fake();
         canview_esp_runtime_t runtime = {0};
@@ -434,10 +431,14 @@ static void feed_tests(void)
         {
             fake.time = 1500;
         }
+        if (fault == 8U)
+        {
+            fake.reset_advance = 1001;
+        }
         const canview_status_t status = port.core.feed(&runtime, 1000U, 2000U, &time);
         const bool valid = fault == 0U || fault == 6U || fault == 7U;
         CHECK((status == CANVIEW_OK) == valid);
-        CHECK(fake.reset_calls == ((valid || fault == 5U) ? 1U : 0U));
+        CHECK(fake.reset_calls == ((valid || fault == 5U || fault == 8U) ? 1U : 0U));
         CHECK(valid ? time == (uint64_t)fake.time : time == 99U);
         CHECK(fake.depth == 0U && fake.enters == fake.leaves);
     }

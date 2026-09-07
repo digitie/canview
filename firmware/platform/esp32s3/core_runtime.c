@@ -45,25 +45,12 @@ static canview_status_t watchdog_start(void *context)
         return CANVIEW_INVALID_ARGUMENT;
     }
     const esp_err_t status = esp_task_wdt_status(NULL);
-    const esp_task_wdt_config_t config = {.timeout_ms = CANVIEW_ESP_CORE_WATCHDOG_MS,
-                                          .idle_core_mask =
-                                              (UINT32_C(1) << configNUMBER_OF_CORES) - 1U,
-                                          .trigger_panic = true};
-    esp_err_t result;
-    if (status == ESP_ERR_INVALID_STATE)
+    if (status != ESP_ERR_NOT_FOUND)
     {
-        result = esp_task_wdt_init(&config);
+        /* IDF startup가 global TWDT를 초기화한다. 다른 subscription이나 설정을 가로채지 않는다. */
+        return status == ESP_OK ? CANVIEW_RESOURCE_BUSY : CANVIEW_NOT_IMPLEMENTED;
     }
-    else if (status == ESP_ERR_NOT_FOUND)
-    {
-        result = esp_task_wdt_reconfigure(&config);
-    }
-    else
-    {
-        /* 이미 등록된 task의 subscription을 가로채지 않는다. */
-        return CANVIEW_RESOURCE_BUSY;
-    }
-    if (result != ESP_OK || esp_task_wdt_add(NULL) != ESP_OK)
+    if (esp_task_wdt_add(NULL) != ESP_OK)
     {
         return CANVIEW_NOT_IMPLEMENTED;
     }
@@ -138,13 +125,18 @@ static canview_status_t feed(void *context, uint64_t not_before, uint64_t deadli
     /* Timer 검사와 SDK reset 사이의 task 선점을 막는다. SDK 내부 lock은 별개다.
      * ISR/NMI·cache 정지와 SDK lock 대기의 실제 상한은 T-200/T-400 HIL로 검증해야 한다. */
     portENTER_CRITICAL(&feed_mux);
-    const int64_t value = esp_timer_get_time();
-    if (value >= 0 && (uint64_t)value >= not_before && (uint64_t)value <= deadline)
+    const int64_t before = esp_timer_get_time();
+    if (before >= 0 && (uint64_t)before >= not_before && (uint64_t)before <= deadline)
     {
         if (esp_task_wdt_reset() == ESP_OK)
         {
-            *fed_at = (uint64_t)value;
-            status = CANVIEW_OK;
+            const int64_t after = esp_timer_get_time();
+            if (after >= 0 && (uint64_t)after >= not_before && (uint64_t)after <= deadline &&
+                after >= before)
+            {
+                *fed_at = (uint64_t)after;
+                status = CANVIEW_OK;
+            }
         }
         else
         {
@@ -192,19 +184,21 @@ static void report(void *context, const canview_esp_core_t *core, canview_status
     {
         return;
     }
+    const canview_esp_core_sample_t sample = core->sample_valid ? core->sample
+                                                                 : (canview_esp_core_sample_t){0};
     const esp_app_desc_t *description = esp_app_get_description();
     ESP_LOGI("core",
              "bench-only project=%s build=%s idf=%s cap=0 tx=0 state=%u fault=%u status=%u "
-             "reset=%" PRIu32,
+             "sample-valid=%u reset=%" PRIu32,
              description->project_name, description->version, description->idf_ver,
              (unsigned)core->state, (unsigned)core->fault, (unsigned)service_status,
-             core->sample.reset_reason);
+             core->sample_valid ? 1U : 0U, sample.reset_reason);
     ESP_LOGI("core",
              "flash=%" PRIu32 " psram=%" PRIu32 " internal=%" PRIu32 " block=%" PRIu32
              " stack-free=%" PRIu32 " input-valid=%u input-level=%u",
-             core->sample.flash_bytes, core->sample.psram_bytes, core->sample.heap_free_bytes,
-             core->sample.largest_block_bytes, core->sample.stack_free_bytes,
-             (unsigned)core->sample.input_valid_mask, (unsigned)core->sample.input_level_mask);
+             sample.flash_bytes, sample.psram_bytes, sample.heap_free_bytes,
+             sample.largest_block_bytes, sample.stack_free_bytes,
+             (unsigned)sample.input_valid_mask, (unsigned)sample.input_level_mask);
 }
 
 canview_status_t canview_esp_runtime_open(canview_esp_runtime_t *runtime,

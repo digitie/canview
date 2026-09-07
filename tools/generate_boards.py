@@ -19,6 +19,10 @@ ESP_MODULE_GPIO = {
     "ESP32-S3-WROOM-1-N16R8": frozenset(range(22)) | frozenset(range(38, 49)),
     "ESP32-S3-WROOM-1-N8R2": frozenset(range(22)) | frozenset(range(35, 49)),
 }
+BRIDGE_USB_CONTRACT = {
+    "USB_DM": {"pin": "13", "pin_name": "USB_D-", "electrical_type": "bidirectional", "gpio": 19},
+    "USB_DP": {"pin": "14", "pin_name": "USB_D+", "electrical_type": "bidirectional", "gpio": 20},
+}
 
 
 def canonical(path: Path) -> bytes:
@@ -94,6 +98,15 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
             lines.append(f"#define {prefix}{name.upper()} ({value}U)")
     else:
         rows = list(csv.DictReader(io.StringIO(source.decode("utf-8-sig"))))
+        if board["id"] == "bridge-r1-n8r2":
+            selected = [row for row in rows
+                        if row["reference"] == board["reference"] and row["net"] != "NC"]
+            for net, expected in BRIDGE_USB_CONTRACT.items():
+                matches = [row for row in selected if row["net"] == net]
+                if len(matches) != 1 or any(matches[0][key] != value
+                                            for key, value in expected.items()
+                                            if key != "gpio"):
+                    raise ValueError("Bridge USB package/net contract")
         for row in rows:
             if row["reference"] != board["reference"] or row["net"] == "NC":
                 continue
@@ -112,6 +125,10 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
             if row["net"] in nets:
                 raise ValueError("duplicate GPIO net")
             nets[row["net"]] = value
+        if board["id"] == "bridge-r1-n8r2":
+            for net, expected in BRIDGE_USB_CONTRACT.items():
+                if nets.get(net) != ("GPIO", expected["gpio"]):
+                    raise ValueError("Bridge USB GPIO contract")
     if not set(board["required_nets"]) <= set(nets):
         raise ValueError("missing required signal: " + board["id"])
     if board["kind"] == "esp32s3":
@@ -155,7 +172,7 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
                "CONFIG_PARTITION_TABLE_CUSTOM=y",
                'CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"',
                "CONFIG_PARTITION_TABLE_OFFSET=0x8000",
-               "CONFIG_NVS_ENCRYPTION=y", "CONFIG_SPIRAM=y",
+               "CONFIG_SPIRAM=y",
                "CONFIG_SPIRAM_MODE_OCT=y" if board["psram_mode"] == "octal" else "CONFIG_SPIRAM_MODE_QUAD=y",
                "CONFIG_SPIRAM_ECC_ENABLE=y" if board["psram_ecc"] else "# CONFIG_SPIRAM_ECC_ENABLE is not set",
                "CONFIG_SPIRAM_SPEED_80M=y",

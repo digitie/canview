@@ -44,7 +44,7 @@ SDK 초기화·watchdog 등록에서 SDK 내부 allocation은 존재할 수 있�
 
 첫 wait에서 tick 기준을 잡고 이후 `xTaskDelayUntil`의 이전 wake tick을 보존한다. 지연 없이 반환되는 overrun은 TIMEOUT이다. catch-up loop로 여러 feed를 만들지 않는다. 32-bit tick wrap은 SDK API에 맡기며 health는 별도의 64-bit monotonic microsecond clock을 검사한다.
 
-core는 sample 완료 뒤 시간을 검사하고, adapter는 자신의 critical section 진입 뒤 clock을 다시 검사한 후 `esp_task_wdt_reset`을 호출한다. `fed_at`은 SDK 호출 직전 **검사 시각**이지 물리 watchdog counter 재설정 계측값이 아니다. task 선점은 막지만 SDK 내부 spinlock 대기, NMI/고우선순위 interrupt·cache stall 상한과 watchdog reset latency는 HIL 미검증이다. 이 상한을 이미 보장했다고 주장하거나 차량 safety deadline으로 재사용하면 안 된다. 다른 worker를 추가할 때 각 worker가 자기 subscription과 진척을 소유해야 한다.
+core는 sample 완료 뒤 시간을 검사하고, adapter는 자신의 critical section 진입 뒤 clock을 검사한 후 `esp_task_wdt_reset`을 호출하며 호출 직후 clock을 다시 확인한다. `fed_at`은 SDK 호출 직후 확인한 **post-call 시각**이다. task 선점은 막지만 SDK 내부 spinlock 대기, NMI/고우선순위 interrupt·cache stall 상한과 watchdog reset latency는 HIL 미검증이다. 이 상한을 이미 보장했다고 주장하거나 차량 safety deadline으로 재사용하면 안 된다. 다른 worker를 추가할 때 각 worker가 자기 subscription과 진척을 소유해야 한다.
 
 실패 후 app은 한 번 상태를 출력하고 idle만 호출한다. 등록 후에는 main이 feed하지 않아 TWDT panic/reset을 기다리며, 등록 전 실패는 safe idle로 남는다. USB가 연결되지 않은 경우 출력 지연도 health deadline에 포함된다. journal/자동 NVS erase/reboot 복구는 구현하지 않는다.
 
@@ -56,11 +56,11 @@ acquire는 payload를 복사하고 pool 주소·slot·generation token을 반환
 
 ## 설정과 검증
 
-`boards.json`의 bench-health-v1이 defaults를 생성한다. 기존 sdkconfig는 defaults 변경으로 갱신되지 않으므로 별도 SDKCONFIG 경로로 빌드한다. `tools/check_sdkconfig.py --board comm-r2-n16r8|bridge-r1-n8r2`는 실제 생성 설정의 메모리·watchdog panic/idle·USB console·factory layout을 검사하며 각 project의 CMake configure와 CI에서도 실행한다. Panic은 PRINT_REBOOT, 추가 지연0초로 고정하고 HALT/GDBSTUB를 거부한다. factory reset/OTA data erase, secure boot/Flash encryption, anti-rollback, 가상 eFuse와 Flash core dump도 이 bench에서 거부한다. OTA/security provisioning을 자동 선택하지 않는다.
+`boards.json`의 bench-health-v1이 defaults를 생성한다. 기존 sdkconfig는 defaults 변경으로 갱신되지 않으므로 별도 SDKCONFIG 경로로 빌드한다. `tools/check_sdkconfig.py --board comm-r2-n16r8|bridge-r1-n8r2`는 실제 생성 설정의 메모리·watchdog panic/idle·USB console·factory layout을 검사하며 각 project의 CMake configure와 CI에서도 실행한다. `tools/sdkconfig-allowlist/esp32s3-idf-6.0.3.keys`는 pinned ESP-IDF 6.0.3의 두 실제 generated config에서 검토한 key union이며, 목록 밖의 active `CONFIG_*`는 거부한다. Panic은 PRINT_REBOOT, 추가 지연0초로 고정하고 HALT/GDBSTUB를 거부한다. factory reset/OTA data erase, secure boot/Flash encryption, anti-rollback, 가상 eFuse와 Flash core dump도 이 bench에서 거부한다. OTA/security provisioning을 자동 선택하지 않는다.
 
 자동 watchdog 복구 정책은 디버거 미연결 기준이다. JTAG/OCD 연결 중에는 SDK/debugger가 watchdog·panic 처리를 바꿀 수 있으므로 실제 reset 시험은 debugger 조건을 기록하고 분리한다. GPIO·CAN 외부 gate는 그 조건에서도 별도 필수다.
 
-두 보드 matrix의 host 시험은 교차 메모리·config 사본·입력 valid/level·BSP 고정 핀과 boot 단계별 오류/재진입, memory/clock/deadline 경계, pool stale/alias/포화와 generation retire, 실제 adapter의 SDK 실패 및 owner/critical feed gate를 포함한다. 4 native host thread가 2slot에서8000개 payload를 교차 검증한다. 이는 ESP32 dual-core RTOS 스케줄링 검증이 아니다. coverage는 보드별 portable·adapter·app profile을 분리하고 function100%/line≥95%/branch≥90%를 요구한다.
+두 보드 matrix의 host 시험은 교차 메모리·config 사본·입력 valid/level·BSP 고정 핀과 boot 단계별 오류/재진입, memory/clock/deadline 경계, pool stale/alias/포화와 generation retire, 실제 adapter의 SDK 실패 및 owner/critical feed gate를 포함한다. `esp32-bridge-app-integration`은 실제 Bridge app+BSP/runtime와 SDK adapter를 fixture에 결합하여 boot→pool→health→terminal idle 경로를 실행한다. 4 native host thread가 2slot에서8000개 payload를 교차 검증한다. 이는 ESP32 dual-core RTOS 스케줄링 검증이 아니다. coverage는 보드별 portable·adapter·app profile을 분리하고 function100%/line≥95%/branch≥90%를 요구한다.
 
 근거 SDK는 설치된 ESP-IDF v6.0.3의 `esp_system/include/esp_task_wdt.h`, `task_wdt/task_wdt.c`, `esp_psram/include/esp_psram.h`, `freertos/FreeRTOS-Kernel/include/freertos/task.h`다. 공식 원문은 [ESP-IDF v6.0.3](https://github.com/espressif/esp-idf/tree/v6.0.3/components)이며 고정 commit/digest 정본은 저장소 toolchain manifest다.
 

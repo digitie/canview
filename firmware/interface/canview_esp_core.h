@@ -62,7 +62,7 @@ typedef canview_status_t canview_esp_core_stage_fn_t(void *context);
 typedef canview_status_t canview_esp_core_clock_fn_t(void *context, uint64_t *now_us);
 typedef canview_status_t canview_esp_core_sample_fn_t(void *context,
                                                       canview_esp_core_sample_t *sample);
-/** Adapter는 갱신 직전 clock을 다시 확인한다. 성공 시 실제 검사 timestamp를 반환한다. */
+/** Adapter는 갱신 직전과 직후 clock을 확인한다. 성공 시 post-call timestamp를 반환한다. */
 typedef canview_status_t canview_esp_core_feed_fn_t(void *context, uint64_t not_before_us,
                                                     uint64_t deadline_us, uint64_t *fed_at_us);
 typedef struct
@@ -83,6 +83,7 @@ typedef struct
     canview_esp_core_fault_t fault;
     canview_esp_core_port_t port;
     canview_esp_core_sample_t sample;
+    bool sample_valid; /**< 마지막 sample이 현재 SAFE_BENCH 상태를 대표하면 true. */
     uint64_t last_progress_us;
     uint32_t checks;
     uint32_t feeds;

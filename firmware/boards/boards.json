@@ -80,7 +80,9 @@
       "reference": "U11",
       "required_nets": [
         "PAIR_BUTTON_N",
-        "STATUS_LED"
+        "STATUS_LED",
+        "USB_DM",
+        "USB_DP"
       ],
       "factory_size": 2621440,
       "ota": {
