@@ -6,6 +6,8 @@ CI run `34112160182`의 target-firmware-windows는 PR merge ref `2e49280`에서 
 
 같은 run의 전체 failure는 `windows-c99`에서 Doxygen 1.18.0 official archive download가 retry 후 빈 응답으로 끝난 것이 원인이다. 현재 URL의 HTTP 200 헤더는 재확인했지만, 일시 접근 회복을 CI 전체 PASS로 대체하지 않는다. B-06은 이전 evidence-only candidate에 clean target audit이 없다는 P1을 정확히 유지했다. 새 CI run에서 Windows C99를 다시 성공시키고, clean target audit을 포함한 evidence candidate의 같은 reviewer 재검토 전까지 P1은 unresolved다.
 
+후속 run `34113636144`의 Windows C99 job은 success로 종료했다. B-07은 clean merge ref target job, artifact ID/digest, 18/18 manifest/hash audit, warning scan과 `5d6fac4` source 연결을 object-only로 재검토해 B-05/B-06 provenance P1을 `FIXED`로 확인했다. B-07은 physical/HIL `NOT_RUN`과 final branch CI를 분리한 `CONDITIONAL` verdict이며, raw report를 보존한다.
+
 ## 2026-09-07 (codex, T-400a immutable evidence와 독립 재검토)
 
 post-fix source candidate `5d6fac4`를 Git object-only 기준선으로 새 execution ID A-05/B-05에 독립 전달했다. A-05는 지정 embedded runtime 범위에서 P0–P3 없음 `CONDITIONAL`을 반환했다. B-05는 source/config 정적 대조에서 새 P0/P2/P3는 없었으나, candidate 안의 target evidence가 temporary working-tree만 가리키는 provenance P1로 `BLOCK`을 반환했다. 두 raw report는 evidence 디렉터리에 원문으로 보존한다. B-05 시작 시각은 reviewer service가 `NOT_RECORDED`로 반환해 coordinator가 추정값으로 채우지 않았다.
