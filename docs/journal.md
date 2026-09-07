@@ -1,5 +1,9 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-400 G1 physical 장비 가용성 확인)
+
+Windows의 `Win32_SerialPort`와 present PnP 장치를 `ST-LINK`, `STM32`, `ESP32`, `CP210`, `CH340`, `FTDI`, `USB Serial` 및 관련 vendor ID로 읽기 전용 조회했으나 대상 COM port·debug probe·USB-UART·MCU 장비는 하나도 감지되지 않았다. 따라서 T-400의 board flash/HIL, ST-LINK/serial console, rail/reset/brownout, PSRAM/clock/watchdog soak은 실행하지 않았고 모두 `NOT_RUN`이다. 이 결과는 host/CI target build를 physical evidence로 승격하지 않으며 G1이 닫히기 전 SoftAP·HTTP·인증 또는 차량 CAN/TX 범위에 진입하지 않는다. 차량 CAN evidence, provisioning, vehicle TX release도 계속 `NOT_RUN`이고 CAN TX는 `NO-GO`다.
+
 ## 2026-09-07 (codex, T-400 P2 source/CI/PR closure)
 
 PR #25의 final candidate `5b6a2994d676784ab02bdbda54f1e50a9454b45c`에서 CI `34126431204`의 Windows C99, target-firmware-windows, Linux GCC/Clang portability, Linux ASan/UBSan 다섯 job이 모두 success로 종료했다. 업로드 artifact를 별도 디렉터리에 내려받아 `target-artifacts.json`의 18개 path·byte·SHA-256을 재계산해 모두 일치시켰고, target build log의 compiler/linker/CMake warning scan은 0건이었다.
