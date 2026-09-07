@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-400 reviewer service 미완료 기록)
+
+PR #28 candidate `19a42339b2b37981a0bdfe976e3e073809825027`와 base `9fe46c753be151e6aa23f0fdc95fd527f86cf82d`를 고정해 Reviewer A/B를 독립 실행했다. broad scope, bounded scope, 최소 object-only scope의 세 번 시도 모두 raw report를 반환하지 않고 `running` 상태가 지속되어 coordinator가 shutdown했다. 실제 reviewer가 읽은 파일·실행 명령·finding은 반환되지 않았으므로 `NOT_REPORTED`로 남겼고, [통합 실행 기록](reviews/adversarial/2026-09-08-T-400.md)과 [A](reviews/adversarial/evidence/2026-09-08-T-400-reviewer-a.md)/[B](reviews/adversarial/evidence/2026-09-08-T-400-reviewer-b.md) evidence에 `INCOMPLETE/BLOCK`을 보존했다. PR #28 CI 5개 job은 성공했지만 required review raw report가 없어 ready/merge하지 않는다.
+
+물리 board flash/HIL, ST-LINK/serial, AP association, phone browser, rail/reset/brownout, PSRAM/clock/watchdog soak, ESP-NOW observer/capture, production provisioning 및 차량 CAN evidence는 계속 `NOT_RUN`이다. Diagnostic Bridge의 CAN TX/raw replay/control lease는 `NO-GO`다.
+
 ## 2026-09-08 (codex, T-400 C web bootstrap hardening과 target 재검증)
 
 T-400 source-only 예외 범위에서 `canview_bridge_web`의 REST 상태 mutex와 WebSocket I/O mutex를 분리하고, handshake event 전용 buffer와 bounded receive를 연결했다. start 실패 시 HTTP server·mutex·credential state를 정리하고, AP 설정 stack과 session body/response/subprotocol token을 처리 후 zeroize하도록 보강했다. WebSocket subprotocol의 comma/공백·중복·빈 항목·잘못된 token을 fail-closed로 검사하고, fixed JSON arena 사용량 overflow와 malformed body 길이도 방어한다. Diagnostic Bridge의 read-only capability(`control_scope=0`, `vehicle_tx=false`)와 raw replay/control lease 부재는 유지했다.

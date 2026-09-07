@@ -4,6 +4,8 @@
 
 2026-09-08 사용자가 `G1 이전 fw 구현 허용`과 `C로 작성`을 명시해 `codex/t400-bridge-web-bootstrap`에서 T-400의 C source-only web bootstrap을 진행 중이다. `canview_bridge_auth` C99 상태기계, ESP-IDF `esp_http_server`/`cJSON`/WebSocket 기반 local shell, fixed-buffer DNS, NVS read-only credential load, GPIO4 service window과 read-only empty snapshot을 구현하고 상태/I/O lock·credential zeroize·malformed input 경계를 보강했다. 실제 ESP-IDF 6.0.3 target build에서 Diagnostic Bridge BIN/ELF/MAP를 재생성했고 host 111/111·sanitizer 111/111·coverage·문서/config/generator gate를 재실행했다. 이 예외는 physical/HIL gate나 CAN TX 권한을 열지 않는다.
 
+2026-09-08 PR #28의 fresh 독립 hostile reviewer A/B를 여러 bounded execution ID로 요청했으나 원문 report가 반환되지 않아 모두 `INCOMPLETE/BLOCK`으로 기록했다. [실행 기록](reviews/adversarial/2026-09-08-T-400.md)과 reviewer별 evidence를 보존했으며, line-level review closure 전에는 ready/merge하지 않는다.
+
 2026-09-07 [T-400a](tasks/T-400a-bridge-core-bench.md)는 [PR #23](https://github.com/digitie/canview/pull/23), merge `25eba080`으로 DONE이다. final CI `34114919104`의 Windows C99·target firmware·Linux GCC/Clang portability·ASan/UBSan 다섯 job, target artifact 18/18 path·size·SHA-256 대조, warning 0과 A-05/B-07 독립 review의 unresolved P0/P1 없음이 완료 조건을 충족했다. Bridge는 계속 read-only이며 P2 세 건은 T-400에 handoff했다. 실제 보드·ST-LINK/계측기가 없어 G1/G2 physical/HIL, 차량 CAN/capture, provisioning과 vehicle TX release는 `NOT_RUN`이고 CAN TX는 NO-GO다.
 
 2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 PR #18(`c18a8a5`)로, T-003은 ESP-NOW codec/session/QoS와 target build·2인 적대적 리뷰 후 PR #19(`4ee017b`)로 main에 merge되어 `DONE`이다.
@@ -20,7 +22,7 @@
 
 ## 다음 한 작업
 
-현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)이며, T-400a P2 source handoff는 [PR #25](https://github.com/digitie/canview/pull/25) merge `d8d8057`으로 main에 통합됐다. 현재 branch의 source-only web bootstrap은 사용자의 명시적 예외로 진행했고, 실제 board flash/HIL·AP association·phone browser·power/reset/brownout·PSRAM/clock/watchdog soak·ESP-NOW/capture·production provisioning은 `NOT_RUN`이다. 다음 gate는 immutable candidate commit/push, fresh 독립 hostile reviewer 2명, Draft PR CI와 review closure다. Diagnostic Bridge의 control lease·raw replay·vehicle TX는 여전히 범위 밖이고 CAN TX는 `NO-GO`다.
+현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)이며, T-400a P2 source handoff는 [PR #25](https://github.com/digitie/canview/pull/25) merge `d8d8057`으로 main에 통합됐다. 현재 branch의 source-only web bootstrap은 사용자의 명시적 예외로 진행했고, 실제 board flash/HIL·AP association·phone browser·power/reset/brownout·PSRAM/clock/watchdog soak·ESP-NOW/capture·production provisioning은 `NOT_RUN`이다. 다음 gate는 reviewer service가 반환하는 immutable line-level A/B report와 review closure다. Draft PR #28의 CI 5개 job은 통과했지만 review 원문 미반환으로 ready/merge하지 않는다. Diagnostic Bridge의 control lease·raw replay·vehicle TX는 여전히 범위 밖이고 CAN TX는 `NO-GO`다.
 
 - 현재 문서: docs/tasks/T-400-diagnostic-bridge-bootstrap.md, firmware/diagnostic-bridge/docs/web-shell.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
 - 다음 구현 순서: source candidate 검증·독립 2인 hostile review·PR/CI closure → G1 board flash·ST-LINK/serial·rail/reset/brownout physical evidence → observer/capture 후속 구현. 장비가 없으면 해당 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
