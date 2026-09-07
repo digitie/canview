@@ -22,9 +22,15 @@ T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가
 
 물리 board·power/reset gate가 현재 `NOT_RUN`인 상태에서는 위 source 검증을 진행할 수 있어도 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다. 원 disposition, owner, gate와 목표일은 [T-400a 통합 review](../reviews/adversarial/2026-09-07-T-400a.md)에 보존한다.
 
+### 2026-09-08 source-only 진행 예외
+
+사용자가 `G1 이전 fw 구현 허용`을 명시했으므로, 이번 branch에서는 G1 physical evidence 없이 C firmware source와 실제 ESP-IDF compile을 진행한다. 이 예외는 source implementation·host/target build에만 적용하며, board flash·AP association·power/reset/brownout·phone browser·ESP-NOW·capture·production provisioning을 성공으로 바꾸지 않는다. Diagnostic Bridge의 `control_scope=0`, `vehicle_tx=false`, raw replay/control lease 부재와 차량 CAN `NO-GO`는 그대로 유지한다. T-400은 source/review/CI와 물리 gate가 모두 닫힐 때까지 `IN_PROGRESS`다.
+
+현재 source 범위는 [Diagnostic Bridge web shell 문서](../../firmware/diagnostic-bridge/docs/web-shell.md)의 local gzip shell, fixed-buffer DNS, service-window session auth, bounded REST/WS read-only snapshot이다. 실제 observer/capture/Signal Lab API와 encrypted provisioning은 후속 구현으로 남긴다.
+
 ### 현재 handoff 실행 상태
 
-2026-09-07 immutable source candidate `f35779a`의 독립 2인 review는 wrong-BSP profile preflight가 safe GPIO 뒤에 있음을 P1로, profile digest 입력과 ISR 초기화 contract를 P2로 확인해 `BLOCK`을 반환했다. raw report는 [T-400 review](../reviews/adversarial/2026-09-07-T-400.md)에 보존한다. 후속 immutable `8f32c07`은 app preflight를 GPIO·idle·SDK open보다 앞으로 옮기고, board manifest+pin source profile digest 및 runtime/pool ISR 무변경 거부를 추가했다. 실제 app+BSP 교차-link의 GPIO/runtime open 0회 negative test, profile mutation test, Windows strict C99 Debug/Release 각각 110/110(별도 86,400초 stream 제외), ESP core coverage와 STM32 Debug/Release·Communicator·Bridge·Controller ESP-IDF BIN/ELF/MAP 재생성을 통과했다. whole-diff post-fix A/B 재시도는 서로의 raw evidence를 노출해 무효 `BLOCK`으로 보존했고, 이를 읽지 않은 fresh source-only A/B는 P0/P1 없음으로 확인했다. B의 coverage evidence P2는 immutable `813d19c`에서 app `preflight`와 두 wrong-BSP executable의 독립 `.profraw`/export·app function coverage를 coverage gate에 넣어 수정했다. C3 delta A는 실행/HIL `NOT_RUN` 조건부, B는 P2 `CLOSED/PASS`이며 P0/P1은 없다. final candidate `5b6a299`의 CI `34126431204`는 다섯 job 성공, CI artifact 18/18 path·size·SHA-256 독립 대조와 target warning 0을 확인했고 [PR #25](https://github.com/digitie/canview/pull/25)는 merge `d8d8057`으로 통합됐다. 이 source closure는 G1 물리 gate를 닫지 않으며, target binary·독립 2인 review·G1 power/reset evidence가 완료되기 전 SoftAP·HTTP·인증 또는 CAN/TX 범위는 열지 않는다.
+2026-09-07 immutable source candidate `f35779a`의 독립 2인 review는 wrong-BSP profile preflight가 safe GPIO 뒤에 있음을 P1로, profile digest 입력과 ISR 초기화 contract를 P2로 확인해 `BLOCK`을 반환했다. raw report는 [T-400 review](../reviews/adversarial/2026-09-07-T-400.md)에 보존한다. 후속 immutable `8f32c07`은 app preflight를 GPIO·idle·SDK open보다 앞으로 옮기고, board manifest+pin source profile digest 및 runtime/pool ISR 무변경 거부를 추가했다. 실제 app+BSP 교차-link의 GPIO/runtime open 0회 negative test, profile mutation test, Windows strict C99 Debug/Release 각각 110/110(별도 86,400초 stream 제외), ESP core coverage와 STM32 Debug/Release·Communicator·Bridge·Controller ESP-IDF BIN/ELF/MAP 재생성을 통과했다. whole-diff post-fix A/B 재시도는 서로의 raw evidence를 노출해 무효 `BLOCK`으로 보존했고, 이를 읽지 않은 fresh source-only A/B는 P0/P1 없음으로 확인했다. B의 coverage evidence P2는 immutable `813d19c`에서 app `preflight`와 두 wrong-BSP executable의 독립 `.profraw`/export·app function coverage를 coverage gate에 넣어 수정했다. C3 delta A는 실행/HIL `NOT_RUN` 조건부, B는 P2 `CLOSED/PASS`이며 P0/P1은 없다. final candidate `5b6a299`의 CI `34126431204`는 다섯 job 성공, CI artifact 18/18 path·size·SHA-256 독립 대조와 target warning 0을 확인했고 [PR #25](https://github.com/digitie/canview/pull/25)는 merge `d8d8057`으로 통합됐다. 이 source closure는 G1 물리 gate를 닫지 않는다. 사용자의 2026-09-08 명시적 source-only 예외에 따라 C source와 실제 target compile은 진행하지만, board flash/HIL·power/reset evidence가 완료되기 전 physical acceptance와 차량 CAN/TX 범위는 열지 않는다.
 
 ## 고정 target
 
@@ -37,7 +43,7 @@ T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가
 
 ## 구현 범위
 
-- top-level IDF project, partitions, encrypted NVS
+- top-level IDF project, partitions, bench NVS read-only credential load; encrypted production provisioning은 별도 gate
 - Bridge role provisioning과 encrypted peer 두 개까지
 - SoftAP/DNS landing, §14.2의 memory-only bearer token·REST Authorization/WS subprotocol, CSRF/Origin 검사와 request limits
 - HTTP/WS shell과 static asset embedding

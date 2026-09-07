@@ -26,8 +26,18 @@ add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_subdirectory(firmware/communicator/stm32/module)
 add_subdirectory(firmware/module/esp_core)
+add_library(canview_bridge_auth_host STATIC
+    firmware/diagnostic-bridge/components/canview_bridge_auth/canview_bridge_auth.c)
+target_include_directories(canview_bridge_auth_host PUBLIC
+    firmware/diagnostic-bridge/components/canview_bridge_auth/include
+    shared/interface)
+target_link_libraries(canview_bridge_auth_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-bridge-auth-tests tests/bridge_web/test_auth.c)
+    target_link_libraries(canview-bridge-auth-tests PRIVATE canview_bridge_auth_host canview_warnings)
+    add_test(NAME bridge-auth COMMAND canview-bridge-auth-tests)
+    set_tests_properties(bridge-auth PROPERTIES TIMEOUT 30)
     foreach(bridge 0 1)
         if(bridge)
             set(esp_prefix canview-esp32-bridge)

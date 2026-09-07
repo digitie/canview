@@ -1,5 +1,32 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-400 C web bootstrap hardening과 target 재검증)
+
+T-400 source-only 예외 범위에서 `canview_bridge_web`의 REST 상태 mutex와 WebSocket I/O mutex를 분리하고, handshake event 전용 buffer와 bounded receive를 연결했다. start 실패 시 HTTP server·mutex·credential state를 정리하고, AP 설정 stack과 session body/response/subprotocol token을 처리 후 zeroize하도록 보강했다. WebSocket subprotocol의 comma/공백·중복·빈 항목·잘못된 token을 fail-closed로 검사하고, fixed JSON arena 사용량 overflow와 malformed body 길이도 방어한다. Diagnostic Bridge의 read-only capability(`control_scope=0`, `vehicle_tx=false`)와 raw replay/control lease 부재는 유지했다.
+
+검증 결과는 다음과 같다.
+
+- `python -B tests/test_bridge_web_assets.py -v`: 3/3 PASS, `python -B -m unittest discover -s tests -p 'test_*.py'`: 47/47 PASS.
+- Windows host Debug/Release `bridge-auth`: 각각 1/1 PASS, 전체 CTest는 각각 111/111 PASS(`uart-fault-stream` 제외).
+- WSL Clang ASan/UBSan 전체 CTest 111/111 PASS(`uart-fault-stream` 제외), coverage·ESP core coverage gate PASS.
+- `python -B tools/generate_boards.py --check`, sdkconfig negative/positive 12/12, 문서 link 검사 238 documents·1180 local targets 오류 0.
+- ESP-IDF `6.0.3` 실제 Diagnostic Bridge target build에서 BIN/ELF/MAP를 재생성했다. app binary `0xcf870` bytes, app partition 여유 68%, 최신 성공 log의 warning/error scan 0건이며 `idf.py size-components`도 exit code 0이다. CI/독립 review는 다음 closure에서 다시 연결한다.
+
+이번 단계에서도 board flash/HIL, ST-LINK/serial, AP association, phone browser, rail/reset/brownout, PSRAM/clock/watchdog soak, ESP-NOW observer/capture, production provisioning과 차량 CAN evidence는 실행하지 않아 `NOT_RUN`이다. CAN TX는 계속 `NO-GO`이며, immutable commit·fresh 독립 hostile reviewer 2명·Draft PR CI는 아직 남아 있다.
+
+## 2026-09-08 (codex, T-400 source-only web bootstrap 구현)
+
+사용자가 `G1 이전 fw 구현 허용`과 `C로 작성`을 명시했으므로, `codex/t400-bridge-web-bootstrap`에서 T-400의 firmware source 구현을 시작했다. `canview_bridge_auth`에는 SDK-independent C99 challenge·one-time PIN·memory token·expiry·5회 lockout 상태기계를 추가했고, `canview_bridge_web`에는 ESP-IDF `esp_http_server`, `cJSON`, WebSocket, fixed-buffer DNS와 gzip 내장 shell을 추가했다. `app_main.c`는 board preflight→safe GPIO→fixed pool/runtime/core→read-only NVS credential→web start 순서의 단일 owner lifecycle을 사용한다. 모든 web 응답의 `control_scope=0`, `vehicle_tx=false`를 유지하고 raw CAN/replay/control lease 경로는 만들지 않았다.
+
+source 상태에서 다음을 확인했다.
+
+- Windows pinned Clang23.1.0/CMake4.4.3/Ninja1.13.2 환경의 `build-bridge-auth` CTest `bridge-auth`: 1/1 PASS.
+- `python -B tests/test_document_links.py -v`: 5/5 PASS. managed component/build generated README를 문서 navigation에서 제외하는 회귀를 추가했고 `tools/validate_document_links.py`: 238 documents, 1180 targets, errors=0.
+- `python -B tools/generate_boards.py --check`와 `tools/check_sdkconfig.py firmware/diagnostic-bridge/sdkconfig --board bridge-r1-n8r2`: PASS.
+- ESP-IDF `6.0.3`에서 `firmware/diagnostic-bridge`로 이동한 뒤 `idf.py build`를 실행해 compiler/linker 단계와 app image 생성을 확인했다. `build/canview_diagnostic_bridge.bin`, `.elf`, `.map`가 생성됐고 app partition 여유는 68%였다. `idf.py size-components`도 종료 code 0이다.
+
+G1 board flash, ST-LINK/serial, AP association, Android/iOS browser, rail/reset/brownout, PSRAM/clock/watchdog 장시간 시험, ESP-NOW observer/capture, encrypted production provisioning과 차량 CAN evidence는 실행하지 않아 `NOT_RUN`이다. source implementation은 사용자의 예외로 진행했지만 물리 gate는 닫지 않았고 CAN TX는 계속 `NO-GO`다. immutable commit, 새 독립 hostile reviewer A/B raw report, CI와 PR closure는 아직 남아 있다.
+
 ## 2026-09-08 (codex, T-400 G1 physical 장비 가용성 확인)
 
 Windows의 `Win32_SerialPort`와 present PnP 장치를 `ST-LINK`, `STM32`, `ESP32`, `CP210`, `CH340`, `FTDI`, `USB Serial` 및 관련 vendor ID로 읽기 전용 조회했으나 대상 COM port·debug probe·USB-UART·MCU 장비는 하나도 감지되지 않았다. 따라서 T-400의 board flash/HIL, ST-LINK/serial console, rail/reset/brownout, PSRAM/clock/watchdog soak은 실행하지 않았고 모두 `NOT_RUN`이다. 이 결과는 host/CI target build를 physical evidence로 승격하지 않으며 G1이 닫히기 전 SoftAP·HTTP·인증 또는 차량 CAN/TX 범위에 진입하지 않는다. 차량 CAN evidence, provisioning, vehicle TX release도 계속 `NOT_RUN`이고 CAN TX는 `NO-GO`다.

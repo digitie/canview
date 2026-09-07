@@ -6,6 +6,7 @@ import sys
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+GENERATED_DOCUMENT_DIRECTORIES = frozenset(("build", "managed_components", ".idf_tools"))
 
 
 def without_fences(body: str) -> str:
@@ -36,6 +37,8 @@ def validate(root: Path) -> tuple[list[str], int, int]:
     tools_readme = root/'tools/README.md'
     if tools_readme.exists():
         files.append(tools_readme)
+    files = [path for path in files
+             if not GENERATED_DOCUMENT_DIRECTORIES.intersection(path.relative_to(root).parts)]
     for path in sorted(set(files)):
         # Fenced examples are not clickable document navigation.
         body = without_fences(path.read_text(encoding='utf-8'))

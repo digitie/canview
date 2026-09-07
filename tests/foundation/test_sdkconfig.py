@@ -250,6 +250,9 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
         defaults = GATE.parse(generated[board["path"] + "/sdkconfig.defaults"])
         for key, expected in (("CONFIG_ESPTOOLPY_FLASHSIZE", '"8MB"'),
                               ("CONFIG_SPIRAM_MODE_QUAD", "y"), ("CONFIG_SPIRAM_ECC_ENABLE", "n"),
+                              ("CONFIG_HTTPD_WS_SUPPORT", "y"),
+                              ("CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT", "y"),
+                              ("CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT", "y"),
                               ("CONFIG_ESP_TASK_WDT_PANIC", "y"), ("CONFIG_ESP_TASK_WDT_TIMEOUT_S", "2"),
                               ("CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT", "y"),
                               ("CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS", "0"),

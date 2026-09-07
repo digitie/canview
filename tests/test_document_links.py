@@ -45,6 +45,22 @@ class DocumentLinkFenceTests(unittest.TestCase):
         body = "```text\n~~~\n[raw](missing)\n```suffix\n[raw](missing2)\n```\nlive\n"
         self.assertEqual(LINKS.without_fences(body), "live\n")
 
+    def test_generated_firmware_documents_are_not_repository_navigation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "docs").mkdir()
+            managed = root / "firmware" / "diagnostic-bridge" / "managed_components" / "demo"
+            build = root / "firmware" / "diagnostic-bridge" / "build" / "demo"
+            managed.mkdir(parents=True)
+            build.mkdir(parents=True)
+            (root / "docs" / "valid.md").write_text("[valid](valid.md)\n", encoding="utf-8")
+            (managed / "README.md").write_text("[generated](CONTRIBUTORS.md)\n", encoding="utf-8")
+            (build / "README.md").write_text("[generated](missing.md)\n", encoding="utf-8")
+            errors, documents, count = LINKS.validate(root)
+            self.assertEqual(errors, [])
+            self.assertEqual(documents, 1)
+            self.assertEqual(count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
