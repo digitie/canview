@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-200a merge와 T-400a 시작)
+
+PR #22의 최종 `84080fe`에서 clean STM32 Debug/Release·ESP4종 binary warning0, local26개/원격18개 artifact 크기·SHA-256, CI5개 SUCCESS를 확인했다. 두 reviewer가 최초 P1 2건/P2 2건 모두 FIXED와 최종 문서 delta PASS를 독립 확인했다. `--match-head-commit` merge 결과는 `2222290`이며 [최종 evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 원문·검증·NOT_RUN을 연결했다.
+
+사용자 MCU/core 순서에 따라 새 `codex/t400a-bridge-core-bench`에서 T-400a를 분리했다. Bridge N8R2는 현재 실제 SDKCONFIG에서도 Quad/80MHz였으며 기존 GPIO4/5와 R14 외부 pull-up mapping을 유지한다. 공용 core와 보드별 메모리·GPIO 계약을 분리하고 Communicator 회귀를 보존한다. SoftAP/HTTP/무선/OTA·실물 acceptance는 T-400에 남겼고 단순 task 분리를 완료로 표시하지 않는다. embedded 구조/C/RTOS/driver/ISR/문서 지침을 다시 대조했으며 새 ISR·통신 task는 이 범위에 만들지 않는다.
+
 ## 2026-09-07 (codex, T-200a 구현·독립 리뷰 수정)
 
 ESP32 C99 health/fixed pool·safe BSP·IDF TWDT/PSRAM/heap/USB adapter와 단일 owner app을 구현했다. Windows89/89, SDK fixture·app 실패 단계·동시 pool·coverage와 clean6종 warning0을 확인했다. [검증 evidence](reviews/adversarial/evidence/2026-09-07-T-200a-validation.md)는 commit별 결과와 미실행 HIL을 분리한다.
