@@ -6,6 +6,8 @@
 MCU 독립 framing/CRC/COBS/classic CAN batch/sequence window, 안전 idle 부팅, host 검증을 제공한다.
 언어와 문서 도구 결정은 [ADR-008](../adr/008-portable-foundation-and-api-docs.md)을 따른다.
 
+2026-09-07 T-200a에서 Communicator ESP32는 별도 [bench core](../../firmware/communicator/esp32/docs/core-bench.md)를 사용한다. `communicator/esp32/app`이 boot/health·고정 pool을 조합하고, 같은 project의 `interface`/`module`은 SDK 독립 C99, `platform/esp32s3/runtime.c`와 project-local `canview_communicator_runtime` component만 IDF/TWDT 경계를 소유한다. 아래 공용 startup 설명은 Controller/Bridge의 아직 교체하지 않은 safe-idle 경로에 해당한다.
+
 전체 ESP-NOW/UART message ABI 동결, 인증·pairing·ACK/command lifecycle, filter·QoS, FDCAN/DMA,
 LVGL·센서·차량 자동화, OTA loader·복구·서명 검증은 **아직 구현하지 않았다**.
 기존 architecture의 안전 요구를 축소하거나 제품 gate를 통과 처리하는 기반이 아니다.
@@ -25,7 +27,7 @@ Controller/Bridge에 raw CAN TX 경로를 추가하지 않았으며, 차량 송�
 
 구체 드라이버·미들웨어·RTOS task를 구현하지 않았으므로 비어 있는 미래 디렉터리나 가짜 HAL을 만들지 않는다.
 후속 드라이버는 bus port와 device context로 분리하고 app/codec에 HAL header를 가져오지 않는다.
-IDF app_main은 공용 startup, STM main은 [core bench](../../firmware/communicator/stm32/docs/core-bench.md) composition root를 사용한다. 역할은 빌드 상수이고 무선 입력으로 변경할 수 없다.
+Controller/Bridge IDF app_main은 공용 startup, Communicator ESP app_main과 STM main은 각 core bench composition root를 사용한다. 역할은 빌드 상수이고 무선 입력으로 변경할 수 없다.
 
 ## 프로토콜 구현 계약
 
@@ -94,7 +96,7 @@ partition 변경은 데이터 손실/boot 불가 위험이 있어 T-007·T-204·
 실행 명령과 실제 검증 결과는 [기반 개발 절차](../development/foundation.md)에 한 번만 둔다.
 공용 코드는 strict C99, 경고를 오류로 처리하며 C99 typedef 기반 정적 검사를 유지한다.
 IDF platform adapter는 SDK GNU 언어 모드를 유지하고 자체 코드의 -Wall/-Wextra/-Werror를 적용한다.
-별도 canview_esp32_platform component만 SDK adapter를 소유한다. main의 startup/BSP 및 canview_foundation은 strict C99이고 startup 네 역할은 host object compile gate에도 포함한다.
+공용 GPIO/idle은 canview_esp32_platform, Communicator ESP health의 IDF adapter는 canview_communicator_runtime component가 소유한다. main의 app/startup/BSP 및 canview_foundation은 strict C99이고 네 역할의 실제 startup은 host object compile gate에도 포함한다.
 기존 C11 자동화 prototype 시험은 별도 target이다. 이를 C99 gate나 새 firmware 기능으로 합산하지 않는다.
 
 .clang-format은 formatting만 설정하며 C++ 언어 전환을 의미하지 않는다.
