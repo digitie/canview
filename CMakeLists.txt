@@ -25,38 +25,65 @@ find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_subdirectory(firmware/communicator/stm32/module)
-add_subdirectory(firmware/communicator/esp32/module)
+add_subdirectory(firmware/module/esp_core)
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(canview-esp32-app-tests firmware/communicator/esp32/tests/test_app.c
-        firmware/communicator/esp32/app/main.c)
-    target_include_directories(canview-esp32-app-tests PRIVATE firmware/interface)
-    target_link_libraries(canview-esp32-app-tests PRIVATE canview_esp_core canview_warnings)
-    foreach(scenario open gpio watchdog memory pool wait late healthy)
-        add_test(NAME esp32-app-${scenario} COMMAND canview-esp32-app-tests ${scenario})
-        set_tests_properties(esp32-app-${scenario} PROPERTIES TIMEOUT 30)
+    foreach(bridge 0 1)
+        if(bridge)
+            set(esp_prefix canview-esp32-bridge)
+            set(esp_test_prefix esp32-bridge)
+            set(esp_board diagnostic-bridge)
+        else()
+            set(esp_prefix canview-esp32)
+            set(esp_test_prefix esp32)
+            set(esp_board communicator/esp32)
+        endif()
+        add_executable(${esp_prefix}-app-tests tests/esp_core/test_app.c firmware/app/esp_core.c)
+        target_link_libraries(${esp_prefix}-app-tests PRIVATE canview_esp_core canview_warnings)
+        foreach(scenario open gpio watchdog memory pool wait late healthy null-safe null-idle)
+            add_test(NAME ${esp_test_prefix}-app-${scenario} COMMAND ${esp_prefix}-app-tests ${scenario})
+            set_tests_properties(${esp_test_prefix}-app-${scenario} PROPERTIES TIMEOUT 30)
+        endforeach()
+        add_executable(${esp_prefix}-runtime-tests tests/esp_core/test_runtime.c
+            firmware/platform/esp32s3/core_runtime.c firmware/${esp_board}/bsp/runtime.c)
+        target_compile_definitions(${esp_prefix}-runtime-tests PRIVATE CANVIEW_ESP_SDK_TEST=1)
+        target_include_directories(${esp_prefix}-runtime-tests PRIVATE
+            tests/esp_core firmware/${esp_board}/bsp)
+        target_link_libraries(${esp_prefix}-runtime-tests PRIVATE canview_esp_core canview_warnings)
+        add_test(NAME ${esp_test_prefix}-runtime-sdk-model COMMAND ${esp_prefix}-runtime-tests)
+        set_tests_properties(${esp_test_prefix}-runtime-sdk-model PROPERTIES TIMEOUT 30)
+        add_executable(${esp_prefix}-core-tests tests/esp_core/test_core.c)
+        target_link_libraries(${esp_prefix}-core-tests PRIVATE canview_esp_core canview_warnings)
+        foreach(scenario boot health faults pool)
+            add_test(NAME ${esp_test_prefix}-core-${scenario} COMMAND ${esp_prefix}-core-tests ${scenario})
+            set_tests_properties(${esp_test_prefix}-core-${scenario} PROPERTIES TIMEOUT 30)
+        endforeach()
+        foreach(kind app runtime core)
+            target_compile_definitions(${esp_prefix}-${kind}-tests PRIVATE CANVIEW_TEST_BRIDGE=${bridge})
+        endforeach()
     endforeach()
+    # Run the real Bridge app+BSP+SDK adapter composition against the SDK fixture.
+    # The fixture stops app_main at its terminal idle callback, so this is not a
+    # substitute for an ESP-IDF build or physical board/HIL test.
+    add_executable(canview-esp32-bridge-integration-tests
+        tests/esp_core/test_bridge_integration.c
+        firmware/app/esp_core.c
+        firmware/platform/esp32s3/core_runtime.c
+        firmware/diagnostic-bridge/bsp/board.c
+        firmware/diagnostic-bridge/bsp/runtime.c)
+    target_compile_definitions(canview-esp32-bridge-integration-tests PRIVATE
+        CANVIEW_ESP_SDK_TEST=1 CANVIEW_TEST_BRIDGE=1)
+    target_include_directories(canview-esp32-bridge-integration-tests PRIVATE
+        tests/esp_core firmware/diagnostic-bridge/bsp)
+    target_link_libraries(canview-esp32-bridge-integration-tests PRIVATE
+        canview_esp_core canview_warnings)
+    add_test(NAME esp32-bridge-app-integration COMMAND canview-esp32-bridge-integration-tests)
+    set_tests_properties(esp32-bridge-app-integration PROPERTIES TIMEOUT 30)
     find_package(Threads REQUIRED)
-    add_executable(canview-esp32-pool-threads firmware/communicator/esp32/tests/test_pool_threads.c)
+    add_executable(canview-esp32-pool-threads tests/esp_core/test_pool_threads.c)
     target_link_libraries(canview-esp32-pool-threads PRIVATE canview_esp_core canview_warnings Threads::Threads)
     add_test(NAME esp32-pool-threads COMMAND canview-esp32-pool-threads)
     set_tests_properties(esp32-pool-threads PROPERTIES TIMEOUT 30)
-    add_executable(canview-esp32-runtime-tests
-        firmware/communicator/esp32/tests/test_runtime.c
-        firmware/communicator/esp32/platform/esp32s3/runtime.c
-        firmware/communicator/esp32/bsp/runtime.c)
-    target_compile_definitions(canview-esp32-runtime-tests PRIVATE CANVIEW_ESP_SDK_TEST=1)
-    target_include_directories(canview-esp32-runtime-tests PRIVATE
-        firmware/communicator/esp32/tests firmware/communicator/esp32/bsp firmware/interface)
-    target_link_libraries(canview-esp32-runtime-tests PRIVATE canview_esp_core canview_warnings)
-    add_test(NAME esp32-runtime-sdk-model COMMAND canview-esp32-runtime-tests)
-    set_tests_properties(esp32-runtime-sdk-model PROPERTIES TIMEOUT 30)
-    add_executable(canview-esp32-core-tests firmware/communicator/esp32/tests/test_core.c)
-    target_link_libraries(canview-esp32-core-tests PRIVATE canview_esp_core canview_warnings)
-    foreach(scenario boot health faults pool)
-        add_test(NAME esp32-core-${scenario} COMMAND canview-esp32-core-tests ${scenario})
-        set_tests_properties(esp32-core-${scenario} PROPERTIES TIMEOUT 30)
-    endforeach()
     add_executable(canview-stm32-core-tests firmware/communicator/stm32/tests/test_core.c)
     add_executable(canview-stm32-register-tests
         firmware/communicator/stm32/tests/test_registers.c

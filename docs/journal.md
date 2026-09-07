@@ -1,5 +1,39 @@
 # CANView 작업 일지
 
+## 2026-09-07 (codex, T-400a clean CI target artifact audit)
+
+CI run `34112160182`의 target-firmware-windows는 PR merge ref `2e49280`에서 success로 종료했다. 업로드한 target image와 log artifact를 직접 내려받고 `target-artifacts.json`의 18개 path/byte/SHA-256을 재계산한 결과 모두 일치했다. STM32 Debug/Release, Communicator ESP32, Diagnostic Bridge, Controller 및 public-component fixture의 BIN/ELF/MAP를 포함하며 target command의 compiler/linker/CMake warning scan도 success condition으로 통과했다. PR merge version/source-path가 달라 local ELF/MAP/ESP app hash와 byte-identical하다고 주장하지 않는다.
+
+같은 run의 전체 failure는 `windows-c99`에서 Doxygen 1.18.0 official archive download가 retry 후 빈 응답으로 끝난 것이 원인이다. 현재 URL의 HTTP 200 헤더는 재확인했지만, 일시 접근 회복을 CI 전체 PASS로 대체하지 않는다. B-06은 이전 evidence-only candidate에 clean target audit이 없다는 P1을 정확히 유지했다. 새 CI run에서 Windows C99를 다시 성공시키고, clean target audit을 포함한 evidence candidate의 같은 reviewer 재검토 전까지 P1은 unresolved다.
+
+후속 run `34113636144`의 Windows C99 job은 success로 종료했다. B-07은 clean merge ref target job, artifact ID/digest, 18/18 manifest/hash audit, warning scan과 `5d6fac4` source 연결을 object-only로 재검토해 B-05/B-06 provenance P1을 `FIXED`로 확인했다. B-07은 physical/HIL `NOT_RUN`과 final branch CI를 분리한 `CONDITIONAL` verdict이며, raw report를 보존한다.
+
+## 2026-09-07 (codex, T-400a immutable evidence와 독립 재검토)
+
+post-fix source candidate `5d6fac4`를 Git object-only 기준선으로 새 execution ID A-05/B-05에 독립 전달했다. A-05는 지정 embedded runtime 범위에서 P0–P3 없음 `CONDITIONAL`을 반환했다. B-05는 source/config 정적 대조에서 새 P0/P2/P3는 없었으나, candidate 안의 target evidence가 temporary working-tree만 가리키는 provenance P1로 `BLOCK`을 반환했다. 두 raw report는 evidence 디렉터리에 원문으로 보존한다. B-05 시작 시각은 reviewer service가 `NOT_RECORDED`로 반환해 coordinator가 추정값으로 채우지 않았다.
+
+`5d6fac4` source에서 새 STM32 Debug/Release 및 Bridge·Communicator·Controller ESP-IDF target build의 명령·hash·warning scan을 target evidence에 분리 기록했다. public-component fixture도 추가 build/warning scan을 했지만, evidence Markdown을 편집한 dirty worktree에서 시작돼 `5d6fac4-dirty` version이므로 clean candidate artifact로 승격하지 않았다. clean CI target artifact와 B-05 원 reviewer 재검토가 이를 닫아야 한다.
+
+CI run `34112160182`는 Linux GCC/Clang portability와 Linux ASan/UBSan이 성공했고 Windows C99 job은 실패했다. target-firmware job의 완료 로그와 Windows failure log를 확인하기 전까지 CI PASS, PR ready/merge, 다음 T-400 시작을 주장하지 않는다. flash/HIL, 전원/reset/brownout, 장시간 PSRAM/clock/watchdog, 차량 CAN/evidence, provisioning, TX release는 계속 `NOT_RUN`이다.
+
+## 2026-09-07 (codex, T-400a ESP target 복구와 commit 준비)
+
+Windows native ESP-IDF 6.0.3를 직접 초기화해 Communicator ESP32, Diagnostic Bridge, Controller의 새 build directory에서 실제 target build를 다시 실행했다. 세 대상 모두 bootloader/app BIN, ELF, MAP를 생성했고 compiler·linker·CMake `warning:`은 0건이었다. Bridge/Communicator의 생성 sdkconfig도 각 보드 계약으로 재검증했다. 부트로더 configure 출력의 `CONFIG_ESP_INT_WDT_TIMEOUT_MS=800`은 기본값 300과의 명시적 설정 차이를 알리는 Kconfig notification이며 compiler warning으로 분류하지 않았다.
+
+현재 commit 이전 working tree에서 생성한 artifact hash와 명령은 [target post-fix evidence](reviews/adversarial/evidence/2026-09-07-T-400a-target-postfix.md)에 기록했다. commit 후 immutable hash 기준으로 target artifact를 재생성하고, 독립 post-fix reviewer 2명의 raw report와 CI가 닫히기 전에는 PR #23을 ready/merge하지 않는다. WSL sanitizer, Windows bootstrap verifier, flash/HIL/전원/차량/보안 provisioning은 여전히 `NOT_RUN` 또는 별도 실패 원인을 유지한다.
+
+## 2026-09-07 (codex, T-400a post-fix review closure 시도)
+
+T-400a 최초 독립 리뷰의 P1 (safe callback preflight, stale watchdog feed time, sdkconfig allowlist)을 수정하고, P2 (USB bridge generator contract와 app composition fixture)는 후속 T-400 owner와 gate를 지정해 defer했다. host Debug/Release 106/106, strict documentation, generator·sdkconfig negative case와 STM32 Debug/Release target을 재실행했다.
+
+새 reviewer execution A-03/B-03과 제한 범위 재시도 A-04/B-04는 source line-level raw report를 반환하지 못해 모두 `incomplete BLOCK`으로 보존했다. 이를 PASS로 변환하지 않았으며, T400a 통합 review, PR merge와 Task 완료는 두 독립 post-fix raw report가 실제 읽은 파일·명령·finding·verdict를 남길 때까지 차단한다. 이 시점의 ESP target build와 GitHub CLI 접근은 별도 recovery가 필요했다.
+
+## 2026-09-07 (codex, T-200a merge와 T-400a 시작)
+
+PR #22의 최종 `84080fe`에서 clean STM32 Debug/Release·ESP4종 binary warning0, local26개/원격18개 artifact 크기·SHA-256, CI5개 SUCCESS를 확인했다. 두 reviewer가 최초 P1 2건/P2 2건 모두 FIXED와 최종 문서 delta PASS를 독립 확인했다. `--match-head-commit` merge 결과는 `2222290`이며 [최종 evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 원문·검증·NOT_RUN을 연결했다.
+
+사용자 MCU/core 순서에 따라 새 `codex/t400a-bridge-core-bench`에서 T-400a를 분리했다. Bridge N8R2는 현재 실제 SDKCONFIG에서도 Quad/80MHz였으며 기존 GPIO4/5와 R14 외부 pull-up mapping을 유지한다. 공용 core와 보드별 메모리·GPIO 계약을 분리하고 Communicator 회귀를 보존한다. SoftAP/HTTP/무선/OTA·실물 acceptance는 T-400에 남겼고 단순 task 분리를 완료로 표시하지 않는다. embedded 구조/C/RTOS/driver/ISR/문서 지침을 다시 대조했으며 새 ISR·통신 task는 이 범위에 만들지 않는다.
+
 ## 2026-09-07 (codex, T-200a 구현·독립 리뷰 수정)
 
 ESP32 C99 health/fixed pool·safe BSP·IDF TWDT/PSRAM/heap/USB adapter와 단일 owner app을 구현했다. Windows89/89, SDK fixture·app 실패 단계·동시 pool·coverage와 clean6종 warning0을 확인했다. [검증 evidence](reviews/adversarial/evidence/2026-09-07-T-200a-validation.md)는 commit별 결과와 미실행 HIL을 분리한다.

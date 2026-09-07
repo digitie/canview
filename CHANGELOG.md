@@ -6,6 +6,8 @@
 
 ### Added
 
+- Bridge N8R2에 공용 ESP bench core·메모리/입력 계약·watchdog 진단을 연결하고 Communicator와 중복 없이 재사용한다. 두 보드 host/SDK 설정 교차 부정 시험을 포함하며 무선·웹·차량 권한은 활성화하지 않는다.
+
 - Communicator ESP32 bench core에 C99 health·고정 pool, 단일 owner TWDT·메모리·USB 진단과 실제 SDK 설정 차단을 추가했다. 넓은 실패·동시성·coverage 시험을 포함하며 실제 통신/OTA/HIL은 후속 gate다.
 
 - STM32 최소 boot/fault bench core에 bounded HSE/PLL·IWDG·TIM2/SysTick, 진척 감시 scheduler·고정 queue와 host fault 검증을 추가했다. 실제 UART/CAN/OTA·보드 G1/G2는 포함하지 않는다.

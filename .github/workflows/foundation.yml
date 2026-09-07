@@ -218,6 +218,7 @@ jobs:
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
             Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32" "canview_communicator_esp32.bin"
             Invoke-TargetCommand "communicator-sdkconfig" { python -B tools/check_sdkconfig.py firmware/communicator/esp32/sdkconfig }
+            Invoke-TargetCommand "bridge-sdkconfig" { python -B tools/check_sdkconfig.py firmware/diagnostic-bridge/sdkconfig --board bridge-r1-n8r2 }
             Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge" "canview_diagnostic_bridge.bin"
             Assert-Esp32Target "firmware/controller" "canview_controller" "canview_controller.bin"
             Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture" "canview_public_component_fixture.bin"

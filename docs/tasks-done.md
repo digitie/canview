@@ -2,6 +2,14 @@
 
 완료·종료 task를 newest-first로 이동해 기록한다. 설계 감사와 문서 구조 정리는 구현 task 완료 이력과 분리해 PR·journal에 기록한다.
 
+## 2026-09-07 T-200a
+
+| ID | 상태 | 우선순위 | 작업 | 선행 |
+|---|---|---:|---|---|
+| [T-200a](tasks/T-200a-esp32-core-bench.md) | DONE | P0 | Communicator ESP32 최소 core와 host 검증 | T-001, T-004 |
+
+PR [#22](https://github.com/digitie/canview/pull/22)은 `2222290`으로 merge됐다. host Debug/Release·ASan89/89, core/SDK/app coverage·strict API, 2인 독립 리뷰 네 finding FIXED, 최종 head6종 binary warning0·CI5개와 원격 artifact18개 digest 대조를 완료했다. [merge evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 실물/HIL NOT_RUN을 구분한다. 부모 T-200은 BLOCKED다.
+
 ## 2026-09-07 T-102a
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |

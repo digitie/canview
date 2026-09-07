@@ -16,17 +16,23 @@ def main():
     build = args.build.resolve()
     report = Path(tempfile.mkdtemp(prefix="esp32-coverage-", dir=build))
     suffix = ".exe" if os.name == "nt" else ""
-    for group, binary, sources in (
-        ("portable", "canview-esp32-core-tests", ["module/health.c", "module/pool.c"]),
-        ("sdk", "canview-esp32-runtime-tests", ["platform/esp32s3/runtime.c", "bsp/runtime.c"]),
-        ("app", "canview-esp32-app-tests", ["app/main.c"]),
-    ):
+    groups = []
+    for board, binary, bsp in (("comm", "canview-esp32", "communicator/esp32"),
+                                ("bridge", "canview-esp32-bridge", "diagnostic-bridge")):
+        groups += [
+            (board + "-portable", binary + "-core-tests",
+             ["firmware/module/esp_core/health.c", "firmware/module/esp_core/pool.c"], ["all"]),
+            (board + "-sdk", binary + "-runtime-tests",
+             ["firmware/platform/esp32s3/core_runtime.c", f"firmware/{bsp}/bsp/runtime.c"], [None]),
+            (board + "-app", binary + "-app-tests", ["firmware/app/esp_core.c"],
+             ["open", "gpio", "watchdog", "memory", "pool", "wait", "late", "healthy",
+              "null-safe", "null-idle"]),
+        ]
+    for group, binary, sources, arguments in groups:
         directory = report / group
         directory.mkdir()
         env = dict(os.environ, LLVM_PROFILE_FILE=str(directory / "%p.profraw"))
         executable = build / (binary + suffix)
-        arguments = (["open", "gpio", "watchdog", "memory", "pool", "wait", "late", "healthy"]
-                     if group == "app" else (["all"] if group == "portable" else [None]))
         for argument in arguments:
             subprocess.run([str(executable)] + ([] if argument is None else [argument]), check=True, env=env)
         profiles = sorted(directory.glob("*.profraw"))
@@ -34,7 +40,7 @@ def main():
             raise RuntimeError("instrumented profile 누락")
         merged = directory / "merged.profdata"
         subprocess.run(["llvm-profdata", "merge", "-sparse", *map(str, profiles), "-o", str(merged)], check=True)
-        paths = [ROOT / "firmware/communicator/esp32" / source for source in sources]
+        paths = [ROOT / source for source in sources]
         data = json.loads(subprocess.check_output(["llvm-cov", "export", str(executable),
                           "-instr-profile=" + str(merged), *map(str, paths)], text=True))
         files = data["data"][0]["files"]

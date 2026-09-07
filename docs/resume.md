@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-07 T-102a는 [PR #21](https://github.com/digitie/canview/pull/21), merge `db5ed19`로 DONE이다. 최종 STM32/ESP32 binary6종 warning0·host74/74·독립2인 리뷰·CI5개를 [evidence](reviews/adversarial/evidence/2026-09-07-T-102a-merge.md)에 보존했다. 현재는 [T-200a](tasks/T-200a-esp32-core-bench.md) Communicator ESP32 core를 진행한다. 실제 보드·ST-LINK/계측기는 현재 PC에서 확인되지 않았으며 코드 검증과 G1/G2 계측을 분리한다.
+2026-09-07 T-200a는 [PR #22](https://github.com/digitie/canview/pull/22), merge `2222290`으로 DONE이다. 최종 head6종 binary warning0·host89/89·독립2인 리뷰·CI5개·원격18개 artifact digest 대조를 [evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 보존했다. 현재 [T-400a](tasks/T-400a-bridge-core-bench.md)의 source candidate `5d6fac4`는 post-fix host/STM32와 세 ESP32 target image evidence를 확보했다. object-only A-05와 B-07은 모두 `CONDITIONAL`, unresolved P0/P1 없음으로 종료했고 B-07은 artifact provenance P1을 `FIXED`로 확인했다. final branch CI만 남았으며, 실제 보드·ST-LINK/계측기는 식별되지 않아 코드 검증과 G1/G2 계측을 분리한다.
 
 2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 PR #18(`c18a8a5`)로, T-003은 ESP-NOW codec/session/QoS와 target build·2인 적대적 리뷰 후 PR #19(`4ee017b`)로 main에 merge되어 `DONE`이다.
 
@@ -18,11 +18,11 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t200a-esp32-core-bench`, [Draft PR #22](https://github.com/digitie/canview/pull/22)다. SDK 독립 boot/health·고정 pool과 IDF watchdog/memory/USB 진단을 구현했고 host89/89·coverage·strict API·clean6종 target warning0을 확인했다. [최초 독립 리뷰](reviews/adversarial/2026-09-07-T-200a.md)의 P1 2건/P2 2건은 수정 적용했으며 immutable 수정본의 두 reviewer 재확인과 최종 CI/target gate를 진행한다. 아직 DONE/merge가 아니다.
+현재 branch는 `codex/t400a-bridge-core-bench`, PR #23은 Draft·OPEN이다. T-400a는 Communicator의 health/pool·bench app·SDK adapter를 공용화하고 Bridge N8R2의 메모리·GPIO 진단 계약을 연결했다. source candidate `5d6fac4`의 host/coverage/docs, STM32 Debug/Release와 Diagnostic Bridge·Communicator·Controller ESP32 actual build 및 clean target artifact manifest 18/18은 통과했다. A-05/B-07 raw review는 unresolved P0/P1 없이 `CONDITIONAL`이다. final branch CI와 physical gate가 남아 `IN_PROGRESS`다.
 
-- 현재 문서: docs/tasks/T-200a-esp32-core-bench.md, docs/tasks/T-200-communicator-esp32-bootstrap.md, docs/hardware/r1/firmware-pinmap.md, docs/architecture/implementation-readiness.md §5.2, docs/development/windows.md
-- 구현 순서: SDK 독립 boot/health·pool → BSP/IDF adapter·sdkconfig gate → host fault/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.
-- T-200a는 UART/radio/CAN/OTA를 시작하지 않는다. T-200의 실물 메모리·USB log·GPIO/reset 검증은 미실행으로 남긴다.
+- 현재 문서: docs/tasks/T-400a-bridge-core-bench.md, docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
+- 구현 순서: 공용 C99 core·board 계약 → Bridge BSP/SDK·actual config gate → 두 역할 host/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.
+- T-400a는 UART/radio/HTTP/OTA를 시작하지 않는다. T-400의 SoftAP·인증·무선·휴대폰/실물 및 T-200의 기존 물리 acceptance는 유지한다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
@@ -36,9 +36,11 @@
 - T-003/T-004 codec은 main에 통합됐으며 실제 UART DMA/무선/CAN runtime과 보드 검증은 후속 task에 남음
 - 2017 Tucson TL의 실제 bus 종류·bitrate·connector·신호가 미확정
 - 완성 target firmware와 HIL/fault evidence가 없음
-- 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. foundation-windows.ps1와 setup-windows.ps1을 dot-source하면 Clang23.1.0/CMake4.4.3/Ninja1.13.2 및 직접 설치된 Arm15.3.Rel1/IDF6.0.3/CubeG4 1.6.3을 검증한다. target compile gate는 통과했지만 실제 보드/HIL은 미실행이다.
+- 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. pinned CMake4.4.3/Ninja1.13.2/Arm15.3.1/CubeG4 1.6.3을 명시한 STM32 Debug/Release와 ESP-IDF v6.0.3의 세 ESP32 actual build는 통과했다. `setup-windows.ps1 -VerifyOnly`는 managed Git shell의 `basename`/`sed`/`git-sh-setup` 탐색 실패로 여전히 중단한다.
 - KiCad ERC/정합성은 통과했으나 MAX20040 footprint PROVISIONAL, PCB/routing/thermal/SI/transient 검증 미완료
-- ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3` checkout, Arm archive digest와 target binary는 확보했지만 실제 board flash/HIL 및 production security provisioning은 미실행
+- ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3` checkout 및 Arm archive digest는 확인했고 post-fix target binary도 생성했다. CI, 실제 board flash/HIL 및 production security provisioning은 미실행
+- candidate `5d6fac4`의 CI run `34112160182`에서 Linux GCC/Clang portability, Linux ASan/UBSan 및 clean target-firmware job은 성공했다. target artifact 18개는 CI manifest와 내려받은 artifact의 SHA-256/size가 `18/18` 일치했다. Windows C99 job은 Doxygen archive 반복 빈 응답으로 실패했으므로 CI 전체는 failure다.
+- `.git` index/ref와 GitHub CLI ACL은 복구돼 commit/push/PR 조작이 가능하다. WSL `E_ACCESSDENIED`로 ASan/UBSan current 실행은 `NOT_RUN`.
 
 ## 문서 정본
 

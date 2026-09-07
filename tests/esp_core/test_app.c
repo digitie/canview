@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+#include "board_fixture.h"
 #include "canview_esp_runtime.h"
 #include "canview_board.h"
 #include <setjmp.h>
@@ -41,7 +42,7 @@ static canview_status_t safe(void *context)
 }
 static canview_status_t watchdog(void *context)
 {
-    CHECK(context == &fake && fake.safe == 1U);
+    CHECK(context == &fake && fake.safe == 2U);
     ++fake.watchdog;
     return selected("watchdog") ? CANVIEW_NOT_IMPLEMENTED : CANVIEW_OK;
 }
@@ -55,8 +56,8 @@ static canview_status_t sample(void *context, canview_esp_core_sample_t *value)
 {
     CHECK(context == &fake && fake.watchdog == 1U);
     ++fake.samples;
-    *value = (canview_esp_core_sample_t){CANVIEW_ESP_CORE_FLASH_BYTES,
-                                         CANVIEW_ESP_CORE_PSRAM_BYTES,
+    *value = (canview_esp_core_sample_t){TEST_FLASH_BYTES,
+                                         TEST_PSRAM_BYTES,
                                          CANVIEW_ESP_CORE_HEAP_MIN,
                                          CANVIEW_ESP_CORE_BLOCK_MIN,
                                          CANVIEW_ESP_CORE_STACK_MIN,
@@ -98,6 +99,16 @@ static void idle(void *context)
 }
 canview_platform_port_t canview_board_port(void)
 {
+    if (selected("null-safe"))
+    {
+        const canview_platform_port_t port = {NULL, idle, &fake};
+        return port;
+    }
+    if (selected("null-idle"))
+    {
+        const canview_platform_port_t port = {safe, NULL, &fake};
+        return port;
+    }
     const canview_platform_port_t port = {safe, idle, &fake};
     return port;
 }
@@ -110,7 +121,8 @@ canview_status_t canview_esp_board_runtime(canview_esp_runtime_t *runtime,
         return CANVIEW_NOT_IMPLEMENTED;
     }
     *port = (canview_esp_runtime_port_t){
-        {safe, watchdog, now, sample, feed, &fake}, {lock, lock, &fake}, wait, report, &fake};
+        {safe, watchdog, now, sample, feed, &fake, {TEST_FLASH_BYTES, TEST_PSRAM_BYTES}},
+        {lock, lock, &fake}, wait, report, &fake};
     if (selected("pool"))
     {
         port->pool.enter = NULL;
@@ -122,21 +134,30 @@ int main(int argc, char **argv)
     CHECK(argc == 2);
     fake.scenario = argv[1];
     CHECK(selected("open") || selected("gpio") || selected("watchdog") || selected("memory") ||
-          selected("pool") || selected("wait") || selected("late") || selected("healthy"));
+          selected("pool") || selected("wait") || selected("late") || selected("healthy") ||
+          selected("null-safe") || selected("null-idle"));
     fake.time = 1000U;
     if (setjmp(fake.stopped) == 0)
     {
         app_main();
-        CHECK(false);
+        CHECK(selected("null-idle"));
+    }
+    else
+    {
+        CHECK(!selected("null-idle"));
     }
     CHECK(fake.feeds == (selected("healthy") ? 2U : 0U));
-    if (selected("open"))
+    if (selected("open") || selected("gpio"))
+    {
+        CHECK(fake.safe == 1U && fake.watchdog == 0U && fake.reports == 0U);
+    }
+    else if (selected("null-safe") || selected("null-idle"))
     {
         CHECK(fake.safe == 0U && fake.watchdog == 0U && fake.reports == 0U);
     }
     else
     {
-        CHECK(fake.safe == 1U && fake.reports == 2U && fake.last_status != CANVIEW_OK);
+        CHECK(fake.safe == 2U && fake.reports == 2U && fake.last_status != CANVIEW_OK);
         CHECK(fake.watchdog == (selected("gpio") ? 0U : 1U));
         if (selected("gpio") || selected("watchdog") || selected("memory") || selected("late"))
         {

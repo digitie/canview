@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+#include "board_fixture.h"
 #include "canview_esp_runtime.h"
 #include "canview_board.h"
 #include "sdk_fixture.h"
@@ -20,6 +21,7 @@ typedef struct
     void *owner;
     int64_t time;
     int64_t critical_delay;
+    int64_t reset_advance;
     size_t psram;
     size_t heap;
     size_t block;
@@ -56,8 +58,8 @@ static void reset_fake(void)
     fake.owner = &owner_token;
     fake.time = 1000;
     fake.tick = 100U;
-    fake.psram = CANVIEW_ESP_CORE_PSRAM_BYTES;
-    fake.flash = CANVIEW_ESP_CORE_FLASH_BYTES;
+    fake.psram = TEST_PSRAM_BYTES;
+    fake.flash = TEST_FLASH_BYTES;
     fake.heap = CANVIEW_ESP_CORE_HEAP_MIN;
     fake.block = CANVIEW_ESP_CORE_BLOCK_MIN;
     fake.stack = CANVIEW_ESP_CORE_STACK_MIN;
@@ -95,7 +97,8 @@ void mock_log(const char *tag, const char *format, ...)
     CHECK(length > 0 && (size_t)length < sizeof(output));
     if ((fake.logs % 2U) == 0U)
     {
-        CHECK(strstr(output, "bench-only build=fixture idf=6.0.3 cap=0 tx=0") != NULL);
+        CHECK(strstr(output, "bench-only project=" TEST_PROJECT_NAME
+                             " build=fixture idf=6.0.3 cap=0 tx=0") != NULL);
     }
     ++fake.logs;
 }
@@ -150,6 +153,7 @@ esp_err_t esp_task_wdt_reset(void)
 {
     CHECK(fake.depth == 1U);
     ++fake.reset_calls;
+    fake.time += fake.reset_advance;
     return fake.reset;
 }
 int64_t esp_timer_get_time(void)
@@ -186,12 +190,13 @@ int esp_reset_reason(void)
 }
 int gpio_get_level(gpio_num_t pin)
 {
-    CHECK(pin == 48 || pin == 38);
-    return pin == 48 ? fake.run_sense : fake.usb_sense;
+    CHECK(pin == (int)TEST_INPUT_PIN0 ||
+          (TEST_INPUT_COUNT == 2U && pin == (int)TEST_INPUT_PIN1));
+    return pin == (int)TEST_INPUT_PIN0 ? fake.run_sense : fake.usb_sense;
 }
 const esp_app_desc_t *esp_app_get_description(void)
 {
-    static const esp_app_desc_t description = {"fixture", "6.0.3"};
+    static const esp_app_desc_t description = {"fixture", "6.0.3", TEST_PROJECT_NAME};
     return &description;
 }
 static canview_status_t safe(void *context)
@@ -213,14 +218,19 @@ static canview_esp_runtime_port_t open_runtime(canview_esp_runtime_t *runtime)
 {
     canview_esp_runtime_port_t port = {0};
     CHECK(canview_esp_board_runtime(runtime, &port) == CANVIEW_OK);
-    CHECK(runtime->config.service_run_pin == 48U && runtime->config.usb_service_pin == 38U);
+    CHECK(runtime->config.input_count == TEST_INPUT_COUNT);
+    CHECK(runtime->config.input_pins[0] == TEST_INPUT_PIN0 &&
+          runtime->config.input_pins[1] == TEST_INPUT_PIN1);
+    CHECK(port.core.memory.flash_bytes == TEST_FLASH_BYTES &&
+          port.core.memory.psram_bytes == TEST_PSRAM_BYTES);
     return port;
 }
 static void argument_tests(void)
 {
     reset_fake();
     canview_esp_runtime_t runtime = {0};
-    canview_esp_runtime_config_t config = {safe, &fake, 48U, 38U};
+    canview_esp_runtime_config_t config = {safe, &fake, {TEST_FLASH_BYTES, TEST_PSRAM_BYTES},
+                                            2U, {48U, 38U}};
     canview_esp_runtime_port_t port = {0};
     CHECK(canview_esp_runtime_open(NULL, &config, &port) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_runtime_open(&runtime, NULL, &port) == CANVIEW_INVALID_ARGUMENT);
@@ -228,14 +238,27 @@ static void argument_tests(void)
     config.safe_gpio = NULL;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
     config.safe_gpio = safe;
-    config.service_run_pin = 23U;
+    config.input_pins[0] = 23U;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
-    config.service_run_pin = 48U;
-    config.usb_service_pin = 49U;
+    config.input_pins[0] = 48U;
+    config.input_pins[1] = 49U;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
-    config.usb_service_pin = 48U;
+    config.input_pins[1] = 48U;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
-    config.usb_service_pin = 38U;
+    config.input_pins[1] = 38U;
+    config.input_count = 0U;
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
+    config.input_count = 3U;
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
+    config.input_count = 1U; /* 미사용 두 번째 pin은 반드시 0. */
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
+    config.input_count = 2U;
+    config.memory.flash_bytes = 0U;
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
+    config.memory.flash_bytes = TEST_FLASH_BYTES;
+    config.memory.psram_bytes = 0U;
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
+    config.memory.psram_bytes = TEST_PSRAM_BYTES;
     fake.owner = NULL;
     CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_INVALID_ARGUMENT);
     fake.owner = &owner_token;
@@ -270,45 +293,40 @@ static void argument_tests(void)
 }
 static void watchdog_tests(void)
 {
-    for (unsigned fault = 0U; fault < 7U; ++fault)
+    reset_fake();
+    canview_esp_runtime_t runtime = {0};
+    const canview_esp_runtime_port_t port = open_runtime(&runtime);
+    CHECK(port.core.watchdog_start(&runtime) == CANVIEW_OK);
+    CHECK(runtime.watchdog_ready && fake.add_calls == 1U && fake.init_calls == 0U &&
+          fake.reconfigure_calls == 0U);
+    CHECK(port.core.watchdog_start(&runtime) == CANVIEW_INVALID_ARGUMENT);
+
+    reset_fake();
+    runtime = (canview_esp_runtime_t){0};
+    const canview_esp_runtime_port_t invalid_state_port = open_runtime(&runtime);
+    fake.status = ESP_ERR_INVALID_STATE;
+    CHECK(invalid_state_port.core.watchdog_start(&runtime) == CANVIEW_NOT_IMPLEMENTED);
+    CHECK(!runtime.watchdog_ready && fake.add_calls == 0U && fake.init_calls == 0U &&
+          fake.reconfigure_calls == 0U);
+
+    reset_fake();
+    runtime = (canview_esp_runtime_t){0};
+    const canview_esp_runtime_port_t add_failure_port = open_runtime(&runtime);
+    fake.add = ESP_FAIL;
+    CHECK(add_failure_port.core.watchdog_start(&runtime) == CANVIEW_NOT_IMPLEMENTED);
+    CHECK(!runtime.watchdog_ready && fake.add_calls == 1U && fake.init_calls == 0U &&
+          fake.reconfigure_calls == 0U);
+
+    const esp_err_t status_values[] = {ESP_OK, ESP_ERR_INVALID_STATE, ESP_FAIL};
+    for (size_t index = 0U; index < sizeof(status_values) / sizeof(status_values[0]); ++index)
     {
         reset_fake();
-        canview_esp_runtime_t runtime = {0};
-        const canview_esp_runtime_port_t port = open_runtime(&runtime);
-        if (fault == 0U || fault == 1U)
-        {
-            fake.status = ESP_ERR_INVALID_STATE;
-        }
-        if (fault == 1U)
-        {
-            fake.init = ESP_FAIL;
-        }
-        if (fault == 2U)
-        {
-            fake.reconfigure = ESP_FAIL;
-        }
-        if (fault == 3U)
-        {
-            fake.add = ESP_FAIL;
-        }
-        if (fault == 4U)
-        {
-            fake.status = ESP_OK;
-        }
-        if (fault == 5U)
-        {
-            fake.status = ESP_FAIL;
-        }
-        const canview_status_t status = port.core.watchdog_start(&runtime);
-        CHECK((status == CANVIEW_OK) == (fault == 0U || fault == 6U));
-        CHECK(runtime.watchdog_ready == (status == CANVIEW_OK));
-        CHECK(fake.add_calls == ((fault == 0U || fault == 3U || fault == 6U) ? 1U : 0U));
-        if (status == CANVIEW_OK)
-        {
-            CHECK(port.core.watchdog_start(&runtime) == CANVIEW_INVALID_ARGUMENT);
-        }
-        CHECK(fake.init_calls == (fault < 2U ? 1U : 0U));
-        CHECK(fake.reconfigure_calls == ((fault == 2U || fault == 3U || fault == 6U) ? 1U : 0U));
+        runtime = (canview_esp_runtime_t){0};
+        const canview_esp_runtime_port_t busy_port = open_runtime(&runtime);
+        fake.status = status_values[index];
+        CHECK(busy_port.core.watchdog_start(&runtime) != CANVIEW_OK);
+        CHECK(!runtime.watchdog_ready && fake.add_calls == 0U && fake.init_calls == 0U &&
+              fake.reconfigure_calls == 0U);
     }
 }
 static void memory_time_tests(void)
@@ -325,9 +343,9 @@ static void memory_time_tests(void)
         fake.run_sense = (mask & 1U) != 0U;
         fake.usb_sense = (mask & 2U) != 0U;
         CHECK(port.core.sample(&runtime, &value) == CANVIEW_OK);
-        CHECK(value.service_run_sense == fake.run_sense &&
-              value.usb_service_sense == fake.usb_sense);
-        CHECK(value.flash_bytes == 16777216U && value.psram_bytes == 7864320U);
+        CHECK(value.input_valid_mask == TEST_INPUT_MASK &&
+              value.input_level_mask == (uint8_t)(mask & TEST_INPUT_MASK));
+        CHECK(value.flash_bytes == TEST_FLASH_BYTES && value.psram_bytes == TEST_PSRAM_BYTES);
         CHECK(value.heap_free_bytes == 81920U && value.largest_block_bytes == 32768U);
         CHECK(value.stack_free_bytes == 1024U && value.reset_reason == 7U);
     }
@@ -375,7 +393,7 @@ static void memory_time_tests(void)
 }
 static void feed_tests(void)
 {
-    for (unsigned fault = 0U; fault < 8U; ++fault)
+    for (unsigned fault = 0U; fault < 9U; ++fault)
     {
         reset_fake();
         canview_esp_runtime_t runtime = {0};
@@ -413,10 +431,14 @@ static void feed_tests(void)
         {
             fake.time = 1500;
         }
+        if (fault == 8U)
+        {
+            fake.reset_advance = 1001;
+        }
         const canview_status_t status = port.core.feed(&runtime, 1000U, 2000U, &time);
         const bool valid = fault == 0U || fault == 6U || fault == 7U;
         CHECK((status == CANVIEW_OK) == valid);
-        CHECK(fake.reset_calls == ((valid || fault == 5U) ? 1U : 0U));
+        CHECK(fake.reset_calls == ((valid || fault == 5U || fault == 8U) ? 1U : 0U));
         CHECK(valid ? time == (uint64_t)fake.time : time == 99U);
         CHECK(fake.depth == 0U && fake.enters == fake.leaves);
     }
@@ -432,12 +454,48 @@ static void feed_tests(void)
     CHECK(canview_esp_core_step(&core) == CANVIEW_TIMEOUT && fake.reset_calls == 1U);
     CHECK(core.state == CANVIEW_ESP_CORE_FAULT);
 }
+static void board_contract_tests(void)
+{
+    /* BSP가 선택한 두 SKU의 교차 삽입은 boot에서 실패하고 feed하지 않는다. */
+    for (unsigned wrong = 0U; wrong < 3U; ++wrong)
+    {
+        reset_fake();
+        canview_esp_runtime_t runtime = {0};
+        const canview_esp_runtime_port_t port = open_runtime(&runtime);
+        canview_esp_core_t core = {0};
+        if (wrong != 1U)
+        {
+            fake.flash = TEST_OTHER_FLASH;
+        }
+        if (wrong != 0U)
+        {
+            fake.psram = TEST_OTHER_PSRAM;
+        }
+        CHECK(canview_esp_core_boot(&core, &port.core) == CANVIEW_TIMEOUT);
+        CHECK(core.fault == CANVIEW_ESP_FAULT_MEMORY && fake.reset_calls == 0U);
+    }
+    reset_fake();
+    canview_esp_runtime_t runtime = {0};
+    canview_esp_runtime_port_t port = {0};
+    canview_esp_runtime_config_t config = {safe, &fake,
+        {TEST_FLASH_BYTES, TEST_PSRAM_BYTES}, TEST_INPUT_COUNT,
+        {TEST_INPUT_PIN0, TEST_INPUT_PIN1}};
+    CHECK(canview_esp_runtime_open(&runtime, &config, &port) == CANVIEW_OK);
+    config.memory.flash_bytes = TEST_OTHER_FLASH;
+    config.input_pins[0] = 23U;
+    CHECK(port.core.memory.flash_bytes == TEST_FLASH_BYTES);
+    CHECK(runtime.config.input_pins[0] == TEST_INPUT_PIN0);
+    canview_esp_core_sample_t value = {0};
+    CHECK(port.core.sample(&runtime, &value) == CANVIEW_OK);
+    CHECK(value.input_valid_mask == TEST_INPUT_MASK);
+}
 int main(void)
 {
     argument_tests();
     watchdog_tests();
     memory_time_tests();
     feed_tests();
+    board_contract_tests();
     (void)puts("PASS: actual IDF adapter with SDK fixture; not physical WDT/PSRAM/HIL");
     return 0;
 }
