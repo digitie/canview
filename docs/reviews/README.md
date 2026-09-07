@@ -20,7 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
-| 2026-09-07 | T-200a ESP32 bench core | `55c7801` health/pool·SDK/RTOS·config·host/API/target | embedded runtime·안전 / SDK·build·검증 독립성 | [최초 report·원문](adversarial/2026-09-07-T-200a.md), P1 2건/P2 2건 수정 적용·post-fix 재확인 대기 |
+| 2026-09-07 | T-200a ESP32 bench core | `55c7801`→`8e958c9`→`999ef06` health/pool·SDK/RTOS·config·host/API/target | embedded runtime·안전 / SDK·build·검증 독립성 | [최초](adversarial/2026-09-07-T-200a.md)·[post-fix·문서 원문](adversarial/2026-09-07-T-200a-02.md), P1 2건/P2 2건 FIXED·양 reviewer 수정 PASS·최종 통합 gate 별도 |
 | 2026-09-07 | T-102a STM32 최소 core와 최종 portability | `ca1a299`→`6d4757c`→`5ee60bc` boot/clock/IWDG·scheduler/queue·API/stack·GCC gate | embedded clock/runtime / build·검증·API | [최초 report](adversarial/2026-09-07-T-102a.md)·[최종 delta와 원문](adversarial/2026-09-07-T-102a-02.md), P1 3건/P2 3건 FIXED·양 reviewer 코드 PASS·통합 CI/target 별도 |
 | 2026-09-07 | T-004 UART schema/codec 최종 post-fix | `3c6967a` 구현·`d5d323f` evidence, semantic ABI·COBS/CRC·session/replay·queue ownership·실제 69.12GB duplex soak | embedded 안전/runtime / protocol·security·build | [report·독립 원문·검증](adversarial/2026-09-07-T-004.md), 코드 P0/P1 없음·A 문구 조건 반영·B 범위 PASS·최신 CI10건 PASS·PR #20 merge |
 | 2026-09-07 | T-003 ESP-NOW codec/session/QoS 최종 post-fix | `6a076a3` → `67ccee9`, session lifecycle/security binding·generated TLV·anti-replay·QoS/resource·STM32/ESP32 target evidence | embedded safety·target runtime / protocol·security·build/integration | [report·Reviewer A/B 원문·target evidence](adversarial/2026-09-07-T-003.md), 최초 B-P1-01 evidence freshness FIXED·양 reviewer post-fix PASS |
