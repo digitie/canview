@@ -18,7 +18,7 @@
 
 ## 다음 한 작업
 
-현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)의 T-400a P2 handoff다. 최초 immutable review는 wrong-BSP GPIO preflight P1과 profile digest·ISR initialization P2를 확인해 차단했고, post-fix source의 host Debug/Release 110/110, coverage와 local target binary 재생성까지 끝났다. post-fix immutable candidate의 동일 전문 2인 재검토, 새 PR CI와 G1 physical evidence가 남았다. 이 셋과 G1 physical evidence가 닫히기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
+현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)의 T-400a P2 handoff다. 최초 immutable review는 wrong-BSP GPIO preflight P1과 profile digest·ISR initialization P2를 확인해 차단했고, immutable `8f32c07`은 host Debug/Release 110/110, coverage와 local target binary 18개 재생성까지 끝냈다. 전체 diff가 raw evidence를 노출한 첫 post-fix A/B execution은 무효 `BLOCK`으로 보존했으며, fresh source-only A/B는 P0/P1 없음과 coverage evidence P2를 반환했다. 그 P2는 app preflight 및 두 wrong-BSP composition profile/export를 coverage runner에 추가해 수정했다. coverage-evidence delta의 fresh 2인 re-review, 새 PR CI와 G1 physical evidence가 남았다. 이 셋과 G1 physical evidence가 닫히기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
 
 - 현재 문서: docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/reviews/adversarial/2026-09-07-T-400.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
 - 구현 순서: T-400a handoff core/BSP 계약 → host·target negative test → 독립2인 review → G1 physical evidence가 있을 때만 SoftAP·인증·무선 단계.

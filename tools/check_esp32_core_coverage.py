@@ -21,14 +21,20 @@ def main():
                                 ("bridge", "canview-esp32-bridge", "diagnostic-bridge")):
         groups += [
             (board + "-portable", binary + "-core-tests",
-             ["firmware/module/esp_core/health.c", "firmware/module/esp_core/pool.c"], ["all"]),
+             ["firmware/module/esp_core/health.c", "firmware/module/esp_core/pool.c"], ["all"], True),
             (board + "-sdk", binary + "-runtime-tests",
-             ["firmware/platform/esp32s3/core_runtime.c", f"firmware/{bsp}/bsp/runtime.c"], [None]),
+             ["firmware/platform/esp32s3/core_runtime.c", f"firmware/{bsp}/bsp/runtime.c"], [None], True),
             (board + "-app", binary + "-app-tests", ["firmware/app/esp_core.c"],
              ["open", "gpio", "watchdog", "memory", "pool", "wait", "late", "healthy",
-              "null-safe", "null-idle"]),
+              "null-safe", "null-idle", "preflight"], True),
         ]
-    for group, binary, sources, arguments in groups:
+    groups += [
+        ("wrong-bsp-communicator-runtime", "canview-esp32-wrong-bsp-communicator-runtime",
+         ["firmware/app/esp_core.c"], [None], False),
+        ("wrong-bsp-bridge-runtime", "canview-esp32-wrong-bsp-bridge-runtime",
+         ["firmware/app/esp_core.c"], [None], False),
+    ]
+    for group, binary, sources, arguments, enforce_thresholds in groups:
         directory = report / group
         directory.mkdir()
         env = dict(os.environ, LLVM_PROFILE_FILE=str(directory / "%p.profraw"))
@@ -50,13 +56,18 @@ def main():
         for item in files:
             summary = item["summary"]
             print(Path(item["filename"]).name, json.dumps(summary), flush=True)
+            if not enforce_thresholds:
+                functions = summary["functions"]
+                if functions["count"] == 0 or functions["covered"] != functions["count"]:
+                    raise RuntimeError(f"wrong-BSP app coverage 누락: {item['filename']}")
+                continue
             for key, threshold in (("functions", 100), ("lines", 95), ("branches", 90)):
                 # 분기가 없는 BSP composition은 branch 0을 허용한다.
                 if key == "branches" and item["filename"].replace("\\", "/").endswith("/bsp/runtime.c"):
                     continue
                 if summary[key]["count"] == 0 or summary[key]["percent"] < threshold:
                     raise RuntimeError(f"coverage gate 미달: {item['filename']} {key} < {threshold}")
-    print("PASS: ESP32 function100%/line≥95%/branch≥90%; SDK fixture≠HIL; report", report)
+    print("PASS: ESP32 function100%/line≥95%/branch≥90%; app preflight and both wrong-BSP profraw confirmed; SDK fixture≠HIL; report", report)
     return 0
 
 
