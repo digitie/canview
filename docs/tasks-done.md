@@ -2,6 +2,14 @@
 
 완료·종료 task를 newest-first로 이동해 기록한다. 설계 감사와 문서 구조 정리는 구현 task 완료 이력과 분리해 PR·journal에 기록한다.
 
+## 2026-09-07 T-400a
+
+| ID | 상태 | 우선순위 | 작업 | 선행 |
+|---|---|---:|---|---|
+| [T-400a](tasks/T-400a-bridge-core-bench.md) | DONE | P0 | Bridge 최소 core와 ESP 공용화 | T-001, T-200a |
+
+PR [#23](https://github.com/digitie/canview/pull/23)은 `25eba080907257c6d90abaeec6d578d9dff6585a`로 main에 merge됐다. final CI `34114919104`의 다섯 job, target artifact manifest 18/18 SHA-256 대조, warning 0, host·target·coverage gate와 A-05/B-07 독립 review의 unresolved P0/P1 없음이 완료 조건을 충족했다. P2 세 건은 owner=T-400, gate=G1, 목표=2026-09-14로 defer했다. flash/HIL·전원/reset·장시간 watchdog/PSRAM·차량 CAN·provisioning·vehicle TX release는 `NOT_RUN`이며, T-400a 완료는 차량 송신 승인이 아니다.
+
 ## 2026-09-07 T-200a
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |

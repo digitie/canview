@@ -2,7 +2,7 @@
 
 ## 현재 진척도
 
-2026-09-07 T-200a는 [PR #22](https://github.com/digitie/canview/pull/22), merge `2222290`으로 DONE이다. 최종 head6종 binary warning0·host89/89·독립2인 리뷰·CI5개·원격18개 artifact digest 대조를 [evidence](reviews/adversarial/evidence/2026-09-07-T-200a-merge.md)에 보존했다. 현재 [T-400a](tasks/T-400a-bridge-core-bench.md)의 source candidate `5d6fac4`는 post-fix host/STM32와 세 ESP32 target image evidence를 확보했다. object-only A-05와 B-07은 모두 `CONDITIONAL`, unresolved P0/P1 없음으로 종료했고 B-07은 artifact provenance P1을 `FIXED`로 확인했다. final branch CI만 남았으며, 실제 보드·ST-LINK/계측기는 식별되지 않아 코드 검증과 G1/G2 계측을 분리한다.
+2026-09-07 [T-400a](tasks/T-400a-bridge-core-bench.md)는 [PR #23](https://github.com/digitie/canview/pull/23), merge `25eba080`으로 DONE이다. final CI `34114919104`의 Windows C99·target firmware·Linux GCC/Clang portability·ASan/UBSan 다섯 job, target artifact 18/18 path·size·SHA-256 대조, warning 0과 A-05/B-07 독립 review의 unresolved P0/P1 없음이 완료 조건을 충족했다. Bridge는 계속 read-only이며 P2 세 건은 T-400에 handoff했다. 실제 보드·ST-LINK/계측기가 없어 G1/G2 physical/HIL, 차량 CAN/capture, provisioning과 vehicle TX release는 `NOT_RUN`이고 CAN TX는 NO-GO다.
 
 2026-09-06~07 기반 코드: [공용 C99 codec/app와 네 MCU 구조](architecture/firmware-foundation.md), 보드 pin/config 생성기, root CTest/독립 golden/BSP 실패 시험, coverage gate, Sphinx+Breathe+Doxygen API 문서를 추가했다. [실행 결과와 미실행 범위](development/foundation.md)를 구분한다. 기존 v1.2 prototype은 host 회귀에만 남기며 실제 CAN/radio/OTA는 시작하지 않는다. T-001은 PR #17(`74d43ff`)로, T-002는 PR #18(`c18a8a5`)로, T-003은 ESP-NOW codec/session/QoS와 target build·2인 적대적 리뷰 후 PR #19(`4ee017b`)로 main에 merge되어 `DONE`이다.
 
@@ -18,11 +18,11 @@
 
 ## 다음 한 작업
 
-현재 branch는 `codex/t400a-bridge-core-bench`, PR #23은 Draft·OPEN이다. T-400a는 Communicator의 health/pool·bench app·SDK adapter를 공용화하고 Bridge N8R2의 메모리·GPIO 진단 계약을 연결했다. source candidate `5d6fac4`의 host/coverage/docs, STM32 Debug/Release와 Diagnostic Bridge·Communicator·Controller ESP32 actual build 및 clean target artifact manifest 18/18은 통과했다. A-05/B-07 raw review는 unresolved P0/P1 없이 `CONDITIONAL`이다. final branch CI와 physical gate가 남아 `IN_PROGRESS`다.
+다음 작업은 `READY`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)이다. T-400a P2 handoff인 board identity/profile binding, callback stage/ISR policy, partial safe GPIO failure policy를 먼저 source/host·target 시험으로 닫는다. 이 셋과 G1 physical evidence가 닫히기 전에는 SoftAP·HTTP·인증 또는 차량 CAN/TX 권한을 추가하지 않는다.
 
-- 현재 문서: docs/tasks/T-400a-bridge-core-bench.md, docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
-- 구현 순서: 공용 C99 core·board 계약 → Bridge BSP/SDK·actual config gate → 두 역할 host/GCC/coverage → STM32/ESP32 binary → 독립2인 리뷰·CI·merge.
-- T-400a는 UART/radio/HTTP/OTA를 시작하지 않는다. T-400의 SoftAP·인증·무선·휴대폰/실물 및 T-200의 기존 물리 acceptance는 유지한다.
+- 현재 문서: docs/tasks/T-400-diagnostic-bridge-bootstrap.md, docs/reviews/adversarial/2026-09-07-T-400a.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
+- 구현 순서: T-400a handoff core/BSP 계약 → host·target negative test → 독립2인 review → G1 physical evidence가 있을 때만 SoftAP·인증·무선 단계.
+- Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
 
@@ -39,7 +39,7 @@
 - 일반 PowerShell PATH만으로는 도구를 찾지 못할 수 있다. pinned CMake4.4.3/Ninja1.13.2/Arm15.3.1/CubeG4 1.6.3을 명시한 STM32 Debug/Release와 ESP-IDF v6.0.3의 세 ESP32 actual build는 통과했다. `setup-windows.ps1 -VerifyOnly`는 managed Git shell의 `basename`/`sed`/`git-sh-setup` 탐색 실패로 여전히 중단한다.
 - KiCad ERC/정합성은 통과했으나 MAX20040 footprint PROVISIONAL, PCB/routing/thermal/SI/transient 검증 미완료
 - ESP-IDF `v6.0.3`와 STM32CubeG4 `v1.6.3` checkout 및 Arm archive digest는 확인했고 post-fix target binary도 생성했다. CI, 실제 board flash/HIL 및 production security provisioning은 미실행
-- candidate `5d6fac4`의 CI run `34112160182`에서 Linux GCC/Clang portability, Linux ASan/UBSan 및 clean target-firmware job은 성공했다. target artifact 18개는 CI manifest와 내려받은 artifact의 SHA-256/size가 `18/18` 일치했다. Windows C99 job은 Doxygen archive 반복 빈 응답으로 실패했으므로 CI 전체는 failure다.
+- candidate `5d6fac4`의 CI run `34112160182`는 target-firmware job과 Linux job은 성공했지만 Windows C99가 외부 Doxygen archive 빈 응답으로 실패한 역사 기록이다. 재실행 `34113636144`와 final branch run `34114919104`는 전체 success이며, latter가 PR #23 merge의 최종 CI evidence다.
 - `.git` index/ref와 GitHub CLI ACL은 복구돼 commit/push/PR 조작이 가능하다. WSL `E_ACCESSDENIED`로 ASan/UBSan current 실행은 `NOT_RUN`.
 
 ## 문서 정본
