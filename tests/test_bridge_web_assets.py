@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "generate_bridge_web_assets.py"
 HTML = ROOT / "ui" / "diagnostic-web" / "bridge-shell.html"
 WEB_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web.c"
+DNS_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "dns_server.c"
 WEB_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web.h"
 WEB_DEFAULTS = ROOT / "firmware" / "diagnostic-bridge" / "sdkconfig.defaults"
 
@@ -71,6 +72,7 @@ class BridgeWebAssetTests(unittest.TestCase):
 
     def test_web_source_keeps_fixed_read_only_boundary(self) -> None:
         source = WEB_SOURCE.read_text(encoding="utf-8")
+        dns_source = DNS_SOURCE.read_text(encoding="utf-8")
         header = WEB_HEADER.read_text(encoding="utf-8")
         defaults = WEB_DEFAULTS.read_text(encoding="utf-8")
         self.assertIn("#define CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES (8192U)", header)
@@ -83,6 +85,11 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("canview_bridge_web_stop", source)
         self.assertIn("httpd_sess_trigger_close", source)
         self.assertIn("button_hold_consumed", source)
+        self.assertIn("session_close_pending", source)
+        self.assertIn("max_open_sockets = 1U", source)
+        self.assertIn("volatile bool stopped", dns_source)
+        self.assertIn("vTaskSuspend(NULL)", dns_source)
+        self.assertIn("vTaskDelete(task)", dns_source)
         self.assertIn("vehicle_tx", source)
         self.assertIn("CONFIG_HTTPD_WS_SUPPORT=y", defaults)
         for forbidden in ("raw_replay", "canview_can_tx", "control_lease"):

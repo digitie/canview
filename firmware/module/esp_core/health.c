@@ -137,7 +137,16 @@ canview_status_t canview_esp_core_arm_watchdog(canview_esp_core_t *core)
     {
         return fail(core, CANVIEW_ESP_FAULT_WATCHDOG, status);
     }
+    uint64_t armed_at = 0U;
+    const canview_status_t clock_status = core->port.now_us(core->port.context, &armed_at);
+    if (clock_status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT ||
+        armed_at < core->last_progress_us ||
+        armed_at > UINT64_MAX - CANVIEW_ESP_CORE_DEADLINE_US)
+    {
+        return fail(core, CANVIEW_ESP_FAULT_CLOCK, clock_status);
+    }
     core->watchdog_ready = true;
+    core->last_progress_us = armed_at;
     core->busy = false;
     return CANVIEW_OK;
 }

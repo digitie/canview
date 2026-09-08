@@ -51,6 +51,7 @@ typedef struct
     esp_netif_t *wifi_ap_netif;
     esp_netif_t *wifi_sta_netif;
     int active_client_fd;
+    bool session_close_pending;
     uint32_t snapshot_revision;
     uint32_t event_sequence;
     size_t json_arena_used;
@@ -339,6 +340,12 @@ static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t 
         state_lock_give(candidate);
         (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "400 Bad Request", "invalid client");
+    }
+    if (candidate->session_close_pending)
+    {
+        state_lock_give(candidate);
+        (void)xSemaphoreGive(candidate->request_lock);
+        return send_custom_status(request, "503 Service Unavailable", "session closing");
     }
     if (candidate->active_client_fd < 0)
     {
@@ -1652,6 +1659,7 @@ static void close_session(httpd_handle_t server, int client_fd)
     if (web_state.active_client_fd == client_fd)
     {
         web_state.active_client_fd = -1;
+        web_state.session_close_pending = false;
         (void)canview_bridge_auth_logout(&web_state.auth);
     }
     state_lock_give(&web_state);
@@ -1788,7 +1796,7 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     http_config.stack_size = 6144U;
     http_config.max_req_hdr_len = 1024U;
     http_config.max_uri_len = CANVIEW_BRIDGE_WEB_MAX_URI_BYTES;
-    http_config.max_open_sockets = 4U;
+    http_config.max_open_sockets = 1U;
     http_config.max_uri_handlers = 20U;
     http_config.max_resp_headers = 6U;
     http_config.backlog_conn = 1U;
@@ -1891,7 +1899,7 @@ esp_err_t canview_bridge_web_poll(void)
         {
             expired_server = web_state.server;
             expired_client_fd = web_state.active_client_fd;
-            web_state.active_client_fd = -1;
+            web_state.session_close_pending = true;
             (void)canview_bridge_auth_logout(&web_state.auth);
         }
     }

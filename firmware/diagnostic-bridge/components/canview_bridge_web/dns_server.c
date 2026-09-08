@@ -26,6 +26,7 @@ typedef struct
     TaskHandle_t volatile task;
     volatile int socket_fd;
     volatile bool stop_requested;
+    volatile bool stopped;
     volatile bool started;
 } canview_bridge_dns_state_t;
 
@@ -210,14 +211,16 @@ static void dns_task(void *context)
         }
     }
     state->socket_fd = -1;
-    state->task = NULL;
-    state->started = false;
-    vTaskDelete(NULL);
+    state->stopped = true;
+    for (;;)
+    {
+        vTaskSuspend(NULL);
+    }
 }
 
 esp_err_t canview_bridge_dns_start(void)
 {
-    if (dns_state.started)
+    if (dns_state.task != NULL)
     {
         return ESP_ERR_INVALID_STATE;
     }
@@ -248,15 +251,21 @@ esp_err_t canview_bridge_dns_stop(void)
     }
     const TickType_t wait_ticks = pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RECV_TIMEOUT_MS + 500U);
     TickType_t waited = 0U;
-    while (dns_state.task != NULL && waited < wait_ticks)
+    while (!dns_state.stopped && waited < wait_ticks)
     {
         vTaskDelay(1U);
         ++waited;
     }
-    if (dns_state.task != NULL)
+    if (!dns_state.stopped)
     {
         return ESP_ERR_TIMEOUT;
     }
+    TaskHandle_t task = dns_state.task;
+    if (task != NULL)
+    {
+        vTaskDelete(task);
+    }
+    dns_state.task = NULL;
     memset(&dns_state, 0, sizeof(dns_state));
     dns_state.socket_fd = -1;
     return ESP_OK;

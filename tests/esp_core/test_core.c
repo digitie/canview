@@ -275,15 +275,29 @@ static void deferred_boot_tests(void)
     CHECK(core.state == CANVIEW_ESP_CORE_SAFE_BENCH && !core.watchdog_ready &&
           core.sample_valid && fixture.feeds == 0U);
     CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_OK);
-    CHECK(strcmp(fixture.trace, "STMTW") == 0 && core.watchdog_ready);
+    CHECK(strcmp(fixture.trace, "STMTWT") == 0 && core.watchdog_ready);
     CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_INVALID_ARGUMENT);
     CHECK(core.state == CANVIEW_ESP_CORE_SAFE_BENCH && core.watchdog_ready);
+
+    initialize(&fixture, &core);
+    CHECK(canview_esp_core_boot_deferred(&core, &fixture.port) == CANVIEW_OK);
+    fixture.now = CANVIEW_ESP_CORE_DEADLINE_US + 1U;
+    CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_OK);
+    fixture.now += 100000U;
+    CHECK(canview_esp_core_step(&core) == CANVIEW_OK);
 
     initialize(&fixture, &core);
     CHECK(canview_esp_core_boot_deferred(&core, &fixture.port) == CANVIEW_OK);
     fixture.fail_at = fixture.calls + 1U;
     CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_NOT_IMPLEMENTED);
     CHECK(core.state == CANVIEW_ESP_CORE_FAULT && core.fault == CANVIEW_ESP_FAULT_WATCHDOG &&
+          !core.busy && !core.watchdog_ready);
+
+    initialize(&fixture, &core);
+    CHECK(canview_esp_core_boot_deferred(&core, &fixture.port) == CANVIEW_OK);
+    fixture.fail_at = fixture.calls + 2U;
+    CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_NOT_IMPLEMENTED);
+    CHECK(core.state == CANVIEW_ESP_CORE_FAULT && core.fault == CANVIEW_ESP_FAULT_CLOCK &&
           !core.busy && !core.watchdog_ready);
 
     initialize(&fixture, &core);
