@@ -251,7 +251,13 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
         except EventLogError:
             return _blocked_report(output, args, "BLOCKED",
                                    "event_output_limit_or_encoding_error")
-        result = analyze(scenario, event_log.records, simulation.metrics, budget)
+        try:
+            result = analyze(scenario, event_log.records, simulation.metrics, budget)
+        except Exception:
+            # A malformed accepted event must never leave an older PASS report
+            # representing the current invocation.
+            return _blocked_report(output, args, "BLOCKED",
+                                   "analysis_contract_error")
         scenario_results.append({
             "id": scenario.scenario_id,
             "title": scenario.title,
@@ -267,6 +273,9 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
             "checks": result["checks"],
             "violations": result["violations"],
             "first_violation": result["first_violation"],
+            "verification": ("trusted-replay"
+                             if scenario_directory == SCENARIO_DIR.resolve()
+                             else "structural-only"),
         })
     status = "PASS" if all(item["status"] == "PASS"
                             for item in scenario_results) else "FAIL"

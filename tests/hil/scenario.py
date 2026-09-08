@@ -48,6 +48,10 @@ def _validate_value(value: Any, path: Path, label: str,
     if isinstance(value, str):
         if len(value) > MAX_STRING_LENGTH:
             raise ScenarioError(f"{label} string is too long: {path}")
+        try:
+            value.encode("utf-8")
+        except UnicodeError as error:
+            raise ScenarioError(f"{label} is not valid UTF-8: {path}") from error
         return
     if isinstance(value, float):
         if not math.isfinite(value):
@@ -65,6 +69,10 @@ def _validate_value(value: Any, path: Path, label: str,
         for key, item in value.items():
             if not isinstance(key, str) or len(key) > MAX_STRING_LENGTH:
                 raise ScenarioError(f"{label} has an invalid key: {path}")
+            try:
+                key.encode("utf-8")
+            except UnicodeError as error:
+                raise ScenarioError(f"{label} has an invalid key: {path}") from error
             _validate_value(item, path, label, depth + 1)
 
 
@@ -239,7 +247,8 @@ def _validate_action(action: dict[str, Any], path: Path, index: int) -> None:
         try:
             encoded = json.dumps(fields, ensure_ascii=False, sort_keys=True,
                                  separators=(",", ":"), allow_nan=False)
-        except (TypeError, ValueError, OverflowError) as error:
+            encoded.encode("utf-8")
+        except (TypeError, ValueError, OverflowError, UnicodeError) as error:
             raise ScenarioError(f"action {index} fields are not JSON-compatible: {path}") from error
         if len(encoded.encode("utf-8")) > MAX_EVENT_FIELDS_BYTES:
             raise ScenarioError(f"action {index} fields are too large: {path}")

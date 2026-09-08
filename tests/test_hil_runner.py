@@ -103,6 +103,10 @@ class HilRunnerTests(unittest.TestCase):
         with self.assertRaises(EventLogError):
             EventLog().append(True, "fixture", "EVENT")
 
+    def test_event_log_rejects_invalid_unicode(self) -> None:
+        with self.assertRaises(EventLogError):
+            EventLog().append(1_000, "fixture", "EVENT", text="\ud800")
+
     def test_event_log_supports_reserved_field_names(self) -> None:
         record = EventLog().append_fields(
             1_000, "fixture", "EVENT", {"kind": "nested-kind"})
@@ -155,6 +159,22 @@ class HilRunnerTests(unittest.TestCase):
             with self.assertRaises(ScenarioError):
                 load_scenarios(Path(directory), "host")
 
+    def test_scenario_parser_rejects_invalid_unicode(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid-unicode.yaml"
+            path.write_text(json.dumps({
+                "schema_version": 1,
+                "id": "invalid-unicode",
+                "title": "invalid",
+                "suites": ["host"],
+                "mode": "CAPTURE_ONLY",
+                "actions": [{"type": "event", "fields": {
+                    "text": "\ud800"}}],
+                "expect": {},
+            }), encoding="utf-8")
+            with self.assertRaises(ScenarioError):
+                load_scenarios(Path(directory), "host")
+
     def test_capture_only_rejects_forbidden_can_tx_with_offset(self) -> None:
         scenario = load_scenarios(SCENARIO_DIR, "host",
                                   ["stale-gates"])[0]
@@ -180,6 +200,26 @@ class HilRunnerTests(unittest.TestCase):
                          load_budget())
         self.assertTrue(any(item["invariant"] == "command.allowlist"
                              for item in result["violations"]))
+
+    def test_analyzer_handles_unhashable_event_enum_and_id_values(self) -> None:
+        scenario = load_scenarios(SCENARIO_DIR, "host",
+                                  ["stale-gates"])[0]
+        for kind, fields, invariant in (
+                ("COMMAND_REPLAY", {"request_token": "x",
+                                     "executed": False, "result": []},
+                 "safety.no_unsafe_outcome"),
+                ("FEEDBACK_RESULT", {"case": "x", "result": {},
+                                      "tx_permitted": False},
+                 "safety.no_unsafe_outcome"),
+                ("CAN_TX", {"arbitration_id": []},
+                 "capture_only.can_tx_zero")):
+            event_log = EventLog()
+            event_log.append_fields(1_000, "fixture", kind, fields)
+            result = analyze(scenario, event_log.records,
+                             SimulationResult().metrics, load_budget())
+            self.assertEqual("FAIL", result["status"], kind)
+            self.assertEqual(invariant,
+                             result["first_violation"]["invariant"], kind)
 
     def test_monotonic_violation_is_first_timeline_failure(self) -> None:
         scenario = load_scenarios(SCENARIO_DIR, "host",
@@ -266,8 +306,11 @@ class HilRunnerTests(unittest.TestCase):
             output = Path(directory) / "selected"
             self.assertEqual(0, run_main(["--suite", "host", "--scenario", "brownout",
                                           "--output", str(output)]))
-            self.assertEqual("PASS",
-                             validate(output / "report.json", "PASS")["status"])
+            with self.assertRaises(EvidenceError):
+                validate(output / "report.json", "PASS")
+            self.assertEqual("PASS", validate(
+                output / "report.json", "PASS",
+                expected_scenarios=["brownout"])["status"])
 
     def test_failed_invocation_replaces_previous_pass_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -276,7 +319,9 @@ class HilRunnerTests(unittest.TestCase):
             self.assertEqual(0, run_main(["--suite", "host",
                                           "--scenario", "brownout",
                                           "--output", str(output)]))
-            self.assertEqual("PASS", validate(output / "report.json", "PASS")["status"])
+            self.assertEqual("PASS", validate(
+                output / "report.json", "PASS",
+                expected_scenarios=["brownout"])["status"])
             scenario_dir = root / "invalid-scenarios"
             scenario_dir.mkdir()
             (scenario_dir / "invalid.yaml").write_text(
@@ -322,6 +367,38 @@ class HilRunnerTests(unittest.TestCase):
             report = validate(output / "report.json", "BLOCKED")
             self.assertEqual("scenario_execution_limit_or_encoding_error",
                              report["failure"]["reason"])
+
+    def test_analyzer_failure_replaces_previous_pass_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "output"
+            self.assertEqual(0, run_main(["--suite", "host",
+                                          "--scenario", "brownout",
+                                          "--output", str(output)]))
+            self.assertEqual("PASS", validate(
+                output / "report.json", "PASS",
+                expected_scenarios=["brownout"])["status"])
+            scenario_dir = root / "malformed-scenarios"
+            scenario_dir.mkdir()
+            for scenario_id, kind, fields in (
+                    ("bad-command", "COMMAND_REPLAY",
+                     {"request_token": "x", "executed": False, "result": []}),
+                    ("bad-feedback", "FEEDBACK_RESULT",
+                     {"case": "x", "result": {}, "tx_permitted": False}),
+                    ("bad-can", "CAN_TX", {"arbitration_id": []})):
+                (scenario_dir / f"{scenario_id}.yaml").write_text(
+                    json.dumps({"schema_version": 1, "id": scenario_id,
+                                "title": "malformed event", "suites": ["host"],
+                                "mode": "CAPTURE_ONLY",
+                                "actions": [{"type": "event", "kind": kind,
+                                             "fields": fields}], "expect": {}}),
+                    encoding="utf-8")
+                self.assertEqual(1, run_main([
+                    "--suite", "host", "--scenario-dir", str(scenario_dir),
+                    "--scenario", scenario_id, "--output", str(output)]))
+                report = validate(output / "report.json", "FAIL")
+                self.assertEqual("structural-only",
+                                 report["scenario_results"][0]["verification"])
 
     def test_analyzer_rejects_overbudget_event_sample(self) -> None:
         scenario = load_scenarios(SCENARIO_DIR, "host",
@@ -380,6 +457,9 @@ class HilRunnerTests(unittest.TestCase):
             report_path = output / "report.json"
             report = json.loads(report_path.read_text(encoding="utf-8"))
             report["scenario_results"] = report["scenario_results"][:1]
+            report["scenario_inventory"]["ids"] = [
+                report["scenario_results"][0]["id"]]
+            report["scenario_inventory"]["count"] = 1
             report_path.write_text(json.dumps(report), encoding="utf-8")
             with self.assertRaises(EvidenceError):
                 validate(report_path, "PASS")
@@ -447,6 +527,47 @@ class HilRunnerTests(unittest.TestCase):
             report["scenario_results"][0]["first_violation"]["event_sequence"] = 999999
             report["scenario_results"][0]["violations"][0] = dict(
                 report["scenario_results"][0]["first_violation"])
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(EvidenceError):
+                validate(report_path, "FAIL")
+
+    def test_validator_rejects_later_custom_tx_as_first_violation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scenario_dir = root / "scenarios"
+            scenario_dir.mkdir()
+            scenario = {
+                "schema_version": 1,
+                "id": "two-tx-events",
+                "title": "negative",
+                "suites": ["host"],
+                "mode": "CAPTURE_ONLY",
+                "actions": [
+                    {"type": "event", "kind": "CAN_TX",
+                     "fields": {"arbitration_id": 0x123}},
+                    {"type": "event", "kind": "OBSERVATION", "fields": {}},
+                    {"type": "event", "kind": "CAN_TX",
+                     "fields": {"arbitration_id": 0x456}},
+                ],
+                "expect": {},
+            }
+            (scenario_dir / "two-tx-events.yaml").write_text(
+                json.dumps(scenario), encoding="utf-8")
+            output = root / "output"
+            self.assertEqual(1, run_main([
+                "--suite", "host", "--scenario-dir", str(scenario_dir),
+                "--output", str(output)]))
+            report_path = output / "report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            item = report["scenario_results"][0]
+            later = item["violations"][0].copy()
+            later_record = json.loads(
+                (output / item["events_file"]).read_text(
+                    encoding="utf-8").splitlines()[2])
+            later["log_offset"] = later_record["log_offset"]
+            later["event_sequence"] = later_record["sequence"]
+            item["first_violation"] = later
+            item["violations"][0] = later
             report_path.write_text(json.dumps(report), encoding="utf-8")
             with self.assertRaises(EvidenceError):
                 validate(report_path, "FAIL")

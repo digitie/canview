@@ -143,7 +143,12 @@ def analyze(scenario: Scenario, records: list[dict[str, Any]],
     unexpected: list[dict[str, Any]] = []
     for record in tx_records:
         fields = record.get("fields", {})
-        if not isinstance(fields, dict) or fields.get("arbitration_id") not in allowed:
+        arbitration_id = (fields.get("arbitration_id")
+                          if isinstance(fields, dict) else None)
+        if (not _is_int(arbitration_id)
+                or arbitration_id < 0
+                or arbitration_id > 0x1FFFFFFF
+                or arbitration_id not in allowed):
             unexpected.append(record)
     check("command.allowlist", not unexpected,
           "CAN TX frame is outside the scenario allow-list",
@@ -191,13 +196,15 @@ def analyze(scenario: Scenario, records: list[dict[str, Any]],
                 and bool(fields["request_token"])
                 and isinstance(fields.get("executed"), bool)
                 and fields["executed"] is False
-                and fields.get("result") in {"ACCEPTED", "DUPLICATE"}
+                and isinstance(fields.get("result"), str)
+                and fields["result"] in {"ACCEPTED", "DUPLICATE"}
             )
         elif kind == "FEEDBACK_RESULT":
             unsafe = not (
                 isinstance(fields.get("case"), str)
                 and bool(fields["case"])
-                and fields.get("result") in feedback_results
+                and isinstance(fields.get("result"), str)
+                and fields["result"] in feedback_results
                 and isinstance(fields.get("tx_permitted"), bool)
                 and fields["tx_permitted"] is False
             )

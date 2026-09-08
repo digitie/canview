@@ -24,7 +24,11 @@ def _encode(record: dict[str, Any]) -> str:
     try:
         encoded = json.dumps(record, ensure_ascii=False, sort_keys=True,
                              separators=(",", ":"), allow_nan=False)
-    except (TypeError, ValueError, OverflowError) as error:
+        # ensure_ascii=False leaves lone surrogates in the Python string.
+        # Validate UTF-8 here so append and write_jsonl expose one
+        # fail-closed EventLogError instead of leaking UnicodeEncodeError.
+        encoded.encode("utf-8")
+    except (TypeError, ValueError, OverflowError, UnicodeError) as error:
         raise EventLogError(f"event is not JSON-compatible: {error}") from error
     return encoded + "\n"
 
@@ -168,7 +172,12 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     for line_number, line in enumerate(lines, 1):
         if not line.strip():
             raise EventLogError(f"blank line at {path}:{line_number}")
-        if len(line.encode("utf-8")) > MAX_EVENT_LINE_BYTES:
+        try:
+            line_bytes = line.encode("utf-8")
+        except UnicodeError as error:
+            raise EventLogError(
+                f"event line is not valid UTF-8 at {path}:{line_number}") from error
+        if len(line_bytes) > MAX_EVENT_LINE_BYTES:
             raise EventLogError(f"event line is too large at {path}:{line_number}")
         try:
             record = json.loads(line, object_pairs_hook=_object_pairs,

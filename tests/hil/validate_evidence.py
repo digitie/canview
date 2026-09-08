@@ -22,7 +22,7 @@ from hil.events import MAX_EVENT_COUNT, EventLog, EventLogError, read_jsonl
 from hil.run import (BUDGET_PATH, RUNNER_VERSION, SCENARIO_DIR,
                      _path_label, _seed_for_scenario, firmware_identity,
                      harness_identity, load_budget)
-from hil.scenario import ScenarioError, load_scenarios
+from hil.scenario import Scenario, ScenarioError, load_scenarios
 
 
 VALID_STATUSES = {"PASS", "FAIL", "SKIPPED", "BLOCKED"}
@@ -116,7 +116,39 @@ def _validate_events(path: Path, expected_count: int) -> list[dict[str, Any]]:
     return records
 
 
-def validate(report_path: Path, expected_status: str | None = None) -> dict[str, Any]:
+def _selection_ids(trusted_scenarios: dict[str, Scenario],
+                   expected_scenarios: list[str] | None) -> list[str]:
+    """caller-supplied selection 또는 full inventory를 trusted source에서 만든다."""
+    if expected_scenarios is None:
+        return sorted(trusted_scenarios)
+    if (not expected_scenarios
+            or any(not isinstance(item, str) or not item
+                   for item in expected_scenarios)
+            or len(expected_scenarios) != len(set(expected_scenarios))):
+        raise EvidenceError("expected scenario selection is invalid")
+    unknown = sorted(set(expected_scenarios) - set(trusted_scenarios))
+    if unknown:
+        raise EvidenceError(
+            f"expected scenario selection is not trusted: {', '.join(unknown)}")
+    return sorted(expected_scenarios)
+
+
+def _validate_inventory(report: dict[str, Any], expected_ids: list[str]) -> None:
+    """report inventory가 caller/trusted selection과 정확히 같은지 검사한다."""
+    inventory = report.get("scenario_inventory")
+    inventory_ids = inventory.get("ids") if isinstance(inventory, dict) else None
+    if (not isinstance(inventory, dict)
+            or inventory.get("directory") != _path_label(SCENARIO_DIR)
+            or not isinstance(inventory_ids, list)
+            or any(not isinstance(item, str) or not item for item in inventory_ids)
+            or len(inventory_ids) != len(set(inventory_ids))
+            or inventory_ids != expected_ids
+            or inventory.get("count") != len(expected_ids)):
+        raise EvidenceError("scenario inventory does not match expected selection")
+
+
+def validate(report_path: Path, expected_status: str | None = None,
+             expected_scenarios: list[str] | None = None) -> dict[str, Any]:
     report = _read_json(report_path)
     if report.get("schema_version") != 1:
         raise EvidenceError("unsupported report schema")
@@ -197,20 +229,12 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
         raise EvidenceError(f"trusted scenario inventory unavailable: {error}") from error
 
     expected_ids: list[str] | None = None
-    if status == "PASS":
-        inventory = report.get("scenario_inventory")
-        inventory_ids = inventory.get("ids") if isinstance(inventory, dict) else None
-        if (not isinstance(inventory, dict)
-                or inventory.get("directory") != _path_label(SCENARIO_DIR)
-                or not isinstance(inventory_ids, list)
-                or not inventory_ids
-                or any(not isinstance(item, str) or item not in trusted_scenarios
-                       for item in inventory_ids)
-                or len(inventory_ids) != len(set(inventory_ids))
-                or inventory_ids != sorted(inventory_ids)
-                or inventory.get("count") != len(inventory_ids)):
-            raise EvidenceError("scenario inventory does not match trusted inventory")
-        expected_ids = inventory_ids
+    if status == "PASS" or expected_scenarios is not None:
+        # A PASS without an explicit selection is a full trusted-suite claim.
+        # Selected PASS reports must provide the selection to this validator;
+        # the report's own inventory is never used as authority.
+        expected_ids = _selection_ids(trusted_scenarios, expected_scenarios)
+        _validate_inventory(report, expected_ids)
     budget_manifest = report.get("budget_manifest")
     if scenario_results and budget_manifest != _path_label(BUDGET_PATH):
         raise EvidenceError("budget manifest identity is missing")
@@ -226,6 +250,9 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
         item_status = item.get("status")
         if item_status not in {"PASS", "FAIL"}:
             raise EvidenceError(f"invalid scenario status: {scenario_id}")
+        verification = item.get("verification")
+        if verification not in {"trusted-replay", "structural-only"}:
+            raise EvidenceError(f"scenario verification mode is missing: {scenario_id}")
         scenario_digest = item.get("scenario_sha256")
         if (not isinstance(scenario_digest, str)
                 or not SHA256.fullmatch(scenario_digest)):
@@ -332,11 +359,33 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
         if trusted is None:
             if item_status == "PASS":
                 raise EvidenceError(f"PASS scenario is not trusted: {scenario_id}")
-            if tx or invalid_tx_counts:
-                if not isinstance(first, dict) or first.get("invariant") not in {
-                        "capture_only.can_tx_zero", "capture_only.tx_count_valid"}:
-                    raise EvidenceError(f"forbidden TX failure is not recorded: {scenario_id}")
+            if verification != "structural-only":
+                raise EvidenceError(
+                    f"custom scenario is not marked structural-only: {scenario_id}")
+            structural = Scenario(
+                scenario_id=scenario_id,
+                title="structural-only evidence",
+                suites=("host",),
+                mode="CAPTURE_ONLY",
+                actions=(),
+                expect={},
+                source_path=report_path,
+            )
+            try:
+                expected = analyze(structural, records, metrics, budget)
+            except Exception as error:
+                raise EvidenceError(
+                    f"custom scenario analysis failed: {scenario_id}") from error
+            if (expected["status"] != item_status
+                    or checks != expected["checks"]
+                    or violations != expected["violations"]
+                    or first != expected["first_violation"]):
+                raise EvidenceError(
+                    f"custom scenario result is not reproducible: {scenario_id}")
             continue
+        if verification != "trusted-replay":
+            raise EvidenceError(
+                f"trusted scenario has invalid verification mode: {scenario_id}")
         if (scenario_digest != trusted.digest
                 or scenario_seed != _seed_for_scenario(seed, scenario_id)
                 or item.get("source") != _path_label(trusted.source_path)
@@ -351,7 +400,11 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
                     or event_bytes != expected_log.byte_length):
                 raise EvidenceError(
                     f"trusted scenario trace does not match deterministic replay: {scenario_id}")
-        expected = analyze(trusted, records, metrics, budget)
+        try:
+            expected = analyze(trusted, records, metrics, budget)
+        except Exception as error:
+            raise EvidenceError(
+                f"scenario analysis failed: {scenario_id}") from error
         if (item_status != expected["status"]
                 or checks != expected["checks"]
                 or violations != expected["violations"]
@@ -372,10 +425,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("path", type=Path,
                         help="report.json or a directory containing report.json")
     parser.add_argument("--expect-status", choices=sorted(VALID_STATUSES))
+    parser.add_argument("--expected-scenario", action="append",
+                        dest="expected_scenarios",
+                        help="trusted scenario expected in this report; omit for full host suite")
     args = parser.parse_args(argv)
     report_path = args.path / "report.json" if args.path.is_dir() else args.path
     try:
-        report = validate(report_path.resolve(), args.expect_status)
+        report = validate(report_path.resolve(), args.expect_status,
+                          args.expected_scenarios)
     except (EvidenceError, OSError) as error:
         print(f"FAIL evidence={report_path} reason={error}", file=sys.stderr)
         return 1

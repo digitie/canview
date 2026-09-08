@@ -24,6 +24,10 @@ guardian timeout, SoftAP/observer radio pressure의 12개다.
 python -B tests/hil/run.py --suite host --seed 1 --output build/hil-host
 python -B tests/hil/validate_evidence.py build/hil-host --expect-status PASS
 
+# 선택 실행은 validator에 trusted selection을 별도로 전달한다.
+python -B tests/hil/validate_evidence.py build/hil-selected `
+  --expect-status PASS --expected-scenario brownout
+
 # local rig가 없을 때는 성공으로 승격되지 않는다.
 python -B tests/hil/run.py --suite g2-readonly `
   --rig-config tests/hil/rig.example.yaml --output build/hil-g2
@@ -53,8 +57,12 @@ scenario가 `ordered_events`를 선언하면 action event의 순서와 field sub
 `HARNESS_COMPLETE`로 끝나야 한다. `validate_evidence.py`는 trusted host
 scenario의 PASS report에 대해 현재 inventory를 deterministic replay하여 event,
 metric, seed와 byte length를 report와 대조한다. 따라서 report에 적힌 metric만으로
-예산 통과를 주장할 수 없고, 선택 실행은 trusted inventory의 명시된 부분집합으로만
-검증된다.
+예산 통과를 주장할 수 없다. selection을 생략한 PASS 검증은 trusted 전체 host
+inventory를 요구하며, 선택 실행은 `--expected-scenario` 또는 API의
+`expected_scenarios`로 caller가 지정한 trusted 부분집합과 정확히 일치해야 한다.
+trusted PASS는 `trusted-replay`, custom FAIL은 구조적 analyzer 결과만 재계산하는
+`structural-only`로 표시하며, 후자는 임의 scenario assertion의 증거로 승격하지
+않는다.
 
 실패 report는 반드시 `first_violation.invariant`와 `log_offset`을 포함한다.
 `fixtures/forbidden-can-tx.jsonl`은 capture-only TX 판정이 실제로 실패해야 하는
