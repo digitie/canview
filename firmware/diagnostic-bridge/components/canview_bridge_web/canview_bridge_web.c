@@ -35,6 +35,7 @@
 #define CANVIEW_BRIDGE_WEB_WS_TOKEN_PREFIX "canview-session."
 #define CANVIEW_BRIDGE_WEB_WS_TOKEN_TEXT_BYTES (22U)
 #define CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS (1000U)
+#define CANVIEW_BRIDGE_WEB_HTTP_SEND_TIMEOUT_MS (1000U)
 #define CANVIEW_BRIDGE_WEB_ORIGIN_IP "http://192.168.4.1"
 #define CANVIEW_BRIDGE_WEB_ORIGIN_HOST "http://canview-diag.local"
 
@@ -60,11 +61,14 @@ typedef struct
     uint32_t event_sequence;
     uint32_t httpd_heartbeat_sequence;
     uint32_t httpd_heartbeat_acknowledged;
+    int request_deadline_client_fd;
     size_t json_arena_used;
     uint64_t button_started_ms;
     uint64_t service_window_started_ms;
     uint64_t mutation_window_started_ms;
     uint64_t httpd_heartbeat_sent_ms;
+    uint64_t request_deadline_started_ms;
+    uint64_t request_deadline_ms;
     esp_task_wdt_user_handle_t httpd_watchdog_user;
     uint8_t mutation_count;
     char ap_password[CANVIEW_BRIDGE_WEB_AP_PASSWORD_BYTES];
@@ -78,6 +82,7 @@ typedef struct
     int pre_auth_client_fd;
     uint64_t pre_auth_started_ms;
     bool pre_auth_client_valid;
+    bool request_deadline_valid;
     bool event_loop_initialized;
     bool wifi_initialized;
     bool wifi_started;
@@ -341,11 +346,125 @@ static bool reset_httpd_watchdog_user(canview_bridge_web_state_t *state)
 
 static bool acknowledge_httpd_heartbeat(canview_bridge_web_state_t *state);
 
+/* Caller holds state->lock. The deadline is never extended by partial I/O. */
+static bool request_deadline_remaining_locked(const canview_bridge_web_state_t *state,
+                                              int client_fd, uint64_t now_ms, bool *tracked,
+                                              uint32_t *remaining_ms)
+{
+    if (state == NULL || client_fd < 0 || tracked == NULL || remaining_ms == NULL)
+    {
+        return false;
+    }
+    *tracked = false;
+    *remaining_ms = 0U;
+    if (!state->request_deadline_valid)
+    {
+        return true;
+    }
+    if (state->request_deadline_client_fd != client_fd)
+    {
+        return false;
+    }
+    *tracked = true;
+    if (now_ms < state->request_deadline_started_ms || now_ms >= state->request_deadline_ms)
+    {
+        return true;
+    }
+    const uint64_t remaining = state->request_deadline_ms - now_ms;
+    *remaining_ms = remaining > UINT32_MAX ? UINT32_MAX : (uint32_t)remaining;
+    return true;
+}
+
+static bool request_deadline_remaining(int client_fd, bool *tracked, uint32_t *remaining_ms)
+{
+    uint64_t now_ms = 0U;
+    if (client_fd < 0 || tracked == NULL || remaining_ms == NULL ||
+        idf_now_ms(NULL, &now_ms) != CANVIEW_OK || !state_lock_take(&web_state))
+    {
+        return false;
+    }
+    const bool valid = request_deadline_remaining_locked(&web_state, client_fd, now_ms, tracked,
+                                                         remaining_ms);
+    state_lock_give(&web_state);
+    return valid;
+}
+
+static bool start_request_deadline(int client_fd, bool *tracked, uint32_t *remaining_ms)
+{
+    uint64_t now_ms = 0U;
+    if (client_fd < 0 || tracked == NULL || remaining_ms == NULL ||
+        idf_now_ms(NULL, &now_ms) != CANVIEW_OK || !state_lock_take(&web_state))
+    {
+        return false;
+    }
+    bool valid = true;
+    if (web_state.request_deadline_valid && web_state.request_deadline_client_fd != client_fd)
+    {
+        valid = false;
+    }
+    else if (!web_state.request_deadline_valid)
+    {
+        if (now_ms > UINT64_MAX - CANVIEW_BRIDGE_WEB_REQUEST_TIMEOUT_MS)
+        {
+            valid = false;
+        }
+        else
+        {
+            web_state.request_deadline_client_fd = client_fd;
+            web_state.request_deadline_started_ms = now_ms;
+            web_state.request_deadline_ms = now_ms + CANVIEW_BRIDGE_WEB_REQUEST_TIMEOUT_MS;
+            web_state.request_deadline_valid = true;
+        }
+    }
+    if (valid)
+    {
+        valid = request_deadline_remaining_locked(&web_state, client_fd, now_ms, tracked,
+                                                  remaining_ms);
+    }
+    state_lock_give(&web_state);
+    return valid;
+}
+
+/* Caller holds state->lock, or the HTTPD request has already been serialized. */
+static void clear_request_deadline_locked(canview_bridge_web_state_t *state, int client_fd)
+{
+    if (state != NULL && state->request_deadline_valid &&
+        state->request_deadline_client_fd == client_fd)
+    {
+        state->request_deadline_client_fd = -1;
+        state->request_deadline_started_ms = 0U;
+        state->request_deadline_ms = 0U;
+        state->request_deadline_valid = false;
+    }
+}
+
 static int send_with_worker_deadline(httpd_handle_t server, int client_fd, const char *buffer,
                                     size_t buffer_length, int flags)
 {
     (void)server;
     if (client_fd < 0 || buffer == NULL)
+    {
+        return HTTPD_SOCK_ERR_INVALID;
+    }
+    bool request_tracked = false;
+    uint32_t request_remaining_ms = 0U;
+    if (!request_deadline_remaining(client_fd, &request_tracked, &request_remaining_ms) ||
+        (request_tracked && request_remaining_ms == 0U))
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    }
+    const uint32_t timeout_ms = request_tracked &&
+                                        request_remaining_ms <
+                                            CANVIEW_BRIDGE_WEB_HTTP_SEND_TIMEOUT_MS
+                                    ? request_remaining_ms
+                                    : CANVIEW_BRIDGE_WEB_HTTP_SEND_TIMEOUT_MS;
+    if (timeout_ms == 0U)
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    }
+    const struct timeval timeout = {.tv_sec = (long)(timeout_ms / 1000U),
+                                    .tv_usec = (long)((timeout_ms % 1000U) * 1000U)};
+    if (setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) != 0)
     {
         return HTTPD_SOCK_ERR_INVALID;
     }
@@ -362,6 +481,11 @@ static int send_with_worker_deadline(httpd_handle_t server, int client_fd, const
     if (!acknowledge_httpd_heartbeat(&web_state))
     {
         return HTTPD_SOCK_ERR_FAIL;
+    }
+    if (!request_deadline_remaining(client_fd, &request_tracked, &request_remaining_ms) ||
+        (request_tracked && request_remaining_ms == 0U))
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
     }
     if (sent >= 0)
     {
@@ -516,7 +640,16 @@ static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t 
 
 static void leave_request(canview_bridge_web_state_t *state)
 {
-    if (state != NULL && state->request_lock != NULL)
+    if (state == NULL)
+    {
+        return;
+    }
+    if (state_lock_take(state))
+    {
+        clear_request_deadline_locked(state, state->request_deadline_client_fd);
+        state_lock_give(state);
+    }
+    if (state->request_lock != NULL)
     {
         (void)xSemaphoreGive(state->request_lock);
     }
@@ -1975,9 +2108,26 @@ static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, 
     {
         return HTTPD_SOCK_ERR_FAIL;
     }
-    const uint32_t timeout_ms = tracked && remaining_ms < CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS
-                                    ? remaining_ms
-                                    : CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS;
+    bool request_tracked = false;
+    uint32_t request_remaining_ms = 0U;
+    if (!start_request_deadline(client_fd, &request_tracked, &request_remaining_ms) ||
+        (request_tracked && request_remaining_ms == 0U))
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    }
+    uint32_t timeout_ms = CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS;
+    if (tracked && remaining_ms < timeout_ms)
+    {
+        timeout_ms = remaining_ms;
+    }
+    if (request_tracked && request_remaining_ms < timeout_ms)
+    {
+        timeout_ms = request_remaining_ms;
+    }
+    if (timeout_ms == 0U)
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    }
     const struct timeval timeout = {.tv_sec = (long)(timeout_ms / 1000U),
                                     .tv_usec = (long)((timeout_ms % 1000U) * 1000U)};
     if (setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0)
@@ -1989,6 +2139,7 @@ static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, 
         return HTTPD_SOCK_ERR_FAIL;
     }
     const int received = recv(client_fd, buffer, buffer_length, flags);
+    const int receive_errno = errno;
     if (!reset_httpd_watchdog_user(&web_state))
     {
         return HTTPD_SOCK_ERR_FAIL;
@@ -2007,15 +2158,21 @@ static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, 
             return HTTPD_SOCK_ERR_FAIL;
         }
     }
+    if (!request_deadline_remaining(client_fd, &request_tracked, &request_remaining_ms) ||
+        (request_tracked && request_remaining_ms == 0U))
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    }
     if (received >= 0)
     {
         return received;
     }
-    if (errno == EAGAIN || errno == EINTR)
+    if (receive_errno == EAGAIN || receive_errno == EINTR)
     {
         return HTTPD_SOCK_ERR_TIMEOUT;
     }
-    if (errno == EINVAL || errno == EBADF || errno == EFAULT || errno == ENOTSOCK)
+    if (receive_errno == EINVAL || receive_errno == EBADF || receive_errno == EFAULT ||
+        receive_errno == ENOTSOCK)
     {
         return HTTPD_SOCK_ERR_INVALID;
     }
@@ -2033,6 +2190,10 @@ static esp_err_t open_connection(httpd_handle_t server, int client_fd)
         state_lock_give(&web_state);
         return ESP_ERR_INVALID_STATE;
     }
+    web_state.request_deadline_client_fd = client_fd;
+    web_state.request_deadline_started_ms = 0U;
+    web_state.request_deadline_ms = 0U;
+    web_state.request_deadline_valid = false;
     uint64_t now_ms = 0U;
     const bool clock_ready = idf_now_ms(NULL, &now_ms) == CANVIEW_OK;
     const bool pre_auth_ready = clock_ready &&
@@ -2079,6 +2240,7 @@ static void close_session(httpd_handle_t server, int client_fd)
         return;
     }
     clear_pre_auth_client(&web_state, client_fd);
+    clear_request_deadline_locked(&web_state, client_fd);
     if (canview_bridge_web_session_close(&web_state.session, client_fd))
     {
         (void)canview_bridge_auth_logout(&web_state.auth);
@@ -2232,13 +2394,13 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     http_config.send_wait_timeout = 1U;
     http_config.open_fn = open_connection;
     http_config.close_fn = close_session;
-    status = httpd_start(&web_state.server, &http_config);
+    status = esp_task_wdt_add_user("bridge_httpd", &web_state.httpd_watchdog_user);
     if (status != ESP_OK)
     {
         const esp_err_t cleanup_result = discard_start_state();
         return cleanup_result == ESP_OK ? status : cleanup_result;
     }
-    status = esp_task_wdt_add_user("bridge_httpd", &web_state.httpd_watchdog_user);
+    status = httpd_start(&web_state.server, &http_config);
     if (status != ESP_OK)
     {
         const esp_err_t cleanup_result = discard_start_state();

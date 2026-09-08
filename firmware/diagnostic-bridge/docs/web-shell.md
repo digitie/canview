@@ -24,6 +24,8 @@ HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 respo
 
 HTTPD worker liveness는 app poll이 `httpd_queue_work()`로 예약한 callback ACK와 실제 worker socket I/O progress를 함께 사용한다. HTTPD task가 bounded `recv()` 또는 `send()`를 수행할 때 1초 `SO_RCVTIMEO`/`SO_SNDTIMEO`와 전후 task-WDT user checkpoint를 적용하고, progress가 있으면 해당 heartbeat sequence도 ACK한다. 따라서 느린 client는 제한시간 안에 정리되고 정상적인 부분 I/O가 1.5초 worker-heartbeat timeout으로 잘못 승격되지 않는다. queue callback 자체가 실행되지 않고 I/O progress도 사라지는 경우에는 app poll이 timeout을 감지해 service를 중지한다. callback·I/O·DNS fault injection은 현재 host contract에 포함되지 않으며 후속 runtime/HIL gate에서 검증한다.
 
+HTTP 요청 하나의 header/body/response 전체에는 15초 absolute deadline을 적용한다. 부분 `recv()`/`send()`가 성공해도 deadline을 연장하지 않으며, deadline 이후에는 socket I/O를 timeout으로 종료한다. handler가 정상적으로 반환할 때만 다음 keep-alive 요청을 위해 deadline을 재arm한다. HTTPD watchdog user는 HTTPD task를 시작하기 전에 등록하므로 server start와 첫 client accept 사이에도 worker callback이 준비되지 않은 handle을 참조하지 않는다.
+
 `canview_bridge_web_config_t`의 credential 포인터는 start 호출 중에만 유효하면 된다. PIN digest는 auth state로 복사하고, AP password는 `esp_wifi_set_config()`에 복사한 직후 web state에서 zeroize한다. app도 start 반환 뒤 local credential buffer를 zeroize한다. callback은 `button_pressed` 하나만 남으며 web service가 정지할 때까지 caller가 수명을 보장해야 한다. ISR은 button callback이나 web API를 호출하지 않는다.
 
 ## 부팅과 service window
