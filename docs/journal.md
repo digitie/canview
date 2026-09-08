@@ -1,5 +1,26 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-500 merge closure)
+
+T-500 최종 candidate `ff3121ce04328ff61a73f13492f8be9927f0dc98`의 독립
+Reviewer A `CV-HOSTILE-20260908-T500-A-10`과 Reviewer B
+`CV-HOSTILE-20260908-T500-B-10` raw report를 보존하고, 두 reviewer의
+`PASS` 및 unresolved P0/P1/P2/P3 0건을 통합 report에 기록했다. 초기·중간
+BLOCK, invalid candidate와 incomplete service 실행은 PASS로 산정하지 않았다.
+
+PR [#30](https://github.com/digitie/canview/pull/30)을 ready로 전환한 뒤
+GitHub Actions `34235313714`의 windows-c99, target-firmware-windows,
+Linux GCC/Clang, sanitizer, browser contract 6개 job success를 확인하고
+merge했다. merge commit `8f5d97ff924fe7fdb757a3a86a30cde5a80c2a09`와
+`origin/main`이 일치하며 ancestor 검증도 통과했다. T-500 focused unit 46/46,
+전체 Python 97/97, host 12/12, selected scenario/evidence validator,
+compileall, document link와 plan 검사를 다시 확인했다.
+
+g2 read-only rig는 physical backend가 없어 `SKIPPED`이고, 실제 board
+flash/HIL·power/reset/brownout·CAN analyzer·차량 bus·provisioning과 차량
+CAN TX는 각각 `NOT_RUN`/`NO-GO`로 유지한다. 다음 구현은 T-103 STM32
+3채널 FDCAN capture-only C firmware다.
+
 ## 2026-09-08 (codex, T-102 merge와 T-500 host harness 시작)
 
 PR #29의 최종 문서 closure head `10716b12a19b7244982d6e1572f1fad81057d348`에서 GitHub Actions `34218499019`의 6개 job 전체 성공을 다시 확인하고, PR #29를 merge commit `50410ba23fcecfa1f28cea837d04a061c201d648`로 `origin/main`에 통합했다. T-102 candidate `1894117`은 source/review/CI closure를 통과했지만 board flash, G1/G2 physical/HIL, UART/FDCAN 계측, Flash root, 차량 CAN과 provisioning은 `NOT_RUN`이며 CAN TX는 `NO-GO`다.

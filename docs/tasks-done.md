@@ -2,6 +2,23 @@
 
 완료·종료 task를 newest-first로 이동해 기록한다. 설계 감사와 문서 구조 정리는 구현 task 완료 이력과 분리해 PR·journal에 기록한다.
 
+## 2026-09-08 T-500
+
+| ID | 상태 | 우선순위 | 작업 | 선행 |
+|---|---|---:|---|---|
+| [T-500](tasks/T-500-bench-hil-harness.md) | DONE | P0 | protocol/CAN fault bench와 HIL harness | T-001, T-003, T-004 |
+
+PR [#30](https://github.com/digitie/canview/pull/30)은 merge commit
+`8f5d97ff924fe7fdb757a3a86a30cde5a80c2a09`으로 `origin/main`에 통합됐다.
+최종 CI `34235313714`의 6개 job과 target firmware build, focused unit
+46/46, 전체 Python 97/97, host inventory 12/12, evidence validator,
+sanitizer 및 문서·계획 검사를 통과했다. A-10/B-10 독립 적대적 reviewer는
+모두 `PASS`이고 unresolved P0/P1/P2/P3는 0건이다. [통합 review report](reviews/adversarial/2026-09-08-T-500.md)와
+[reviewer raw evidence A](reviews/adversarial/evidence/2026-09-08-T-500-reviewer-a.md),
+[reviewer raw evidence B](reviews/adversarial/evidence/2026-09-08-T-500-reviewer-b.md)를 보존한다.
+실제 rig는 `SKIPPED`, physical/HIL·flash·전원/reset·CAN analyzer·차량 bus·
+provisioning은 `NOT_RUN`이며 차량 CAN TX는 `NO-GO`다.
+
 ## 2026-09-07 T-400a
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
