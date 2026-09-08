@@ -29,6 +29,7 @@ typedef struct
 
 typedef struct
 {
+    /* STM32G4 uses fixed Message RAM; RXF0C/RXESC are intentionally absent. */
     volatile uint32_t CCCR;
     volatile uint32_t NBTP;
     volatile uint32_t DBTP;

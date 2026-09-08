@@ -61,14 +61,18 @@ frame을 FIFO0으로 받지만, module은 FD/BRS/DLC>8을 classic record로 내�
 
 ## Message RAM과 IRQ 경계
 
-STM32CubeG4 v1.6.3의 STM32G4 FDCAN instance layout을 기준으로 instance마다
-848 byte, RX FIFO0 offset 176 byte, element 72 byte, FIFO depth 3을 사용한다.
-설치된 STM32G4 CMSIS register map에는 RX FIFO status/address(`RXF0S`/`RXF0A`)가
-있고 임의 `RXF0C`/`RXESC` 구성 register는 없다. 따라서 Cube HAL의 fixed layout
-계산과 같은 848/176/72/3 값을 source compile-time assertion으로 고정했으며,
-존재하지 않는 register를 설정하는 방식으로 RAM layout을 바꾸지 않는다. FIFO
-fill level이나 get index가 이 계약을 벗어나면 element를 읽거나 callback을
-호출하지 않고 FIFO loss를 기록한다.
+STM32CubeG4 v1.6.3의 공식 HAL source
+(`Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_fdcan.c`)가 정의하는 고정 layout을
+사용한다. HAL의 `SRAMCAN_FLS_NBR/FLE_NBR/RF0_NBR/RF1_NBR/TEF_NBR/TFQ_NBR`와
+element-size 상수에서 계산한 instance 848 byte, RX FIFO0 offset 176 byte,
+element 72 byte, FIFO depth 3을
+`platform/stm32g474/fdcan_message_ram.h`에 고정한다. 설치된 STM32G4
+CMSIS register map에는 RX FIFO status/address(`RXF0S`/`RXF0A`)가 있고
+`RXF0C`/`RXESC` 구성 register는 없다. 따라서 존재하지 않는 register를
+설정해 layout을 바꾸려 하지 않는다. header compile-time assertion과
+`tools/check_stm32_fdcan_layout.py` target post-build check가 설치된 pinned
+HAL/CMSIS source와 adapter 상수를 매번 비교한다. FIFO fill level이나 get index가
+이 계약을 벗어나면 element를 읽거나 callback을 호출하지 않고 FIFO loss를 기록한다.
 
 FDCAN IRQ handler의 책임은 다음으로 제한된다.
 
@@ -158,8 +162,9 @@ candidate 승격 또는 control permission의 근거가 아니다. 64개 entry�
   ELF/MAP/HEX/BIN, size/stack/금지 TX source·symbol gate
 - generated board/config, 전체 host CTest, sanitizer와 coverage는 immutable
   candidate에서 다시 실행해 기록한다. 현재 host coverage gate는 module
-  function 100%/line 99.1%/branch 94.1%, fake adapter function 100%/line
-  98.6%/branch 93.2%이다.
+  function 100%/line 99.1718%/branch 93.8776%, fake adapter function
+  100%/line 97.4026%/branch 91.8919%이다. pinned STM32CubeG4 HAL/CMSIS와
+  fixed Message RAM header 정합성은 target post-build layout check로 검사한다.
 
 다음 항목은 이 문서나 target build가 성공해도 닫히지 않는다.
 

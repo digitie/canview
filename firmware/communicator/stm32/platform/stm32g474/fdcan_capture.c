@@ -13,10 +13,6 @@ extern bool canview_stm_fdcan_test_wait_should_timeout(void);
 #endif
 
 #define CANVIEW_STM_FDCAN_POLL_LIMIT (UINT32_C(100000))
-#define CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES (UINT32_C(848))
-#define CANVIEW_STM_FDCAN_RX_FIFO0_OFFSET_BYTES (UINT32_C(176))
-#define CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_BYTES (UINT32_C(72))
-#define CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT (UINT32_C(3))
 #define CANVIEW_STM_FDCAN_GPIO_MODE_ALTERNATE (UINT32_C(2))
 #define CANVIEW_STM_FDCAN_AF_HIGH_SPEED (UINT32_C(9))
 #define CANVIEW_STM_FDCAN_AF_FAULT_TOLERANT (UINT32_C(11))
@@ -45,8 +41,9 @@ extern bool canview_stm_fdcan_test_wait_should_timeout(void);
      FDCAN_IE_BOE | FDCAN_IE_MRAFE | FDCAN_IE_PEAE | FDCAN_IE_PEDE)
 
 typedef char canview_stm_fdcan_message_ram_fits[
-    (CANVIEW_STM_FDCAN_RX_FIFO0_OFFSET_BYTES +
-         CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT * CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_BYTES <=
+    (CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_OFFSET_BYTES +
+         CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_COUNT *
+             CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_BYTES <=
      CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES)
         ? 1
         : -1];
@@ -404,8 +401,10 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
     const uintptr_t ram_base = (uintptr_t)SRAMCAN_BASE +
                                (uintptr_t)channel_index *
                                    (uintptr_t)CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES +
-                               (uintptr_t)CANVIEW_STM_FDCAN_RX_FIFO0_OFFSET_BYTES;
-    for (uint32_t drained = 0U; drained < CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT; ++drained)
+                               (uintptr_t)CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_OFFSET_BYTES;
+    for (uint32_t drained = 0U;
+         drained < CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_COUNT;
+         ++drained)
     {
         const uint32_t fifo_status = instance->RXF0S;
         const uint32_t fill_level = fifo_status & FDCAN_RXF0S_F0FL;
@@ -418,7 +417,7 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
         {
             break;
         }
-        if (fill_level > CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT)
+        if (fill_level > CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_COUNT)
         {
             platform->fifo_loss_unknown[channel_index] = true;
             platform->pending_interrupts[channel_index] |= FDCAN_IR_RF0L;
@@ -426,14 +425,15 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
         }
         const uint32_t get_index =
             (fifo_status & FDCAN_RXF0S_F0GI) >> FDCAN_RXF0S_F0GI_Pos;
-        if (get_index >= CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT)
+        if (get_index >= CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_COUNT)
         {
             platform->fifo_loss_unknown[channel_index] = true;
             platform->pending_interrupts[channel_index] |= FDCAN_IR_RF0L;
             break;
         }
         const uintptr_t element_address =
-            ram_base + (uintptr_t)get_index * (uintptr_t)CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_BYTES;
+            ram_base + (uintptr_t)get_index *
+                           (uintptr_t)CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_BYTES;
         volatile const uint32_t *const element = (volatile const uint32_t *)element_address;
         const uint32_t element_words[4] = {element[0], element[1], element[2], element[3]};
         const uint32_t timestamp_us = canview_stm_now_us(NULL);

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
 EXPECTED_SOURCE = "t103-fixture"
 EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
-EXPECTED_FIRMWARE_IDENTITY = "513a691c88f369a5cd3bf1e4a4ccf0903259fa4defbb0ae67d69b5c88f080db8"
+EXPECTED_FIRMWARE_IDENTITY = "368345fe55b4d49c77967bf8d045f4acd7e99b9d7d5dccbc209155639957dcd2"
 
 
 class T103CaptureHelperTests(unittest.TestCase):

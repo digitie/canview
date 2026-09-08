@@ -125,12 +125,27 @@ static canview_stm_fdcan_platform_config_t config_for_profiles(
 static void put_fifo_word(size_t channel, uint32_t identifier, uint32_t control,
                           uint32_t data_low, uint32_t data_high)
 {
-    const size_t offset = 176U + channel * 848U;
+    const size_t offset = CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_OFFSET_BYTES +
+                          channel * CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES;
     uint32_t *const element = (uint32_t *)(void *)(fake_sramcan + offset);
     element[0] = identifier;
     element[1] = control;
     element[2] = data_low;
     element[3] = data_high;
+}
+
+static void message_ram_layout_tests(void)
+{
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_STANDARD_FILTER_COUNT == 28U);
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_EXTENDED_FILTER_COUNT == 8U);
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_COUNT == 3U);
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_BYTES == 72U);
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_OFFSET_BYTES == 176U);
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES == 848U);
+    CHECK(CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_OFFSET_BYTES +
+              CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_COUNT *
+                  CANVIEW_STM_FDCAN_MESSAGE_RAM_RX_FIFO0_ELEMENT_BYTES <=
+          CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES);
 }
 
 static void start_platform(canview_stm_fdcan_platform_t *platform,
@@ -538,6 +553,7 @@ static void callback_safety_tests(void)
 
 int main(void)
 {
+    message_ram_layout_tests();
     lifecycle_tests();
     fifo_and_loss_tests();
     hardware_loss_tests();

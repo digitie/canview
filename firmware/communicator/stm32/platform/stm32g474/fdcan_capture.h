@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "fdcan_message_ram.h"
 #include "canview_stm_fdcan_capture.h"
 
 #define CANVIEW_STM_FDCAN_PLATFORM_RAW_RING_CAPACITY (16U)

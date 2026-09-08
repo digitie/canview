@@ -37,12 +37,16 @@ set(STARTUP_SOURCE
 set(SYSTEM_SOURCE
     "${CMSIS_DEVICE_ROOT}/Source/Templates/system_stm32g4xx.c"
 )
+set(FDCAN_HAL_SOURCE
+    "${STM32CUBE_G4_ROOT}/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_fdcan.c"
+)
 
 foreach(required_path
         "${CMSIS_CORE_ROOT}/Core/Include/core_cm4.h"
         "${CMSIS_DEVICE_ROOT}/Include/stm32g474xx.h"
         "${STARTUP_SOURCE}"
         "${SYSTEM_SOURCE}"
+        "${FDCAN_HAL_SOURCE}"
 )
     if(NOT EXISTS "${required_path}")
         message(FATAL_ERROR "Required STM32CubeG4 file not found: ${required_path}")
@@ -149,6 +153,8 @@ target_compile_options(${TARGET_NAME} PRIVATE
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_FLASH.ld")
 set_property(TARGET ${TARGET_NAME} APPEND PROPERTY LINK_DEPENDS
     "${LINKER_SCRIPT}" "${CANVIEW_ROOT}/tools/check_stm32_core.py"
+    "${CANVIEW_ROOT}/tools/check_stm32_fdcan_layout.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/platform/stm32g474/fdcan_message_ram.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/register_model.h")
 target_link_options(${TARGET_NAME} PRIVATE
     ${MCU_OPTIONS}
@@ -176,5 +182,9 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/check_stm32_core.py"
         --elf $<TARGET_FILE:${TARGET_NAME}> --compiler "${CMAKE_C_COMPILER}"
         --sdk "${STM32CUBE_G4_ROOT}"
-    COMMENT "Generating HEX/BIN and reporting image size"
+    COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        "${CANVIEW_ROOT}/tools/check_stm32_fdcan_layout.py"
+        --sdk "${STM32CUBE_G4_ROOT}"
+        --contract "${CMAKE_CURRENT_SOURCE_DIR}/platform/stm32g474/fdcan_message_ram.h"
+    COMMENT "Generating HEX/BIN, reporting image size, and checking FDCAN RAM layout"
 )
