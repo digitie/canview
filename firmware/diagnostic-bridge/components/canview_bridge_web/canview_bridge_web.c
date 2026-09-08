@@ -4,6 +4,7 @@
 #include "canview_bridge_auth.h"
 #include "canview_bridge_web_session.h"
 #include "dns_server.h"
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +19,7 @@
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "lwip/sockets.h"
 #include "mbedtls/md.h"
 #include "psa/crypto.h"
 
@@ -67,6 +69,9 @@ typedef struct
     bool button_down;
     bool button_hold_consumed;
     bool service_window_open;
+    int pre_auth_client_fd;
+    uint64_t pre_auth_started_ms;
+    bool pre_auth_client_valid;
     bool event_loop_initialized;
     bool wifi_initialized;
     bool wifi_started;
@@ -367,6 +372,16 @@ static void leave_request(canview_bridge_web_state_t *state)
     }
 }
 
+static void clear_pre_auth_client(canview_bridge_web_state_t *state, int client_fd)
+{
+    if (state != NULL && state->pre_auth_client_valid && state->pre_auth_client_fd == client_fd)
+    {
+        state->pre_auth_client_fd = -1;
+        state->pre_auth_started_ms = 0U;
+        state->pre_auth_client_valid = false;
+    }
+}
+
 static bool enter_ws_io(canview_bridge_web_state_t *state)
 {
     return state != NULL && state->ws_io_lock != NULL &&
@@ -664,6 +679,10 @@ static bool token_authenticated_and_record(httpd_req_t *request,
     {
         valid = canview_bridge_web_session_record_activity(&state->session, client_fd, now_ms) ==
                 CANVIEW_BRIDGE_WEB_SESSION_OK;
+        if (valid)
+        {
+            clear_pre_auth_client(state, client_fd);
+        }
     }
     state_lock_give(state);
     return valid;
@@ -772,6 +791,10 @@ static canview_status_t open_session(httpd_req_t *request, canview_bridge_web_st
         if (status != CANVIEW_OK)
         {
             (void)canview_bridge_auth_logout(&state->auth);
+        }
+        else
+        {
+            clear_pre_auth_client(state, client_fd);
         }
     }
     state_lock_give(state);
@@ -1682,18 +1705,105 @@ static bool web_client_idle_expired(const canview_bridge_web_state_t *state, uin
                                  CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS);
 }
 
+static bool pre_auth_deadline_expired(int client_fd)
+{
+    if (client_fd < 0 || !state_lock_take(&web_state))
+    {
+        return true;
+    }
+    bool expired = false;
+    if (web_state.pre_auth_client_valid && web_state.pre_auth_client_fd == client_fd)
+    {
+        uint64_t now_ms = 0U;
+        expired = idf_now_ms(NULL, &now_ms) != CANVIEW_OK ||
+                  now_ms < web_state.pre_auth_started_ms ||
+                  now_ms - web_state.pre_auth_started_ms >= CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS;
+    }
+    state_lock_give(&web_state);
+    return expired;
+}
+
+static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, char *buffer,
+                                          size_t buffer_length, int flags)
+{
+    if (server == NULL || client_fd < 0 || buffer == NULL || buffer_length == 0U ||
+        pre_auth_deadline_expired(client_fd))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    (void)server;
+    const int received = recv(client_fd, buffer, buffer_length, flags);
+    if (received >= 0)
+    {
+        return received;
+    }
+    if (errno == EAGAIN || errno == EINTR)
+    {
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    }
+    if (errno == EINVAL || errno == EBADF || errno == EFAULT || errno == ENOTSOCK)
+    {
+        return HTTPD_SOCK_ERR_INVALID;
+    }
+    return HTTPD_SOCK_ERR_FAIL;
+}
+
+static esp_err_t open_connection(httpd_handle_t server, int client_fd)
+{
+    if (server == NULL || client_fd < 0 || !state_lock_take(&web_state))
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (web_state.pre_auth_client_valid)
+    {
+        state_lock_give(&web_state);
+        return ESP_ERR_INVALID_STATE;
+    }
+    uint64_t now_ms = 0U;
+    const bool clock_ready = idf_now_ms(NULL, &now_ms) == CANVIEW_OK;
+    if (clock_ready)
+    {
+        web_state.pre_auth_client_fd = client_fd;
+        web_state.pre_auth_started_ms = now_ms;
+        web_state.pre_auth_client_valid = true;
+    }
+    state_lock_give(&web_state);
+    if (!clock_ready)
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+    const esp_err_t status =
+        httpd_sess_set_recv_override(server, client_fd, receive_with_pre_auth_deadline);
+    if (status != ESP_OK && state_lock_take(&web_state))
+    {
+        clear_pre_auth_client(&web_state, client_fd);
+        state_lock_give(&web_state);
+    }
+    return status;
+}
+
 static void close_session(httpd_handle_t server, int client_fd)
 {
     (void)server;
-    if (!state_lock_take(&web_state))
+    if (client_fd < 0)
     {
         return;
     }
+    if (!state_lock_take(&web_state))
+    {
+        (void)close(client_fd);
+        return;
+    }
+    clear_pre_auth_client(&web_state, client_fd);
     if (canview_bridge_web_session_close(&web_state.session, client_fd))
     {
         (void)canview_bridge_auth_logout(&web_state.auth);
     }
     state_lock_give(&web_state);
+    if (close(client_fd) != 0)
+    {
+        ESP_LOGD(CANVIEW_BRIDGE_WEB_TAG, "socket close failed fd=%d", client_fd);
+    }
 }
 
 static const httpd_uri_t uri_root = {.uri = "/", .method = HTTP_GET, .handler = handle_root,
@@ -1834,6 +1944,7 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     http_config.lru_purge_enable = true;
     http_config.recv_wait_timeout = 5U;
     http_config.send_wait_timeout = 5U;
+    http_config.open_fn = open_connection;
     http_config.close_fn = close_session;
     status = httpd_start(&web_state.server, &http_config);
     if (status != ESP_OK)
