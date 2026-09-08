@@ -9,6 +9,12 @@
     {"type": "radio_delay", "max_ms": 80}
   ],
   "expect": {
-    "required_kinds": ["RADIO_SUMMARY", "RADIO_DELAY_SUMMARY"]
+    "required_kinds": ["RADIO_SUMMARY", "RADIO_DELAY_SUMMARY"],
+    "minimum_counts": {"RADIO_SUMMARY": 5, "RADIO_DELAY_SUMMARY": 1},
+    "required_fields": [
+      {"kind": "RADIO_SUMMARY", "fields": {"loss_percent": 0, "sent": 256, "delivered": 256}},
+      {"kind": "RADIO_SUMMARY", "fields": {"loss_percent": 50, "sent": 256}},
+      {"kind": "RADIO_DELAY_SUMMARY", "fields": {"max_delay_ms": 80}}
+    ]
   }
 }

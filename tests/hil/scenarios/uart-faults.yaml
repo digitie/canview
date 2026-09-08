@@ -8,6 +8,8 @@
     {"type": "uart_fault", "faults": ["insert", "delete", "flip", "cts-100ms", "cts-1s"]}
   ],
   "expect": {
-    "required_kinds": ["UART_FAULT_REJECTED"]
+    "required_kinds": ["UART_FAULT_REJECTED"],
+    "minimum_counts": {"UART_FAULT_REJECTED": 5},
+    "required_fields": [{"kind": "UART_FAULT_REJECTED", "fields": {"parser_state": "RESYNC"}, "minimum": 5}]
   }
 }

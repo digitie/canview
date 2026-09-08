@@ -9,6 +9,7 @@
   ],
   "expect": {
     "required_kinds": ["GUARDIAN_TIMEOUT"],
-    "required_fields": [{"kind": "GUARDIAN_TIMEOUT", "fields": {"tx_gate": "OFF"}}]
+    "minimum_counts": {"GUARDIAN_TIMEOUT": 4},
+    "required_fields": [{"kind": "GUARDIAN_TIMEOUT", "fields": {"tx_gate": "OFF"}, "minimum": 4}]
   }
 }

@@ -8,6 +8,8 @@
     {"type": "security", "vectors": ["control-tag-mutation", "uart-injection", "live-token-257"]}
   ],
   "expect": {
-    "required_kinds": ["SECURITY_REJECT"]
+    "required_kinds": ["SECURITY_REJECT"],
+    "minimum_counts": {"SECURITY_REJECT": 3},
+    "required_fields": [{"kind": "SECURITY_REJECT", "fields": {"accepted": false}, "minimum": 3}]
   }
 }

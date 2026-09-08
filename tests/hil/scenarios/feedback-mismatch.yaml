@@ -8,6 +8,14 @@
     {"type": "feedback", "cases": ["feedback-success", "result-before-ack", "feedback-mismatch", "feedback-timeout", "manual-override"]}
   ],
   "expect": {
-    "required_kinds": ["FEEDBACK_RESULT"]
+    "required_kinds": ["FEEDBACK_RESULT"],
+    "minimum_counts": {"FEEDBACK_RESULT": 5},
+    "required_fields": [
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-success", "result": "SUCCESS", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "result-before-ack", "result": "RESULT_BEFORE_ACK", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-mismatch", "result": "MISMATCH", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-timeout", "result": "TIMEOUT", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "manual-override", "result": "MANUAL_OVERRIDE", "tx_permitted": false}}
+    ]
   }
 }

@@ -51,6 +51,7 @@ class HostAdapter:
             log.append(monotonic_ns, "host-simulator", kind, **fields)
             monotonic_ns += 1_000
 
+        seen_tokens: set[str] = set()
         for action in scenario.actions:
             action_type = str(action["type"])
             if action_type == "radio_loss":
@@ -98,12 +99,18 @@ class HostAdapter:
                          vehicle_tx=False, reason="capture-only")
             elif action_type == "duplicate_command":
                 for token in action.get("tokens", []):
+                    token_text = str(token)
+                    duplicate = token_text in seen_tokens
+                    seen_tokens.add(token_text)
                     emit("COMMAND_REPLAY", request_token=str(token),
-                         executed=False, result="DUPLICATE")
+                         executed=False,
+                         result="DUPLICATE" if duplicate else "ACCEPTED")
             elif action_type == "feedback":
                 for case in action.get("cases", []):
                     case_text = str(case)
-                    if "mismatch" in case_text:
+                    if case_text == "result-before-ack":
+                        feedback_result = "RESULT_BEFORE_ACK"
+                    elif "mismatch" in case_text:
                         feedback_result = "MISMATCH"
                     elif "success" in case_text:
                         feedback_result = "SUCCESS"
@@ -137,7 +144,16 @@ class HostAdapter:
                          capture_only=True)
             elif action_type == "budget":
                 for metric, value in action.get("values", {}).items():
-                    result.metrics[str(metric)] = int(value)
+                    metric_name = str(metric)
+                    metric_value = int(value)
+                    if metric_name == "heap_free_bytes":
+                        result.metrics[metric_name] = min(
+                            result.metrics.get(metric_name, metric_value),
+                            metric_value)
+                    else:
+                        result.metrics[metric_name] = max(
+                            result.metrics.get(metric_name, metric_value),
+                            metric_value)
                 emit("BUDGET_SAMPLE", metrics=dict(result.metrics))
             elif action_type == "event":
                 emit(str(action.get("kind", "SCENARIO_EVENT")),

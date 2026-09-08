@@ -9,6 +9,7 @@
   ],
   "expect": {
     "required_kinds": ["POWER_EVENT"],
-    "required_fields": [{"kind": "POWER_EVENT", "fields": {"tx_gate": "OFF"}}]
+    "minimum_counts": {"POWER_EVENT": 3},
+    "required_fields": [{"kind": "POWER_EVENT", "fields": {"tx_gate": "OFF"}, "minimum": 3}]
   }
 }

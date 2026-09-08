@@ -13,6 +13,11 @@
   ],
   "expect": {
     "required_kinds": ["CAN_CHANNEL_SUMMARY"],
-    "required_fields": [{"kind": "CAN_CHANNEL_SUMMARY", "fields": {"channel": 1, "tx_frames": 0}}]
+    "minimum_counts": {"CAN_CHANNEL_SUMMARY": 3},
+    "required_fields": [
+      {"kind": "CAN_CHANNEL_SUMMARY", "fields": {"channel": 1, "tx_frames": 0}},
+      {"kind": "CAN_CHANNEL_SUMMARY", "fields": {"channel": 2, "tx_frames": 0}},
+      {"kind": "CAN_CHANNEL_SUMMARY", "fields": {"channel": 3, "tx_frames": 0}}
+    ]
   }
 }

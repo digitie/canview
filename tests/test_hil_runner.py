@@ -16,7 +16,7 @@ if str(TESTS_ROOT) not in sys.path:
 
 from hil.adapter import HostAdapter, SimulationResult
 from hil.analyze import analyze
-from hil.events import EventLog, read_jsonl
+from hil.events import EventLog, EventLogError, read_jsonl
 from hil.run import load_budget, main as run_main
 from hil.scenario import ScenarioError, load_scenarios
 from hil.validate_evidence import EvidenceError, validate
@@ -55,6 +55,80 @@ class HilRunnerTests(unittest.TestCase):
         self.assertEqual("events.record_object",
                          result["first_violation"]["invariant"])
 
+    def test_analyzer_rejects_invalid_channel_tx_count(self) -> None:
+        scenario = load_scenarios(SCENARIO_DIR, "host",
+                                  ["can-load"])[0]
+        for value in (True, 1.0, "1", None, -1):
+            event_log = EventLog()
+            event_log.append(1_000, "fixture", "CAN_CHANNEL_SUMMARY",
+                             channel=1, tx_frames=0)
+            event_log.append(2_000, "fixture", "CAN_CHANNEL_SUMMARY",
+                             channel=2, tx_frames=value)
+            result = analyze(scenario, event_log.records,
+                             SimulationResult().metrics, load_budget())
+            self.assertEqual("FAIL", result["status"], repr(value))
+            self.assertEqual("capture_only.tx_count_valid",
+                             result["first_violation"]["invariant"])
+
+    def test_analyzer_rejects_later_unsafe_safety_decision(self) -> None:
+        scenario = load_scenarios(SCENARIO_DIR, "host",
+                                  ["stale-gates"])[0]
+        event_log = EventLog()
+        HostAdapter().execute(scenario, 1, event_log)
+        records = event_log.records
+        records[1]["fields"].update(decision="ALLOW", vehicle_tx=True)
+        result = analyze(scenario, records, SimulationResult().metrics,
+                         load_budget())
+        self.assertEqual("FAIL", result["status"])
+        self.assertEqual("safety.no_unsafe_outcome",
+                         result["first_violation"]["invariant"])
+
+    def test_event_log_commit_is_atomic_and_deeply_copied(self) -> None:
+        event_log = EventLog()
+        record = event_log.append(1_000, "fixture", "EVENT",
+                                  nested={"value": "original"})
+        record["fields"]["nested"]["value"] = "changed"
+        self.assertEqual("original", event_log.records[0]["fields"]["nested"]["value"])
+        original_records = event_log.records
+        original_bytes = event_log.byte_length
+        with self.assertRaises(EventLogError):
+            event_log.append(2_000, "fixture", "EVENT",
+                             invalid=float("nan"))
+        self.assertEqual(original_records, event_log.records)
+        self.assertEqual(original_bytes, event_log.byte_length)
+
+    def test_scenario_parser_rejects_unbounded_action_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unbounded.yaml"
+            path.write_text(json.dumps({
+                "schema_version": 1,
+                "id": "unbounded-action",
+                "title": "invalid",
+                "suites": ["host"],
+                "mode": "CAPTURE_ONLY",
+                "actions": [{"type": "radio_loss", "rates": [50],
+                              "packets": 1_000_000_000_000}],
+                "expect": {},
+            }), encoding="utf-8")
+            with self.assertRaises(ScenarioError):
+                load_scenarios(Path(directory), "host")
+
+    def test_scenario_parser_rejects_duplicate_can_channels(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate-channel.yaml"
+            path.write_text(json.dumps({
+                "schema_version": 1,
+                "id": "duplicate-channel",
+                "title": "invalid",
+                "suites": ["host"],
+                "mode": "CAPTURE_ONLY",
+                "actions": [{"type": "can_load", "channels": [
+                    {"channel": 1}, {"channel": 1}]}],
+                "expect": {},
+            }), encoding="utf-8")
+            with self.assertRaises(ScenarioError):
+                load_scenarios(Path(directory), "host")
+
     def test_capture_only_rejects_forbidden_can_tx_with_offset(self) -> None:
         scenario = load_scenarios(SCENARIO_DIR, "host",
                                   ["stale-gates"])[0]
@@ -84,6 +158,7 @@ class HilRunnerTests(unittest.TestCase):
     def test_monotonic_violation_is_first_timeline_failure(self) -> None:
         scenario = load_scenarios(SCENARIO_DIR, "host",
                                   ["radio-pressure"])[0]
+        scenario = replace(scenario, expect={})
         event_log = EventLog()
         event_log.append(1_000, "fixture", "RADIO_BUDGET")
         event_log.append(2_000, "fixture", "HARNESS_COMPLETE")
@@ -97,6 +172,7 @@ class HilRunnerTests(unittest.TestCase):
     def test_budget_overrun_is_reported(self) -> None:
         scenario = load_scenarios(SCENARIO_DIR, "host",
                                   ["radio-pressure"])[0]
+        scenario = replace(scenario, expect={})
         event_log = EventLog()
         event_log.append(1_000, "fixture", "RADIO_BUDGET")
         metrics = SimulationResult().metrics
@@ -132,6 +208,81 @@ class HilRunnerTests(unittest.TestCase):
                                   encoding="utf-8", newline="\n")
             with self.assertRaises(EvidenceError):
                 validate(output / "report.json", "PASS")
+
+    def test_validator_recomputes_metrics_and_safety_results(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "host"
+            self.assertEqual(0, run_main(["--suite", "host", "--seed", "7",
+                                          "--output", str(output)]))
+            report_path = output / "report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["scenario_results"][0]["metrics"]["map_bytes"] = 99_999_999
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(EvidenceError):
+                validate(report_path, "PASS")
+
+    def test_validator_rejects_partial_pass_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "host"
+            self.assertEqual(0, run_main(["--suite", "host", "--seed", "7",
+                                          "--output", str(output)]))
+            report_path = output / "report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["scenario_results"] = report["scenario_results"][:1]
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(EvidenceError):
+                validate(report_path, "PASS")
+
+    def test_validator_rejects_blocked_report_with_scenario_results(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "host"
+            self.assertEqual(2, run_main(["--suite", "g2-readonly",
+                                          "--output", str(output)]))
+            report_path = output / "report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            report["scenario_results"] = [{"id": "unexpected"}]
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(EvidenceError):
+                validate(report_path, "BLOCKED")
+
+    def test_validator_accepts_recorded_capture_only_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scenario_dir = root / "scenarios"
+            scenario_dir.mkdir()
+            scenario = {
+                "schema_version": 1,
+                "id": "forbidden-tx",
+                "title": "negative",
+                "suites": ["host"],
+                "mode": "CAPTURE_ONLY",
+                "actions": [{"type": "event", "kind": "CAN_TX",
+                              "fields": {"arbitration_id": 0x123}}],
+                "expect": {},
+            }
+            (scenario_dir / "forbidden-tx.yaml").write_text(
+                json.dumps(scenario), encoding="utf-8")
+            output = root / "output"
+            self.assertEqual(1, run_main([
+                "--suite", "host", "--scenario-dir", str(scenario_dir),
+                "--output", str(output)]))
+            self.assertEqual("FAIL",
+                             validate(output / "report.json", "FAIL")["status"])
+
+    def test_runner_rejects_symlinked_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            outside = root / "outside"
+            outside.mkdir()
+            linked = root / "linked"
+            try:
+                linked.symlink_to(outside, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("symlink creation is unavailable")
+            self.assertEqual(2, run_main(["--suite", "host",
+                                          "--scenario", "brownout",
+                                          "--output", str(linked)]))
+            self.assertFalse((outside / "report.json").exists())
 
     def test_lab_without_hardware_is_not_a_pass(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

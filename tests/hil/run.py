@@ -7,9 +7,11 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 
@@ -20,7 +22,7 @@ if __package__ in {None, ""}:
 
 from hil.adapter import LAB_ADAPTER_VERSION, HostAdapter, RigConfigError, parse_rig_config
 from hil.analyze import analyze
-from hil.events import EventLog
+from hil.events import EventLog, EventLogError
 from hil.scenario import ScenarioError, load_scenarios, load_yaml_object
 
 
@@ -92,6 +94,39 @@ def _path_label(path: Path) -> str:
         return f"external/{resolved.name}"
 
 
+class RunError(ValueError):
+    """runner가 안전한 output contract를 만들 수 없을 때 발생한다."""
+
+
+def _symlink_component(path: Path) -> Path | None:
+    """경로의 기존 component 중 symlink를 찾아 반환한다."""
+    absolute = Path(os.path.abspath(path))
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        if current.is_symlink():
+            return current
+    return None
+
+
+def _prepare_output(output: Path) -> None:
+    """output와 events directory가 link를 따라 쓰지 않도록 준비한다."""
+    link = _symlink_component(output)
+    if link is not None:
+        raise RunError("output_path_contains_symlink")
+    output.mkdir(parents=True, exist_ok=True)
+    link = _symlink_component(output)
+    if link is not None:
+        raise RunError("output_path_contains_symlink")
+    events = output / "events"
+    if events.exists() and events.is_symlink():
+        raise RunError("events_path_contains_symlink")
+    events.mkdir(parents=True, exist_ok=True)
+    link = _symlink_component(events)
+    if link is not None:
+        raise RunError("events_path_contains_symlink")
+
+
 def load_budget() -> dict[str, dict[str, int]]:
     raw = load_yaml_object(BUDGET_PATH)
     if raw.get("schema_version") != 1:
@@ -123,9 +158,31 @@ def _seed_for_scenario(seed: int, scenario_id: str) -> int:
 
 
 def _write_json(path: Path, value: dict[str, Any]) -> None:
+    link = _symlink_component(path.parent)
+    if link is not None:
+        raise RunError("output_path_contains_symlink")
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, sort_keys=True,
-                               indent=2) + "\n", encoding="utf-8", newline="\n")
+    if path.is_symlink():
+        raise RunError("output_file_is_symlink")
+    try:
+        payload = (json.dumps(value, ensure_ascii=False, sort_keys=True,
+                              indent=2, allow_nan=False) + "\n").encode("utf-8")
+    except (TypeError, ValueError, OverflowError) as error:
+        raise RunError("report_is_not_json_compatible") from error
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=".canview-report-", suffix=".tmp", dir=str(path.parent))
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_name, path)
+    except BaseException:
+        try:
+            Path(temporary_name).unlink()
+        except OSError:
+            pass
+        raise
 
 
 def _blocked_report(output: Path, args: argparse.Namespace, status: str,
@@ -140,11 +197,19 @@ def _blocked_report(output: Path, args: argparse.Namespace, status: str,
         "harness": harness_identity(),
         "scenario_results": [],
         "physical_hil": {"status": status, "reason": reason},
-        "adapter": {"name": LAB_ADAPTER_VERSION, "connected": False,
+        "adapter": {"name": (HOST_ADAPTER_VERSION if args.suite == "host"
+                               else LAB_ADAPTER_VERSION),
+                     "connected": False,
                      "rig": rig or {}},
         "failure": {"reason": reason},
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
-    _write_json(output / "report.json", report)
+    try:
+        _prepare_output(output)
+        _write_json(output / "report.json", report)
+    except (OSError, RunError):
+        print(f"{status} suite={args.suite} reason={reason}")
+        return 2
     print(f"{status} suite={args.suite} reason={reason} report={output / 'report.json'}")
     return 2
 
@@ -155,12 +220,26 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
     scenario_results: list[dict[str, Any]] = []
     events_directory = output / "events"
     scenario_directory = args.scenario_dir.resolve()
+    try:
+        _prepare_output(output)
+    except (OSError, RunError) as error:
+        print(f"BLOCKED suite={args.suite} reason=unsafe_output_contract:{error}",
+              file=sys.stderr)
+        return 2
     for scenario in scenarios:
         event_log = EventLog()
         scenario_seed = _seed_for_scenario(args.seed, scenario.scenario_id)
-        simulation = adapter.execute(scenario, scenario_seed, event_log)
+        try:
+            simulation = adapter.execute(scenario, scenario_seed, event_log)
+        except (EventLogError, KeyError, TypeError, ValueError, OverflowError):
+            return _blocked_report(output, args, "BLOCKED",
+                                   "scenario_execution_limit_or_encoding_error")
         event_path = events_directory / f"{scenario.scenario_id}.jsonl"
-        event_log.write_jsonl(event_path)
+        try:
+            event_log.write_jsonl(event_path)
+        except EventLogError:
+            return _blocked_report(output, args, "BLOCKED",
+                                   "event_output_limit_or_encoding_error")
         result = analyze(scenario, event_log.records, simulation.metrics, budget)
         scenario_results.append({
             "id": scenario.scenario_id,
@@ -214,15 +293,22 @@ def run_lab(args: argparse.Namespace, output: Path) -> int:
     if not args.rig_config:
         return _blocked_report(output, args, "BLOCKED",
                                "rig_config_required_for_g2_readonly")
-    rig_path = Path(args.rig_config).resolve()
-    if not rig_path.exists():
+    rig_path = Path(args.rig_config).absolute()
+    if (not rig_path.exists()
+            or _symlink_component(rig_path) is not None):
         return _blocked_report(output, args, "BLOCKED",
                                "rig_config_not_found")
     try:
         rig = parse_rig_config(load_yaml_object(rig_path))
-    except (OSError, ScenarioError, RigConfigError) as error:
+    except OSError:
         return _blocked_report(output, args, "BLOCKED",
-                               f"invalid_rig_config:{error}")
+                               "rig_config_unreadable")
+    except ScenarioError:
+        return _blocked_report(output, args, "BLOCKED",
+                               "rig_config_document_invalid")
+    except RigConfigError:
+        return _blocked_report(output, args, "BLOCKED",
+                               "rig_config_contract_invalid")
     rig_dict = {
         "available": rig.available,
         "adapter": rig.adapter,
@@ -253,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.seed < 0 or args.seed > (1 << 64) - 1:
         print("seed must be in 0..2^64-1", file=sys.stderr)
         return 2
-    output = args.output.resolve()
+    output = Path(args.output).absolute()
     if args.suite == "g2-readonly":
         return run_lab(args, output)
     try:

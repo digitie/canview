@@ -8,6 +8,11 @@
     {"type": "duplicate_command", "tokens": ["token-001", "token-001", "token-002"]}
   ],
   "expect": {
-    "required_kinds": ["COMMAND_REPLAY"]
+    "required_kinds": ["COMMAND_REPLAY"],
+    "minimum_counts": {"COMMAND_REPLAY": 3},
+    "required_fields": [
+      {"kind": "COMMAND_REPLAY", "fields": {"executed": false, "result": "ACCEPTED"}, "minimum": 2},
+      {"kind": "COMMAND_REPLAY", "fields": {"executed": false, "result": "DUPLICATE"}}
+    ]
   }
 }

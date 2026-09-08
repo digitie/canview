@@ -8,6 +8,17 @@
     {"type": "reset", "targets": ["controller", "communicator-esp", "communicator-stm32", "diagnostic-bridge"]}
   ],
   "expect": {
-    "required_kinds": ["RESET_REQUEST", "BOOT_EPOCH"]
+    "required_kinds": ["RESET_REQUEST", "BOOT_EPOCH"],
+    "minimum_counts": {"RESET_REQUEST": 4, "BOOT_EPOCH": 4},
+    "required_fields": [
+      {"kind": "RESET_REQUEST", "fields": {"target": "controller"}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-esp"}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-stm32"}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "diagnostic-bridge"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "controller", "epoch": 1}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-esp", "epoch": 1}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-stm32", "epoch": 1}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "diagnostic-bridge", "epoch": 1}}
+    ]
   }
 }

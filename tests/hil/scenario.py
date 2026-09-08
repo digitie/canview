@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 from typing import Any
@@ -17,6 +18,9 @@ MAX_SCENARIO_ACTIONS = 256
 MAX_NESTING_DEPTH = 16
 MAX_COLLECTION_ITEMS = 1024
 MAX_STRING_LENGTH = 4096
+MAX_NAMED_ITEMS = 128
+MAX_PACKET_COUNT = 10_000
+MAX_EVENT_FIELDS_BYTES = 48 << 10
 
 
 class ScenarioError(ValueError):
@@ -44,6 +48,10 @@ def _validate_value(value: Any, path: Path, label: str,
     if isinstance(value, str):
         if len(value) > MAX_STRING_LENGTH:
             raise ScenarioError(f"{label} string is too long: {path}")
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ScenarioError(f"{label} contains a non-finite number: {path}")
         return
     if isinstance(value, list):
         if len(value) > MAX_COLLECTION_ITEMS:
@@ -118,6 +126,165 @@ def _require_string(value: Any, label: str, path: Path) -> str:
     return value
 
 
+def _require_int(value: Any, label: str, path: Path,
+                 minimum: int, maximum: int) -> int:
+    if (not isinstance(value, int) or isinstance(value, bool)
+            or value < minimum or value > maximum):
+        raise ScenarioError(
+            f"{label} must be an integer in {minimum}..{maximum}: {path}")
+    return value
+
+
+def _require_named_items(action: dict[str, Any], key: str, path: Path,
+                         index: int) -> list[str]:
+    value = action.get(key)
+    if not isinstance(value, list) or not value or len(value) > MAX_NAMED_ITEMS:
+        raise ScenarioError(f"action {index} {key} must be a bounded non-empty list: {path}")
+    return [_require_string(item, f"action {index} {key} item", path)
+            for item in value]
+
+
+def _validate_action(action: dict[str, Any], path: Path, index: int) -> None:
+    action_type = action["type"]
+    if action_type == "radio_loss":
+        rates = action.get("rates")
+        if not isinstance(rates, list) or not rates or len(rates) > MAX_NAMED_ITEMS:
+            raise ScenarioError(f"action {index} rates must be a bounded list: {path}")
+        for rate in rates:
+            _require_int(rate, f"action {index} rate", path, 0, 100)
+        _require_int(action.get("packets", 64),
+                     f"action {index} packets", path, 1, MAX_PACKET_COUNT)
+        _require_int(action.get("duplicate_deliveries", 0),
+                     f"action {index} duplicate_deliveries", path, 0, MAX_PACKET_COUNT)
+        _require_int(action.get("reordered", 0),
+                     f"action {index} reordered", path, 0, MAX_PACKET_COUNT)
+    elif action_type == "radio_delay":
+        _require_int(action.get("max_ms"), f"action {index} max_ms", path,
+                     0, 86_400_000)
+    elif action_type == "reset":
+        _require_named_items(action, "targets", path, index)
+    elif action_type == "uart_fault":
+        _require_named_items(action, "faults", path, index)
+    elif action_type == "can_load":
+        channels = action.get("channels")
+        if not isinstance(channels, list) or not channels or len(channels) > 3:
+            raise ScenarioError(f"action {index} channels must contain 1..3 entries: {path}")
+        channel_ids: list[int] = []
+        for channel in channels:
+            if not isinstance(channel, dict):
+                raise ScenarioError(f"action {index} channel must be an object: {path}")
+            channel_ids.append(_require_int(channel.get("channel"),
+                                             f"action {index} channel", path, 1, 3))
+            _require_int(channel.get("rx_frames", 128),
+                         f"action {index} rx_frames", path, 0, MAX_PACKET_COUNT)
+            _require_string(channel.get("bus_state", "ERROR_PASSIVE"),
+                            f"action {index} bus_state", path)
+            _require_int(channel.get("error_counter", 0),
+                         f"action {index} error_counter", path, 0, 255)
+        if len(channel_ids) != len(set(channel_ids)):
+            raise ScenarioError(f"action {index} channels must be unique: {path}")
+    elif action_type == "resource":
+        _require_int(action.get("queue_depth", 64),
+                     f"action {index} queue_depth", path, 0, MAX_PACKET_COUNT)
+        _require_int(action.get("heap_free_bytes", 8192),
+                     f"action {index} heap_free_bytes", path, 0, 2**31 - 1)
+        _require_int(action.get("rejected", 0),
+                     f"action {index} rejected", path, 0, MAX_PACKET_COUNT)
+        _require_int(action.get("observer_drops", 0),
+                     f"action {index} observer_drops", path, 0, MAX_PACKET_COUNT)
+    elif action_type == "safety_gates":
+        _require_named_items(action, "checks", path, index)
+    elif action_type == "duplicate_command":
+        _require_named_items(action, "tokens", path, index)
+    elif action_type == "feedback":
+        _require_named_items(action, "cases", path, index)
+    elif action_type == "power":
+        _require_named_items(action, "stages", path, index)
+    elif action_type == "security":
+        _require_named_items(action, "vectors", path, index)
+    elif action_type == "guardian":
+        _require_named_items(action, "guardians", path, index)
+    elif action_type == "radio_pressure":
+        _require_int(action.get("softap_kbps", 0),
+                     f"action {index} softap_kbps", path, 0, 1_000_000)
+        _require_int(action.get("observer_kbps", 0),
+                     f"action {index} observer_kbps", path, 0, 1_000_000)
+        _require_int(action.get("control_kbps", 0),
+                     f"action {index} control_kbps", path, 0, 1_000_000)
+        _require_int(action.get("rssi_dbm", -60),
+                     f"action {index} rssi_dbm", path, -127, 0)
+    elif action_type == "capture":
+        channels = action.get("channels")
+        if not isinstance(channels, list) or not channels or len(channels) > 3:
+            raise ScenarioError(f"action {index} channels must contain 1..3 entries: {path}")
+        channel_ids: list[int] = []
+        for channel in channels:
+            channel_ids.append(_require_int(channel, f"action {index} capture channel",
+                                            path, 1, 3))
+        if len(channel_ids) != len(set(channel_ids)):
+            raise ScenarioError(f"action {index} capture channels must be unique: {path}")
+    elif action_type == "budget":
+        values = action.get("values")
+        if not isinstance(values, dict) or not values:
+            raise ScenarioError(f"action {index} values must be a non-empty object: {path}")
+        for metric, value in values.items():
+            _require_string(metric, f"action {index} metric", path)
+            _require_int(value, f"action {index} {metric}", path, 0, 2**31 - 1)
+    elif action_type == "event":
+        if "kind" in action:
+            _require_string(action["kind"], f"action {index} kind", path)
+        fields = action.get("fields", {})
+        if not isinstance(fields, dict):
+            raise ScenarioError(f"action {index} fields must be an object: {path}")
+        try:
+            encoded = json.dumps(fields, ensure_ascii=False, sort_keys=True,
+                                 separators=(",", ":"), allow_nan=False)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ScenarioError(f"action {index} fields are not JSON-compatible: {path}") from error
+        if len(encoded.encode("utf-8")) > MAX_EVENT_FIELDS_BYTES:
+            raise ScenarioError(f"action {index} fields are too large: {path}")
+
+
+def _validate_expect(expect: dict[str, Any], path: Path) -> None:
+    required_kinds = expect.get("required_kinds")
+    if required_kinds is not None:
+        if (not isinstance(required_kinds, list) or not required_kinds
+                or len(required_kinds) > MAX_NAMED_ITEMS):
+            raise ScenarioError(f"required_kinds must be a bounded list: {path}")
+        for kind in required_kinds:
+            _require_string(kind, "required kind", path)
+
+    required_fields = expect.get("required_fields")
+    if required_fields is not None:
+        if not isinstance(required_fields, list) or len(required_fields) > MAX_NAMED_ITEMS:
+            raise ScenarioError(f"required_fields must be a bounded list: {path}")
+        for requirement in required_fields:
+            if not isinstance(requirement, dict):
+                raise ScenarioError(f"required_fields entry must be an object: {path}")
+            _require_string(requirement.get("kind"), "required field kind", path)
+            fields = requirement.get("fields")
+            if not isinstance(fields, dict) or any(not isinstance(key, str)
+                                                   for key in fields):
+                raise ScenarioError(f"required field fields must use string keys: {path}")
+            _require_int(requirement.get("minimum", 1), "required field minimum",
+                         path, 1, MAX_NAMED_ITEMS)
+
+    minimum_counts = expect.get("minimum_counts")
+    if minimum_counts is not None:
+        if not isinstance(minimum_counts, dict) or not minimum_counts:
+            raise ScenarioError(f"minimum_counts must be a non-empty object: {path}")
+        for kind, minimum in minimum_counts.items():
+            _require_string(kind, "minimum count kind", path)
+            _require_int(minimum, "minimum count", path, 1, MAX_NAMED_ITEMS)
+
+    allowlist = expect.get("can_tx_allowlist")
+    if allowlist is not None:
+        if not isinstance(allowlist, list) or len(allowlist) > MAX_NAMED_ITEMS:
+            raise ScenarioError(f"can_tx_allowlist must be a bounded list: {path}")
+        for arbitration_id in allowlist:
+            _require_int(arbitration_id, "CAN TX allow-list id", path, 0, 0x1FFFFFFF)
+
+
 def parse_scenario(path: Path) -> Scenario:
     """하나의 scenario 파일을 엄격하게 파싱한다."""
     raw = load_yaml_object(path)
@@ -142,15 +309,17 @@ def parse_scenario(path: Path) -> Scenario:
     if len(actions_value) > MAX_SCENARIO_ACTIONS:
         raise ScenarioError(f"actions list is too large: {path}")
     actions: list[dict[str, Any]] = []
-    for action in actions_value:
+    for index, action in enumerate(actions_value, 1):
         if not isinstance(action, dict):
             raise ScenarioError(f"each action must be an object: {path}")
         if not isinstance(action.get("type"), str) or not action["type"]:
             raise ScenarioError(f"each action needs a type: {path}")
+        _validate_action(action, path, index)
         actions.append(dict(action))
     expect = raw.get("expect", {})
     if not isinstance(expect, dict):
         raise ScenarioError(f"expect must be an object: {path}")
+    _validate_expect(expect, path)
     return Scenario(scenario_id, title, suites, mode, tuple(actions),
                     dict(expect), path)
 

@@ -9,6 +9,7 @@
   ],
   "expect": {
     "required_kinds": ["SAFETY_DECISION"],
-    "required_fields": [{"kind": "SAFETY_DECISION", "fields": {"decision": "DENY", "vehicle_tx": false}}]
+    "minimum_counts": {"SAFETY_DECISION": 4},
+    "required_fields": [{"kind": "SAFETY_DECISION", "fields": {"decision": "DENY", "vehicle_tx": false}, "minimum": 4}]
   }
 }
