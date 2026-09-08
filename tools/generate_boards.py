@@ -101,6 +101,7 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
              "#ifndef CANVIEW_BOARD_PINS_H", "#define CANVIEW_BOARD_PINS_H", "",
              f'#define {prefix}ID "{board["id"]}"',
              f"#define {prefix}PROFILE (0x{board_profile(board, source):08X}U)",
+             f'#define {prefix}HARDWARE_DIGEST "{digest}"',
              f'#define {prefix}MODULE "{board["module"]}"',
              f'#define {prefix}FLASH_BYTES ({board["flash_bytes"]}U)']
     nets = {}

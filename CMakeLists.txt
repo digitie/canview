@@ -130,6 +130,10 @@ if(BUILD_TESTING)
     add_executable(canview-stm32-register-tests
         firmware/communicator/stm32/tests/test_registers.c
         firmware/communicator/stm32/platform/stm32g474/core_hw.c)
+    add_executable(canview-stm32-platform-tests firmware/communicator/stm32/tests/test_platform.c)
+    target_link_libraries(canview-stm32-platform-tests PRIVATE canview_stm_core canview_warnings)
+    add_test(NAME stm32-platform-contracts COMMAND canview-stm32-platform-tests)
+    set_tests_properties(stm32-platform-contracts PROPERTIES TIMEOUT 30)
     target_compile_definitions(canview-stm32-register-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
     target_include_directories(canview-stm32-register-tests PRIVATE
         firmware/communicator/stm32/tests firmware/communicator/stm32/platform/stm32g474)

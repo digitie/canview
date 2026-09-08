@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "core_hw.h"
 #include "register_model.h"
+#include "canview_stm_stack.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,6 +159,8 @@ static void check_no_control(void)
     canview_stm_board_diagnostic(&diagnostic);
     CHECK(diagnostic.control_capabilities == 0U && !diagnostic.tx_permit);
     CHECK(!diagnostic.authenticity_known && !diagnostic.production_debug_lock_known);
+    CHECK(diagnostic.build_metadata_valid && diagnostic.build_contract_digest != 0U &&
+          diagnostic.board_profile != 0U);
     canview_stm_board_diagnostic(NULL);
 }
 
@@ -228,7 +231,65 @@ static void healthy_boot(void)
     canview_stm_diagnostic_t diagnostic;
     canview_stm_board_diagnostic(&diagnostic);
     CHECK(diagnostic.reset_flags == UINT32_C(0x20000000));
+    CHECK(diagnostic.reset_reason == CANVIEW_STM_RESET_REASON_WATCHDOG);
     CHECK(diagnostic.sysclk_hz == 160000000U && diagnostic.peripheral_hz == 80000000U);
+    CHECK(diagnostic.stack_watermark_valid &&
+          diagnostic.stack_min_free_bytes >= CANVIEW_STM_STACK_MIN_FREE_BYTES);
+    uint8_t record[CANVIEW_STM_DIAGNOSTIC_ENCODED_BYTES];
+    size_t record_bytes = 0U;
+    CHECK(canview_stm_board_diagnostic_encode(record, sizeof(record), &record_bytes) == CANVIEW_OK);
+    CHECK(record_bytes == CANVIEW_STM_DIAGNOSTIC_ENCODED_BYTES);
+}
+
+static void reset_reason_tests(void)
+{
+    const uint32_t flags[] = {RCC_CSR_BORRSTF, RCC_CSR_SFTRSTF, RCC_CSR_PINRSTF,
+                              RCC_CSR_LPWRRSTF, RCC_CSR_OBLRSTF,
+                              RCC_CSR_BORRSTF | RCC_CSR_IWDGRSTF};
+    const canview_stm_reset_reason_t reasons[] = {
+        CANVIEW_STM_RESET_REASON_BROWNOUT,
+        CANVIEW_STM_RESET_REASON_SOFTWARE,
+        CANVIEW_STM_RESET_REASON_PIN,
+        CANVIEW_STM_RESET_REASON_LOW_POWER,
+        CANVIEW_STM_RESET_REASON_OPTION_BYTE,
+        CANVIEW_STM_RESET_REASON_AMBIGUOUS};
+    for (size_t index = 0U; index < sizeof(flags) / sizeof(flags[0]); ++index)
+    {
+        initialize(0U);
+        RCC->CSR = flags[index];
+        CHECK(canview_stm_watchdog_start(NULL) == CANVIEW_OK);
+        canview_stm_diagnostic_t diagnostic;
+        canview_stm_board_diagnostic(&diagnostic);
+        CHECK(diagnostic.reset_reason == reasons[index]);
+        CHECK(!diagnostic.tx_permit && diagnostic.control_capabilities == 0U);
+    }
+}
+
+static void stack_boundary_tests(void)
+{
+    const uintptr_t stack_low = canview_stm_test_stack_low();
+    const uintptr_t stack_top = canview_stm_test_stack_top();
+    const uintptr_t invalid_stack_pointers[] = {stack_low, stack_top + 1U,
+                                                stack_low + CANVIEW_STM_STACK_WATERMARK_MIN_BYTES};
+    for (size_t index = 0U;
+         index < sizeof(invalid_stack_pointers) / sizeof(invalid_stack_pointers[0]); ++index)
+    {
+        initialize(0U);
+        canview_stm_test_set_stack_pointer(invalid_stack_pointers[index]);
+        CHECK(canview_stm_watchdog_start(NULL) == CANVIEW_OK);
+        CHECK(canview_stm_clock_start(NULL) == CANVIEW_OK);
+        CHECK(canview_stm_time_start(NULL) == CANVIEW_INVALID_ARGUMENT);
+        CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
+        check_no_control();
+    }
+}
+
+static void stack_health_failure_test(void)
+{
+    healthy_boot();
+    canview_stm_test_corrupt_stack();
+    CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
+    check_no_control();
 }
 
 static void fault_tests(void)
@@ -359,6 +420,9 @@ int main(void)
 {
     timeout_tests();
     healthy_boot();
+    reset_reason_tests();
+    stack_boundary_tests();
+    stack_health_failure_test();
     fault_tests();
     (void)puts("PASS: host named-register model, not physical STM32/HIL");
     return 0;

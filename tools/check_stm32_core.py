@@ -23,7 +23,10 @@ def check_symbols(symbols):
     if names & forbidden:
         raise RuntimeError(f"금지 heap/TX symbol: {sorted(names & forbidden)}")
     required = {"canview_stm_clock_start", "canview_stm_watchdog_start",
-                "canview_stm_scheduler_step", "SysTick_Handler", "NMI_Handler", "HardFault_Handler"}
+                "canview_stm_scheduler_step", "canview_stm_build_metadata_get",
+                "canview_stm_stack_watermark_arm", "canview_stm_stack_watermark_sample",
+                "canview_stm_service_policy_evaluate", "canview_stm_diagnostic_encode",
+                "SysTick_Handler", "NMI_Handler", "HardFault_Handler"}
     if not required <= names:
         raise RuntimeError(f"실제 core link 누락: {sorted(required - names)}")
 

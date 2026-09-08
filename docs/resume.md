@@ -2,7 +2,11 @@
 
 ## 현재 진척도
 
+2026-09-08 T-102 STM32 source foundation은 `codex/t102-stm32-platform`에서 C99 구현과 검증을 마쳤다. generated hardware digest·CAPTURE_ONLY build contract·reset reason·stack watermark·service policy skeleton·40-byte diagnostic record·cooperative scheduler를 연결했고, host Debug/Release 전체 CTest 115/115, 공용/ESP32/STM32 coverage, generator/sdkconfig/plan/link, Doxygen/Sphinx strict, STM32 Debug/Release target ELF/MAP/BIN 및 warning/error 0을 확인했다. 독립 reviewer 2명, Draft PR/CI와 merge closure가 남아 있으며, 실제 board flash/HIL·clock/reset/rail/brownout·UART 계측·Flash root 배치·차량 CAN은 `NOT_RUN`이다. FDCAN/UART 송수신과 차량 CAN TX는 활성화하지 않는다.
+
 2026-09-08 최신 T-400 source candidate는 `586127450d14b8ef5a59f90edd1c49947b866bb7`이다. `7479cf1`에서 모든 qualification job을 immutable PR-head checkout으로 고정했고, `5861274`에서 Diagnostic Bridge의 HTTPD queue blocking을 명시적으로 비활성화하여 generator·validator·mutation test까지 연결했다. 실제 ESP-IDF 6.0.3 Bridge build, host/config/security/browser regression과 GitHub Actions `34196236147` 여섯 job이 성공했다. target manifest는 source/expected/base revision을 일치시키고 STM32 Debug/Release·Communicator ESP32·Diagnostic Bridge·Controller의 BIN/ELF/MAP 18개를 `18/18` bytes/SHA-256로 검증했으며, target warning/error scan은 0건, Windows checkout source provenance는 6/6이다. 독립 Reviewer A 실행 `CV-HOSTILE-20260908-POSTFIX-586`과 Reviewer B 실행 `c3636fd3-5ab5-4637-8a9b-2cd813359631`은 모두 source P0/P1 없이 `CONDITIONAL`로 완료했고, 통합 결과는 [T-400-02 review](reviews/adversarial/2026-09-08-T-400-02.md)에 보존했다. 물리 board/HIL, live endpoint, production provisioning, vehicle integration은 `NOT_RUN`이며 차량 CAN TX는 `NO-GO`다.
+
+2026-09-08 T-400 source/CI closure 후 다음 구현 task를 DAG와 장치 순서로 확인해 [T-102](tasks/T-102-stm32-platform.md)를 `IN_PROGRESS`로 시작했다. T-102a와 공용 선행은 main에 merge되어 있으며, 이번 source-only branch에서는 STM32 C99 platform/clock/watchdog/cooperative scheduler를 구현한다. 실제 G1 board, clock/reset/rail 계측과 HIL은 `NOT_RUN`이고 FDCAN/UART 및 차량 CAN TX는 활성화하지 않는다.
 
 2026-09-08 이전 source-only 상태: 사용자가 `G1 이전 fw 구현 허용`과 `C로 작성`을 명시해 `codex/t400-bridge-web-bootstrap`에서 T-400의 C source-only web bootstrap을 진행 중이다. `canview_bridge_auth` C99 상태기계, ESP-IDF `esp_http_server`/`cJSON`/WebSocket 기반 local shell, fixed-buffer DNS, NVS read-only credential load, GPIO4 service window과 read-only empty snapshot을 구현하고 deferred watchdog, 상태/I/O lock·credential zeroize·malformed input 경계를 보강했다. 당시 pushed candidate `41fdc99`에는 인증과 activity 기록의 원자적 lock 경계, DNS teardown 의존 순서 보존, startup cleanup retry와 cleanup 실패 재부팅, logout/expiry 이후 pre-auth 15초 deadline 재무장, custom socket close, 단일 owner를 위한 LRU purge 비활성화가 반영됐다. 실제 ESP-IDF 6.0.3 target build와 `size-components`, host focused 7/7, 이전 host 112/113(24시간 `uart-fault-stream` 제외), ESP32 core coverage, Python/config/generator gate를 통과했다. Windows에서는 sanitizer preset이 의도적으로 거부되므로 current sanitizer는 Linux CI에서 확인한다. 이 예외는 physical/HIL gate나 CAN TX 권한을 열지 않는다.
 
@@ -24,10 +28,10 @@
 
 ## 다음 한 작업
 
-현재 작업은 `IN_PROGRESS`인 [T-400](tasks/T-400-diagnostic-bridge-bootstrap.md)이며, T-400a P2 source handoff는 [PR #25](https://github.com/digitie/canview/pull/25) merge `d8d8057`으로 main에 통합됐다. PR #28의 source candidate `5861274`는 독립 A/B review와 CI source/target closure를 통과했지만, 실제 board flash/HIL·AP association·phone browser live probe·power/reset/brownout·PSRAM/clock/watchdog soak·ESP-NOW/capture·production provisioning·vehicle integration은 `NOT_RUN`이다. 다음 gate는 통합 closure 문서 commit 후 PR #28 최종 CI를 확인하고 ready/merge하는 것이다. Diagnostic Bridge의 control lease·raw replay·vehicle TX는 범위 밖이고 CAN TX는 `NO-GO`다.
+현재 작업은 `IN_PROGRESS`인 [T-102](tasks/T-102-stm32-platform.md)이며, T-400 source/CI closure는 [PR #28](https://github.com/digitie/canview/pull/28) merge `1ebd5f5`으로 main에 통합됐다. T-102는 `T-001`과 `T-102a` 선행이 준비되어 C99 source-only 구현을 시작했으며, 실제 board flash/HIL·clock/reset/rail/brownout·UART/FDCAN 계측은 `NOT_RUN`이다. 다음 gate는 STM32 source/host/target 검증, 독립 reviewer 2명, Draft PR/CI closure이며 CAN TX는 계속 `NO-GO`다.
 
-- 현재 문서: docs/tasks/T-400-diagnostic-bridge-bootstrap.md, firmware/diagnostic-bridge/docs/web-shell.md, docs/architecture/firmware-foundation.md, hardware/bridge/pinmap.csv, docs/development/windows.md
-- 다음 구현 순서: PR #28 closure 문서·최종 CI·ready/merge → 최신 `docs/tasks.md` DAG에서 다음 실행 가능한 C firmware task 선택 → G1 board flash·ST-LINK/serial·rail/reset/brownout physical evidence와 observer/capture 후속 gate. 장비가 없으면 해당 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
+- 현재 문서: docs/tasks/T-102-stm32-platform.md, firmware/communicator/stm32/README.md, firmware/communicator/stm32/docs/core-bench.md, docs/architecture/firmware-foundation.md, docs/development/windows.md
+- 다음 구현 순서: T-102 C platform/clock/watchdog/scheduler의 독립 review·PR/CI closure → merge 후 다음 Communicator STM32 task 선택 → G1 board flash·ST-LINK/serial·rail/reset/brownout physical evidence와 후속 UART/FDCAN gate. 장비가 없으면 해당 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
 - Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.

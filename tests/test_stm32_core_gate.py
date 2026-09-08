@@ -21,7 +21,10 @@ class Stm32CoreGateTests(unittest.TestCase):
 
     def test_symbols_required_and_forbidden(self):
         names = ["canview_stm_clock_start", "canview_stm_watchdog_start",
-                 "canview_stm_scheduler_step", "SysTick_Handler", "NMI_Handler", "HardFault_Handler"]
+                 "canview_stm_scheduler_step", "canview_stm_build_metadata_get",
+                 "canview_stm_stack_watermark_arm", "canview_stm_stack_watermark_sample",
+                 "canview_stm_service_policy_evaluate", "canview_stm_diagnostic_encode",
+                 "SysTick_Handler", "NMI_Handler", "HardFault_Handler"]
         symbols = "\n".join("08000000 T " + name for name in names)
         check_symbols(symbols)
         for name in names:

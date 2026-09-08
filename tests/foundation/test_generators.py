@@ -1,6 +1,7 @@
 """생성물 drift, 입력 손상, 메모리/pin 계약을 실제 source로 검증한다."""
 import copy
 import csv
+import hashlib
 import importlib.util
 import io
 import json
@@ -31,7 +32,8 @@ class GeneratorTests(unittest.TestCase):
                 self.assertEqual((ROOT / path).read_text(encoding="utf-8"), output)
 
     def test_board_profiles_are_generated_and_unique(self):
-        manifest = json.loads(BOARDS.canonical(BOARDS.SOURCE))
+        manifest_bytes = BOARDS.canonical(BOARDS.SOURCE)
+        manifest = json.loads(manifest_bytes)
         profiles = set()
         for board in manifest["boards"]:
             source = BOARDS.canonical(ROOT / board["source"])
@@ -40,8 +42,10 @@ class GeneratorTests(unittest.TestCase):
             self.assertNotIn(profile, profiles)
             profiles.add(profile)
             header = ROOT / board["path"] / "bsp" / "board_pins.h"
-            self.assertIn(f"#define CANVIEW_BOARD_PROFILE (0x{profile:08X}U)",
-                          header.read_text(encoding="utf-8"))
+            header_text = header.read_text(encoding="utf-8")
+            self.assertIn(f"#define CANVIEW_BOARD_PROFILE (0x{profile:08X}U)", header_text)
+            hardware_digest = hashlib.sha256(manifest_bytes + b"\n" + source).hexdigest()
+            self.assertIn(f'#define CANVIEW_BOARD_HARDWARE_DIGEST "{hardware_digest}"', header_text)
             changed_board = copy.deepcopy(board)
             changed_board["required_nets"] = [*board["required_nets"], "PROFILE_MUTATION"]
             self.assertNotEqual(profile, BOARDS.board_profile(changed_board, source))
@@ -117,9 +121,11 @@ class GeneratorTests(unittest.TestCase):
             self.assertNotEqual(BOARDS.board_profile(board, raw),
                                 BOARDS.board_profile(board, b"\xef\xbb\xbf" + raw))
             normal_contract = [line for line in normal[header].splitlines()
-                               if "SHA256:" not in line and "CANVIEW_BOARD_PROFILE" not in line]
+                               if "SHA256:" not in line and "CANVIEW_BOARD_PROFILE" not in line
+                               and "CANVIEW_BOARD_HARDWARE_DIGEST" not in line]
             bom_contract = [line for line in bom[header].splitlines()
-                            if "SHA256:" not in line and "CANVIEW_BOARD_PROFILE" not in line]
+                            if "SHA256:" not in line and "CANVIEW_BOARD_PROFILE" not in line
+                            and "CANVIEW_BOARD_HARDWARE_DIGEST" not in line]
             self.assertEqual(normal_contract, bom_contract)
 
     def test_bridge_usb_gpio_contract(self):

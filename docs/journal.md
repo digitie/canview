@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-102 STM32 C source와 target 검증)
+
+`codex/t102-stm32-platform`에서 사용자의 G1 이전 firmware 구현 허용과 C 작성 지시에 따라 T-102 source를 진행했다. STM32 `CAPTURE_ONLY` build contract, generated hardware digest와 build metadata, RCC reset reason, static stack watermark, protected service policy skeleton, little-endian diagnostic record를 추가하고 기존 safe GPIO·HSE/PLL·TIM2/SysTick·IWDG·cooperative scheduler와 연결했다. stack watermark의 host register-model 경계 및 scan timeout 시험을 보강했으며, target linker는 실제 reserved stack window를 `__stack_limit`으로 export한다. FDCAN/UART 송수신과 차량 CAN TX는 열지 않았다.
+
+검증은 pinned Windows Clang 23.1.0/CMake 4.4.3/Ninja 1.13.2와 Arm GNU 15.3.Rel1/STM32CubeG4 1.6.3에서 수행했다. Host Debug/Release 전체 CTest는 각각 115/115, 공용·ESP32·STM32 coverage, board generator/config/plan/link 검사는 PASS였다. Doxygen 1.18.0 API 32개와 Sphinx strict도 PASS였고, STM32 Debug/Release ELF/MAP/BIN/HEX 및 post-build memory·stack·symbol gate가 warning/error 0으로 통과했다. 실제 board flash/HIL, clock/reset/rail/brownout 계측, UART/FDCAN, Flash root 배치와 차량 evidence는 장비·선행 조건이 없어 `NOT_RUN`이다. 다음은 immutable candidate commit, 독립 reviewer A/B, Draft PR/CI closure다.
+
 ## 2026-09-08 (codex, T-400 reviewer service 미완료 기록)
 
 PR #28 source candidate `19a42339b2b37981a0bdfe976e3e073809825027`와 base `9fe46c753be151e6aa23f0fdc95fd527f86cf82d`를 고정해 Reviewer A/B를 독립 실행했다. broad scope, bounded scope, 최소 object-only scope의 세 번 시도 모두 raw report를 반환하지 않고 `running` 상태가 지속되어 coordinator가 shutdown했다. 최신 문서 candidate `3eb3647776215e472467bedbcdda9858fdbeb52f`에 대해서도 A `01a07e53-9c6b-7a32-abbd-d1c4807c5805`와 B `01a07e53-9d79-7211-983c-20b400406661`을 마지막 bounded 재시도했지만 같은 상태로 종료됐다. 실제 reviewer가 읽은 파일·실행 명령·finding은 반환되지 않았으므로 `NOT_REPORTED`로 남겼고, [통합 실행 기록](reviews/adversarial/2026-09-08-T-400.md)과 [A](reviews/adversarial/evidence/2026-09-08-T-400-reviewer-a.md)/[B](reviews/adversarial/evidence/2026-09-08-T-400-reviewer-b.md) evidence에 `INCOMPLETE/BLOCK`을 보존했다. 이전 source run은 5개 job 성공이었지만 최신 문서 candidate의 PR run `34171708930`은 기록 시 Windows C99와 target job이 `in_progress`였으며, required review raw report가 없어 ready/merge하지 않는다.

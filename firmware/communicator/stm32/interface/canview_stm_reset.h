@@ -1,0 +1,24 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/** @file canview_stm_reset.h
+ * @brief STM32 reset flag의 fail-closed 분류.
+ */
+#ifndef CANVIEW_STM_RESET_H
+#define CANVIEW_STM_RESET_H
+
+#include <stdint.h>
+
+typedef enum
+{
+    CANVIEW_STM_RESET_REASON_UNKNOWN = 0,
+    CANVIEW_STM_RESET_REASON_BROWNOUT,
+    CANVIEW_STM_RESET_REASON_WATCHDOG,
+    CANVIEW_STM_RESET_REASON_SOFTWARE,
+    CANVIEW_STM_RESET_REASON_PIN,
+    CANVIEW_STM_RESET_REASON_LOW_POWER,
+    CANVIEW_STM_RESET_REASON_OPTION_BYTE,
+    CANVIEW_STM_RESET_REASON_AMBIGUOUS
+} canview_stm_reset_reason_t;
+
+#define CANVIEW_STM_RESET_REASON_MAX CANVIEW_STM_RESET_REASON_AMBIGUOUS
+
+#endif
