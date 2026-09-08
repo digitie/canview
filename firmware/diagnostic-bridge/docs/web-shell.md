@@ -11,14 +11,16 @@
 | portable auth | `canview_bridge_auth`의 SDK-independent C99 상태기계 |
 | BSP | GPIO4 service input, GPIO5 status LED, board profile과 memory contract |
 | poll 주기 | main task가 `100 ms`마다 `canview_bridge_web_poll()` 호출 |
-| client idle | 인증된 HTTP/WebSocket 활동이 5분 없으면 memory session을 폐기하고 client를 닫는다. public root/bootstrap/login 요청은 idle timer를 갱신하지 않는다 |
+| client idle | 인증된 HTTP/WebSocket 활동이 5분 없으면 memory session을 폐기하고 client를 닫는다. public root/bootstrap/login 요청은 idle timer를 갱신하지 않는다. 인증 전 연결은 accepted socket 기준 15초 deadline을 넘기면 수신을 중단하고 custom close callback으로 닫는다 |
 | HTTP stack | ESP-IDF `esp_http_server` |
 | JSON | `cJSON`, 16 KiB fixed arena, 응답 4 KiB 이하 |
 | WebSocket | `esp_http_server` WebSocket, incoming frame 512 byte 이하, server event 1회 |
 | DNS | fixed-buffer UDP captive response task, 외부 DNS forwarding 없음 |
-| shutdown | `canview_bridge_web_stop()`이 HTTP/DNS/Wi-Fi/netif/event-loop와 memory auth를 idempotent하게 정리한다. DNS task가 제한시간 안에 끝나지 않으면 timeout을 반환하고 재시도를 허용한다. |
+| shutdown | `canview_bridge_web_stop()`이 HTTP/DNS/Wi-Fi/netif/event-loop와 memory auth를 idempotent하게 정리한다. DNS task가 제한시간 안에 끝나지 않으면 의존 자원을 유지한 채 timeout을 반환하고 재시도를 허용한다. |
 
 HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 response buffer만 직렬화하고, `state_lock`은 auth/session·snapshot의 짧은 critical section에서만 사용한다. 따라서 body 수신·HTTP response·WebSocket send가 owner state mutex를 붙잡지 않는다. WebSocket의 bounded network I/O는 별도 `ws_io_lock`으로 직렬화하고 send가 끝날 때까지 response buffer 수명을 보장한다. cJSON allocator hook은 이 singleton component에서 한 번 등록되며 다른 cJSON task와 공유하지 않는다. session body, response와 protocol token buffer는 사용 후 zeroize한다.
+
+인증 전 socket은 `open_fn`에서 시작 시각을 기록하고 receive override가 매 수신 전에 deadline을 확인한다. 인증 성공과 activity 기록은 같은 `state_lock` critical section에서 수행하며, pre-auth tracker는 성공 또는 close 때 지운다. stop 경로에서 외부 자원 정리가 실패하면 이미 정리된 상태만 반영하고 나머지 handle·lock·auth 상태를 보존해 상위 retry가 다시 호출할 수 있게 한다.
 
 `canview_bridge_web_config_t`의 credential 포인터는 start 호출 중에만 유효하면 된다. PIN digest는 auth state로 복사하고, AP password는 `esp_wifi_set_config()`에 복사한 직후 web state에서 zeroize한다. app도 start 반환 뒤 local credential buffer를 zeroize한다. callback은 `button_pressed` 하나만 남으며 web service가 정지할 때까지 caller가 수명을 보장해야 한다. ISR은 button callback이나 web API를 호출하지 않는다.
 
