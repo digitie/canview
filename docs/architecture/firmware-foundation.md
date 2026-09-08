@@ -67,7 +67,7 @@ I²S 데이터 방향은 MCU 기준 재생 DOUT16/녹음 DIN14다. SoC 유효 GP
 |---|---|---|
 | Controller ESP32-S3R8 | 16 MiB Flash, 8 MiB Octal PSRAM | BL6 low, 복구41 입력. LCD/I2C/카메라 미시작 |
 | Comm WROOM-1-N16R8 | 16 MiB Flash, 8 MiB Octal PSRAM, ECC 설정 | RUN_OK7 low 먼저; BOOT0_REQ2/GPS_PWR47 low; RESET_CMD1 high release; RECOVERY9 open-drain release |
-| Bridge WROOM-1-N8R2 | 8 MiB Flash, 2 MiB Quad PSRAM | LED5 low, 버튼4 입력. RF/웹 미시작 |
+| Bridge WROOM-1-N8R2 | 8 MiB Flash, 2 MiB Quad PSRAM | LED5 low, 버튼4 입력. C web bootstrap은 T-400 source에 반영됐고 RF·observer/capture는 미시작 |
 | STM32G474CEU6 | Flash512 KiB/SRAM96 KiB/CCM32 KiB | STB PA4/5 high; FT_EN PA6, ARM PA7, WD PB0 low; TX PA12/PB13/PA15 high |
 
 출력 latch를 mode보다 먼저 설정한다. Controller와 STM32 BSP는 GPIO 오류에서 다음 출력을 실행하지 않는다. Communicator ESP와 Bridge BSP는 partial 오류에서도 모든 지정 safe pin을 시도하고 최초 오류를 보존한 뒤 FAULT에 고정하며 다음 lifecycle 단계로 가지 않는다.

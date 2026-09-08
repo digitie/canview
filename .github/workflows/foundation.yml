@@ -12,6 +12,9 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Every qualification job must inspect the same immutable PR-head source.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.14'
@@ -53,6 +56,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B -m unittest discover -s tests -p "test_*.py"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tests/security/bridge_http.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -m pip install --require-hashes -r tools/requirements-docs.lock
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/build_docs.py
@@ -77,6 +82,9 @@ jobs:
         compiler: [gcc, clang]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Every qualification job must inspect the same immutable PR-head source.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.14'
@@ -90,16 +98,49 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Every qualification job must inspect the same immutable PR-head source.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Clang ASan and UBSan
         run: |
           cmake --preset host-sanitize
           cmake --build --preset host-sanitize
           ctest --preset host-sanitize
+  browser-contract:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Every qualification job must inspect the same immutable PR-head source.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.14.0'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked browser test dependency
+        shell: pwsh
+        run: npm ci --ignore-scripts --fund=false --audit=false
+      - name: Run offline browser regression
+        shell: pwsh
+        env:
+          CANVIEW_BROWSER_CHANNEL: msedge
+        run: node tools/ui/check-browser.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: browser-foundation-evidence
+          if-no-files-found: warn
+          path: .tools/ui-check
   target-firmware-windows:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Target images must be attributable to the PR head, not GitHub's synthetic merge ref.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.14'
@@ -145,6 +186,10 @@ jobs:
           }
       - name: Install pinned SDKs and build all target images
         shell: pwsh
+        env:
+          CANVIEW_EXPECTED_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+          CANVIEW_PULL_REQUEST_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+          CANVIEW_PULL_REQUEST_MERGE_REVISION: ${{ github.sha }}
         run: |
           $ErrorActionPreference = 'Stop'
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
@@ -212,6 +257,7 @@ jobs:
               Invoke-TargetCommand "$name-fullclean" { idf.py -C $project fullclean }
               Invoke-TargetCommand "$name-set-target" { idf.py -C $project set-target esp32s3 }
               Invoke-TargetCommand "$name-build" { idf.py -C $project build }
+              Invoke-TargetCommand "$name-size-components" { idf.py -C $project size-components }
             }
             Invoke-TargetCommand "public-component-fullclean" { idf.py -C tests/fixtures/idf-public-component fullclean }
             Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
@@ -255,9 +301,51 @@ jobs:
                 sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
               }
             }
+            $sourceRevision = (& git rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $sourceRevision -notmatch '^[0-9a-f]{40}$') {
+              throw "Unable to bind target artifacts to the checked-out source revision"
+            }
+            $expectedSourceRevision = $env:CANVIEW_EXPECTED_SOURCE_REVISION.Trim().ToLowerInvariant()
+            if ($expectedSourceRevision -notmatch '^[0-9a-f]{40}$') {
+              throw "Expected target source revision is missing or malformed"
+            }
+            if ($sourceRevision.ToLowerInvariant() -ne $expectedSourceRevision) {
+              throw "Target checkout revision mismatch: expected $expectedSourceRevision, found $sourceRevision"
+            }
+            $runIdentity = if ([string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ID)) {
+              "local"
+            } else {
+              "$($env:GITHUB_REPOSITORY)#$($env:GITHUB_RUN_ID)"
+            }
+            $provenanceFiles = @(
+              "firmware/communicator/esp32/sdkconfig.defaults",
+              "firmware/diagnostic-bridge/sdkconfig.defaults",
+              "firmware/controller/sdkconfig.defaults",
+              "tools/generate_boards.py",
+              "tools/generate_bridge_web_assets.py",
+              ".gitattributes"
+            )
+            $provenanceDigests = foreach ($path in $provenanceFiles) {
+              [ordered]@{
+                path = $path
+                sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+              }
+            }
             $toolchainProvenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
             [ordered]@{
-              schemaVersion = 1
+              schemaVersion = 2
+              sourceRevision = $sourceRevision.ToLowerInvariant()
+              expectedSourceRevision = $expectedSourceRevision
+              pullRequestBaseRevision = $env:CANVIEW_PULL_REQUEST_BASE_REVISION
+              pullRequestMergeRevision = $env:CANVIEW_PULL_REQUEST_MERGE_REVISION
+              ciRun = $runIdentity
+              buildConfiguration = [ordered]@{
+                projects = @("firmware/communicator/stm32", "firmware/communicator/esp32",
+                             "firmware/diagnostic-bridge", "firmware/controller")
+                espIdf = "6.0.3"
+                target = "esp32s3"
+              }
+              sourceProvenance = @($provenanceDigests)
               toolchainProvenance = $toolchainProvenance
               artifacts = @($artifactManifest)
             } | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* 실제 Diagnostic Bridge app/BSP/runtime composition을 SDK fixture로 실행한다. */
 #include "board_fixture.h"
+#include "bridge_bootstrap.h"
 #include "board_pins.h"
 #include "canview_esp_runtime.h"
 #include "canview_gpio.h"
@@ -54,8 +55,6 @@ typedef struct
 
 static fake_t fake;
 static int owner_token;
-
-void app_main(void);
 
 bool mock_valid_pin(uint8_t pin)
 {
@@ -227,20 +226,37 @@ int main(void)
     fake.heap = CANVIEW_ESP_CORE_HEAP_MIN;
     fake.block = CANVIEW_ESP_CORE_BLOCK_MIN;
 
+    canview_esp_core_t core = {0};
+    canview_esp_pool_t pool = {0};
     canview_esp_runtime_t runtime = {0};
     canview_esp_runtime_port_t port = {0};
-    CHECK(canview_esp_board_runtime(&runtime, &port) == CANVIEW_OK);
+    const canview_platform_port_t board = canview_board_port();
+    CHECK(canview_bridge_bootstrap(&core, &pool, &runtime, &port, &board) == CANVIEW_OK);
     CHECK(runtime.config.input_count == TEST_INPUT_COUNT &&
           runtime.config.input_pins[0] == TEST_INPUT_PIN0 && runtime.config.input_pins[1] == 0U);
     CHECK(runtime.config.memory.flash_bytes == TEST_FLASH_BYTES &&
           runtime.config.memory.psram_bytes == TEST_PSRAM_BYTES);
     CHECK(port.core.safe_gpio != NULL && port.core.watchdog_start != NULL && port.wait != NULL &&
-          port.report != NULL);
+          port.report != NULL && !core.watchdog_ready);
+    CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_OK && core.watchdog_ready);
 
     if (setjmp(fake.stopped) == 0)
     {
-        app_main();
-        CHECK(false);
+        port.report(port.context, &core, CANVIEW_OK);
+        canview_status_t status = CANVIEW_OK;
+        while (status == CANVIEW_OK)
+        {
+            status = port.wait(port.context);
+            if (status == CANVIEW_OK)
+            {
+                status = canview_esp_core_step(&core);
+            }
+        }
+        port.report(port.context, &core, status);
+        for (;;)
+        {
+            board.idle(board.context);
+        }
     }
     CHECK(fake.idle_calls == 1U && fake.wdt_adds == 1U && fake.wdt_resets == 2U);
     CHECK(fake.waits == 3U && fake.logs == 4U);

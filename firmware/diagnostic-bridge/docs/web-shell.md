@@ -1,0 +1,89 @@
+# Diagnostic Bridge local web shell
+
+이 문서는 `T-400`의 현재 C 구현을 설명한다. 대상은 `ESP32-S3-WROOM-1-N8R2`와 ESP-IDF `6.0.3`이다. 현재 구현은 휴대폰용 local HTTP shell, service-session 인증, 빈 read-only snapshot과 WebSocket bootstrap event까지다. ESP-NOW observer, 실제 CAN frame 수집, capture, Signal Lab, encrypted provisioning은 이 변경에 포함하지 않는다.
+
+## 책임과 실행 모델
+
+| 항목 | 현재 계약 |
+|---|---|
+| composition owner | `firmware/diagnostic-bridge/main/app_main.c`의 ESP-IDF main task |
+| web owner | `canview_bridge_web.c`의 singleton state와 HTTP server task |
+| portable auth | `canview_bridge_auth`의 SDK-independent C99 상태기계 |
+| BSP | GPIO4 service input, GPIO5 status LED, board profile과 memory contract |
+| poll 주기 | main task가 `100 ms`마다 `canview_bridge_web_poll()` 호출 |
+| client idle | 인증된 HTTP/WebSocket 활동이 5분 없으면 memory session을 폐기하고 client를 닫는다. public root/bootstrap/login 요청은 idle timer를 갱신하지 않는다. main poll과 request entry가 token expiry를 reconcile하고, 만료·누락·malformed·wrong-scheme credential은 같은 FD의 15초 pre-auth deadline을 재무장한다. 인증 전 연결은 deadline을 넘기면 수신을 중단하고 custom close callback으로 닫는다 |
+| HTTP stack | ESP-IDF `esp_http_server` |
+| JSON | `cJSON`, 16 KiB fixed arena, 응답 4 KiB 이하 |
+| WebSocket | `esp_http_server` WebSocket, incoming frame 512 byte 이하, server event 1회 |
+| DNS | fixed-buffer UDP captive response task, 외부 DNS forwarding 없음. descriptor close는 DNS task가 소유하고 `SO_RCVTIMEO`로 stop 대기를 제한한다 |
+| shutdown | `canview_bridge_web_stop()`이 HTTP/DNS/Wi-Fi/netif/event-loop와 memory auth를 idempotent하게 정리한다. DNS task가 제한시간 안에 끝나지 않으면 의존 자원을 유지한 채 timeout을 반환하고 재시도를 허용한다. |
+
+HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 response buffer만 직렬화하고, `state_lock`은 auth/session·snapshot의 짧은 critical section에서만 사용한다. 따라서 body 수신·HTTP response·WebSocket send가 owner state mutex를 붙잡지 않는다. WebSocket의 bounded network I/O는 별도 `ws_io_lock`으로 직렬화하고 send가 끝날 때까지 response buffer 수명을 보장한다. cJSON allocator hook은 이 singleton component에서 한 번 등록되며 다른 cJSON task와 공유하지 않는다. session body, response와 protocol token buffer는 사용 후 zeroize한다.
+
+인증 전 socket은 `open_fn`에서 시작 시각을 기록하고 receive override가 매 수신 전에 deadline을 확인한다. HTTPD의 `select()` 대기는 socket `SO_RCVTIMEO`만으로 제한되지 않으므로 main poll도 15초가 지난 zero-byte pre-auth FD를 한 번만 `httpd_sess_trigger_close()`로 깨워 HTTPD worker가 슬롯을 계속 점유하지 않게 한다. poll은 `state_lock`을 잡은 채 HTTPD가 session pointer를 캡처하도록 예약하고, close callback은 `pre_auth_close_pending`을 지워 다음 연결을 허용한다. 이미 close callback이 이긴 `ESP_ERR_NOT_FOUND`는 서비스 중단 없이 상태를 reconcile하고, 실제 work-queue 오류만 전체 service retry/stop 경로로 보낸다. 인증 성공과 activity 기록은 같은 `state_lock` critical section에서 수행하며, main poll과 request entry는 auth 상태를 reconcile한다. logout·token expiry·재인증 거부·credential parse 실패 뒤에는 같은 socket에 deadline을 다시 arm하고, 이미 진행 중인 deadline은 실패 요청마다 연장하지 않는다. 단일 client 정책에서는 HTTPD LRU purge를 끄고 두 번째 연결이 기존 owner를 축출하지 않게 한다. DNS descriptor는 DNS task만 닫고 `SO_RCVTIMEO`가 stop 대기를 제한하므로 descriptor 번호 재사용 중 외부 `shutdown()`을 수행하지 않는다. stop 경로에서 외부 자원 정리가 실패하면 이미 정리된 상태만 반영하고 나머지 handle·lock·auth 상태를 보존해 상위 retry가 다시 호출할 수 있게 한다. app이 bounded retry 뒤에도 cleanup에 실패하면 retained network service를 정상 idle로 두지 않고 `esp_restart()`로 재부팅한다.
+
+HTTPD worker liveness는 app poll이 `httpd_queue_work()`로 예약한 callback ACK와 실제 worker socket I/O progress를 함께 사용한다. HTTPD task가 bounded `recv()` 또는 `send()`를 수행할 때 1초 `SO_RCVTIMEO`/`SO_SNDTIMEO`와 전후 task-WDT user checkpoint를 적용하고, progress가 있으면 해당 heartbeat sequence도 ACK한다. 따라서 느린 client는 제한시간 안에 정리되고 정상적인 부분 I/O가 1.5초 worker-heartbeat timeout으로 잘못 승격되지 않는다. queue callback 자체가 실행되지 않고 I/O progress도 사라지는 경우에는 app poll이 timeout을 감지해 service를 중지한다. callback·I/O·DNS fault injection은 현재 host contract에 포함되지 않으며 후속 runtime/HIL gate에서 검증한다.
+
+HTTP 요청 하나의 header/body/response 전체에는 15초 absolute deadline을 적용한다. 부분 `recv()`/`send()`가 성공해도 deadline을 연장하지 않으며, deadline 이후에는 socket I/O를 timeout으로 종료한다. handler가 정상적으로 반환할 때만 다음 keep-alive 요청을 위해 deadline을 재arm한다. HTTPD watchdog user는 HTTPD task를 시작하기 전에 등록하므로 server start와 첫 client accept 사이에도 worker callback이 준비되지 않은 handle을 참조하지 않는다.
+
+`canview_bridge_web_config_t`의 credential 포인터는 start 호출 중에만 유효하면 된다. PIN digest는 auth state로 복사하고, AP password는 `esp_wifi_set_config()`에 복사한 직후 web state에서 zeroize한다. app도 start 반환 뒤 local credential buffer를 zeroize한다. callback은 `button_pressed` 하나만 남으며 web service가 정지할 때까지 caller가 수명을 보장해야 한다. ISR은 button callback이나 web API를 호출하지 않는다.
+
+## 부팅과 service window
+
+1. BSP board profile을 SDK/GPIO open보다 먼저 검사한다.
+2. safe GPIO, runtime, deferred core health와 fixed pool을 초기화한다. 이 단계에서는 외부 초기화 중 TWDT subscription을 아직 만들지 않는다.
+3. read-only NVS에서 `bridge_auth/pin_digest`와 `bridge_auth/ap_password`를 읽는다. 누락·길이·문자 검사는 실패로 처리하며 기본 credential을 만들지 않는다.
+4. `WIFI_MODE_APSTA`를 시작한다. AP channel은 KR channel `6`으로 고정하고 STA에 external AP credential을 설정하거나 `esp_wifi_connect()`를 호출하지 않는다.
+5. DNS와 HTTP server를 시작한다. 외부 AP/NAPT와 vehicle CAN path는 없다.
+6. web start 성공 직후 같은 owner가 `canview_esp_core_arm_watchdog()`를 호출하고서 service loop를 시작한다. 실패하면 web 자원을 중지하고 safe idle로 남는다.
+7. GPIO4가 3초 연속 low일 때만 10분 service window를 연다. release는 window를 닫지 않지만 service-window timeout, 5분 client idle timeout과 reset/재부팅은 session을 폐기하고 active HTTP/WebSocket client를 닫는다.
+
+window가 닫힌 동안 `/api/v1/bootstrap`은 challenge를 발급하지 않는다. window가 열린 뒤 challenge를 발급하고, 같은 window의 challenge 재발급은 이전 challenge를 폐기한다.
+
+## REST와 인증
+
+| method/path | 현재 동작 | 권한 |
+|---|---|---|
+| `GET /` | gzip 내장 offline shell | public, vehicle 정보 없음 |
+| `GET /api/v1/bootstrap` | challenge와 capability 0 반환 | service window + rate limit |
+| `POST /api/v1/session` | challenge·client nonce·6–8자리 PIN으로 memory token 발급 | 허용 Origin + rate limit |
+| `DELETE /api/v1/session` | memory token 폐기 | 허용 Origin + bearer token |
+| `GET /api/v1/system` | safe metadata와 `NOT_IMPLEMENTED` observer 상태 | bearer token |
+| `GET /api/v1/peers`, `/buses`, `/frames`, `/filters`, `/captures`, `/candidates`, `/config-targets` | 빈 `items` snapshot | bearer token |
+| `GET /api/v1/live` | WebSocket handshake와 summary event | 허용 Origin + session subprotocol token |
+
+session JSON은 top-level object의 정확한 세 필드만 허용한다. unknown field, duplicate field, non-string, truncated/malformed JSON, trailing data는 거부한다. JSON body는 `8192` byte, URI는 `128` byte, request header는 `1024` byte, WebSocket incoming frame은 `512` byte로 제한한다. mutation 계열은 1초당 5건으로 제한한다. PIN 실패는 1분 내 5회에서 60초 lockout한다.
+
+token은 128-bit memory-only value다. REST는 `Authorization: Bearer <base64url>`을 사용하고, WebSocket은 query string이 아니라 `Sec-WebSocket-Protocol`에 `canview-session`과 `canview-session.<token>`을 함께 보낸다. 서버는 pre-handshake와 post-handshake에서 token을 다시 검사한다. token을 URL, NVS, log, localStorage에 저장하지 않는다. 현재 HTML은 외부 CDN, analytics, internet request를 사용하지 않는다.
+
+모든 snapshot과 event에는 `snapshot_revision`을 포함하고 WebSocket event에는 증가하는 `seq`와 `server_time_ms`를 포함한다. 실제 observer data가 연결되기 전까지 상태는 `NOT_IMPLEMENTED` 또는 `UNKNOWN`이며 확정 차량 신호로 표시하지 않는다.
+
+## 안전 경계
+
+- capability `control_scope`는 항상 `0`이고 `vehicle_tx`는 항상 `false`다.
+- `canview_bridge_web`에는 raw CAN frame builder, replay endpoint, control lease, vehicle TX queue가 없다.
+- WebSocket incoming data는 bounded receive 후 폐기하며 command/parser로 전달하지 않는다.
+- Diagnostic Bridge는 read-only observation 장치다. 이 shell의 인증은 vehicle command 권한을 만들지 않는다.
+- local HTTP와 WPA2 AP password는 편의·접근 제어일 뿐 production trust anchor가 아니다. secure boot, flash/NVS encryption, device provisioning과 physical evidence는 별도 gate다.
+
+## 검증과 남은 gate
+
+현재 source/target 검증은 다음을 사용한다.
+
+```powershell
+python -B tools/generate_boards.py --check
+python -B tools/validate_document_links.py
+python -B tools/check_sdkconfig.py firmware/diagnostic-bridge/sdkconfig --board bridge-r1-n8r2
+python -B tests/test_bridge_web_assets.py -v
+python -B tests/security/bridge_http.py
+& npm ci --ignore-scripts --fund=false --audit=false
+node tools/ui/check-browser.cjs
+Push-Location firmware/diagnostic-bridge
+idf.py build
+idf.py size-components
+Pop-Location
+```
+
+host auth CTest는 service window, null/bounds, malformed PIN, one-time challenge, token expiry, lockout과 clock rollback을 확인한다. 실제 ESP32 flash, ST-LINK/serial, AP association, Android/iOS captive browser, power rail/reset/brownout, PSRAM/clock/watchdog soak, ESP-NOW, 차량 CAN/capture와 production provisioning은 현재 실행하지 않았으며 `NOT_RUN`이다. CAN TX는 계속 `NO-GO`다.
+오프라인 Playwright 검사는 Edge에서 driver shell 74 checks, 기존 Diagnostic Bridge prototype 10 checks와 실제 `bridge-shell.html`의 local HTTP/WebSocket fault-injection 8 checks, 외부 요청 0건을 확인한다. 이 결과는 실제 ESP32 endpoint, AP association 또는 Android/iOS 실기기 시험을 대체하지 않는다.
+기본 CTest의 UART fault stream은 1초 bounded smoke로 실행하며, 24시간 virtual soak은 `CANVIEW_LONG_TESTS=ON`으로 별도 요청한 경우에만 `uart-fault-stream-24h`로 등록한다. 이는 실제 4 Mbps UART waveform, RTS/CTS, board soak을 대체하지 않는다.

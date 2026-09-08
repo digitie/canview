@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>CANView Diagnostic Bridge</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui,sans-serif; background:#07111f; color:#e7f3ff; }
+    body { max-width: 30rem; margin:0 auto; padding:2rem 1rem; }
+    main { border:1px solid #24506a; border-radius:1rem; padding:1.2rem; background:#0b1b2a; }
+    h1 { font-size:1.25rem; margin-top:0; } p { line-height:1.5; }
+    label { display:block; margin-top:1rem; } input,button { width:100%; box-sizing:border-box; padding:.8rem; margin-top:.35rem; border-radius:.5rem; border:1px solid #3d718a; background:#081421; color:inherit; }
+    button { background:#087f9f; border:0; font-weight:700; } button:disabled { opacity:.5; }
+    #status { white-space:pre-wrap; color:#9eddf0; } .readonly { color:#7ee8dc; font-weight:700; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>CANView Diagnostic Bridge</h1>
+  <p class="readonly">READ ONLY · 차량 CAN 송신 없음</p>
+  <p id="status">서비스 창과 일회 PIN을 준비하세요.</p>
+  <form id="login">
+    <label for="pin">일회 PIN</label>
+    <input id="pin" inputmode="numeric" minlength="6" maxlength="8" pattern="[0-9]{6,8}" autocomplete="one-time-code" required>
+    <button id="submit" type="submit">진단 세션 열기</button>
+  </form>
+</main>
+<script>
+(() => {
+  const status = document.getElementById('status');
+  const form = document.getElementById('login');
+  const pinInput = document.getElementById('pin');
+  const submit = document.getElementById('submit');
+  const MAX_RECONNECT_DELAY_MS = 30000;
+  let token = null;
+  let live = null;
+  let reconnectTimer = null;
+  let reconnectDelayMs = 1000;
+  let expectedSequence = null;
+  let snapshotRevision = null;
+  const enc = bytes => { let s=''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
+  const nonce = () => { const b = new Uint8Array(16); crypto.getRandomValues(b); return enc(b); };
+  const requestJson = async (url, options, label) => {
+    const r = await fetch(url, options);
+    if (!r.ok) { const error = new Error(label+' '+r.status); error.status = r.status; throw error; }
+    return r.json();
+  };
+  const bootstrap = () => requestJson('/api/v1/bootstrap', {cache:'no-store'}, 'bootstrap');
+  const system = () => requestJson('/api/v1/system', {headers:{Authorization:'Bearer '+token}, cache:'no-store'}, 'system');
+  const applySnapshot = snapshot => {
+    if (!Number.isSafeInteger(snapshot.snapshot_revision)) throw new Error('snapshot revision');
+    snapshotRevision = snapshot.snapshot_revision;
+    expectedSequence = null;
+    status.textContent = '인증됨 · read-only\n'+JSON.stringify(snapshot, null, 2);
+  };
+  const resync = async () => { if (token) applySnapshot(await system()); };
+  const clearSession = message => {
+    if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (live !== null) {
+      const socket = live;
+      live = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      socket.close();
+    }
+    token = null;
+    expectedSequence = null;
+    snapshotRevision = null;
+    reconnectDelayMs = 1000;
+    form.hidden = false;
+    pinInput.value = '';
+    submit.disabled = false;
+    status.textContent = message;
+  };
+  const isAuthFailure = error => error && (error.status === 401 || error.status === 403);
+  const scheduleReconnect = () => {
+    if (!token || reconnectTimer !== null) return;
+    const delay = reconnectDelayMs;
+    reconnectDelayMs = Math.min(MAX_RECONNECT_DELAY_MS, reconnectDelayMs * 2);
+    reconnectTimer = setTimeout(async () => {
+      reconnectTimer = null;
+      try {
+        await resync();
+        reconnectDelayMs = 1000;
+        connectLive();
+      }
+      catch (error) {
+        if (isAuthFailure(error)) { clearSession('세션 만료 · 다시 인증하세요'); }
+        else { status.textContent = '세션 snapshot 실패 · 재접속 대기'; scheduleReconnect(); }
+      }
+    }, delay);
+  };
+  const connectLive = () => {
+    if (!token || live !== null) return;
+    const protocolToken = 'canview-session.'+token;
+    live = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://')+location.host+'/api/v1/live', ['canview-session', protocolToken]);
+    live.onmessage = async event => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type !== 'system.summary' || !Number.isSafeInteger(message.seq) || !Number.isSafeInteger(message.snapshot_revision)) throw new Error('event schema');
+        if (snapshotRevision !== null && message.snapshot_revision < snapshotRevision) throw new Error('event revision');
+        if (expectedSequence !== null && message.seq !== expectedSequence + 1) {
+          await resync();
+        }
+        expectedSequence = message.seq;
+        snapshotRevision = message.snapshot_revision;
+        status.textContent = '인증됨 · live read-only\n'+JSON.stringify(message, null, 2);
+      } catch (error) {
+        if (isAuthFailure(error)) clearSession('세션 만료 · 다시 인증하세요');
+        else if (live !== null) live.close();
+      }
+    };
+    live.onclose = () => { live = null; scheduleReconnect(); };
+    live.onerror = () => { if (live !== null) live.close(); };
+  };
+  form.addEventListener('submit', async event => {
+    event.preventDefault(); submit.disabled = true;
+    try {
+      const b = await bootstrap();
+      const session = await requestJson('/api/v1/session', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({challenge:b.challenge, client_nonce:nonce(), pin:pinInput.value})}, 'session');
+      token = session.token;
+      applySnapshot(await system());
+      form.hidden = true;
+      reconnectDelayMs = 1000;
+      connectLive();
+    } catch (error) {
+      if (isAuthFailure(error)) clearSession('인증 만료 또는 service window 닫힘');
+      else { token = null; form.hidden = false; status.textContent = '인증 실패 또는 service window 닫힘'; submit.disabled = false; }
+    }
+    if (token !== null) submit.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>

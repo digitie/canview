@@ -40,7 +40,11 @@ EXPECTED_COMMON_FORBIDDEN = (
 EXPECTED_FORBIDDEN = {
     "comm-r2-n16r8": EXPECTED_COMMON_FORBIDDEN + ("CONFIG_SPIRAM_MODE_QUAD", "CONFIG_ESPTOOLPY_FLASHSIZE_8MB"),
     "bridge-r1-n8r2": EXPECTED_COMMON_FORBIDDEN + ("CONFIG_SPIRAM_MODE_OCT", "CONFIG_SPIRAM_ECC_ENABLE",
-                                               "CONFIG_ESPTOOLPY_FLASHSIZE_16MB"),
+                                               "CONFIG_ESPTOOLPY_FLASHSIZE_16MB",
+                                               "CONFIG_ESP_NETIF_BRIDGE_EN", "CONFIG_ESP_NETIF_L2_TAP",
+                                               "CONFIG_LWIP_FORCE_ROUTER_FORWARDING",
+                                               "CONFIG_LWIP_IPV6_FORWARD", "CONFIG_LWIP_IP_FORWARD",
+                                               "CONFIG_HTTPD_QUEUE_WORK_BLOCKING"),
 }
 
 
@@ -108,6 +112,15 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
         bridge = bridge.replace('CONFIG_ESPTOOLPY_FLASHSIZE="16MB"', 'CONFIG_ESPTOOLPY_FLASHSIZE="8MB"')
         bridge = bridge.replace("# CONFIG_ESPTOOLPY_FLASHSIZE_8MB is not set\n", "")
         bridge = bridge.replace("MODE_OCT", "MODE_QUAD").replace("CONFIG_SPIRAM_ECC_ENABLE=y\n", "")
+        bridge += ("CONFIG_HTTPD_WS_SUPPORT=y\n"
+                   "CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT=y\n"
+                   "CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y\n"
+                   "# CONFIG_ESP_NETIF_BRIDGE_EN is not set\n"
+                   "# CONFIG_ESP_NETIF_L2_TAP is not set\n"
+                   "# CONFIG_LWIP_FORCE_ROUTER_FORWARDING is not set\n"
+                   "# CONFIG_LWIP_IPV6_FORWARD is not set\n"
+                   "# CONFIG_LWIP_IP_FORWARD is not set\n"
+                   "# CONFIG_HTTPD_QUEUE_WORK_BLOCKING is not set\n")
         return {"comm-r2-n16r8": cls.GOOD, "bridge-r1-n8r2": bridge}
 
     def test_positive_and_crlf(self):
@@ -125,6 +138,8 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
         for board, good in self.fixtures().items():
             expected = dict(GATE.REQUIRED)
             expected.update(GATE.MEMORY[board])
+            if board == "bridge-r1-n8r2":
+                expected.update(GATE.BRIDGE_REQUIRED)
             for key, value in expected.items():
                 line = f"{key}={value}"
                 replacements = ("", f"{key}=n" if value != "n" else f"{key}=y")
@@ -155,8 +170,10 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
                 altered = dict(GATE.FORBIDDEN)
                 altered[board] = tuple(item for item in GATE.FORBIDDEN[board] if item != key)
                 disabled = tuple(item for item in GATE.REQUIRED_DISABLED if item != key)
+                bridge_disabled = tuple(item for item in GATE.BRIDGE_REQUIRED_DISABLED if item != key)
                 with self.subTest(board=board, key=key), mock.patch.object(GATE, "FORBIDDEN", altered), \
-                     mock.patch.object(GATE, "REQUIRED_DISABLED", disabled):
+                     mock.patch.object(GATE, "REQUIRED_DISABLED", disabled), \
+                     mock.patch.object(GATE, "BRIDGE_REQUIRED_DISABLED", bridge_disabled):
                     result = unittest.TestResult()
                     SdkConfigTests("test_forbidden_settings").run(result)
                     self.assertFalse(result.wasSuccessful(), "금지 항목 삭제 변이가 살아남음: " + key)
@@ -195,6 +212,13 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
         for key in GATE.REQUIRED_DISABLED:
             with self.subTest(key=key), self.assertRaisesRegex(ValueError, key):
                 GATE.validate(self.GOOD.replace(f"# {key} is not set\n", ""))
+
+    def test_bridge_routing_disabled_lines_are_required(self):
+        bridge = self.fixtures()["bridge-r1-n8r2"]
+        for key in GATE.BRIDGE_REQUIRED_DISABLED:
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, key):
+                GATE.validate(bridge.replace(f"# {key} is not set\n", ""),
+                              "bridge-r1-n8r2")
 
     def test_board_negative_and_defaults(self):
         manifest = BOARDS.canonical(BOARDS.SOURCE)
@@ -250,6 +274,10 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
         defaults = GATE.parse(generated[board["path"] + "/sdkconfig.defaults"])
         for key, expected in (("CONFIG_ESPTOOLPY_FLASHSIZE", '"8MB"'),
                               ("CONFIG_SPIRAM_MODE_QUAD", "y"), ("CONFIG_SPIRAM_ECC_ENABLE", "n"),
+                              ("CONFIG_HTTPD_WS_SUPPORT", "y"),
+                              ("CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT", "y"),
+                              ("CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT", "y"),
+                              ("CONFIG_HTTPD_QUEUE_WORK_BLOCKING", "n"),
                               ("CONFIG_ESP_TASK_WDT_PANIC", "y"), ("CONFIG_ESP_TASK_WDT_TIMEOUT_S", "2"),
                               ("CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT", "y"),
                               ("CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS", "0"),

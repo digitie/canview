@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {pathToFileURL} = require("node:url");
 const {chromium} = require("playwright");
+const {runBridgeShellTests} = require("../../tests/ui/bridge-shell-browser.cjs");
 const root = path.resolve(__dirname, "../..");
 const screenshots = process.argv.includes("--screenshots");
 const output = path.join(root, screenshots ? "docs/images" : ".tools/ui-check");
@@ -110,6 +111,7 @@ async function run() {
     console.log(JSON.stringify({suite: "driver-browser", checks, errors, externalRequests: external.length, screenshots: output}));
     const {runDiagnosticTests} = require('../../tests/ui/diagnostic-browser.cjs');
     console.log(JSON.stringify(await runDiagnosticTests(browser, {screenshotDir: output})));
+    console.log(JSON.stringify(await runBridgeShellTests(browser, {screenshotDir: output})));
   } finally { await browser.close(); }
 }
 run().catch((error) => { console.error(error); process.exitCode = 1; });

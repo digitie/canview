@@ -16,3 +16,6 @@ protocol/**/*.json text eol=lf
 # Generated protocol contracts are byte-compared by every host.
 shared/protocol/**/*.h text eol=lf
 shared/protocol/**/*.c text eol=lf
+
+# Diagnostic Bridge web assets are compressed byte-for-byte in every build.
+ui/diagnostic-web/*.html text eol=lf

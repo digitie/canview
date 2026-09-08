@@ -1,9 +1,10 @@
 set(CANVIEW_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../..")
 idf_component_register(
-    SRCS "${CANVIEW_ROOT}/firmware/app/esp_core.c" "../bsp/board.c" "../bsp/runtime.c"
+    SRCS "app_main.c" "bridge_bootstrap.c" "../bsp/board.c" "../bsp/bridge_button.c" "../bsp/runtime.c"
     INCLUDE_DIRS "../bsp" "${CANVIEW_ROOT}/firmware/interface"
-    REQUIRES canview_esp_core canview_esp32_platform canview_esp32_runtime
+    REQUIRES canview_esp_core canview_esp32_platform canview_esp32_runtime canview_bridge_auth
+             canview_bridge_web nvs_flash
 )
-set_target_properties(${COMPONENT_LIB} PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
-target_compile_options(${COMPONENT_LIB} PRIVATE -std=c99 -Wall -Wextra -Werror -Wpedantic
-    -Wshadow -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wformat=2 -Wundef)
+# app_main includes ESP-IDF headers; keep the vendor component language mode while
+# keeping the application implementation C99-compatible.
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wall -Wextra -Werror -Wshadow -Wformat=2)

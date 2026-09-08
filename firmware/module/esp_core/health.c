@@ -36,8 +36,9 @@ static void increment(uint32_t *value)
     }
 }
 
-canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
-                                       const canview_esp_core_port_t *port)
+static canview_status_t boot_impl(canview_esp_core_t *core,
+                                  const canview_esp_core_port_t *port,
+                                  bool start_watchdog)
 {
     if (core == NULL || port == NULL || port->safe_gpio == NULL || port->watchdog_start == NULL ||
         port->now_us == NULL || port->sample == NULL || port->feed == NULL ||
@@ -56,17 +57,21 @@ canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
     core->port = *port;
     core->state = CANVIEW_ESP_CORE_STARTING;
     core->busy = true;
+    core->watchdog_ready = false;
     canview_status_t status = core->port.safe_gpio(core->port.context);
     if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT)
     {
         return fail(core, CANVIEW_ESP_FAULT_SAFE_GPIO, status);
     }
-    status = core->port.watchdog_start(core->port.context);
-    if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT)
+    if (start_watchdog)
     {
-        return fail(core, CANVIEW_ESP_FAULT_WATCHDOG, status);
+        status = core->port.watchdog_start(core->port.context);
+        if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT)
+        {
+            return fail(core, CANVIEW_ESP_FAULT_WATCHDOG, status);
+        }
+        core->watchdog_ready = true;
     }
-    core->watchdog_ready = true;
     uint64_t started = 0U;
     status = core->port.now_us(core->port.context, &started);
     if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT ||
@@ -99,6 +104,53 @@ canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
     return CANVIEW_OK;
 }
 
+canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
+                                       const canview_esp_core_port_t *port)
+{
+    return boot_impl(core, port, true);
+}
+
+canview_status_t canview_esp_core_boot_deferred(canview_esp_core_t *core,
+                                                const canview_esp_core_port_t *port)
+{
+    return boot_impl(core, port, false);
+}
+
+canview_status_t canview_esp_core_arm_watchdog(canview_esp_core_t *core)
+{
+    if (core == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (core->busy)
+    {
+        return fail(core, CANVIEW_ESP_FAULT_REENTRY, CANVIEW_RESOURCE_BUSY);
+    }
+    if (core->state != CANVIEW_ESP_CORE_SAFE_BENCH || core->watchdog_ready ||
+        core->port.watchdog_start == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    core->busy = true;
+    const canview_status_t status = core->port.watchdog_start(core->port.context);
+    if (status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT)
+    {
+        return fail(core, CANVIEW_ESP_FAULT_WATCHDOG, status);
+    }
+    uint64_t armed_at = 0U;
+    const canview_status_t clock_status = core->port.now_us(core->port.context, &armed_at);
+    if (clock_status != CANVIEW_OK || core->state == CANVIEW_ESP_CORE_FAULT ||
+        armed_at < core->last_progress_us ||
+        armed_at > UINT64_MAX - CANVIEW_ESP_CORE_DEADLINE_US)
+    {
+        return fail(core, CANVIEW_ESP_FAULT_CLOCK, clock_status);
+    }
+    core->watchdog_ready = true;
+    core->last_progress_us = armed_at;
+    core->busy = false;
+    return CANVIEW_OK;
+}
+
 canview_status_t canview_esp_core_step(canview_esp_core_t *core)
 {
     if (core == NULL)
@@ -112,6 +164,10 @@ canview_status_t canview_esp_core_step(canview_esp_core_t *core)
     if (core->state != CANVIEW_ESP_CORE_SAFE_BENCH)
     {
         return core->state == CANVIEW_ESP_CORE_FAULT ? CANVIEW_TIMEOUT : CANVIEW_INVALID_ARGUMENT;
+    }
+    if (!core->watchdog_ready)
+    {
+        return fail(core, CANVIEW_ESP_FAULT_WATCHDOG, CANVIEW_INVALID_ARGUMENT);
     }
     core->busy = true;
     uint64_t started = 0U;

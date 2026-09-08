@@ -7,6 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/CanviewWarnings.cmake)
 option(CANVIEW_COVERAGE "Clang source coverage for portable code" OFF)
 option(CANVIEW_SANITIZE "Address/undefined sanitizer (non-Windows)" OFF)
+option(CANVIEW_LONG_TESTS "Enable explicitly requested long-duration host tests" OFF)
 if(CANVIEW_COVERAGE)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
         message(FATAL_ERROR "Coverage requires Clang llvm-profdata/llvm-cov")
@@ -26,8 +27,28 @@ add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_subdirectory(firmware/communicator/stm32/module)
 add_subdirectory(firmware/module/esp_core)
+add_library(canview_bridge_auth_host STATIC
+    firmware/diagnostic-bridge/components/canview_bridge_auth/canview_bridge_auth.c)
+target_include_directories(canview_bridge_auth_host PUBLIC
+    firmware/diagnostic-bridge/components/canview_bridge_auth/include
+    shared/interface)
+target_link_libraries(canview_bridge_auth_host PUBLIC canview_warnings)
+add_library(canview_bridge_web_session_host STATIC
+    firmware/diagnostic-bridge/components/canview_bridge_web/canview_bridge_web_session.c)
+target_include_directories(canview_bridge_web_session_host PUBLIC
+    firmware/diagnostic-bridge/components/canview_bridge_web/include)
+target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-bridge-auth-tests tests/bridge_web/test_auth.c)
+    target_link_libraries(canview-bridge-auth-tests PRIVATE canview_bridge_auth_host canview_warnings)
+    add_test(NAME bridge-auth COMMAND canview-bridge-auth-tests)
+    set_tests_properties(bridge-auth PROPERTIES TIMEOUT 30)
+    add_executable(canview-bridge-web-session-tests tests/bridge_web/test_session.c)
+    target_link_libraries(canview-bridge-web-session-tests PRIVATE
+        canview_bridge_web_session_host canview_warnings)
+    add_test(NAME bridge-web-session COMMAND canview-bridge-web-session-tests)
+    set_tests_properties(bridge-web-session PROPERTIES TIMEOUT 30)
     foreach(bridge 0 1)
         if(bridge)
             set(esp_prefix canview-esp32-bridge)
@@ -62,19 +83,19 @@ if(BUILD_TESTING)
             target_compile_definitions(${esp_prefix}-${kind}-tests PRIVATE CANVIEW_TEST_BRIDGE=${bridge})
         endforeach()
     endforeach()
-    # Run the real Bridge app+BSP+SDK adapter composition against the SDK fixture.
-    # The fixture stops app_main at its terminal idle callback, so this is not a
-    # substitute for an ESP-IDF build or physical board/HIL test.
+    # Run the real Bridge bootstrap+BSP+SDK adapter composition against the SDK
+    # fixture. Network/NVS are intentionally outside this portable fixture; the
+    # target project builds the complete app composition separately.
     add_executable(canview-esp32-bridge-integration-tests
         tests/esp_core/test_bridge_integration.c
-        firmware/app/esp_core.c
+        firmware/diagnostic-bridge/main/bridge_bootstrap.c
         firmware/platform/esp32s3/core_runtime.c
         firmware/diagnostic-bridge/bsp/board.c
         firmware/diagnostic-bridge/bsp/runtime.c)
     target_compile_definitions(canview-esp32-bridge-integration-tests PRIVATE
         CANVIEW_ESP_SDK_TEST=1 CANVIEW_TEST_BRIDGE=1)
     target_include_directories(canview-esp32-bridge-integration-tests PRIVATE
-        tests/esp_core firmware/diagnostic-bridge/bsp)
+        tests/esp_core firmware/diagnostic-bridge/bsp firmware/diagnostic-bridge/main)
     target_link_libraries(canview-esp32-bridge-integration-tests PRIVATE
         canview_esp_core canview_warnings)
     add_test(NAME esp32-bridge-app-integration COMMAND canview-esp32-bridge-integration-tests)
@@ -171,9 +192,17 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/protocol/schema/uart-v1.0.yaml --check)
     add_test(NAME uart-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
+    # Keep the default CTest contract bounded. The 24-hour virtual soak remains
+    # available only when explicitly enabled by a caller with a matching job
+    # timeout; it must not make ordinary PR validation exceed the preset limit.
     add_test(NAME uart-fault-stream COMMAND ${Python3_EXECUTABLE} -X utf8 -B
-        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
-    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 300)
+        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 1)
+    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 60)
+    if(CANVIEW_LONG_TESTS)
+        add_test(NAME uart-fault-stream-24h COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
+        set_tests_properties(uart-fault-stream-24h PROPERTIES TIMEOUT 90000)
+    endif()
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)
@@ -184,6 +213,9 @@ if(BUILD_TESTING)
     add_test(NAME foundation-python COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_generators.py -v)
     add_test(NAME esp32-sdkconfig-negative COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_sdkconfig.py -v)
     add_test(NAME python-unit COMMAND ${Python3_EXECUTABLE} -X utf8 -B -m unittest discover -s ${PROJECT_SOURCE_DIR}/tests -p "test_*.py")
+    add_test(NAME bridge-http-contract COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/security/bridge_http.py)
+    set_tests_properties(bridge-http-contract PROPERTIES TIMEOUT 15)
     add_test(NAME plan-validation COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/validate_plan.py)
     add_test(NAME document-links COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tools/validate_document_links.py)
 endif()

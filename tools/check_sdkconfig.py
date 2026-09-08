@@ -54,10 +54,24 @@ MEMORY = {
     "bridge-r1-n8r2": {"CONFIG_ESPTOOLPY_FLASHSIZE_8MB": "y",
                        "CONFIG_ESPTOOLPY_FLASHSIZE": '"8MB"', "CONFIG_SPIRAM_MODE_QUAD": "y"},
 }
+BRIDGE_REQUIRED = {
+    "CONFIG_HTTPD_WS_SUPPORT": "y",
+    "CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT": "y",
+    "CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT": "y",
+}
+BRIDGE_FORBIDDEN = (
+    "CONFIG_ESP_NETIF_BRIDGE_EN",
+    "CONFIG_ESP_NETIF_L2_TAP",
+    "CONFIG_LWIP_FORCE_ROUTER_FORWARDING",
+    "CONFIG_LWIP_IPV6_FORWARD",
+    "CONFIG_LWIP_IP_FORWARD",
+    "CONFIG_HTTPD_QUEUE_WORK_BLOCKING",
+)
+BRIDGE_REQUIRED_DISABLED = BRIDGE_FORBIDDEN
 FORBIDDEN = {
     "comm-r2-n16r8": COMMON_FORBIDDEN + ("CONFIG_SPIRAM_MODE_QUAD", "CONFIG_ESPTOOLPY_FLASHSIZE_8MB"),
     "bridge-r1-n8r2": COMMON_FORBIDDEN + ("CONFIG_SPIRAM_MODE_OCT", "CONFIG_SPIRAM_ECC_ENABLE",
-                                         "CONFIG_ESPTOOLPY_FLASHSIZE_16MB"),
+                                         "CONFIG_ESPTOOLPY_FLASHSIZE_16MB") + BRIDGE_FORBIDDEN,
 }
 
 # IDF generated sdkconfig에서 항상 명시되는 중요한 비활성 항목은 누락도 거부한다.
@@ -91,7 +105,7 @@ def load_allowlisted_keys() -> frozenset[str]:
     return frozenset(keys)
 
 
-ALLOWED_KEYS = (load_allowlisted_keys() | frozenset(REQUIRED) |
+ALLOWED_KEYS = (load_allowlisted_keys() | frozenset(REQUIRED) | frozenset(BRIDGE_REQUIRED) |
                 frozenset(key for values in MEMORY.values() for key in values) |
                 frozenset(key for values in FORBIDDEN.values() for key in values))
 
@@ -122,8 +136,11 @@ def validate(text: str, board: str = "comm-r2-n16r8") -> None:
     if board not in MEMORY:
         raise ValueError("검토하지 않은 bench board: " + board)
     config = parse(text)
+    required = REQUIRED | MEMORY[board]
+    if board == "bridge-r1-n8r2":
+        required = required | BRIDGE_REQUIRED
     errors = [f"{key}: expected {value}, found {config.get(key, 'MISSING')}"
-              for key, value in (REQUIRED | MEMORY[board]).items() if config.get(key) != value]
+              for key, value in required.items() if config.get(key) != value]
     expected_flash_mb = 16 if board == "comm-r2-n16r8" else 8
     for flash_mb in (1, 2, 4, 8, 16, 32, 64, 128):
         key = f"CONFIG_ESPTOOLPY_FLASHSIZE_{flash_mb}MB"
@@ -132,6 +149,9 @@ def validate(text: str, board: str = "comm-r2-n16r8") -> None:
             errors.append(f"{key}: expected {expected}, found {config.get(key, 'MISSING')}")
     errors += [f"{key}: expected explicit n, found {config.get(key, 'MISSING')}"
                for key in REQUIRED_DISABLED if config.get(key) != "n"]
+    if board == "bridge-r1-n8r2":
+        errors += [f"{key}: Bridge에서 expected explicit n, found {config.get(key, 'MISSING')}"
+                   for key in BRIDGE_REQUIRED_DISABLED if config.get(key) != "n"]
     errors += [f"{key}: bench에서 금지" for key in FORBIDDEN[board] if config.get(key, "n") != "n"]
     if errors:
         raise ValueError("; ".join(errors))
