@@ -66,6 +66,17 @@ static bool valid_ap_password(const char *password, size_t length)
     return true;
 }
 
+static esp_err_t stop_web_with_retry(void)
+{
+    esp_err_t status = canview_bridge_web_stop();
+    if (status != ESP_OK)
+    {
+        ESP_LOGW(CANVIEW_BRIDGE_APP_TAG, "web cleanup retry status=%d", (int)status);
+        status = canview_bridge_web_stop();
+    }
+    return status;
+}
+
 static esp_err_t load_credentials(uint8_t pin_digest[CANVIEW_BRIDGE_AUTH_PIN_DIGEST_BYTES],
                                   char ap_password[CANVIEW_BRIDGE_WEB_AP_PASSWORD_BYTES])
 {
@@ -164,7 +175,11 @@ void app_main(void)
         else if (canview_esp_core_arm_watchdog(&core) != CANVIEW_OK)
         {
             ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "watchdog arm failed after web startup");
-            (void)canview_bridge_web_stop();
+            const esp_err_t stop_status = stop_web_with_retry();
+            if (stop_status != ESP_OK)
+            {
+                ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web cleanup failed status=%d", (int)stop_status);
+            }
             status = CANVIEW_NOT_IMPLEMENTED;
         }
         else
@@ -198,7 +213,11 @@ void app_main(void)
     }
     if (web_started)
     {
-        (void)canview_bridge_web_stop();
+        const esp_err_t stop_status = stop_web_with_retry();
+        if (stop_status != ESP_OK)
+        {
+            ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web cleanup failed status=%d", (int)stop_status);
+        }
         web_started = false;
     }
     if (port.report != NULL)
