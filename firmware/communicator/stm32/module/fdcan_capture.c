@@ -1045,12 +1045,22 @@ canview_status_t canview_stm_fdcan_capture_set_status(
         capture->timestamp_epoch_us = timestamp_us & UINT64_C(0xffffffff00000000);
         capture->extended_timestamp_us = timestamp_us;
     }
-    channel->state = state;
+    const uint32_t hardware_fault_flags = last_error & CANVIEW_STM_FDCAN_ERROR_STICKY_MASK;
+    const uint32_t new_hardware_fault_flags =
+        hardware_fault_flags & ~channel->sticky_error_flags;
+    if (new_hardware_fault_flags != 0U)
+    {
+        channel->sticky_error_flags |= hardware_fault_flags;
+        add_saturating(&channel->hardware_fault_count, 1U);
+    }
+    channel->state = channel->sticky_error_flags != 0U
+                        ? CANVIEW_STM_FDCAN_BUS_FAULT
+                        : state;
     channel->rx_error_count = rx_error_count;
     channel->tx_error_count = tx_error_count;
     channel->bus_off_count = bus_off_count;
-    channel->last_error = last_error;
-    if (state == CANVIEW_STM_FDCAN_BUS_NO_DATA)
+    channel->last_error = last_error | channel->sticky_error_flags;
+    if (channel->state == CANVIEW_STM_FDCAN_BUS_NO_DATA)
     {
         channel->status_flags |= CANVIEW_STM_FDCAN_STATUS_NO_DATA;
     }
@@ -1085,6 +1095,7 @@ canview_status_t canview_stm_fdcan_capture_get_stats(
         .last_timestamp_us = channel->last_timestamp_us,
         .accepted_frames = channel->accepted,
         .dropped_frames = channel->dropped,
+        .hardware_fault_count = channel->hardware_fault_count,
         .unsupported_frames = channel->unsupported,
         .malformed_frames = channel->malformed,
         .filtered_frames = channel->filtered,

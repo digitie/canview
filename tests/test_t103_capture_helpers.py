@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
 EXPECTED_SOURCE = "t103-fixture"
 EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
-EXPECTED_FIRMWARE_IDENTITY = "a8d515849d98b89bfc7904356cf3ad8c5a2334bd"
+EXPECTED_FIRMWARE_IDENTITY = "513a691c88f369a5cd3bf1e4a4ccf0903259fa4defbb0ae67d69b5c88f080db8"
 
 
 class T103CaptureHelperTests(unittest.TestCase):
@@ -38,6 +38,21 @@ class T103CaptureHelperTests(unittest.TestCase):
         status, message = self._assert(FIXTURE)
         self.assertEqual(0, status, message)
         self.assertEqual(2, assert_no_tx(FIXTURE)[0])
+
+    def test_capture_wrapper_validates_runner_event_identity_and_no_tx(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "capture"
+            self.assertEqual(0, run_capture(["--output", str(output)]))
+            report = json.loads((output / "report.json").read_text(encoding="utf-8"))
+            event_identity = report["event_identity"]
+            records = (output / report["scenario_results"][0]["events_file"]).read_text(
+                encoding="utf-8").splitlines()
+            self.assertGreater(len(records), 0)
+            for line in records:
+                fields = json.loads(line)["fields"]
+                self.assertEqual(event_identity["execution_id"], fields["execution_id"])
+                self.assertEqual(event_identity["firmware_identity"],
+                                 fields["firmware_identity"])
 
     def test_tx_and_invalid_records_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -68,6 +83,28 @@ class T103CaptureHelperTests(unittest.TestCase):
                 '"sequence":1,"sequence":1,"monotonic_ns":1,"log_offset":0,"fields":{}}\n',
                 encoding="utf-8",
             )
+            status, message = self._assert(path)
+            self.assertEqual(2, status, message)
+
+    def test_nested_budget_tx_fields_are_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.jsonl"
+            records = [json.loads(line) for line in FIXTURE.read_text(
+                encoding="utf-8").splitlines()]
+            budget_record = dict(records[0])
+            budget_record["kind"] = "BUDGET_SAMPLE"
+            budget_record["fields"] = {
+                "execution_id": EXPECTED_EXECUTION_ID,
+                "firmware_identity": EXPECTED_FIRMWARE_IDENTITY,
+                "metrics": {"map_bytes": 8192, "tx_frames": 1},
+            }
+            records.insert(3, budget_record)
+            for index, record in enumerate(records, 1):
+                record["sequence"] = index
+                record["monotonic_ns"] = index * 100
+                record["log_offset"] = (index - 1) * 180
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
             status, message = self._assert(path)
             self.assertEqual(2, status, message)
 

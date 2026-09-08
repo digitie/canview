@@ -121,6 +121,16 @@ class HilRunnerTests(unittest.TestCase):
             1_000, "fixture", "EVENT", {"kind": "nested-kind"})
         self.assertEqual("nested-kind", record["fields"]["kind"])
 
+    def test_event_log_binds_execution_and_firmware_identity(self) -> None:
+        event_log = EventLog(execution_id="run-1", firmware_identity="firmware-1")
+        record = event_log.append(1_000, "fixture", "EVENT")
+        self.assertEqual("run-1", record["fields"]["execution_id"])
+        self.assertEqual("firmware-1", record["fields"]["firmware_identity"])
+        with self.assertRaises(EventLogError):
+            event_log.append(2_000, "fixture", "EVENT", execution_id="other")
+        with self.assertRaises(EventLogError):
+            EventLog(execution_id="run-only")
+
     def test_scenario_parser_rejects_unbounded_action_fields(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "unbounded.yaml"

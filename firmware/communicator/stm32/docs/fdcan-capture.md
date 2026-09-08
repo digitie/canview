@@ -116,9 +116,13 @@ module은 u32 source counter를 다음 규칙으로 확장한다.
 
 bus state는 `UNKNOWN_BITRATE`, `NO_DATA`, `ERROR_ACTIVE`, `ERROR_PASSIVE`,
 `BUS_OFF`, `FAULT`를 구분한다. `BUS_OFF`, `ERROR_PASSIVE`, `FAULT`는
-`observe()`가 `NO_DATA`나 active로 덮어쓰지 않는다. `last_error`는 PSR LEC와
-활성 interrupt snapshot을 보존하며, bus-off 복구나 송신 재개를 수행하지
-않는다.
+`observe()`가 `NO_DATA`나 active로 덮어쓰지 않는다. adapter의 FIFO loss,
+raw-ring overflow, message-RAM fault bit가 한 번이라도 들어오면 module은
+session 동안 hardware fault flag와 fault counter를 보존하고 이후 정상 PSR
+snapshot도 `BUS_FAULT`와 누적 `last_error`로 유지한다. stop/start 또는
+module session reset이 다음 독립 capture session에서 이를 지운다. `last_error`는
+PSR LEC와 활성 interrupt snapshot을 보존하며, bus-off 복구나 송신 재개를
+수행하지 않는다.
 
 ## Batch와 inventory
 
@@ -146,7 +150,8 @@ candidate 승격 또는 control permission의 근거가 아니다. 64개 entry�
   malformed padding, three-channel ordering, channel별 wrap/delta overflow, no-data/
   passive/bus-off, callback reentry/transaction commit, ring/raw drop와 inventory 포화
 - CMSIS fake-register host adapter: clock/profile/output rollback, safe output 전체
-  시도, owner/session reset, FIFO fill/index/RF0F/RF0L/MRAF loss, raw-ring 포화,
+  시도, owner/session reset, FIFO fill/index/RF0F/RF0L/MRAF loss, session-sticky
+  hardware fault flag/counter, raw-ring 포화,
   IRQ wrapper, PSR/ECR 상태, sink timeout·raw retry와 callback 재진입 계약. 이
   시험은 register model일 뿐 실제 STM32 peripheral/HIL이 아니다.
 - STM32G474 Arm GNU 15.3.Rel1 target Debug/Release: CMSIS compile, link,

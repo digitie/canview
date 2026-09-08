@@ -13,6 +13,7 @@ from .scenario import Scenario
 
 HOST_ADAPTER_VERSION = "host-sim-v1"
 LAB_ADAPTER_VERSION = "lab-contract-v1"
+HOST_EVENT_SOURCE = "host-simulator"
 
 
 @dataclass
@@ -48,12 +49,12 @@ class HostAdapter:
 
         def emit(kind: str, **fields: Any) -> None:
             nonlocal monotonic_ns
-            log.append(monotonic_ns, "host-simulator", kind, **fields)
+            log.append(monotonic_ns, HOST_EVENT_SOURCE, kind, **fields)
             monotonic_ns += 1_000
 
         def emit_map(kind: str, fields: dict[str, Any]) -> None:
             nonlocal monotonic_ns
-            log.append_fields(monotonic_ns, "host-simulator", kind, fields)
+            log.append_fields(monotonic_ns, HOST_EVENT_SOURCE, kind, fields)
             monotonic_ns += 1_000
 
         seen_tokens: set[str] = set()

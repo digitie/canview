@@ -48,6 +48,14 @@
 #define CANVIEW_STM_FDCAN_STATUS_NO_DATA (UINT8_C(0x40))
 #define CANVIEW_STM_FDCAN_STATUS_INVENTORY_FULL (UINT8_C(0x80))
 
+/* Adapter-owned loss/fault bits are part of the module status contract. */
+#define CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS (UINT32_C(0x80000000))
+#define CANVIEW_STM_FDCAN_ERROR_RAW_RING_OVERFLOW (UINT32_C(0x40000000))
+#define CANVIEW_STM_FDCAN_ERROR_MESSAGE_RAM (UINT32_C(0x20000000))
+#define CANVIEW_STM_FDCAN_ERROR_STICKY_MASK                                               \
+    (CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS | CANVIEW_STM_FDCAN_ERROR_RAW_RING_OVERFLOW |        \
+     CANVIEW_STM_FDCAN_ERROR_MESSAGE_RAM)
+
 typedef enum
 {
     CANVIEW_STM_FDCAN_BUS_UNKNOWN_BITRATE = 0,
@@ -150,7 +158,9 @@ typedef struct
 typedef bool canview_stm_fdcan_filter_fn(const canview_stm_fdcan_record_t *record,
                                          void *context);
 
-/** @brief worker/diagnostic용 채널 snapshot. dropped_frames는 saturate 전 exact counter다. */
+/** @brief worker/diagnostic용 채널 snapshot. dropped_frames는 saturate 전 exact counter다.
+ * hardware_fault_count는 현재 session에서 새로 관찰한 adapter fault latch 수다.
+ */
 typedef struct
 {
     canview_stm_fdcan_bus_state_t state;
@@ -163,6 +173,7 @@ typedef struct
     uint64_t last_timestamp_us;
     uint32_t accepted_frames;
     uint32_t dropped_frames;
+    uint32_t hardware_fault_count;
     uint32_t unsupported_frames;
     uint32_t malformed_frames;
     uint32_t filtered_frames;
@@ -201,6 +212,8 @@ typedef struct
     size_t count;
     size_t high_water;
     uint32_t dropped;
+    uint32_t hardware_fault_count;
+    uint32_t sticky_error_flags;
     uint32_t accepted;
     uint32_t unsupported;
     uint32_t malformed;
@@ -306,7 +319,8 @@ canview_status_t canview_stm_fdcan_capture_observe(canview_stm_fdcan_capture_t *
  * @param rx_error_count hardware receive error counter.
  * @param tx_error_count hardware transmit error counter.
  * @param bus_off_count 누적 bus-off transition count.
- * @param last_error LEC와 pending hardware error snapshot.
+ * @param last_error LEC와 pending hardware error snapshot. adapter-owned high bits are
+ *                   sticky for the current session.
  * @param timestamp_us status snapshot의 extended timestamp.
  * @return 상태 반영 성공, 역행 timestamp, disabled channel 또는 입력 오류.
  */

@@ -86,6 +86,7 @@ static void reset_runtime_state(canview_stm_fdcan_platform_t *platform)
         platform->fifo_loss_unknown[index] = false;
         platform->message_ram_fault[index] = false;
         platform->raw_ring_overflow[index] = false;
+        platform->session_fault_flags[index] = 0U;
         platform->bus_off_count[index] = 0U;
         platform->sink_failures[index] = 0U;
         platform->started[index] = false;
@@ -653,6 +654,12 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const bool fifo_loss = platform->fifo_loss_unknown[index];
         const bool message_ram_fault = platform->message_ram_fault[index];
         const bool raw_ring_overflow = platform->raw_ring_overflow[index];
+        const uint32_t event_fault_flags =
+            (fifo_loss ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS : 0U) |
+            (message_ram_fault ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_MESSAGE_RAM : 0U) |
+            (raw_ring_overflow ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_RAW_RING_OVERFLOW : 0U);
+        platform->session_fault_flags[index] |= event_fault_flags;
+        const uint32_t session_fault_flags = platform->session_fault_flags[index];
         platform->pending_interrupts[index] = 0U;
         platform->fifo_loss_unknown[index] = false;
         platform->message_ram_fault[index] = false;
@@ -666,8 +673,8 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const uint32_t protocol_status = instance->PSR;
         const uint32_t error_count = instance->ECR;
         const canview_stm_fdcan_bus_state_t state =
-            (fifo_loss || message_ram_fault) ? CANVIEW_STM_FDCAN_BUS_FAULT
-                                             : state_from_registers(protocol_status);
+            session_fault_flags != 0U ? CANVIEW_STM_FDCAN_BUS_FAULT
+                                      : state_from_registers(protocol_status);
         if (state == CANVIEW_STM_FDCAN_BUS_OFF &&
             platform->previous_state[index] != CANVIEW_STM_FDCAN_BUS_OFF)
         {
@@ -681,13 +688,7 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const uint16_t tx_error_count = (uint16_t)(error_count & UINT32_C(0xff));
         const uint32_t last_error = ((protocol_status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos) |
                                     (pending & CANVIEW_STM_FDCAN_STATUS_INTERRUPTS) |
-                                    (fifo_loss ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS : 0U) |
-                                    (message_ram_fault
-                                         ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_MESSAGE_RAM
-                                         : 0U) |
-                                    (raw_ring_overflow
-                                         ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_RAW_RING_OVERFLOW
-                                         : 0U);
+                                    session_fault_flags;
         platform->config.status_sink(platform->config.sink_context, index, state, rx_error_count,
                                      tx_error_count, platform->bus_off_count[index], last_error,
                                      source_timestamp_us);

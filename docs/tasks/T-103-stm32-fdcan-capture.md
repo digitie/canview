@@ -67,9 +67,10 @@ physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
 - [x] bitrate mismatch, bus-off, no-data가 서로 다른 상태가 된다. (profile/status host test)
 - [x] source timestamp wrap과 batch delta overflow가 새 batch로 안전하게 나뉜다. (wrap/65535 boundary test)
 - [ ] analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 확인한다. helper는
-  caller가 제공한 `source`, `execution_id`, `firmware_identity`를 모든 event에
-  exact match로 요구하고 unknown kind/field와 forbidden TX kind를 fail-closed로
-  거부한다.
+  runner report가 제공한 `source`, `execution_id`, firmware `source_sha256`를 모든
+  event에 exact match로 요구하고 unknown kind/field와 forbidden TX kind를
+  fail-closed로 거부한다. `run_can_capture.py`가 생성된 host event log에 이
+  helper를 직접 적용한다. 실제 analyzer 측정은 physical gate로 남는다.
 - [x] safety path가 observer queue saturation에 막히지 않는다. (filter/reentry/
   bounded filter consumption/fixed inventory host test)
 
@@ -83,16 +84,17 @@ python -B tests/hil/run_can_capture.py --channels 3 --mode capture-only
 python -B tests/hil/assert_no_tx.py tests/hil/fixtures/t103-capture-only.jsonl `
   --expected-source t103-fixture `
   --expected-execution-id T103-FIXTURE-001 `
-  --expected-firmware-identity a8d515849d98b89bfc7904356cf3ad8c5a2334bd
+  --expected-firmware-identity 513a691c88f369a5cd3bf1e4a4ccf0903259fa4defbb0ae67d69b5c88f080db8
 ```
 
 추가 host 검증은 `cmake --build build/host-coverage`와
 `python -B tools/check_stm32_coverage.py --build build/host-coverage`로
 module 및 fake-register adapter의 독립 profile을 검사한다. `run_can_capture.py`는
-현재 fixture를 host에서 can-load하는 smoke이고, `assert_no_tx.py`는 strict
-capture-only JSONL 계약 시험이다. 둘 다 physical harness의 G2 결과를 대신하지
-않는다. 실제 analyzer에서 ACK/data TX 0건을 측정하는 acceptance는 장비가 없어
-`NOT_RUN`이다.
+current fixture를 host에서 can-load하는 smoke인 동시에 report의 execution/source
+identity로 생성 event를 strict no-TX 검사하는 실행기이고, `assert_no_tx.py`는 별도 fixture와
+physical JSONL을 검사하는 bounded 계약 시험이다. 둘 다 physical harness의 G2 결과를
+대신하지 않는다. 실제 analyzer에서 ACK/data TX 0건을 측정하는 acceptance는 장비가 없어
+`NOT_RUN`이다. event identity와 strict no-TX runner 연결도 함께 검증한다.
 
 2026-09-09 pre-fix candidate `a8d515849d98b89bfc7904356cf3ad8c5a2334bd`에서
  focused CTest 2/2, 전체 Windows CTest 118/118, WSL 일반 clone ASan/UBSan 전체

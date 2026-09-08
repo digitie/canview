@@ -43,9 +43,10 @@ T-104, T-201, T-501, T-503a, T-505, T-508이 각각 소유한다.
 ## Evidence contract
 
 runner는 report JSON과 scenario별 JSONL을 생성한다. report에는 seed, firmware와
-harness source digest, scenario digest, adapter, metrics, physical/HIL 상태가 들어간다.
-각 JSONL event에는 monotonic timestamp, 연속 sequence와 byte `log_offset`이
-있다. analyzer는 다음 순서로 첫 위반을 보존한다.
+harness source digest, 실행별 event identity, scenario digest, adapter, metrics,
+physical/HIL 상태가 들어간다. runner가 만든 각 JSONL event에는 report의
+execution_id와 firmware source SHA-256 identity가 동일하게 들어가며, monotonic timestamp,
+연속 sequence와 byte `log_offset`도 있다. analyzer는 다음 순서로 첫 위반을 보존한다.
 
 JSONL record delimiter는 ASCII LF(`\n`) 하나로 고정한다. JSON 문자열 안의
 U+0085/U+2028/U+2029 같은 Unicode line separator는 record를 나누지 않으며,
@@ -74,6 +75,9 @@ validator의 공통 8 MiB report/event 상한을 적용하며, 상한을 넘으�
 실패 report는 반드시 `first_violation.invariant`와 `log_offset`을 포함한다.
 `fixtures/forbidden-can-tx.jsonl`은 capture-only TX 판정이 실제로 실패해야 하는
 negative fixture다. positive host scenario에서는 CAN TX event를 생성하지 않는다.
+T-103 전용 `run_can_capture.py`는 host runner가 만든 can-load event log를 report의
+`execution_id`와 firmware `source_sha256` identity로 strict no-TX analyzer에
+다시 전달하며, synthetic fixture 검사는 이 연결을 대신하지 않는다.
 
 `--suite g2-readonly`는 같은 scenario inventory를 소비하지만 rig 설정이 없거나
 하드웨어가 없으면 실행을 거부한다. 따라서 host simulator를 physical evidence로

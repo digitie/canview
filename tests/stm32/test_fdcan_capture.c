@@ -816,6 +816,37 @@ static void timestamp_tests(void)
     CHECK(canview_stm_fdcan_capture_set_status(&no_data_capture, 0U,
                                                CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
                                                0U, 10U) == CANVIEW_OK);
+
+    canview_stm_fdcan_capture_t sticky_fault_capture = {0};
+    init_capture(&sticky_fault_capture, profiles, NULL, NULL);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &sticky_fault_capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
+              CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS, 20U) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_get_stats(&sticky_fault_capture, 0U, &stats) == CANVIEW_OK);
+    CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_FAULT &&
+          stats.hardware_fault_count == 1U &&
+          (stats.last_error & CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS) != 0U);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &sticky_fault_capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
+              CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS, 21U) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_get_stats(&sticky_fault_capture, 0U, &stats) == CANVIEW_OK);
+    CHECK(stats.hardware_fault_count == 1U &&
+          (stats.last_error & CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS) != 0U);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &sticky_fault_capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
+              0U, 22U) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_get_stats(&sticky_fault_capture, 0U, &stats) == CANVIEW_OK);
+    CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_FAULT &&
+          stats.hardware_fault_count == 1U &&
+          (stats.last_error & CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS) != 0U);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &sticky_fault_capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
+              CANVIEW_STM_FDCAN_ERROR_MESSAGE_RAM, 23U) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_get_stats(&sticky_fault_capture, 0U, &stats) == CANVIEW_OK);
+    CHECK(stats.hardware_fault_count == 2U &&
+          (stats.last_error & (CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS |
+                               CANVIEW_STM_FDCAN_ERROR_MESSAGE_RAM)) ==
+              (CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS | CANVIEW_STM_FDCAN_ERROR_MESSAGE_RAM));
 }
 
 typedef struct
@@ -968,6 +999,9 @@ static void session_reset_tests(void)
     const canview_stm_fdcan_rx_frame_t dropped = frame(300U, 0x610U, 0U, 0U);
     CHECK(canview_stm_fdcan_capture_ingest(&capture, 1U, &dropped) == CANVIEW_RESOURCE_BUSY);
     CHECK(capture.timestamp_initialized && capture.inventory_count == 1U);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
+              CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS, 500U) == CANVIEW_OK);
 
     capture.building = true;
     CHECK(canview_stm_fdcan_capture_reset(&capture) == CANVIEW_RESOURCE_BUSY);
@@ -984,7 +1018,8 @@ static void session_reset_tests(void)
     CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_NO_DATA &&
           stats.status_flags == CANVIEW_STM_FDCAN_STATUS_CONFIGURED &&
           stats.bitrate == 500000U && stats.accepted_frames == 0U &&
-          stats.dropped_frames == 0U && stats.queued_frames == 0U &&
+          stats.dropped_frames == 0U && stats.hardware_fault_count == 0U &&
+          stats.last_error == 0U && stats.queued_frames == 0U &&
           stats.high_water_frames == 0U && stats.last_timestamp_us == 0U);
     CHECK(canview_stm_fdcan_capture_get_stats(&capture, 1U, &stats) == CANVIEW_OK);
     CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_NO_DATA &&

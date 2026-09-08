@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any
+from uuid import uuid4
 
 
 if __package__ in {None, ""}:
@@ -85,6 +86,14 @@ def harness_identity() -> dict[str, str]:
     return {
         "version": RUNNER_VERSION,
         "source_sha256": _source_digest((ROOT / "tests" / "hil",)),
+    }
+
+
+def _new_event_identity(firmware: dict[str, str]) -> dict[str, str]:
+    """event마다 반복하는 bounded execution/source provenance를 만든다."""
+    return {
+        "execution_id": f"{RUNNER_VERSION}-{uuid4().hex}",
+        "firmware_identity": firmware["source_sha256"],
     }
 
 
@@ -201,13 +210,16 @@ def _blocked_report(output: Path, args: argparse.Namespace, status: str,
                     reason: str, rig: dict[str, Any] | None = None) -> int:
     report_seed = (args.seed if isinstance(args.seed, int)
                    and 0 <= args.seed <= (1 << 64) - 1 else 0)
+    firmware = firmware_identity()
+    event_identity = _new_event_identity(firmware)
     report = {
         "schema_version": 1,
         "runner_version": RUNNER_VERSION,
         "suite": args.suite,
         "status": status,
         "seed": report_seed,
-        "firmware": firmware_identity(),
+        "firmware": firmware,
+        "event_identity": event_identity,
         "harness": harness_identity(),
         "scenario_results": [],
         "physical_hil": {"status": status, "reason": reason},
@@ -232,6 +244,8 @@ def _blocked_report(output: Path, args: argparse.Namespace, status: str,
 def run_host(args: argparse.Namespace, scenarios: list[Any],
              budget: dict[str, dict[str, int]], output: Path) -> int:
     adapter = HostAdapter()
+    firmware = firmware_identity()
+    event_identity = _new_event_identity(firmware)
     scenario_results: list[dict[str, Any]] = []
     events_directory = output / "events"
     scenario_directory = args.scenario_dir.resolve()
@@ -242,7 +256,9 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
               file=sys.stderr)
         return 2
     for scenario in scenarios:
-        event_log = EventLog()
+        event_log = EventLog(
+            execution_id=event_identity["execution_id"],
+            firmware_identity=event_identity["firmware_identity"])
         scenario_seed = _seed_for_scenario(args.seed, scenario.scenario_id)
         try:
             simulation = adapter.execute(scenario, scenario_seed, event_log)
@@ -294,7 +310,8 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
         "suite": args.suite,
         "status": status,
         "seed": args.seed,
-        "firmware": firmware_identity(),
+        "firmware": firmware,
+        "event_identity": event_identity,
         "harness": harness_identity(),
         "scenario_inventory": {
             "directory": _path_label(scenario_directory),

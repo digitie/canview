@@ -497,8 +497,12 @@ static void hardware_loss_tests(void)
     fake_fdcan1.IR = FDCAN_IR_RF0F;
     FDCAN1_IT0_IRQHandler();
     CHECK(canview_stm_fdcan_platform_service(&platform, 202U) == CANVIEW_OK);
-    CHECK(fixture.last_state == CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE &&
-          (fixture.last_error & FDCAN_IR_RF0F) != 0U);
+    CHECK(fixture.last_state == CANVIEW_STM_FDCAN_BUS_FAULT &&
+          (fixture.last_error & CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS) != 0U &&
+          (fixture.last_error & CANVIEW_STM_FDCAN_PLATFORM_ERROR_MESSAGE_RAM) != 0U &&
+          (fixture.last_error & FDCAN_IR_RF0F) != 0U &&
+          platform.session_fault_flags[0] ==
+              (CANVIEW_STM_FDCAN_ERROR_FIFO_LOSS | CANVIEW_STM_FDCAN_ERROR_MESSAGE_RAM));
     CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
 }
 

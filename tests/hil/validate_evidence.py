@@ -18,7 +18,8 @@ if __package__ in {None, ""}:
 
 from hil.adapter import HOST_ADAPTER_VERSION, LAB_ADAPTER_VERSION, HostAdapter
 from hil.analyze import analyze
-from hil.events import MAX_EVENT_COUNT, EventLog, EventLogError, read_jsonl
+from hil.events import (MAX_EVENT_COUNT, MAX_IDENTITY_LENGTH, EventLog, EventLogError,
+                        read_jsonl)
 from hil.run import (BUDGET_PATH, MAX_REPORT_BYTES, RUNNER_VERSION,
                      SCENARIO_DIR, _path_label, _seed_for_scenario,
                      firmware_identity, harness_identity, load_budget)
@@ -69,7 +70,8 @@ def _object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _validate_events(path: Path, expected_count: int) -> list[dict[str, Any]]:
+def _validate_events(path: Path, expected_count: int,
+                     event_identity: dict[str, str]) -> list[dict[str, Any]]:
     if (not _is_int(expected_count) or expected_count <= 0
             or expected_count > MAX_EVENT_COUNT):
         raise EvidenceError(f"invalid event count for {path}")
@@ -103,6 +105,10 @@ def _validate_events(path: Path, expected_count: int) -> list[dict[str, Any]]:
             raise EvidenceError(f"event source/kind is invalid at {path}:{index}")
         if not isinstance(record.get("fields"), dict):
             raise EvidenceError(f"event fields are not an object at {path}:{index}")
+        fields = record["fields"]
+        if (fields.get("execution_id") != event_identity["execution_id"]
+                or fields.get("firmware_identity") != event_identity["firmware_identity"]):
+            raise EvidenceError(f"event identity mismatch at {path}:{index}")
         log_offset = record.get("log_offset")
         if not _is_int(log_offset) or log_offset < 0:
             raise EvidenceError(f"invalid event offset at {path}:{index}")
@@ -173,6 +179,15 @@ def validate(report_path: Path, expected_status: str | None = None,
             or not isinstance(firmware.get("git_commit"), str)
             or not GIT_SHA.fullmatch(firmware["git_commit"])):
         raise EvidenceError("firmware source digest is missing")
+    event_identity = report.get("event_identity")
+    if (not isinstance(event_identity, dict)
+            or not isinstance(event_identity.get("execution_id"), str)
+            or not event_identity["execution_id"]
+            or len(event_identity["execution_id"]) > MAX_IDENTITY_LENGTH
+            or not isinstance(event_identity.get("firmware_identity"), str)
+            or not SHA256.fullmatch(event_identity["firmware_identity"])
+            or event_identity["firmware_identity"] != firmware["source_sha256"]):
+        raise EvidenceError("event identity is missing or does not match firmware")
     harness = report.get("harness")
     if (not isinstance(harness, dict)
             or not isinstance(harness.get("version"), str)
@@ -289,7 +304,7 @@ def validate(report_path: Path, expected_status: str | None = None,
         event_count = item.get("event_count")
         if not _is_int(event_count) or event_count <= 0:
             raise EvidenceError(f"invalid event_count: {scenario_id}")
-        records = _validate_events(event_path, event_count)
+        records = _validate_events(event_path, event_count, event_identity)
         event_bytes = item.get("event_bytes")
         if not _is_int(event_bytes) or event_bytes < 0:
             raise EvidenceError(f"invalid event_bytes: {scenario_id}")
@@ -399,7 +414,9 @@ def validate(report_path: Path, expected_status: str | None = None,
                 or item.get("adapter") != HOST_ADAPTER_VERSION):
             raise EvidenceError(f"scenario identity does not match trusted source: {scenario_id}")
         if item_status == "PASS":
-            expected_log = EventLog()
+            expected_log = EventLog(
+                execution_id=event_identity["execution_id"],
+                firmware_identity=event_identity["firmware_identity"])
             expected_simulation = HostAdapter().execute(
                 trusted, _seed_for_scenario(seed, scenario_id), expected_log)
             if (records != expected_log.records

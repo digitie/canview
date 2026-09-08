@@ -14,6 +14,7 @@ EVENT_SCHEMA_VERSION = 1
 MAX_EVENT_LOG_BYTES = 8 << 20
 MAX_EVENT_LINE_BYTES = 64 << 10
 MAX_EVENT_COUNT = 100_000
+MAX_IDENTITY_LENGTH = 128
 
 
 class EventLogError(ValueError):
@@ -71,9 +72,19 @@ def _redirect_component(path: Path) -> Path | None:
 class EventLog:
     """Sequence와 byte offset을 함께 소유하는 bounded-in-test event log."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, execution_id: str | None = None,
+                 firmware_identity: str | None = None) -> None:
+        if (execution_id is None) != (firmware_identity is None):
+            raise EventLogError("event identity must contain both fields")
+        for value, label in ((execution_id, "execution_id"),
+                             (firmware_identity, "firmware_identity")):
+            if value is not None and (not isinstance(value, str) or not value
+                                      or len(value) > MAX_IDENTITY_LENGTH):
+                raise EventLogError(f"{label} is outside the bounded identity contract")
         self._records: list[dict[str, Any]] = []
         self._next_offset = 0
+        self._execution_id = execution_id
+        self._firmware_identity = firmware_identity
 
     @property
     def records(self) -> list[dict[str, Any]]:
@@ -103,13 +114,20 @@ class EventLog:
             raise EventLogError("event count is too large")
         if not isinstance(fields, dict):
             raise EventLogError("event fields must be an object")
+        event_fields = deepcopy(fields)
+        if self._execution_id is not None and self._firmware_identity is not None:
+            for key, value in (("execution_id", self._execution_id),
+                               ("firmware_identity", self._firmware_identity)):
+                if key in event_fields and event_fields[key] != value:
+                    raise EventLogError(f"event {key} does not match log identity")
+                event_fields[key] = value
         record = {
             "schema_version": EVENT_SCHEMA_VERSION,
             "sequence": len(self._records) + 1,
             "monotonic_ns": monotonic_ns,
             "source": source,
             "kind": kind,
-            "fields": deepcopy(fields),
+            "fields": event_fields,
             "log_offset": self._next_offset,
         }
         encoded = _encode(record).encode("utf-8")

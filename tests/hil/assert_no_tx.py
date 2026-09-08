@@ -62,6 +62,9 @@ REQUIRED_EVENT_FIELDS = {
     "HARNESS_COMPLETE": {"scenario", "firmware_mode"},
 }
 FORBIDDEN_KINDS = frozenset({"CAN_TX", "VEHICLE_CAN_TX"})
+BOUND_BUDGET_METRICS = frozenset({
+    "map_bytes", "stack_bytes", "heap_free_bytes", "queue_depth", "wcet_us", "latency_us",
+})
 
 
 class _DuplicateKey(ValueError):
@@ -145,6 +148,12 @@ def _validate_event_fields(kind: str, fields: dict[str, Any]) -> None:
         if (not isinstance(fields.get("scenario"), str) or not fields["scenario"]
                 or fields.get("firmware_mode") != "CAPTURE_ONLY"):
             raise ValueError("invalid capture-only completion")
+    elif kind == "BUDGET_SAMPLE":
+        metrics = fields.get("metrics")
+        if not isinstance(metrics, dict) or not set(metrics).issubset(BOUND_BUDGET_METRICS):
+            raise ValueError("budget metrics contain unknown or unsafe fields")
+        for name in metrics:
+            _require_nonnegative_int(metrics, name)
 
 
 def _decode_record(line: bytes, expected_source: str, expected_execution_id: str,
