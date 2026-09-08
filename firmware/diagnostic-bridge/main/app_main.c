@@ -13,6 +13,7 @@
 #include "canview_status.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 #include <stddef.h>
@@ -75,6 +76,13 @@ static esp_err_t stop_web_with_retry(void)
         status = canview_bridge_web_stop();
     }
     return status;
+}
+
+static void restart_after_cleanup_failure(esp_err_t status)
+{
+    ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web cleanup failed status=%d; restarting", (int)status);
+    /* A retained HTTP/DNS resource is not a valid terminal idle state. */
+    esp_restart();
 }
 
 static esp_err_t load_credentials(uint8_t pin_digest[CANVIEW_BRIDGE_AUTH_PIN_DIGEST_BYTES],
@@ -174,8 +182,7 @@ void app_main(void)
             const esp_err_t cleanup_status = stop_web_with_retry();
             if (cleanup_status != ESP_OK)
             {
-                ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web startup cleanup failed status=%d",
-                         (int)cleanup_status);
+                restart_after_cleanup_failure(cleanup_status);
             }
             status = web_poll_status(web_status);
         }
@@ -185,7 +192,7 @@ void app_main(void)
             const esp_err_t stop_status = stop_web_with_retry();
             if (stop_status != ESP_OK)
             {
-                ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web cleanup failed status=%d", (int)stop_status);
+                restart_after_cleanup_failure(stop_status);
             }
             status = CANVIEW_NOT_IMPLEMENTED;
         }
@@ -223,7 +230,7 @@ void app_main(void)
         const esp_err_t stop_status = stop_web_with_retry();
         if (stop_status != ESP_OK)
         {
-            ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web cleanup failed status=%d", (int)stop_status);
+            restart_after_cleanup_failure(stop_status);
         }
         web_started = false;
     }

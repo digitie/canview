@@ -20,7 +20,7 @@
 
 HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 response buffer만 직렬화하고, `state_lock`은 auth/session·snapshot의 짧은 critical section에서만 사용한다. 따라서 body 수신·HTTP response·WebSocket send가 owner state mutex를 붙잡지 않는다. WebSocket의 bounded network I/O는 별도 `ws_io_lock`으로 직렬화하고 send가 끝날 때까지 response buffer 수명을 보장한다. cJSON allocator hook은 이 singleton component에서 한 번 등록되며 다른 cJSON task와 공유하지 않는다. session body, response와 protocol token buffer는 사용 후 zeroize한다.
 
-인증 전 socket은 `open_fn`에서 시작 시각을 기록하고 receive override가 매 수신 전에 deadline을 확인한다. 인증 성공과 activity 기록은 같은 `state_lock` critical section에서 수행하며, pre-auth tracker는 성공 또는 close 때 지운다. stop 경로에서 외부 자원 정리가 실패하면 이미 정리된 상태만 반영하고 나머지 handle·lock·auth 상태를 보존해 상위 retry가 다시 호출할 수 있게 한다.
+인증 전 socket은 `open_fn`에서 시작 시각을 기록하고 receive override가 매 수신 전에 deadline을 확인한다. 인증 성공과 activity 기록은 같은 `state_lock` critical section에서 수행하며, pre-auth tracker는 성공 또는 close 때 지운다. logout·token expiry·재인증 거부 뒤에는 같은 socket에 deadline을 다시 arm하고, 이미 진행 중인 deadline은 실패 요청마다 연장하지 않는다. 단일 client 정책에서는 HTTPD LRU purge를 끄고 두 번째 연결이 기존 owner를 축출하지 않게 한다. stop 경로에서 외부 자원 정리가 실패하면 이미 정리된 상태만 반영하고 나머지 handle·lock·auth 상태를 보존해 상위 retry가 다시 호출할 수 있게 한다. app이 bounded retry 뒤에도 cleanup에 실패하면 retained network service를 정상 idle로 두지 않고 `esp_restart()`로 재부팅한다.
 
 `canview_bridge_web_config_t`의 credential 포인터는 start 호출 중에만 유효하면 된다. PIN digest는 auth state로 복사하고, AP password는 `esp_wifi_set_config()`에 복사한 직후 web state에서 zeroize한다. app도 start 반환 뒤 local credential buffer를 zeroize한다. callback은 `button_pressed` 하나만 남으며 web service가 정지할 때까지 caller가 수명을 보장해야 한다. ISR은 button callback이나 web API를 호출하지 않는다.
 

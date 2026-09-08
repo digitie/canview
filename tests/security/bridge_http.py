@@ -71,9 +71,11 @@ def check_static_contract() -> int:
         "httpd_sess_set_recv_override",
         "receive_with_pre_auth_deadline",
         "CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS",
+        "arm_pre_auth_client",
         "return HTTPD_SOCK_ERR_FAIL",
         "web_client_idle_expired",
         "http_config.max_open_sockets = 1U",
+        "http_config.lru_purge_enable = false",
         "http_config.recv_wait_timeout = 5U",
         "frame.len > CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES",
         "json_nesting_bounded",
@@ -220,7 +222,7 @@ def check_live_endpoint(base_url: str, timeout: float) -> int:
         "Sec-WebSocket-Protocol": "canview-session, canview-session.invalid",
     }
     ws_status = _request(base, "GET", "/api/v1/live?token=forbidden", headers=ws_headers, timeout=timeout)
-    _expect_status("query-token WebSocket rejection", ws_status, {400, 401, 403, 500})
+    _expect_status("query-token WebSocket rejection", ws_status, {400, 401, 403})
     count += 1
     return count
 

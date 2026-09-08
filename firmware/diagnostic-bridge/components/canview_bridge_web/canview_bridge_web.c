@@ -382,6 +382,24 @@ static void clear_pre_auth_client(canview_bridge_web_state_t *state, int client_
     }
 }
 
+/* Caller holds state_lock. Do not extend an already running pre-auth deadline. */
+static bool arm_pre_auth_client(canview_bridge_web_state_t *state, int client_fd,
+                                uint64_t started_ms)
+{
+    if (state == NULL || client_fd < 0)
+    {
+        return false;
+    }
+    if (state->pre_auth_client_valid)
+    {
+        return state->pre_auth_client_fd == client_fd;
+    }
+    state->pre_auth_client_fd = client_fd;
+    state->pre_auth_started_ms = started_ms;
+    state->pre_auth_client_valid = true;
+    return true;
+}
+
 static bool enter_ws_io(canview_bridge_web_state_t *state)
 {
     return state != NULL && state->ws_io_lock != NULL &&
@@ -674,8 +692,9 @@ static bool token_authenticated_and_record(httpd_req_t *request,
     {
         return false;
     }
-    bool valid = canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
-    if (valid)
+    const bool token_valid = canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
+    bool valid = token_valid;
+    if (token_valid)
     {
         valid = canview_bridge_web_session_record_activity(&state->session, client_fd, now_ms) ==
                 CANVIEW_BRIDGE_WEB_SESSION_OK;
@@ -683,6 +702,11 @@ static bool token_authenticated_and_record(httpd_req_t *request,
         {
             clear_pre_auth_client(state, client_fd);
         }
+    }
+    else
+    {
+        /* Logout, expiry, or a rejected re-authentication must regain a bounded deadline. */
+        (void)arm_pre_auth_client(state, client_fd, now_ms);
     }
     state_lock_give(state);
     return valid;
@@ -701,12 +725,21 @@ static bool authenticated_and_logout(httpd_req_t *request, canview_bridge_web_st
 {
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool parsed = parse_bearer(request, token);
+    const int client_fd = httpd_req_to_sockfd(request);
+    uint64_t now_ms = 0U;
+    const bool clock_ready = idf_now_ms(NULL, &now_ms) == CANVIEW_OK;
     bool valid = false;
-    if (parsed && state_lock_take(state))
+    if (parsed && client_fd >= 0 && state_lock_take(state))
     {
         if (canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK)
         {
             valid = canview_bridge_auth_logout(&state->auth) == CANVIEW_OK;
+            if (valid)
+            {
+                /* A keep-alive socket becomes pre-authenticated again after logout. */
+                const uint64_t started_ms = clock_ready ? now_ms : UINT64_MAX;
+                valid = arm_pre_auth_client(state, client_fd, started_ms);
+            }
         }
         state_lock_give(state);
     }
@@ -1761,14 +1794,10 @@ static esp_err_t open_connection(httpd_handle_t server, int client_fd)
     }
     uint64_t now_ms = 0U;
     const bool clock_ready = idf_now_ms(NULL, &now_ms) == CANVIEW_OK;
-    if (clock_ready)
-    {
-        web_state.pre_auth_client_fd = client_fd;
-        web_state.pre_auth_started_ms = now_ms;
-        web_state.pre_auth_client_valid = true;
-    }
+    const bool pre_auth_ready = clock_ready &&
+                                arm_pre_auth_client(&web_state, client_fd, now_ms);
     state_lock_give(&web_state);
-    if (!clock_ready)
+    if (!pre_auth_ready)
     {
         return ESP_ERR_INVALID_STATE;
     }
@@ -1791,7 +1820,10 @@ static void close_session(httpd_handle_t server, int client_fd)
     }
     if (!state_lock_take(&web_state))
     {
-        (void)close(client_fd);
+        if (close(client_fd) != 0)
+        {
+            ESP_LOGD(CANVIEW_BRIDGE_WEB_TAG, "socket close failed fd=%d", client_fd);
+        }
         return;
     }
     clear_pre_auth_client(&web_state, client_fd);
@@ -1800,6 +1832,7 @@ static void close_session(httpd_handle_t server, int client_fd)
         (void)canview_bridge_auth_logout(&web_state.auth);
     }
     state_lock_give(&web_state);
+    /* ESP-IDF skips its default close when close_fn is configured; this callback owns close(). */
     if (close(client_fd) != 0)
     {
         ESP_LOGD(CANVIEW_BRIDGE_WEB_TAG, "socket close failed fd=%d", client_fd);
@@ -1941,7 +1974,8 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     http_config.max_uri_handlers = 20U;
     http_config.max_resp_headers = 6U;
     http_config.backlog_conn = 1U;
-    http_config.lru_purge_enable = true;
+    /* A second client must be rejected; HTTPD must not evict the authenticated owner. */
+    http_config.lru_purge_enable = false;
     http_config.recv_wait_timeout = 5U;
     http_config.send_wait_timeout = 5U;
     http_config.open_fn = open_connection;
