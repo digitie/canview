@@ -55,7 +55,10 @@ def check_source_safety(source_root):
         text = path.read_text(encoding="utf-8")
         # C 주석은 preprocessing에서 공백으로 바뀐다. 문자열/문자 literal은 보존해
         # 예제 문자열을 register access로 잘못 판정하지 않으면서 token 사이 주석도 검사한다.
-        logical_text = re.sub(r"\\\r?\n", "", _strip_c_comments(text))
+        # C translation phase 2 splices a backslash-newline before phase 3
+        # comment removal. Keep that order so a split comment cannot hide a
+        # member access or a forbidden build-mode directive.
+        logical_text = _strip_c_comments(re.sub(r"\\\r?\n", "", text))
         logical_lines = logical_text.splitlines()
         seen = set()
 

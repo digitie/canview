@@ -53,12 +53,16 @@ class Stm32CoreGateTests(unittest.TestCase):
                     "void send(void) {\n FDCAN_GlobalTypeDef *bus = FDCAN1;\n bus->TXBAR = 1U;\n}\n",
                     "void send(void) { FDCAN1-> /* command */ TXBAR = 1U; }\n",
                     "void send(void) { FDCAN_GlobalTypeDef *bus = FDCAN1; bus-> /* command */ TXBAR = 1U; }\n",
+                    "void send(void) { FDCAN1-> /" + "\\" + "\n* command *" + "\\" + "\n/ TXBAR = 1U; }\n",
+                    "void send(void) { FDCAN_GlobalTypeDef *bus = FDCAN1; bus-> /" + "\\" + "\n* command *" + "\\" + "\n/ TXBAR = 1U; }\n",
                     "#undef CANVIEW_STM_TX_PERMIT\n",
                     "#define CANVIEW_STM_TX_PERMIT 1\n",
                     "#undef " + "\\" + "\nCANVIEW_STM_TX_PERMIT\n",
                     "#define " + "\\" + "\nCANVIEW_STM_TX_PERMIT 1\n",
                     "#undef /* contract */ CANVIEW_STM_TX_PERMIT\n",
-                    "#define /* contract */ CANVIEW_STM_TX_PERMIT 1\n"):
+                    "#define /* contract */ CANVIEW_STM_TX_PERMIT 1\n",
+                    "#undef /" + "\\" + "\n* contract *" + "\\" + "\n/ CANVIEW_STM_TX_PERMIT\n",
+                    "#define /" + "\\" + "\n* contract *" + "\\" + "\n/ CANVIEW_STM_TX_PERMIT 1\n"):
                 valid.write_text(source, encoding="utf-8")
                 with self.subTest(source=source), self.assertRaises(RuntimeError):
                     check_source_safety(root)
