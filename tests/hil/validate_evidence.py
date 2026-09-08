@@ -19,16 +19,15 @@ if __package__ in {None, ""}:
 from hil.adapter import HOST_ADAPTER_VERSION, LAB_ADAPTER_VERSION, HostAdapter
 from hil.analyze import analyze
 from hil.events import MAX_EVENT_COUNT, EventLog, EventLogError, read_jsonl
-from hil.run import (BUDGET_PATH, RUNNER_VERSION, SCENARIO_DIR,
-                     _path_label, _seed_for_scenario, firmware_identity,
-                     harness_identity, load_budget)
+from hil.run import (BUDGET_PATH, MAX_REPORT_BYTES, RUNNER_VERSION,
+                     SCENARIO_DIR, _path_label, _seed_for_scenario,
+                     firmware_identity, harness_identity, load_budget)
 from hil.scenario import Scenario, ScenarioError, load_scenarios
 
 
 VALID_STATUSES = {"PASS", "FAIL", "SKIPPED", "BLOCKED"}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
-MAX_REPORT_BYTES = 8 << 20
 
 
 class EvidenceError(ValueError):
@@ -46,7 +45,7 @@ def _read_json(path: Path) -> dict[str, Any]:
         raise EvidenceError(f"invalid JSON report {path}: {error}") from error
     except EvidenceError:
         raise
-    except (UnicodeError, json.JSONDecodeError, ValueError) as error:
+    except (UnicodeError, json.JSONDecodeError, ValueError, RecursionError) as error:
         raise EvidenceError(f"invalid JSON report {path}: {error}") from error
     if not isinstance(value, dict):
         raise EvidenceError("report root must be an object")
@@ -92,7 +91,9 @@ def _validate_events(path: Path, expected_count: int) -> list[dict[str, Any]]:
     previous_time: int | None = None
     expected_offset = 0
     for index, record in enumerate(records, 1):
-        if record.get("schema_version") != 1 or record.get("sequence") != index:
+        if (not _is_int(record.get("schema_version"))
+                or record.get("schema_version") != 1
+                or record.get("sequence") != index):
             raise EvidenceError(f"event sequence/schema mismatch at {path}:{index}")
         if (not isinstance(record.get("source"), str)
                 or not record["source"]
@@ -143,6 +144,7 @@ def _validate_inventory(report: dict[str, Any], expected_ids: list[str]) -> None
             or any(not isinstance(item, str) or not item for item in inventory_ids)
             or len(inventory_ids) != len(set(inventory_ids))
             or inventory_ids != expected_ids
+            or not _is_int(inventory.get("count"))
             or inventory.get("count") != len(expected_ids)):
         raise EvidenceError("scenario inventory does not match expected selection")
 
@@ -150,12 +152,13 @@ def _validate_inventory(report: dict[str, Any], expected_ids: list[str]) -> None
 def validate(report_path: Path, expected_status: str | None = None,
              expected_scenarios: list[str] | None = None) -> dict[str, Any]:
     report = _read_json(report_path)
-    if report.get("schema_version") != 1:
+    if (not _is_int(report.get("schema_version"))
+            or report.get("schema_version") != 1):
         raise EvidenceError("unsupported report schema")
     if report.get("runner_version") != RUNNER_VERSION:
         raise EvidenceError("unsupported runner version")
     status = report.get("status")
-    if status not in VALID_STATUSES:
+    if not isinstance(status, str) or status not in VALID_STATUSES:
         raise EvidenceError(f"invalid report status: {status!r}")
     if expected_status is not None and status != expected_status:
         raise EvidenceError(f"expected {expected_status}, got {status}")
@@ -184,10 +187,12 @@ def validate(report_path: Path, expected_status: str | None = None,
     except OSError as error:
         raise EvidenceError("unable to compute source identity") from error
     suite = report.get("suite")
-    if suite not in {"host", "g2-readonly"}:
+    if not isinstance(suite, str) or suite not in {"host", "g2-readonly"}:
         raise EvidenceError(f"invalid suite: {suite!r}")
     physical = report.get("physical_hil")
-    if not isinstance(physical, dict) or physical.get("status") not in VALID_STATUSES | {"NOT_RUN"}:
+    if (not isinstance(physical, dict)
+            or not isinstance(physical.get("status"), str)
+            or physical.get("status") not in VALID_STATUSES | {"NOT_RUN"}):
         raise EvidenceError("physical_hil status is invalid")
     if physical.get("status") == "PASS":
         raise EvidenceError("T-500 validator cannot certify physical PASS")
@@ -248,10 +253,11 @@ def validate(report_path: Path, expected_status: str | None = None,
             raise EvidenceError(f"duplicate scenario result: {scenario_id}")
         seen_ids.add(scenario_id)
         item_status = item.get("status")
-        if item_status not in {"PASS", "FAIL"}:
+        if not isinstance(item_status, str) or item_status not in {"PASS", "FAIL"}:
             raise EvidenceError(f"invalid scenario status: {scenario_id}")
         verification = item.get("verification")
-        if verification not in {"trusted-replay", "structural-only"}:
+        if (not isinstance(verification, str)
+                or verification not in {"trusted-replay", "structural-only"}):
             raise EvidenceError(f"scenario verification mode is missing: {scenario_id}")
         scenario_digest = item.get("scenario_sha256")
         if (not isinstance(scenario_digest, str)
@@ -412,8 +418,8 @@ def validate(report_path: Path, expected_status: str | None = None,
             raise EvidenceError(f"scenario result does not match recomputed verdict: {scenario_id}")
     if status == "PASS" and any(item.get("status") != "PASS" for item in scenario_results):
         raise EvidenceError("PASS report contains failed scenario")
-    if status == "PASS" and [item["id"] for item in scenario_results] != expected_ids:
-        raise EvidenceError("PASS report does not contain the complete trusted inventory")
+    if expected_ids is not None and [item["id"] for item in scenario_results] != expected_ids:
+        raise EvidenceError("report does not contain the expected scenario selection")
     if status == "FAIL" and not any(item.get("status") == "FAIL"
                                      for item in scenario_results):
         raise EvidenceError("FAIL report contains no failed scenario")

@@ -62,7 +62,10 @@ inventory를 요구하며, 선택 실행은 `--expected-scenario` 또는 API의
 `expected_scenarios`로 caller가 지정한 trusted 부분집합과 정확히 일치해야 한다.
 trusted PASS는 `trusted-replay`, custom FAIL은 구조적 analyzer 결과만 재계산하는
 `structural-only`로 표시하며, 후자는 임의 scenario assertion의 증거로 승격하지
-않는다.
+않는다. custom scenario의 `expect`는 report에 반영하지 않고 구조적 검사에는
+빈 assertion contract를 사용한다. report와 event log는 각각 bounded writer와
+validator의 공통 8 MiB report/event 상한을 적용하며, 상한을 넘으면 compact
+`BLOCKED` report를 남긴다.
 
 실패 report는 반드시 `first_violation.invariant`와 `log_offset`을 포함한다.
 `fixtures/forbidden-can-tx.jsonl`은 capture-only TX 판정이 실제로 실패해야 하는

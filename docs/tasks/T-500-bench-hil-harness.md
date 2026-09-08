@@ -70,8 +70,8 @@ python -B -m unittest discover -s tests -p "test_*.py"
 
 선택 host 검증은 `--expected-scenario`로 caller selection을 함께 전달하고,
 selection을 생략한 PASS 검증은 trusted 전체 inventory를 요구한다. 2026-09-08
-최종 수정 후 검증은 host scenario 12/12 PASS, T-500 단위 41/41 PASS, 전체
-Python 회귀 92/92 PASS, evidence validator PASS, document link와 plan 검사
+최종 수정 후 검증은 host scenario 12/12 PASS, T-500 단위 45/45 PASS, 전체
+Python 회귀 96/96 PASS, evidence validator PASS, document link와 plan 검사
 PASS였다.
 실제 rig가 없어 G2 read-only 실행은 `SKIPPED`이며, board/HIL·power·CAN
 analyzer·차량 bus 결과로 승격하지 않았다.

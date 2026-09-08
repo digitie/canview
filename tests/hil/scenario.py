@@ -90,7 +90,7 @@ def load_yaml_object(path: Path) -> dict[str, Any]:
         raise ScenarioError(f"unable to read scenario {path}: {error}") from error
     except ScenarioError:
         raise
-    except (UnicodeError, json.JSONDecodeError, ValueError) as error:
+    except (UnicodeError, json.JSONDecodeError, ValueError, RecursionError) as error:
         raise ScenarioError(
             f"{path} must use the JSON-compatible YAML 1.2 subset: {error}") from error
     if not isinstance(value, dict):

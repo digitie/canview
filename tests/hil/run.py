@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -28,6 +29,7 @@ from hil.scenario import ScenarioError, load_scenarios, load_yaml_object
 
 
 RUNNER_VERSION = "t500-harness-v1"
+MAX_REPORT_BYTES = 8 << 20
 ROOT = Path(__file__).resolve().parents[2]
 SCENARIO_DIR = Path(__file__).resolve().parent / "scenarios"
 BUDGET_PATH = Path(__file__).resolve().parent / "budget-manifest.json"
@@ -177,6 +179,8 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
                               indent=2, allow_nan=False) + "\n").encode("utf-8")
     except (TypeError, ValueError, OverflowError) as error:
         raise RunError("report_is_not_json_compatible") from error
+    if len(payload) > MAX_REPORT_BYTES:
+        raise RunError("report_is_too_large")
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=".canview-report-", suffix=".tmp", dir=str(path.parent))
     try:
@@ -251,8 +255,15 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
         except EventLogError:
             return _blocked_report(output, args, "BLOCKED",
                                    "event_output_limit_or_encoding_error")
+        verification = ("trusted-replay"
+                        if scenario_directory == SCENARIO_DIR.resolve()
+                        else "structural-only")
+        analysis_scenario = scenario
+        if verification == "structural-only":
+            analysis_scenario = replace(scenario, expect={})
         try:
-            result = analyze(scenario, event_log.records, simulation.metrics, budget)
+            result = analyze(analysis_scenario, event_log.records,
+                             simulation.metrics, budget)
         except Exception:
             # A malformed accepted event must never leave an older PASS report
             # representing the current invocation.
@@ -273,9 +284,7 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
             "checks": result["checks"],
             "violations": result["violations"],
             "first_violation": result["first_violation"],
-            "verification": ("trusted-replay"
-                             if scenario_directory == SCENARIO_DIR.resolve()
-                             else "structural-only"),
+            "verification": verification,
         })
     status = "PASS" if all(item["status"] == "PASS"
                             for item in scenario_results) else "FAIL"

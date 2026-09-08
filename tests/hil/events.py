@@ -182,7 +182,7 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
         try:
             record = json.loads(line, object_pairs_hook=_object_pairs,
                                 parse_constant=_reject_constant)
-        except (json.JSONDecodeError, ValueError) as error:
+        except (json.JSONDecodeError, ValueError, RecursionError) as error:
             raise EventLogError(
                 f"invalid JSON at {path}:{line_number}: {error}") from error
         if not isinstance(record, dict):

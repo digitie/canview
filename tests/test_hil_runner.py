@@ -334,6 +334,31 @@ class HilRunnerTests(unittest.TestCase):
             self.assertEqual("scenario_or_budget_contract_invalid",
                              report["failure"]["reason"])
 
+    def test_deep_scenario_failure_replaces_previous_pass_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "output"
+            self.assertEqual(0, run_main(["--suite", "host", "--seed", "7",
+                                          "--output", str(output)]))
+            self.assertEqual("PASS", validate(output / "report.json", "PASS")["status"])
+            scenario_dir = root / "deep-scenarios"
+            scenario_dir.mkdir()
+            nested = "[" * 20_000 + "0" + "]" * 20_000
+            payload = (
+                '{"schema_version":1,"id":"deep-probe","title":"probe",'
+                '"suites":["host"],"mode":"CAPTURE_ONLY",'
+                '"actions":[{"type":"event","fields":{"nested":'
+                + nested + '}}],"expect":{}}'
+            )
+            (scenario_dir / "deep-probe.yaml").write_text(
+                payload, encoding="utf-8")
+            self.assertEqual(2, run_main([
+                "--suite", "host", "--scenario-dir", str(scenario_dir),
+                "--output", str(output)]))
+            report = validate(output / "report.json", "BLOCKED")
+            self.assertEqual("scenario_or_budget_contract_invalid",
+                             report["failure"]["reason"])
+
     def test_invalid_seed_publishes_blocked_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "output"
@@ -366,6 +391,35 @@ class HilRunnerTests(unittest.TestCase):
                 "--output", str(output)]))
             report = validate(output / "report.json", "BLOCKED")
             self.assertEqual("scenario_execution_limit_or_encoding_error",
+                             report["failure"]["reason"])
+
+    def test_report_limit_publishes_blocked_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scenario_dir = root / "scenarios"
+            scenario_dir.mkdir()
+            scenario = {
+                "schema_version": 1,
+                "id": "oversized-report",
+                "title": "bounded report",
+                "suites": ["host"],
+                "mode": "CAPTURE_ONLY",
+                "actions": [
+                    {"type": "event", "kind": "CAN_TX",
+                     "fields": {"arbitration_id": 0x123}},
+                    *({"type": "reset", "targets": ["target"] * 128}
+                      for _ in range(96)),
+                ],
+                "expect": {},
+            }
+            (scenario_dir / "oversized-report.yaml").write_text(
+                json.dumps(scenario), encoding="utf-8")
+            output = root / "output"
+            self.assertEqual(2, run_main([
+                "--suite", "host", "--scenario-dir", str(scenario_dir),
+                "--output", str(output)]))
+            report = validate(output / "report.json", "BLOCKED")
+            self.assertEqual("report_output_limit_or_encoding_error",
                              report["failure"]["reason"])
 
     def test_analyzer_failure_replaces_previous_pass_report(self) -> None:
@@ -464,6 +518,58 @@ class HilRunnerTests(unittest.TestCase):
             with self.assertRaises(EvidenceError):
                 validate(report_path, "PASS")
 
+    def test_validator_rejects_fail_result_outside_expected_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "host"
+            self.assertEqual(0, run_main(["--suite", "host", "--seed", "7",
+                                          "--output", str(output)]))
+            report_path = output / "report.json"
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            item = next(result for result in report["scenario_results"]
+                        if result["id"] == "stale-gates")
+            event_path = output / item["events_file"]
+            records = read_jsonl(event_path)
+            records[1]["fields"].update(decision="ALLOW", vehicle_tx=True)
+            event_log = EventLog()
+            for record in records:
+                event_log.append_fields(record["monotonic_ns"], record["source"],
+                                        record["kind"], record["fields"])
+            event_log.write_jsonl(event_path)
+            item["event_count"] = len(event_log.records)
+            item["event_bytes"] = event_log.byte_length
+            trusted = load_scenarios(SCENARIO_DIR, "host",
+                                     ["stale-gates"])[0]
+            result = analyze(trusted, event_log.records, item["metrics"],
+                             load_budget())
+            for key in ("status", "checks", "violations", "first_violation"):
+                item[key] = result[key]
+            report["scenario_results"] = [item]
+            report["status"] = "FAIL"
+            report["scenario_inventory"] = {
+                "directory": "tests/hil/scenarios",
+                "count": 1,
+                "ids": ["brownout"],
+            }
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(EvidenceError):
+                validate(report_path, "FAIL", expected_scenarios=["brownout"])
+
+    def test_validator_rejects_non_scalar_report_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "host"
+            self.assertEqual(0, run_main(["--suite", "host", "--output", str(output)]))
+            report_path = output / "report.json"
+            original = report_path.read_text(encoding="utf-8")
+            for mutation in (
+                    lambda report: report.update(schema_version=True),
+                    lambda report: report.update(status=[]),
+                    lambda report: report["scenario_inventory"].update(count=True)):
+                report = json.loads(original)
+                mutation(report)
+                report_path.write_text(json.dumps(report), encoding="utf-8")
+                with self.assertRaises(EvidenceError):
+                    validate(report_path, "PASS")
+
     def test_validator_rejects_blocked_report_with_scenario_results(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "host"
@@ -489,7 +595,7 @@ class HilRunnerTests(unittest.TestCase):
                 "mode": "CAPTURE_ONLY",
                 "actions": [{"type": "event", "kind": "CAN_TX",
                               "fields": {"arbitration_id": 0x123}}],
-                "expect": {},
+                "expect": {"required_kinds": ["CAN_TX"]},
             }
             (scenario_dir / "forbidden-tx.yaml").write_text(
                 json.dumps(scenario), encoding="utf-8")
