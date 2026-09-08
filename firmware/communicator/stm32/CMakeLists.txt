@@ -71,6 +71,7 @@ add_executable(${TARGET_NAME}
 target_compile_definitions(${TARGET_NAME} PRIVATE
     STM32G474xx
     CANVIEW_TARGET_ROLE=CANVIEW_APP_COMMUNICATOR_STM32
+    CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE
@@ -93,11 +94,32 @@ set(MCU_OPTIONS
 
 add_subdirectory("${CANVIEW_ROOT}/shared/protocol" "${CMAKE_CURRENT_BINARY_DIR}/shared-protocol")
 add_subdirectory("${CANVIEW_ROOT}/shared/app" "${CMAKE_CURRENT_BINARY_DIR}/shared-app")
+add_library(canview_stm_build_provider STATIC
+    bsp/build_metadata.c)
+target_include_directories(canview_stm_build_provider PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/interface"
+    "${CMAKE_CURRENT_SOURCE_DIR}/bsp"
+    "${CANVIEW_ROOT}/firmware/interface"
+    "${CANVIEW_ROOT}/shared/interface"
+    "${CANVIEW_ROOT}/protocol")
+target_compile_features(canview_stm_build_provider PUBLIC c_std_99)
+target_compile_definitions(canview_stm_build_provider PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
+target_compile_options(canview_stm_build_provider PRIVATE
+    -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")
+target_link_libraries(canview_stm_build_provider PRIVATE canview_warnings)
 add_subdirectory(module)
-foreach(core canview_wire canview_app canview_stm_core)
+set(STM32_CAPTURE_ONLY_COMPILE_OPTIONS
+    "$<$<COMPILE_LANGUAGE:C>:-include>"
+    "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h>")
+foreach(core canview_wire canview_app)
+    target_compile_definitions(${core} PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
+    target_compile_options(${core} PRIVATE ${STM32_CAPTURE_ONLY_COMPILE_OPTIONS})
+endforeach()
+foreach(core canview_wire canview_app canview_stm_build_provider canview_stm_core)
     target_compile_options(${core} PRIVATE ${MCU_OPTIONS} -ffunction-sections -fdata-sections -fstack-usage)
 endforeach()
 target_link_libraries(${TARGET_NAME} PRIVATE canview_wire canview_app canview_stm_core)
+target_link_libraries(${TARGET_NAME} PRIVATE canview_stm_build_provider)
 # Keep vendor implementation outside the project's ISO warning contract.
 set_source_files_properties(
     app/main.c bsp/board.c bsp/core.c platform/stm32g474/safe_gpio.c platform/stm32g474/core_hw.c
@@ -118,6 +140,8 @@ target_compile_options(${TARGET_NAME} PRIVATE
     $<$<CONFIG:Debug>:-g3>
     $<$<CONFIG:Release>:-Os>
     $<$<CONFIG:Release>:-g0>
+    "$<$<COMPILE_LANGUAGE:C>:-include>"
+    "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h>"
 )
 
 set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_FLASH.ld")

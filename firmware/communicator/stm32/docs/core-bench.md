@@ -1,13 +1,14 @@
 # STM32 최소 core bench 계약
 
-이 구현은 [T-102a](../../../../docs/tasks/T-102a-stm32-core-bench.md)의 최소 boot/fault image다. CAN·UART transport·OTA·Flash 쓰기·보호 설정 변경은 없다. CAPTURE_ONLY만 configure 가능하며 control capability/TX permit은 항상 0이다.
+이 구현은 [T-102a](../../../../docs/tasks/T-102a-stm32-core-bench.md)의 최소 boot/fault image를 [T-102](../../../../docs/tasks/T-102-stm32-platform.md)의 platform diagnostic 계약으로 확장한 것이다. CAN·UART transport·OTA·Flash 쓰기·보호 설정 변경은 없다. CAPTURE_ONLY만 configure 가능하며 control capability/TX permit은 항상 0이다.
 
 ## 구조·소유권
 
 ```text
 app/main.c + app/boot.c
-  → module/scheduler.c, module/queue.c
-  → interface/canview_stm_*.h
+  → module/scheduler.c, module/queue.c, bsp/build_metadata.c,
+    stack_watermark.c, service_policy.c, diagnostic.c
+  → interface/canview_stm_*.h, canview_build_mode.h
   → bsp/core.c + bsp/board.c
   → platform/stm32g474/core_hw.c + safe_gpio.c
 ```
@@ -15,6 +16,8 @@ app/main.c + app/boot.c
 app/module에는 MCU register나 vendor API를 두지 않는다. boot·scheduler·queue context는 caller가 zero-init하고 소유한다. callback context 수명을 caller가 보장한다. descriptor는 init 시 복사한다. queue는 header와 payload를 포함한 최대64byte record 전체를 동기 복사하며 caller view/pointer의 수명을 연장하지 않는다. UART message queue의 크기·수명은 T-104에서 별도 설계하며 이64byte queue에 포인터만 넣어 대체하지 않는다.
 
 queue는 필수 critical port 안에서 단일 core IRQ/main 접근을 직렬화한다. enter의 이전 PRIMASK를 leave가 복원하며 이미 mask된 호출에서 interrupt를 임의로 켜지 않는다. NMI/HardFault·DMA 직접 쓰기는 금지한다. stats 직접 판독도 owner/critical section에서 수행한다. full은 새 record 거부와 saturating drop 증가, empty는 출력 불변이다. 초기화 후 flush/reset API는 없으며 consumer가 drain한다.
+
+T-102의 추가 module도 같은 owner 규칙을 따른다. `bsp/build_metadata.c`는 generated board header와 두 protocol schema digest를 정적 문자열로 참조하고 FNV-1a 기반 provenance fingerprint만 계산한다. board/profile/schema 입력 조립은 BSP provider target이 소유하며 module은 `canview_stm_build.h` 계약만 소비한다. 이는 signature, secure boot, provisioning key가 아니다. `service_policy.c`의 root record는 caller-owned RAM shadow이며 Flash read/write나 erase를 실행하지 않는다. root header/authenticity/debug-lock이 모두 유효해도 현재 `CAPTURE_ONLY` build는 control/TX를 허용하지 않는다.
 
 ## 부팅·고장 상태
 
@@ -48,17 +51,27 @@ HSE16MHz crystal(non-bypass), M4/N80/R2/Q4로 SYSCLK160MHz·APB1/2=80MHz·FDCAN 
 |---|---|---|
 | SysTick | u32 monotonic ms 증가만 | ISR 단일 writer·main 원자 word read, Cortex-M4 |
 | NMI/CSS | fault latch·CSS flag clear·system reset | 중단된 watchdog write로 복귀하지 않는 terminal 예외 |
-| HardFault | fault latch·feed 없이 대기 | PHY는 원래 안전 출력 고정 |
+| HardFault | fault latch·system reset 요청·feed 없이 대기 | reset 요청이 반환하는 비정상 구현에서도 PHY는 원래 안전 출력 고정 |
 
-TIM2는 APB1 timer160MHz /160 =1MHz, u32 약71.6분 wrap이다. scheduler의 모든 시간차는 unsigned subtraction이고 유효 간격을 제한한다. health worker는 SysTick이 진행한 두 sample 사이 TIM2 정지·역행·과대한 경과도 fault로 고정한다. SysTick과 TIM2의 실측 정확도·IRQ latency는 G1/G2에서 확인한다. handler는 parsing/logging/heap/Flash 작업을 하지 않는다.
+TIM2는 APB1 timer160MHz /160 =1MHz, u32 약71.6분 wrap이다. scheduler의 모든 시간차는 unsigned subtraction이고 유효 간격을 제한한다. health worker는 `PSC=159`, `ARR=UINT32_MAX`, `DIER=0` 설정을 매번 확인하고, SysTick이 진행한 관측 사이 TIM2 정지·역행·과대한 경과를 fault로 고정한다. 매 4ms 이하의 timer 진행은 50% lower bound로 거부해 느린 timer도 정상으로 승격하지 않는다. SysTick과 TIM2의 실측 정확도·IRQ latency는 G1/G2에서 확인한다. handler는 parsing/logging/heap/Flash 작업을 하지 않는다.
+
+### stack watermark
+
+linker는 `_estack - _Min_Stack_Size`를 `__stack_limit`으로 export한다. platform은 현재 MSP가 `[__stack_limit, _estack]` 안에 있는지 확인하고, 현재 frame 아래 64 byte를 제외한 high-end reserved stack window를 static checkerboard pattern(`0xA5/0x5A`)으로 채운다. pattern context는 static storage이고 arm은 한 번만 허용된다. sample은 low-address에서 연속 pattern prefix만 최대 256 byte 검사하므로, 더 긴 free 영역도 256 byte의 보수적인 lower bound로만 보고한다. 중간의 우연한 pattern이나 malformed context는 free 공간으로 승격하지 않는다. free watermark가 128 byte 미만이면 health worker도 fault를 latch한다. 이 방식은 단일 실행의 reserved prefix 감시이며 전체 call-chain, interrupt nesting, compiler worst-case, physical stack overflow 시험을 대신하지 않는다.
 
 ## 시험·memory·진단
 
-root CTest의 `stm32-core-*`가 boot 단계 실패·clock wrap/backward·worker 정지/재진입/과실행·queue 경계와 실제 backend의 host named-register model을 실행한다. 모델은 전기적 simulator가 아니며 target build가 모델 상수47개와 실제 고정 CMSIS 값을 독립 compile-time 비교한다. test hook은 host에서만 활성화하고 Arm target에서는 compile error로 차단한다.
+root CTest의 `stm32-core-*`가 boot 단계 실패·clock wrap/backward·느린/변조된 TIM2·worker 정지/재진입/과실행·queue 경계와 실제 backend의 host named-register model을 실행한다. 모델은 전기적 simulator가 아니며 target build가 모델 상수47개와 실제 고정 CMSIS 값을 독립 compile-time 비교한다. test hook은 host에서만 활성화하고 Arm target에서는 compile error로 차단한다.
 
-target linker는 static RAM80KiB·reserved stack24KiB·총 RAM margin24KiB를 강제한다. 현재 stack reserve는8KiB이고 `check_stm32_core.py`는 실제 ELF 크기·필수 core symbol·금지 heap/FDCAN TX symbol·단일 `.su` frame≤2KiB를 검사한다. compile database의 모든 C object에 해당하는 개별 `.su`가 있어야 하며 일부 누락도 실패한다. 빈 파일은 `nm`으로 해당 object에 code symbol이 없음을 확인한 const table 전용 unit만 허용한다. assembly startup과 prebuilt external library는 이 frame 검사에서 제외한다. 단일 frame 상한은 전체 call-chain/IRQ 중첩 stack watermark 증명이 아니다. 전체 Flash bench layout은 MCUboot/OTA layout이 아니며 root/config page에 쓰는 API가 없다.
+target linker는 static RAM80KiB·reserved stack24KiB·총 RAM margin24KiB를 강제한다. 현재 stack reserve는8KiB이고 `check_stm32_core.py`는 실제 ELF 크기·필수 core/metadata/diagnostic symbol·금지 heap/FDCAN TX symbol·단일 `.su` frame≤2KiB를 검사한다. compile database의 모든 C object에 `CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1`과 `canview_build_mode.h` forced include가 있고, 각 object의 개별 `.su`가 있어야 하며 일부 누락도 실패한다. 빈 파일은 `nm`으로 해당 object에 code symbol이 없음을 확인한 const table 전용 unit만 허용한다. assembly startup과 prebuilt external library는 이 frame 검사에서 제외한다. 단일 frame 상한은 전체 call-chain/IRQ 중첩 stack watermark 증명이 아니다. 전체 Flash bench layout은 MCUboot/OTA layout이 아니며 root/config page에 쓰는 API가 없다.
 
-`canview_stm_board_diagnostic()`은 reset flags·clock 상태·unknown boot/debug 인증·TX0을 caller snapshot으로 제공한다. 실제 UART diagnostic 전송, profile/hardware/protocol digest 포함 production metadata, stack watermark는 T-102/T-104/T-107에서 연결한다. 포인터/host struct를 wire로 memcpy하지 않는다.
+`canview_stm_board_diagnostic()`은 reset flags/reason·clock·generated profile/hardware/schema metadata·unknown boot/debug 인증·TX0·stack watermark를 caller snapshot으로 제공한다. `canview_stm_board_diagnostic_encode()`는 magic/version/reset-reason/status와 reset/build/profile/stack/capability를 40-byte little-endian record로 만든다. byte 5에는 분류된 `canview_stm_reset_reason_t`가 들어가며 record version은 2다. pointer/host struct는 wire로 memcpy하지 않는다. 실제 UART diagnostic 전송과 최종 UART ABI 연결은 T-104이며, T-102 record는 그 입력을 준비하는 source contract다.
+
+## T-102 source 검증 경계
+
+`tests/test_platform.c`는 metadata null/length/digest, checkerboard watermark arm/sample/reentry/overwrite/혼합 pattern/scan budget, malformed root/version/size, service reset pending, diagnostic short buffer/invalid enum/size overflow/encoding과 reset-reason byte를 실행한다. `tests/test_registers.c`는 named register model에서 HSE/PLL/IWDG/SysTick/TIM2 failure와 느린/변조된 TIM2, brownout/software/pin/low-power/option-byte/ambiguous reset flag 분류, target diagnostic record, 초기화 전 HardFault system-reset 요청을 확인한다. `check_stm32_build_mode.py`는 실제 compiler로 forced include와 mode/TX override negative fixture를 실행하고, `check_stm32_core.py`는 모든 target C unit의 compile contract와 STM32/shared C/H source의 FDCAN TX API/member 사용을 검사한다. generated board header에는 board+pin input SHA-256를 `CANVIEW_BOARD_HARDWARE_DIGEST` macro로 함께 전개하고 generator test가 exact digest를 확인한다.
+
+현재 source/host/target compile은 실제 board에 권한을 부여하지 않는다. UART/FDCAN peripheral, Flash root, external TX gate, reset/brownout rail, MSP/stack physical watermark, ST-LINK flash와 차량 CAN은 `NOT_RUN`이며 CAN TX는 `NO-GO`다.
 
 ## 근거와 미실행
 

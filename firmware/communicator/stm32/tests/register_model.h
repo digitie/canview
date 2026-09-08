@@ -50,6 +50,13 @@ extern uint32_t SystemCoreClock;
 #define RCC_CSR_LSION UINT32_C(1)
 #define RCC_CSR_LSIRDY UINT32_C(2)
 #define RCC_CSR_RMVF UINT32_C(0x800000)
+#define RCC_CSR_OBLRSTF UINT32_C(0x2000000)
+#define RCC_CSR_PINRSTF UINT32_C(0x4000000)
+#define RCC_CSR_BORRSTF UINT32_C(0x8000000)
+#define RCC_CSR_SFTRSTF UINT32_C(0x10000000)
+#define RCC_CSR_IWDGRSTF UINT32_C(0x20000000)
+#define RCC_CSR_WWDGRSTF UINT32_C(0x40000000)
+#define RCC_CSR_LPWRRSTF UINT32_C(0x80000000)
 #define RCC_CR_HSEON UINT32_C(0x10000)
 #define RCC_CR_HSERDY UINT32_C(0x20000)
 #define RCC_CR_HSEBYP UINT32_C(0x40000)
@@ -106,8 +113,13 @@ void model_reset(void);
 #define SysTick_Config(ticks) model_systick_config(ticks)
 #define __WFI() model_wait()
 #define __get_PRIMASK() model_primask()
+#define __get_MSP() canview_stm_test_stack_top()
 #define __disable_irq() model_disable_irq()
 #define __set_PRIMASK(mask) model_set_primask(mask)
 #define __DMB() ((void)0)
 #define NVIC_SystemReset() model_reset()
+uintptr_t canview_stm_test_stack_top(void);
+uintptr_t canview_stm_test_stack_low(void);
+void canview_stm_test_set_stack_pointer(uintptr_t stack_pointer);
+void canview_stm_test_corrupt_stack(void);
 #endif

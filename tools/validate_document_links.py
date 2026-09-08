@@ -47,7 +47,7 @@ def validate(root: Path) -> tuple[list[str], int, int]:
             # Keep immutable reviewer text unchanged while resolving the two
             # documented checkout spellings on either Windows or WSL.
             absolute_repo_target = None
-            for prefix in ['/mnt/f/dev/canview/', 'F:/dev/canview/']:
+            for prefix in ['/mnt/f/dev/canview/', '/F:/dev/canview/', 'F:/dev/canview/']:
                 if target.startswith(prefix):
                     absolute_repo_target = re.sub(r':\d+$', '', target[len(prefix):])
                     break

@@ -125,6 +125,10 @@ SECTIONS
     . = ALIGN(8);
   } > RAM
 
+/* Cortex-M stack grows downward from the high end of RAM. The watermark must
+ * cover the reserved high-end stack window, not the low-end section address. */
+__stack_limit = _estack - _Min_Stack_Size;
+
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
 

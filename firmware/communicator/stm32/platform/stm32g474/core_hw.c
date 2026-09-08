@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "core_hw.h"
+#include "canview_stm_build.h"
+#include "canview_stm_service.h"
+#include "canview_stm_stack.h"
 #if defined(CANVIEW_STM_REGISTER_TEST)
 #if defined(__arm__) || defined(__thumb__)
 #error Host_register_model_must_not_be_built_for_target
@@ -21,6 +24,42 @@
 #define IWDG_WINDOW_DISABLED (UINT32_C(0xfff))
 #define MICROSECOND_HZ (UINT32_C(1000000))
 #define MILLISECOND_HZ (UINT32_C(1000))
+#define STACK_GUARD_BYTES (64U)
+#define TIM2_PRESCALER (CANVIEW_STM_SYSCLK_HZ / MICROSECOND_HZ - 1U)
+#define HEALTH_SAMPLE_INTERVAL_MS (4U)
+#define HEALTH_MIN_TIMER_US_PER_MS (500U)
+
+#if defined(CANVIEW_STM_REGISTER_TEST)
+#define REGISTER_TEST_STACK_BYTES (4096U)
+static uint8_t register_test_stack[REGISTER_TEST_STACK_BYTES];
+static uintptr_t register_test_stack_pointer;
+
+uintptr_t canview_stm_test_stack_top(void)
+{
+    return register_test_stack_pointer;
+}
+
+uintptr_t canview_stm_test_stack_low(void)
+{
+    return (uintptr_t)register_test_stack;
+}
+
+void canview_stm_test_set_stack_pointer(uintptr_t stack_pointer)
+{
+    register_test_stack_pointer = stack_pointer;
+}
+
+void canview_stm_test_corrupt_stack(void)
+{
+    for (size_t index = 0U; index < sizeof(register_test_stack); ++index)
+    {
+        register_test_stack[index] = 0U;
+    }
+}
+#else
+extern uint8_t __stack_limit;
+extern uint8_t _estack;
+#endif
 
 /* 단일 MCU context. ISR 공유 member에만 volatile을 적용한다. */
 typedef struct
@@ -28,12 +67,16 @@ typedef struct
     volatile uint32_t milliseconds;
     volatile bool fault;
     uint32_t reset_flags;
+    canview_stm_reset_reason_t reset_reason;
     uint32_t previous_health_ms;
     uint32_t previous_health_us;
+    uint32_t health_window_ms;
+    uint32_t health_window_us;
     bool health_sampled;
     bool watchdog_ready;
     bool clock_ready;
     bool time_ready;
+    canview_stm_stack_watermark_t stack_watermark;
 } canview_stm_hardware_t;
 static canview_stm_hardware_t hardware;
 
@@ -42,12 +85,95 @@ void canview_stm_test_reset(void)
 {
     const canview_stm_hardware_t cleared = {0};
     hardware = cleared;
+    register_test_stack_pointer = (uintptr_t)(register_test_stack + sizeof(register_test_stack));
 }
 #endif
 
 void SysTick_Handler(void);
 void NMI_Handler(void);
 void HardFault_Handler(void);
+
+static canview_stm_reset_reason_t reset_reason_from_flags(uint32_t flags)
+{
+    uint32_t categories = 0U;
+    if ((flags & (RCC_CSR_IWDGRSTF | RCC_CSR_WWDGRSTF)) != 0U)
+    {
+        categories |= UINT32_C(1);
+    }
+    if ((flags & RCC_CSR_BORRSTF) != 0U)
+    {
+        categories |= UINT32_C(2);
+    }
+    if ((flags & RCC_CSR_SFTRSTF) != 0U)
+    {
+        categories |= UINT32_C(4);
+    }
+    if ((flags & RCC_CSR_PINRSTF) != 0U)
+    {
+        categories |= UINT32_C(8);
+    }
+    if ((flags & RCC_CSR_LPWRRSTF) != 0U)
+    {
+        categories |= UINT32_C(16);
+    }
+    if ((flags & RCC_CSR_OBLRSTF) != 0U)
+    {
+        categories |= UINT32_C(32);
+    }
+    if (categories == 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_UNKNOWN;
+    }
+    if ((categories & (categories - 1U)) != 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_AMBIGUOUS;
+    }
+    if ((categories & UINT32_C(1)) != 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_WATCHDOG;
+    }
+    if ((categories & UINT32_C(2)) != 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_BROWNOUT;
+    }
+    if ((categories & UINT32_C(4)) != 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_SOFTWARE;
+    }
+    if ((categories & UINT32_C(8)) != 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_PIN;
+    }
+    if ((categories & UINT32_C(16)) != 0U)
+    {
+        return CANVIEW_STM_RESET_REASON_LOW_POWER;
+    }
+    return CANVIEW_STM_RESET_REASON_OPTION_BYTE;
+}
+
+static canview_status_t arm_stack_watermark(void)
+{
+#if defined(CANVIEW_STM_REGISTER_TEST)
+    const uintptr_t stack_low = (uintptr_t)register_test_stack;
+    const uintptr_t stack_top = (uintptr_t)(register_test_stack + sizeof(register_test_stack));
+#else
+    const uintptr_t stack_low = (uintptr_t)&__stack_limit;
+    const uintptr_t stack_top = (uintptr_t)&_estack;
+#endif
+    const uintptr_t current_sp = (uintptr_t)__get_MSP();
+    if (stack_low >= stack_top || current_sp <= stack_low || current_sp > stack_top ||
+        current_sp - stack_low <= (uintptr_t)STACK_GUARD_BYTES)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    const uintptr_t region_size = current_sp - stack_low - (uintptr_t)STACK_GUARD_BYTES;
+    if (region_size > (uintptr_t)SIZE_MAX)
+    {
+        return CANVIEW_OVERSIZE;
+    }
+    return canview_stm_stack_watermark_arm(
+        &hardware.stack_watermark, (volatile uint8_t *)stack_low, (size_t)region_size);
+}
 
 static bool wait_register(volatile const uint32_t *reg, uint32_t mask, uint32_t wanted)
 {
@@ -70,6 +196,7 @@ canview_status_t canview_stm_watchdog_start(void *context)
         return CANVIEW_RESOURCE_BUSY;
     }
     hardware.reset_flags = RCC->CSR;
+    hardware.reset_reason = reset_reason_from_flags(hardware.reset_flags);
     RCC->CSR |= RCC_CSR_LSION;
     if (!wait_register(&RCC->CSR, RCC_CSR_LSIRDY, RCC_CSR_LSIRDY))
     {
@@ -175,7 +302,7 @@ canview_status_t canview_stm_time_start(void *context)
     (void)RCC->APB1ENR1;
     TIM2->CR1 = 0U;
     TIM2->DIER = 0U;
-    TIM2->PSC = CANVIEW_STM_SYSCLK_HZ / MICROSECOND_HZ - 1U;
+    TIM2->PSC = TIM2_PRESCALER;
     TIM2->ARR = UINT32_MAX;
     TIM2->EGR = TIM_EGR_UG;
     TIM2->SR = 0U;
@@ -185,6 +312,12 @@ canview_status_t canview_stm_time_start(void *context)
     if (SysTick_Config(CANVIEW_STM_SYSCLK_HZ / MILLISECOND_HZ) != 0U)
     {
         return CANVIEW_INVALID_ARGUMENT;
+    }
+    const canview_status_t stack_status = arm_stack_watermark();
+    if (stack_status != CANVIEW_OK)
+    {
+        hardware.fault = true;
+        return stack_status;
     }
     hardware.time_ready = true;
     return CANVIEW_OK;
@@ -211,8 +344,19 @@ canview_status_t canview_stm_board_health(void *context)
     (void)context;
     if (hardware.fault || !hardware.time_ready || !hardware.clock_ready ||
         (RCC->CR & (RCC_CR_HSERDY | RCC_CR_PLLRDY)) != (RCC_CR_HSERDY | RCC_CR_PLLRDY) ||
-        (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL || (TIM2->CR1 & TIM_CR1_CEN) == 0U)
+        (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL || (TIM2->CR1 & TIM_CR1_CEN) == 0U ||
+        TIM2->PSC != TIM2_PRESCALER || TIM2->ARR != UINT32_MAX || TIM2->DIER != 0U)
     {
+        hardware.fault = true;
+        return CANVIEW_TIMEOUT;
+    }
+    canview_stm_stack_watermark_snapshot_t stack_snapshot;
+    if (canview_stm_stack_watermark_sample(&hardware.stack_watermark, &stack_snapshot) !=
+            CANVIEW_OK ||
+        !stack_snapshot.valid ||
+        stack_snapshot.minimum_free_bytes < CANVIEW_STM_STACK_MIN_FREE_BYTES)
+    {
+        hardware.fault = true;
         return CANVIEW_TIMEOUT;
     }
     const uint32_t current_ms = hardware.milliseconds;
@@ -227,12 +371,28 @@ canview_status_t canview_stm_board_health(void *context)
             hardware.fault = true;
             return CANVIEW_TIMEOUT;
         }
+        hardware.previous_health_ms = current_ms;
+        hardware.previous_health_us = current_us;
     }
-    if (!hardware.health_sampled || current_ms != hardware.previous_health_ms)
+    if (!hardware.health_sampled)
     {
         hardware.previous_health_ms = current_ms;
         hardware.previous_health_us = current_us;
+        hardware.health_window_ms = current_ms;
+        hardware.health_window_us = current_us;
         hardware.health_sampled = true;
+    }
+    else if ((uint32_t)(current_ms - hardware.health_window_ms) >= HEALTH_SAMPLE_INTERVAL_MS)
+    {
+        const uint32_t elapsed_ms = current_ms - hardware.health_window_ms;
+        const uint32_t elapsed_us = current_us - hardware.health_window_us;
+        if (elapsed_us < elapsed_ms * HEALTH_MIN_TIMER_US_PER_MS)
+        {
+            hardware.fault = true;
+            return CANVIEW_TIMEOUT;
+        }
+        hardware.health_window_ms = current_ms;
+        hardware.health_window_us = current_us;
     }
     return CANVIEW_OK;
 }
@@ -274,9 +434,10 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
     hardware.fault = true;
+    NVIC_SystemReset();
     for (;;)
     {
-        __WFI(); /* IWDG refresh 없음. PHY는 reset/default standby. */
+        __WFI(); /* reset이 반환하는 비정상 구현에서도 IWDG refresh는 금지한다. */
     }
 }
 
@@ -300,16 +461,55 @@ void canview_stm_board_diagnostic(canview_stm_diagnostic_t *diagnostic)
 {
     if (diagnostic != NULL)
     {
+        canview_stm_build_metadata_t metadata = {0};
+        const canview_status_t metadata_status = canview_stm_build_metadata_get(&metadata);
+        canview_stm_stack_watermark_snapshot_t stack_snapshot = {0U, 0U, false};
+        const canview_status_t stack_status = canview_stm_stack_watermark_sample(
+            &hardware.stack_watermark, &stack_snapshot);
+        canview_stm_service_decision_t service_decision = {0};
+        const canview_stm_service_root_t unloaded_root = {0};
+        const canview_status_t service_status = canview_stm_service_policy_evaluate(
+            &unloaded_root, hardware.reset_reason, &service_decision);
+        const bool service_policy_safe = service_status != CANVIEW_OK;
+        const bool capture_only_contract_valid =
+            canview_stm_capture_only_contract_anchor ==
+            CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE;
         const canview_stm_diagnostic_t snapshot = {
-            hardware.reset_flags,
-            hardware.clock_ready && !hardware.fault ? CANVIEW_STM_SYSCLK_HZ : 0U,
-            hardware.clock_ready && !hardware.fault ? CANVIEW_STM_PCLK_HZ : 0U,
-            0U,
-            false,
-            false,
-            false};
+            .reset_flags = hardware.reset_flags,
+            .reset_reason = hardware.reset_reason,
+            .sysclk_hz = hardware.clock_ready && !hardware.fault ? CANVIEW_STM_SYSCLK_HZ : 0U,
+            .peripheral_hz = hardware.clock_ready && !hardware.fault ? CANVIEW_STM_PCLK_HZ : 0U,
+            .control_capabilities = service_policy_safe ? 0U : service_decision.control_capabilities,
+            .tx_permit = service_policy_safe ? false : service_decision.tx_permit,
+            .authenticity_known = service_policy_safe ? false : service_decision.authenticity_known,
+            .production_debug_lock_known = service_policy_safe
+                                               ? false
+                                               : service_decision.production_debug_lock_known,
+            .build_metadata_valid = metadata_status == CANVIEW_OK && capture_only_contract_valid,
+            .build_contract_digest = metadata.build_contract_digest,
+            .board_profile = metadata.board_profile,
+            .stack_free_bytes = stack_status == CANVIEW_OK ? stack_snapshot.current_free_bytes : 0U,
+            .stack_min_free_bytes = stack_status == CANVIEW_OK
+                                        ? stack_snapshot.minimum_free_bytes
+                                        : 0U,
+            .stack_watermark_valid = stack_status == CANVIEW_OK && stack_snapshot.valid,
+            .service_reset_erase_pending = service_policy_safe
+                                               ? false
+                                               : service_decision.erase_on_service_reset,
+            .protocol_schema_sha256 = metadata.protocol_schema_sha256,
+            .uart_protocol_schema_sha256 = metadata.uart_protocol_schema_sha256,
+            .hardware_digest = metadata.hardware_digest,
+            .build_mode = metadata.build_mode};
         *diagnostic = snapshot;
     }
+}
+
+canview_status_t canview_stm_board_diagnostic_encode(uint8_t *buffer, size_t capacity,
+                                                     size_t *written)
+{
+    canview_stm_diagnostic_t diagnostic;
+    canview_stm_board_diagnostic(&diagnostic);
+    return canview_stm_diagnostic_encode(&diagnostic, buffer, capacity, written);
 }
 
 void canview_stm_board_wait_reset(void)
