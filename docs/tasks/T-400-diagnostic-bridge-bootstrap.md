@@ -86,8 +86,14 @@ idf.py build
 idf.py size-components
 Pop-Location
 py -3 tests/security/bridge_http.py
-py -3 tests/ui/bridge_offline_browser.py
+$env:NODE_PATH = 'C:/Users/digit/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'
+node tests/ui/diagnostic-browser.cjs
 ```
+
+`bridge_http.py`는 기본 실행에서 source/config contract를 검사하고 live endpoint가 없으면
+`NOT_RUN`으로 남긴다. 실제 ESP32 HTTP/WebSocket rejection probe는 `CANVIEW_BRIDGE_URL`을
+명시한 경우에만 실행한다. browser 검사는 offline prototype에 대한 별도 검증이며, 실제
+ESP32 flash·AP association·Android/iOS 실기기 검증을 대신하지 않는다.
 
 ## 보안 경계
 

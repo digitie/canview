@@ -1,0 +1,216 @@
+"""Diagnostic Bridge HTTP/WebSocket 보안 contract와 선택적 live probe.
+
+기본 실행은 Git에 있는 source/config contract만 검사한다. 실제 ESP32 endpoint
+검사는 `CANVIEW_BRIDGE_URL` 또는 `--live-url`을 명시한 경우에만 수행하며, 주소가
+없을 때는 physical/HIL 성공으로 간주하지 않고 `NOT_RUN`으로 출력한다.
+"""
+from __future__ import annotations
+
+import argparse
+import http.client
+import os
+from pathlib import Path
+import sys
+from urllib.parse import urlsplit
+
+
+ROOT = Path(__file__).resolve().parents[2]
+WEB_SOURCE_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/canview_bridge_web.c"
+WEB_HEADER_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/include/canview_bridge_web.h"
+WEB_CMAKE_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/CMakeLists.txt"
+WEB_DEFAULTS_PATH = ROOT / "firmware/diagnostic-bridge/sdkconfig.defaults"
+BROWSER_TEST_PATH = ROOT / "tests/ui/diagnostic-browser.cjs"
+
+
+class ContractError(RuntimeError):
+    """Source contract가 누락되었을 때 발생한다."""
+
+
+def read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError as error:
+        raise ContractError(f"파일을 읽을 수 없음: {path}: {error}") from error
+
+
+def require(text: str, needle: str, label: str) -> None:
+    if needle not in text:
+        raise ContractError(f"{label}에 필요한 contract가 없음: {needle}")
+
+
+def check_static_contract() -> int:
+    """Bridge의 실행 경계가 source/config에 남아 있는지 검사한다."""
+    source = read_text(WEB_SOURCE_PATH)
+    header = read_text(WEB_HEADER_PATH)
+    cmake = read_text(WEB_CMAKE_PATH)
+    defaults = read_text(WEB_DEFAULTS_PATH)
+
+    required_source = (
+        "#include \"esp_http_server.h\"",
+        "#include \"cJSON.h\"",
+        "httpd_ws_recv_frame",
+        "httpd_ws_send_frame",
+        "ws_pre_handshake",
+        "ws_post_handshake",
+        "origin_allowed(request, true)",
+        "parse_ws_token",
+        "session_close_pending",
+        "web_client_idle_expired",
+        "http_config.max_open_sockets = 1U",
+        "http_config.recv_wait_timeout = 5U",
+        "frame.len > CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES",
+        "json_nesting_bounded",
+        "CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES",
+        "CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS",
+        "const esp_err_t close_status",
+        "control_scope",
+        "vehicle_tx",
+    )
+    for needle in required_source:
+        require(source, needle, "canview_bridge_web.c")
+
+    required_header = (
+        "#define CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES (8192U)",
+        "#define CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES (512U)",
+        "#define CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS (300000U)",
+        "esp_err_t canview_bridge_web_stop(void);",
+    )
+    for needle in required_header:
+        require(header, needle, "canview_bridge_web.h")
+
+    for needle in ("esp_http_server", "cjson", "canview_bridge_auth"):
+        require(cmake.lower(), needle.lower(), "Bridge web component CMake")
+    for needle in (
+        "CONFIG_HTTPD_WS_SUPPORT=y",
+        "CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT=y",
+        "CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y",
+    ):
+        require(defaults, needle, "Bridge sdkconfig.defaults")
+
+    for forbidden in (
+        "raw_replay",
+        "canview_can_tx",
+        "control_lease",
+        "esp_wifi_connect(",
+        "esp_netif_napt_enable",
+        "HTTP_PUT",
+        "HTTP_PATCH",
+    ):
+        if forbidden.lower() in source.lower():
+            raise ContractError(f"Bridge read-only contract 위반 문자열: {forbidden}")
+
+    if not BROWSER_TEST_PATH.is_file():
+        raise ContractError(f"offline browser test가 없음: {BROWSER_TEST_PATH}")
+    return len(required_source) + len(required_header) + 3
+
+
+def _request(base_url: str, method: str, path: str, *, headers: dict[str, str] | None = None,
+             body: bytes | None = None, timeout: float) -> int:
+    parsed = urlsplit(base_url)
+    if parsed.scheme != "http" or not parsed.hostname:
+        raise ContractError("live probe는 local HTTP URL만 허용한다")
+    port = parsed.port or 80
+    connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
+    try:
+        connection.request(method, path, body=body, headers=headers or {})
+        response = connection.getresponse()
+        response.read(4096)
+        return response.status
+    finally:
+        connection.close()
+
+
+def _expect_status(label: str, status: int, expected: set[int]) -> None:
+    if status not in expected:
+        expected_text = ",".join(str(value) for value in sorted(expected))
+        raise ContractError(f"live probe {label}: HTTP {status}, expected one of {expected_text}")
+
+
+def check_live_endpoint(base_url: str, timeout: float) -> int:
+    """실제 endpoint에서 무권한·malformed·oversize·WS upgrade 거부를 확인한다."""
+    base = base_url.rstrip("/")
+    count = 0
+    _expect_status("unauthenticated system", _request(base, "GET", "/api/v1/system", timeout=timeout), {401})
+    count += 1
+    _expect_status("unauthenticated peers", _request(base, "GET", "/api/v1/peers", timeout=timeout), {401})
+    count += 1
+
+    rejected_origin_headers = {
+        "Content-Type": "application/json",
+        "Origin": "http://evil.invalid",
+    }
+    _expect_status(
+        "unsupported Origin",
+        _request(base, "POST", "/api/v1/session", headers=rejected_origin_headers,
+                 body=b"{}", timeout=timeout),
+        {403},
+    )
+    count += 1
+
+    oversize_headers = {
+        "Content-Type": "application/json",
+        "Origin": "http://192.168.4.1",
+        "Content-Length": "8193",
+    }
+    _expect_status(
+        "oversize session body",
+        _request(base, "POST", "/api/v1/session", headers=oversize_headers,
+                 body=b"{" + b"a" * 8191 + b"}", timeout=timeout),
+        {400, 408, 413, 429},
+    )
+    count += 1
+
+    malformed_headers = {
+        "Content-Type": "application/json",
+        "Origin": "http://192.168.4.1",
+    }
+    _expect_status(
+        "duplicate/malformed session JSON",
+        _request(base, "POST", "/api/v1/session", headers=malformed_headers,
+                 body=b'{"challenge":"x","challenge":"y","nonce":"x","pin":"123456"}',
+                 timeout=timeout),
+        {400, 401, 403, 408, 429},
+    )
+    count += 1
+
+    ws_headers = {
+        "Connection": "Upgrade",
+        "Upgrade": "websocket",
+        "Origin": "http://192.168.4.1",
+        "Sec-WebSocket-Version": "13",
+        "Sec-WebSocket-Key": "dGVzdC1jYW52aWV3LWtleQ==",
+        "Sec-WebSocket-Protocol": "canview-session, canview-session.invalid",
+    }
+    ws_status = _request(base, "GET", "/api/v1/live?token=forbidden", headers=ws_headers, timeout=timeout)
+    if ws_status == 101:
+        raise ContractError("live probe query token으로 WebSocket upgrade가 허용됨")
+    count += 1
+    return count
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--live-url", default=os.environ.get("CANVIEW_BRIDGE_URL"))
+    parser.add_argument("--timeout", type=float, default=2.0)
+    parser.add_argument("--require-live", action="store_true",
+                        help="live URL가 없으면 NOT_RUN을 오류로 취급한다")
+    args = parser.parse_args(argv)
+    if args.timeout <= 0.0:
+        parser.error("--timeout은 양수여야 한다")
+
+    try:
+        static_count = check_static_contract()
+        print(f"PASS: Bridge HTTP/WebSocket read-only source contract ({static_count} checks)")
+        if not args.live_url:
+            print("NOT_RUN: CANVIEW_BRIDGE_URL이 없어 ESP32 HTTP/WebSocket live probe를 실행하지 않음")
+            return 2 if args.require_live else 0
+        live_count = check_live_endpoint(args.live_url, args.timeout)
+        print(f"PASS: Bridge HTTP/WebSocket live rejection probe ({live_count} checks)")
+        return 0
+    except (ContractError, OSError, ValueError, http.client.HTTPException) as error:
+        print(f"FAIL: Bridge HTTP/WebSocket contract: {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

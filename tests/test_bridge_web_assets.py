@@ -87,6 +87,8 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("close_status", source)
         self.assertIn("button_hold_consumed", source)
         self.assertIn("session_close_pending", source)
+        self.assertIn("CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS", source)
+        self.assertIn("web_client_idle_expired", source)
         self.assertIn("max_open_sockets = 1U", source)
         self.assertIn("volatile bool stopped", dns_source)
         self.assertIn("vTaskSuspend(NULL)", dns_source)

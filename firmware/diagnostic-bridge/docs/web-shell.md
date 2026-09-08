@@ -11,6 +11,7 @@
 | portable auth | `canview_bridge_auth`의 SDK-independent C99 상태기계 |
 | BSP | GPIO4 service input, GPIO5 status LED, board profile과 memory contract |
 | poll 주기 | main task가 `100 ms`마다 `canview_bridge_web_poll()` 호출 |
+| client idle | HTTP/WebSocket 활동이 5분 없으면 memory session을 폐기하고 client를 닫는다 |
 | HTTP stack | ESP-IDF `esp_http_server` |
 | JSON | `cJSON`, 16 KiB fixed arena, 응답 4 KiB 이하 |
 | WebSocket | `esp_http_server` WebSocket, incoming frame 512 byte 이하, server event 1회 |
@@ -29,7 +30,7 @@ HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 respo
 4. `WIFI_MODE_APSTA`를 시작한다. AP channel은 KR channel `6`으로 고정하고 STA에 external AP credential을 설정하거나 `esp_wifi_connect()`를 호출하지 않는다.
 5. DNS와 HTTP server를 시작한다. 외부 AP/NAPT와 vehicle CAN path는 없다.
 6. web start 성공 직후 같은 owner가 `canview_esp_core_arm_watchdog()`를 호출하고서 service loop를 시작한다. 실패하면 web 자원을 중지하고 safe idle로 남는다.
-7. GPIO4가 3초 연속 low일 때만 10분 service window를 연다. release는 window를 닫지 않지만 timeout과 reset/재부팅은 session을 폐기하고 active HTTP/WebSocket client를 닫는다.
+7. GPIO4가 3초 연속 low일 때만 10분 service window를 연다. release는 window를 닫지 않지만 service-window timeout, 5분 client idle timeout과 reset/재부팅은 session을 폐기하고 active HTTP/WebSocket client를 닫는다.
 
 window가 닫힌 동안 `/api/v1/bootstrap`은 challenge를 발급하지 않는다. window가 열린 뒤 challenge를 발급하고, 같은 window의 challenge 재발급은 이전 challenge를 폐기한다.
 

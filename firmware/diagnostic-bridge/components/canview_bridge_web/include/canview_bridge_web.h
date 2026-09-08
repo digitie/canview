@@ -18,6 +18,7 @@
 #define CANVIEW_BRIDGE_WEB_AP_PASSWORD_BYTES (64U)
 #define CANVIEW_BRIDGE_WEB_SERVICE_HOLD_MS (3000U)
 #define CANVIEW_BRIDGE_WEB_SERVICE_WINDOW_MS (600000U)
+#define CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS (300000U)
 #define CANVIEW_BRIDGE_WEB_POLL_PERIOD_MS (100U)
 #define CANVIEW_BRIDGE_WEB_WIFI_CHANNEL (6U)
 
@@ -48,7 +49,8 @@ esp_err_t canview_bridge_web_stop(void);
  * @brief app의 단일 owner loop에서 100 ms마다 service button을 갱신한다.
  *
  * 3초 연속 hold 뒤 service window를 열고, release 후에도 10분 동안 유지한다. 이 함수는
- * HTTP task와 mutex로 동기화되며 ISR에서 호출하면 안 된다.
+ * HTTP task와 mutex로 동기화되며 ISR에서 호출하면 안 된다. 유휴 client는
+ * `CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS` 뒤에 세션을 폐기하고 연결을 닫는다.
  */
 esp_err_t canview_bridge_web_poll(void);
 

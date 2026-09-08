@@ -53,6 +53,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B -m unittest discover -s tests -p "test_*.py"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -B tests/security/bridge_http.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -m pip install --require-hashes -r tools/requirements-docs.lock
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python -B tools/build_docs.py
