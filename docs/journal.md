@@ -17,13 +17,15 @@ stop/start session reset을 명시했다. no-TX analyzer는 bounded JSONL/schema
 sequence/complete/TX-gate 검증으로 fail-closed하게 고쳤다. module과 CMSIS adapter의
 strict C99 fake-register 시험 및 mutation 경계를 추가했다.
 
-현재 candidate worktree에서 T103 focused CTest 2/2, no-TX helper 6/6, 독립 coverage
-function 100%/line≥95%/branch≥90%를 통과했다. FDCAN module coverage는
-function 100%/line 99.1%/branch 94.1%, CMSIS adapter fake-register coverage는
-function 100%/line 98.6%/branch 93.2%다. target Debug/Release, full host/WSL
-sanitizer와 post-fix reviewer/CI는 아직 다시 실행할 대상이며, 실제 board flash,
-FDCAN electrical/bitrate/IRQ latency, reset/brownout, analyzer TX-zero와 차량
-capture는 장비가 없어 `NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
+source fix candidate `3e13b2ca6e72a3aec5a32a6357285c614bc191f9`에서 T103 focused
+CTest 2/2, 전체 Windows CTest 118/118, no-TX helper 6/6, WSL 일반 clone의
+ASan/UBSan 전체 CTest 118/118과 독립 coverage function 100%/line≥95%/branch≥90%를
+통과했다. FDCAN module coverage는 function 100%/line 99.1%/branch 94.1%, CMSIS
+adapter fake-register coverage는 function 100%/line 98.6%/branch 93.2%다.
+STM32 Debug/Release target clean build와 warning/error scan 0건도 갱신했다. post-fix
+reviewer/CI는 아직 남아 있으며, 실제 board flash, FDCAN electrical/bitrate/IRQ
+latency, reset/brownout, analyzer TX-zero와 차량 capture는 장비가 없어 `NOT_RUN`,
+차량 CAN TX는 `NO-GO`다.
 
 
 ## 2026-09-08 (codex, T-500 merge closure)

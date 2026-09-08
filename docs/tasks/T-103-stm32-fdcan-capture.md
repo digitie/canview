@@ -81,6 +81,12 @@ capture-only JSONL 계약 시험이다. 둘 다 physical harness의 G2 결과를
 않는다. 실제 analyzer에서 ACK/data TX 0건을 측정하는 acceptance는 장비가 없어
 `NOT_RUN`이다.
 
+2026-09-09 source fix candidate `3e13b2ca6e72a3aec5a32a6357285c614bc191f9`에서
+focused CTest 2/2, 전체 Windows CTest 118/118, WSL 일반 clone ASan/UBSan 전체
+CTest 118/118, no-TX helper 6/6, coverage 기준, STM32 Debug/Release target
+clean build와 warning/error scan 0건을 확인했다. 이 결과는 physical/HIL을 대신하지
+않으며, 실제 board·전원·CAN analyzer·차량 evidence는 계속 `NOT_RUN`이다.
+
 ## evidence
 
 CAN simulator seed/profile, analyzer log, frame count·drop·latency report, firmware digest를 G2 bundle에 넣는다.
