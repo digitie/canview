@@ -7,6 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/CanviewWarnings.cmake)
 option(CANVIEW_COVERAGE "Clang source coverage for portable code" OFF)
 option(CANVIEW_SANITIZE "Address/undefined sanitizer (non-Windows)" OFF)
+option(CANVIEW_LONG_TESTS "Enable explicitly requested long-duration host tests" OFF)
 if(CANVIEW_COVERAGE)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
         message(FATAL_ERROR "Coverage requires Clang llvm-profdata/llvm-cov")
@@ -191,9 +192,17 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/protocol/schema/uart-v1.0.yaml --check)
     add_test(NAME uart-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
+    # Keep the default CTest contract bounded. The 24-hour virtual soak remains
+    # available only when explicitly enabled by a caller with a matching job
+    # timeout; it must not make ordinary PR validation exceed the preset limit.
     add_test(NAME uart-fault-stream COMMAND ${Python3_EXECUTABLE} -X utf8 -B
-        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
-    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 300)
+        ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 1)
+    set_tests_properties(uart-fault-stream PROPERTIES TIMEOUT 60)
+    if(CANVIEW_LONG_TESTS)
+        add_test(NAME uart-fault-stream-24h COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/protocol/uart_fault_stream.py --seed 1 --duration-seconds 86400)
+        set_tests_properties(uart-fault-stream-24h PROPERTIES TIMEOUT 90000)
+    endif()
     add_test(NAME protocol-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/protocol/test_schema.py -v)
     add_test(NAME espnow-reference COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_espnow_reference.py -v)

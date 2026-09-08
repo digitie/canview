@@ -78,6 +78,14 @@ canview_status_t canview_bridge_auth_issue_challenge(
 canview_status_t canview_bridge_auth_set_service_window(canview_bridge_auth_t *auth, bool open);
 
 /**
+ * @brief Monotonic timestamp 기준으로 만료된 challenge/token과 lockout을 정리한다.
+ *
+ * 호출자는 auth object의 직렬화를 소유해야 한다. Web service가 public route만 처리하는
+ * 동안에도 token expiry를 관찰할 수 있도록 하며, clock이 뒤로 이동한 경우 fail closed한다.
+ */
+canview_status_t canview_bridge_auth_reconcile(canview_bridge_auth_t *auth, uint64_t now_ms);
+
+/**
  * @brief challenge·nonce·PIN으로 session token을 만든다.
  *
  * PIN은 6–8자리 decimal 문자열이어야 하며, 성공한 challenge는 즉시 one-time 폐기된다.

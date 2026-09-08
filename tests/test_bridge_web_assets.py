@@ -18,10 +18,13 @@ WEB_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_b
 WEB_SESSION_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web_session.c"
 WEB_SESSION_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web_session.h"
 DNS_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "dns_server.c"
+AUTH_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_auth" / "canview_bridge_auth.c"
+AUTH_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_auth" / "include" / "canview_bridge_auth.h"
 APP_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "main" / "app_main.c"
 WEB_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web.h"
 WEB_DEFAULTS = ROOT / "firmware" / "diagnostic-bridge" / "sdkconfig.defaults"
 SECURITY_SCRIPT = ROOT / "tests" / "security" / "bridge_http.py"
+CMAKE_SOURCE = ROOT / "CMakeLists.txt"
 
 
 class BridgeWebAssetTests(unittest.TestCase):
@@ -79,9 +82,12 @@ class BridgeWebAssetTests(unittest.TestCase):
         session_source = WEB_SESSION_SOURCE.read_text(encoding="utf-8")
         session_header = WEB_SESSION_HEADER.read_text(encoding="utf-8")
         dns_source = DNS_SOURCE.read_text(encoding="utf-8")
+        auth_source = AUTH_SOURCE.read_text(encoding="utf-8")
+        auth_header = AUTH_HEADER.read_text(encoding="utf-8")
         app_source = APP_SOURCE.read_text(encoding="utf-8")
         header = WEB_HEADER.read_text(encoding="utf-8")
         defaults = WEB_DEFAULTS.read_text(encoding="utf-8")
+        cmake = CMAKE_SOURCE.read_text(encoding="utf-8")
         self.assertIn("#define CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES (8192U)", header)
         self.assertIn("#define CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES (512U)", header)
         self.assertIn("CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES", source)
@@ -96,8 +102,9 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("canview_bridge_web_session_is_closing", source)
         self.assertIn("canview_bridge_web_session_begin_close", source)
         self.assertIn("token_authenticated_and_record", source)
+        self.assertIn("arm_pre_auth_for_request", source)
+        self.assertIn("canview_bridge_auth_reconcile", source)
         self.assertIn("Authentication and activity recording share one lock", source)
-        self.assertIn("Do not tear down Wi-Fi while the DNS task may still use its socket", source)
         self.assertIn("open_fn = open_connection", source)
         self.assertIn("httpd_sess_set_recv_override", source)
         self.assertIn("receive_with_pre_auth_deadline", source)
@@ -113,6 +120,14 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("lru_purge_enable = false", source)
         self.assertIn("Keep the handle, locks, and auth state alive", source)
         self.assertNotIn("(void)httpd_stop", source)
+        self.assertIn("canview_bridge_auth_reconcile", auth_source)
+        self.assertIn("canview_bridge_auth_reconcile", auth_header)
+        self.assertIn("DNS task owns its descriptor", dns_source)
+        self.assertNotIn("const int socket_fd = dns_state.socket_fd", dns_source)
+        self.assertIn("CANVIEW_LONG_TESTS", cmake)
+        self.assertIn("--duration-seconds 1", cmake)
+        self.assertIn("uart-fault-stream-24h", cmake)
+        self.assertIn("--duration-seconds 86400", cmake)
         enter_body = source.split("static esp_err_t enter_request", 1)[1].split(
             "static void leave_request", 1
         )[0]

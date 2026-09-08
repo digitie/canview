@@ -213,6 +213,33 @@ static int test_lockout_and_expiry(void)
     return 0;
 }
 
+static int test_reconcile_expiry(void)
+{
+    fake_t fake = {5000U, 100U, false, false, false, false};
+    uint8_t digest[CANVIEW_BRIDGE_AUTH_PIN_DIGEST_BYTES] = {0};
+    expected_digest("123456", digest);
+    const canview_bridge_auth_callbacks_t callbacks = {fake_now, fake_digest, fake_mac, fake_random,
+                                                       &fake};
+    canview_bridge_auth_t auth = {0};
+    uint8_t challenge[CANVIEW_BRIDGE_AUTH_CHALLENGE_BYTES] = {0};
+    uint8_t nonce[CANVIEW_BRIDGE_AUTH_CLIENT_NONCE_BYTES] = {0x44U};
+    uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
+    CHECK(canview_bridge_auth_init(&auth, digest, &callbacks) == CANVIEW_OK);
+    CHECK(canview_bridge_auth_set_service_window(&auth, true) == CANVIEW_OK);
+    CHECK(canview_bridge_auth_issue_challenge(&auth, challenge) == CANVIEW_OK);
+    CHECK(canview_bridge_auth_reconcile(&auth, fake.now_ms) == CANVIEW_OK);
+    CHECK(auth.challenge_valid);
+    CHECK(canview_bridge_auth_open_session(&auth, challenge, nonce, "123456", 6U, token) ==
+          CANVIEW_OK);
+    CHECK(auth.token_valid);
+    CHECK(canview_bridge_auth_reconcile(&auth, fake.now_ms + CANVIEW_BRIDGE_AUTH_TOKEN_TTL_MS + 1U) ==
+          CANVIEW_OK);
+    CHECK(!auth.token_valid);
+    CHECK(canview_bridge_auth_reconcile(&auth, fake.now_ms - 1U) == CANVIEW_OK);
+    CHECK(!auth.token_valid);
+    return 0;
+}
+
 static int test_callback_failures_and_expiry(void)
 {
     fake_t fake = {4000U, 80U, false, false, false, false};
@@ -281,6 +308,7 @@ int main(void)
     CHECK(test_lifecycle() == 0);
     CHECK(test_bounds_and_replay() == 0);
     CHECK(test_lockout_and_expiry() == 0);
+    CHECK(test_reconcile_expiry() == 0);
     CHECK(test_callback_failures_and_expiry() == 0);
     (void)puts("PASS: bridge auth lifecycle, bounds, replay, lockout, expiry");
     return 0;

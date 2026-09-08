@@ -135,6 +135,28 @@ static canview_status_t auth_failure(canview_bridge_auth_t *auth, uint64_t now_m
     return CANVIEW_AUTH_FAILED;
 }
 
+canview_status_t canview_bridge_auth_reconcile(canview_bridge_auth_t *auth, uint64_t now_ms)
+{
+    if (!context_ready(auth))
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    refresh_lockout(auth, now_ms);
+    if (auth->challenge_valid &&
+        !elapsed_within(now_ms, auth->challenge_issued_ms,
+                        CANVIEW_BRIDGE_AUTH_CHALLENGE_TTL_MS))
+    {
+        clear_challenge(auth);
+    }
+    if (auth->token_valid &&
+        (!auth->service_window_open ||
+         !elapsed_within(now_ms, auth->token_issued_ms, CANVIEW_BRIDGE_AUTH_TOKEN_TTL_MS)))
+    {
+        clear_token(auth);
+    }
+    return CANVIEW_OK;
+}
+
 canview_status_t canview_bridge_auth_init(canview_bridge_auth_t *auth,
                                           const uint8_t *pin_digest,
                                           const canview_bridge_auth_callbacks_t *callbacks)
@@ -222,7 +244,10 @@ canview_status_t canview_bridge_auth_open_session(
     {
         return CANVIEW_TIMEOUT;
     }
-    refresh_lockout(auth, now_ms);
+    if (canview_bridge_auth_reconcile(auth, now_ms) != CANVIEW_OK)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
     if (auth->locked || !auth->service_window_open)
     {
         return CANVIEW_AUTH_FAILED;
@@ -291,16 +316,13 @@ canview_status_t canview_bridge_auth_check_token(
     {
         return CANVIEW_TIMEOUT;
     }
-    refresh_lockout(auth, now_ms);
+    if (canview_bridge_auth_reconcile(auth, now_ms) != CANVIEW_OK)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
     if (!auth->service_window_open || !auth->token_valid ||
-        !elapsed_within(now_ms, auth->token_issued_ms, CANVIEW_BRIDGE_AUTH_TOKEN_TTL_MS) ||
         !constant_time_equal(token, auth->token, sizeof(auth->token)))
     {
-        if (auth->token_valid &&
-            !elapsed_within(now_ms, auth->token_issued_ms, CANVIEW_BRIDGE_AUTH_TOKEN_TTL_MS))
-        {
-            clear_token(auth);
-        }
         return CANVIEW_AUTH_FAILED;
     }
     return CANVIEW_OK;

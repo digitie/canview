@@ -24,7 +24,6 @@ typedef struct
     StaticTask_t task_buffer;
     StackType_t task_stack[CANVIEW_BRIDGE_DNS_STACK_BYTES];
     TaskHandle_t volatile task;
-    volatile int socket_fd;
     volatile bool stop_requested;
     volatile bool stopped;
     volatile bool started;
@@ -140,13 +139,11 @@ static void dns_task(void *context)
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
             continue;
         }
-        state->socket_fd = socket_fd;
         const struct timeval timeout = {.tv_sec = CANVIEW_BRIDGE_DNS_RECV_TIMEOUT_MS / 1000U,
                                          .tv_usec = (CANVIEW_BRIDGE_DNS_RECV_TIMEOUT_MS % 1000U) * 1000U};
         if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0)
         {
             close_socket(socket_fd);
-            state->socket_fd = -1;
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
             continue;
         }
@@ -157,7 +154,6 @@ static void dns_task(void *context)
         if (bind(socket_fd, (const struct sockaddr *)&address, sizeof(address)) != 0)
         {
             close_socket(socket_fd);
-            state->socket_fd = -1;
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
             continue;
         }
@@ -204,13 +200,11 @@ static void dns_task(void *context)
             }
         }
         close_socket(socket_fd);
-        state->socket_fd = -1;
         if (!state->stop_requested)
         {
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
         }
     }
-    state->socket_fd = -1;
     state->stopped = true;
     for (;;)
     {
@@ -225,7 +219,6 @@ esp_err_t canview_bridge_dns_start(void)
         return ESP_ERR_INVALID_STATE;
     }
     memset(&dns_state, 0, sizeof(dns_state));
-    dns_state.socket_fd = -1;
     dns_state.task = xTaskCreateStatic(dns_task, "bridge_dns", CANVIEW_BRIDGE_DNS_STACK_BYTES,
                                        &dns_state, CANVIEW_BRIDGE_DNS_PRIORITY,
                                        dns_state.task_stack, &dns_state.task_buffer);
@@ -244,11 +237,7 @@ esp_err_t canview_bridge_dns_stop(void)
         return ESP_OK;
     }
     dns_state.stop_requested = true;
-    const int socket_fd = dns_state.socket_fd;
-    if (socket_fd >= 0)
-    {
-        (void)shutdown(socket_fd, SHUT_RDWR);
-    }
+    /* The DNS task owns its descriptor. SO_RCVTIMEO bounds the wait, avoiding FD reuse races. */
     const TickType_t wait_ticks = pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RECV_TIMEOUT_MS + 500U);
     TickType_t waited = 0U;
     while (!dns_state.stopped && waited < wait_ticks)
@@ -267,6 +256,5 @@ esp_err_t canview_bridge_dns_stop(void)
     }
     dns_state.task = NULL;
     memset(&dns_state, 0, sizeof(dns_state));
-    dns_state.socket_fd = -1;
     return ESP_OK;
 }

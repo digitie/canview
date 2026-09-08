@@ -316,6 +316,9 @@ static void state_lock_give(canview_bridge_web_state_t *state)
     }
 }
 
+static bool arm_pre_auth_client(canview_bridge_web_state_t *state, int client_fd,
+                                uint64_t started_ms);
+
 static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t **state)
 {
     if (request == NULL || state == NULL || request->user_ctx == NULL)
@@ -345,6 +348,21 @@ static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t 
         state_lock_give(candidate);
         (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "400 Bad Request", "invalid client");
+    }
+    uint64_t now_ms = 0U;
+    if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK ||
+        canview_bridge_auth_reconcile(&candidate->auth, now_ms) != CANVIEW_OK)
+    {
+        state_lock_give(candidate);
+        (void)xSemaphoreGive(candidate->request_lock);
+        return send_custom_status(request, "503 Service Unavailable", "clock unavailable");
+    }
+    if (candidate->session.active_client_fd == client_fd && !candidate->auth.token_valid &&
+        !arm_pre_auth_client(candidate, client_fd, now_ms))
+    {
+        state_lock_give(candidate);
+        (void)xSemaphoreGive(candidate->request_lock);
+        return send_custom_status(request, "503 Service Unavailable", "session unavailable");
     }
     if (canview_bridge_web_session_is_closing(&candidate->session))
     {
@@ -398,6 +416,28 @@ static bool arm_pre_auth_client(canview_bridge_web_state_t *state, int client_fd
     state->pre_auth_started_ms = started_ms;
     state->pre_auth_client_valid = true;
     return true;
+}
+
+static bool arm_pre_auth_for_request(httpd_req_t *request, canview_bridge_web_state_t *state)
+{
+    if (request == NULL || state == NULL)
+    {
+        return false;
+    }
+    const int client_fd = httpd_req_to_sockfd(request);
+    if (client_fd < 0 || !state_lock_take(state))
+    {
+        return false;
+    }
+    uint64_t now_ms = UINT64_MAX;
+    if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK)
+    {
+        /* A failed clock cannot extend an unauthenticated connection. */
+        now_ms = UINT64_MAX;
+    }
+    const bool armed = arm_pre_auth_client(state, client_fd, now_ms);
+    state_lock_give(state);
+    return armed;
 }
 
 static bool enter_ws_io(canview_bridge_web_state_t *state)
@@ -716,7 +756,12 @@ static bool authenticated_and_record(httpd_req_t *request, canview_bridge_web_st
 {
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool parsed = parse_bearer(request, token);
-    const bool valid = parsed && token_authenticated_and_record(request, state, token);
+    bool valid = parsed && token_authenticated_and_record(request, state, token);
+    if (!valid)
+    {
+        /* Missing, malformed, wrong-scheme, and expired credentials share one bounded path. */
+        (void)arm_pre_auth_for_request(request, state);
+    }
     secure_zero(token, sizeof(token));
     return valid;
 }
@@ -742,6 +787,10 @@ static bool authenticated_and_logout(httpd_req_t *request, canview_bridge_web_st
             }
         }
         state_lock_give(state);
+    }
+    if (!valid)
+    {
+        (void)arm_pre_auth_for_request(request, state);
     }
     secure_zero(token, sizeof(token));
     return valid;
@@ -1438,6 +1487,10 @@ static bool ws_authenticated_and_record(httpd_req_t *request, canview_bridge_web
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token);
     const bool valid = allowed && token_authenticated_and_record(request, state, token);
+    if (!valid)
+    {
+        (void)arm_pre_auth_for_request(request, state);
+    }
     secure_zero(token, sizeof(token));
     return valid;
 }
@@ -2033,6 +2086,17 @@ esp_err_t canview_bridge_web_poll(void)
     if (!state_lock_take(&web_state))
     {
         return ESP_ERR_TIMEOUT;
+    }
+    if (canview_bridge_auth_reconcile(&web_state.auth, now_ms) != CANVIEW_OK)
+    {
+        state_lock_give(&web_state);
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (web_state.session.active_client_fd >= 0 && !web_state.auth.token_valid &&
+        !arm_pre_auth_client(&web_state, web_state.session.active_client_fd, now_ms))
+    {
+        state_lock_give(&web_state);
+        return ESP_ERR_INVALID_STATE;
     }
     httpd_handle_t expired_server = NULL;
     int expired_client_fd = -1;
