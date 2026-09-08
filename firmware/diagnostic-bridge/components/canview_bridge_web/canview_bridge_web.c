@@ -82,6 +82,7 @@ typedef struct
     int pre_auth_client_fd;
     uint64_t pre_auth_started_ms;
     bool pre_auth_client_valid;
+    bool pre_auth_close_pending;
     bool request_deadline_valid;
     bool event_loop_initialized;
     bool wifi_initialized;
@@ -662,7 +663,18 @@ static void clear_pre_auth_client(canview_bridge_web_state_t *state, int client_
         state->pre_auth_client_fd = -1;
         state->pre_auth_started_ms = 0U;
         state->pre_auth_client_valid = false;
+        state->pre_auth_close_pending = false;
     }
+}
+
+/* Caller holds state_lock. An idle unauthenticated socket must be closed by the poll owner. */
+static bool pre_auth_client_expired_locked(const canview_bridge_web_state_t *state,
+                                           uint64_t now_ms)
+{
+    return state != NULL && state->pre_auth_client_valid &&
+           !state->pre_auth_close_pending &&
+           (now_ms < state->pre_auth_started_ms ||
+            now_ms - state->pre_auth_started_ms >= CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS);
 }
 
 /* Caller holds state_lock. Do not extend an already running pre-auth deadline. */
@@ -2194,6 +2206,7 @@ static esp_err_t open_connection(httpd_handle_t server, int client_fd)
     web_state.request_deadline_started_ms = 0U;
     web_state.request_deadline_ms = 0U;
     web_state.request_deadline_valid = false;
+    web_state.pre_auth_close_pending = false;
     uint64_t now_ms = 0U;
     const bool clock_ready = idf_now_ms(NULL, &now_ms) == CANVIEW_OK;
     const bool pre_auth_ready = clock_ready &&
@@ -2539,6 +2552,14 @@ esp_err_t canview_bridge_web_poll(void)
             expired_server = web_state.server;
             (void)canview_bridge_auth_logout(&web_state.auth);
         }
+    }
+    /* HTTPD select() is not bounded by the socket receive timeout. Wake it explicitly. */
+    if (expired_server == NULL && web_state.server != NULL &&
+        pre_auth_client_expired_locked(&web_state, now_ms))
+    {
+        expired_server = web_state.server;
+        expired_client_fd = web_state.pre_auth_client_fd;
+        web_state.pre_auth_close_pending = true;
     }
     state_lock_give(&web_state);
     if (expired_server != NULL && expired_client_fd >= 0)
