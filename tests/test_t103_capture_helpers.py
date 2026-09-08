@@ -14,6 +14,7 @@ if str(TESTS_ROOT) not in sys.path:
     sys.path.insert(0, str(TESTS_ROOT))
 
 from hil.assert_no_tx import assert_no_tx, main as assert_no_tx_main
+from hil.run import _git_commit
 from hil.run_can_capture import main as run_capture
 
 
@@ -21,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
 EXPECTED_SOURCE = "t103-fixture"
 EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
-EXPECTED_COMMIT = "b938bd603f059281a29f54f6e91f17ba8ab72d38"
+EXPECTED_COMMIT = _git_commit()
 EXPECTED_FIRMWARE_IDENTITY = "f321910ee51e02920b19da0ccb5f7823e9cac3b54bab7232f77b2a791ec1107d"
 
 
