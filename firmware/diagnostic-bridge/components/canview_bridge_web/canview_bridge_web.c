@@ -339,6 +339,43 @@ static bool reset_httpd_watchdog_user(canview_bridge_web_state_t *state)
     return true;
 }
 
+static int send_with_worker_deadline(httpd_handle_t server, int client_fd, const char *buffer,
+                                    size_t buffer_length, int flags)
+{
+    (void)server;
+    if (client_fd < 0 || buffer == NULL)
+    {
+        return HTTPD_SOCK_ERR_INVALID;
+    }
+    if (!reset_httpd_watchdog_user(&web_state))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    const int sent = send(client_fd, buffer, buffer_length, flags);
+    const int send_errno = errno;
+    if (!reset_httpd_watchdog_user(&web_state))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    if (sent >= 0)
+    {
+        return sent;
+    }
+    switch (send_errno)
+    {
+    case EAGAIN:
+    case EINTR:
+        return HTTPD_SOCK_ERR_TIMEOUT;
+    case EINVAL:
+    case EBADF:
+    case EFAULT:
+    case ENOTSOCK:
+        return HTTPD_SOCK_ERR_INVALID;
+    default:
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+}
+
 static void httpd_heartbeat_work(void *context)
 {
     canview_bridge_web_state_t *state = context;
@@ -1990,12 +2027,23 @@ static esp_err_t open_connection(httpd_handle_t server, int client_fd)
     }
     const esp_err_t status =
         httpd_sess_set_recv_override(server, client_fd, receive_with_pre_auth_deadline);
-    if (status != ESP_OK && state_lock_take(&web_state))
+    if (status != ESP_OK)
+    {
+        if (state_lock_take(&web_state))
+        {
+            clear_pre_auth_client(&web_state, client_fd);
+            state_lock_give(&web_state);
+        }
+        return status;
+    }
+    const esp_err_t send_status = httpd_sess_set_send_override(server, client_fd,
+                                                                send_with_worker_deadline);
+    if (send_status != ESP_OK && state_lock_take(&web_state))
     {
         clear_pre_auth_client(&web_state, client_fd);
         state_lock_give(&web_state);
     }
-    return status;
+    return send_status;
 }
 
 static void close_session(httpd_handle_t server, int client_fd)
@@ -2164,7 +2212,7 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     /* A second client must be rejected; HTTPD must not evict the authenticated owner. */
     http_config.lru_purge_enable = false;
     http_config.recv_wait_timeout = 5U;
-    http_config.send_wait_timeout = 5U;
+    http_config.send_wait_timeout = 1U;
     http_config.open_fn = open_connection;
     http_config.close_fn = close_session;
     status = httpd_start(&web_state.server, &http_config);
