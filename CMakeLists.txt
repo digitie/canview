@@ -32,12 +32,22 @@ target_include_directories(canview_bridge_auth_host PUBLIC
     firmware/diagnostic-bridge/components/canview_bridge_auth/include
     shared/interface)
 target_link_libraries(canview_bridge_auth_host PUBLIC canview_warnings)
+add_library(canview_bridge_web_session_host STATIC
+    firmware/diagnostic-bridge/components/canview_bridge_web/canview_bridge_web_session.c)
+target_include_directories(canview_bridge_web_session_host PUBLIC
+    firmware/diagnostic-bridge/components/canview_bridge_web/include)
+target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
     add_executable(canview-bridge-auth-tests tests/bridge_web/test_auth.c)
     target_link_libraries(canview-bridge-auth-tests PRIVATE canview_bridge_auth_host canview_warnings)
     add_test(NAME bridge-auth COMMAND canview-bridge-auth-tests)
     set_tests_properties(bridge-auth PROPERTIES TIMEOUT 30)
+    add_executable(canview-bridge-web-session-tests tests/bridge_web/test_session.c)
+    target_link_libraries(canview-bridge-web-session-tests PRIVATE
+        canview_bridge_web_session_host canview_warnings)
+    add_test(NAME bridge-web-session COMMAND canview-bridge-web-session-tests)
+    set_tests_properties(bridge-web-session PROPERTIES TIMEOUT 30)
     foreach(bridge 0 1)
         if(bridge)
             set(esp_prefix canview-esp32-bridge)

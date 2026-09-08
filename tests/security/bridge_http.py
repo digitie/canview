@@ -16,10 +16,14 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB_SOURCE_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/canview_bridge_web.c"
+WEB_SESSION_SOURCE_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/canview_bridge_web_session.c"
+WEB_SESSION_HEADER_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/include/canview_bridge_web_session.h"
 WEB_HEADER_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/include/canview_bridge_web.h"
 WEB_CMAKE_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/CMakeLists.txt"
 WEB_DEFAULTS_PATH = ROOT / "firmware/diagnostic-bridge/sdkconfig.defaults"
 BROWSER_TEST_PATH = ROOT / "tests/ui/diagnostic-browser.cjs"
+ALLOWED_LIVE_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "192.168.4.1",
+                                "canview-diag.local"})
 
 
 class ContractError(RuntimeError):
@@ -41,6 +45,8 @@ def require(text: str, needle: str, label: str) -> None:
 def check_static_contract() -> int:
     """Bridge의 실행 경계가 source/config에 남아 있는지 검사한다."""
     source = read_text(WEB_SOURCE_PATH)
+    session_source = read_text(WEB_SESSION_SOURCE_PATH)
+    session_header = read_text(WEB_SESSION_HEADER_PATH)
     header = read_text(WEB_HEADER_PATH)
     cmake = read_text(WEB_CMAKE_PATH)
     defaults = read_text(WEB_DEFAULTS_PATH)
@@ -54,7 +60,9 @@ def check_static_contract() -> int:
         "ws_post_handshake",
         "origin_allowed(request, true)",
         "parse_ws_token",
-        "session_close_pending",
+        "canview_bridge_web_session_is_closing",
+        "canview_bridge_web_session_begin_close",
+        "record_authenticated_request",
         "web_client_idle_expired",
         "http_config.max_open_sockets = 1U",
         "http_config.recv_wait_timeout = 5U",
@@ -68,6 +76,23 @@ def check_static_contract() -> int:
     )
     for needle in required_source:
         require(source, needle, "canview_bridge_web.c")
+
+    enter_body = source.split("static esp_err_t enter_request", 1)[1].split(
+        "static void leave_request", 1
+    )[0]
+    if "record_authenticated_request" in enter_body:
+        raise ContractError("pre-auth enter_request가 logical session activity를 갱신함")
+    require(source, "const bool activity_recorded = allowed && record_authenticated_request",
+            "WebSocket authentication activity")
+
+    for needle in (
+        "session_close_pending",
+        "canview_bridge_web_session_record_activity",
+        "canview_bridge_web_session_idle_expired",
+        "canview_bridge_web_session_begin_close",
+        "canview_bridge_web_session_close",
+    ):
+        require(session_header + session_source, needle, "canview_bridge_web_session C99 seam")
 
     required_header = (
         "#define CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES (8192U)",
@@ -101,14 +126,16 @@ def check_static_contract() -> int:
 
     if not BROWSER_TEST_PATH.is_file():
         raise ContractError(f"offline browser test가 없음: {BROWSER_TEST_PATH}")
-    return len(required_source) + len(required_header) + 3
+    return len(required_source) + len(required_header) + 3 + 5
 
 
 def _request(base_url: str, method: str, path: str, *, headers: dict[str, str] | None = None,
              body: bytes | None = None, timeout: float) -> int:
     parsed = urlsplit(base_url)
-    if parsed.scheme != "http" or not parsed.hostname:
-        raise ContractError("live probe는 local HTTP URL만 허용한다")
+    if (parsed.scheme != "http" or not parsed.hostname or parsed.username is not None or
+            parsed.password is not None or parsed.query or parsed.fragment or
+            parsed.path not in ("", "/") or parsed.hostname.lower() not in ALLOWED_LIVE_HOSTS):
+        raise ContractError("live probe는 허용된 local HTTP host만 사용한다")
     port = parsed.port or 80
     connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
     try:
@@ -182,8 +209,7 @@ def check_live_endpoint(base_url: str, timeout: float) -> int:
         "Sec-WebSocket-Protocol": "canview-session, canview-session.invalid",
     }
     ws_status = _request(base, "GET", "/api/v1/live?token=forbidden", headers=ws_headers, timeout=timeout)
-    if ws_status == 101:
-        raise ContractError("live probe query token으로 WebSocket upgrade가 허용됨")
+    _expect_status("query-token WebSocket rejection", ws_status, {400, 401, 403, 500})
     count += 1
     return count
 

@@ -15,7 +15,8 @@ if(NOT web_asset_result EQUAL 0)
 endif()
 
 idf_component_register(
-    SRCS "canview_bridge_web.c" "dns_server.c" "${WEB_GEN_DIR}/bridge_assets.c"
+    SRCS "canview_bridge_web.c" "canview_bridge_web_session.c" "dns_server.c"
+         "${WEB_GEN_DIR}/bridge_assets.c"
     INCLUDE_DIRS "include" "${WEB_GEN_DIR}" "${CANVIEW_ROOT}/shared/interface"
     REQUIRES canview_bridge_auth esp_http_server esp_wifi esp_event esp_netif esp_timer
              esp_system nvs_flash cjson lwip mbedtls)

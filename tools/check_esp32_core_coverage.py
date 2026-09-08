@@ -1,4 +1,8 @@
-"""새 profile로 ESP32 portable core와 실제 SDK adapter의 host coverage를 검사한다."""
+"""ESP32 portable core와 SDK adapter host coverage를 검사한다.
+
+이 gate는 Diagnostic Bridge의 HTTP/DNS/인증 target runtime을 실행하지 않는다. 그
+경계는 bridge-http-contract와 실제 target/live/HIL gate에서 별도로 확인한다.
+"""
 import argparse
 import json
 import os
@@ -67,7 +71,9 @@ def main():
                     continue
                 if summary[key]["count"] == 0 or summary[key]["percent"] < threshold:
                     raise RuntimeError(f"coverage gate 미달: {item['filename']} {key} < {threshold}")
-    print("PASS: ESP32 function100%/line≥95%/branch≥90%; app preflight and both wrong-BSP profraw confirmed; SDK fixture≠HIL; report", report)
+    print("PASS: ESP32 portable-core/SDK-adapter function100%/line≥95%/branch≥90%; "
+          "app preflight and both wrong-BSP profraw confirmed; Bridge HTTP/DNS≠this gate; "
+          "SDK fixture≠HIL; report", report)
     return 0
 
 

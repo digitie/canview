@@ -43,9 +43,9 @@ typedef struct
 /**
  * @brief Auth state owned by the web service task. Do not serialize or expose it.
  *
- * The PIN digest, challenge, and token are RAM-only state. Initialization clears the supplied
- * storage and the caller must keep it alive until the web service stops. All public functions
- * are non-reentrant; the caller owns serialization.
+ * The PIN digest, challenge, and token are RAM-only state. Initialization copies the supplied
+ * PIN digest into the auth object; the caller may clear its input storage after this call returns.
+ * All public functions are non-reentrant; the caller owns serialization.
  */
 typedef struct
 {

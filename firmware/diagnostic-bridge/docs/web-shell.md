@@ -11,7 +11,7 @@
 | portable auth | `canview_bridge_auth`의 SDK-independent C99 상태기계 |
 | BSP | GPIO4 service input, GPIO5 status LED, board profile과 memory contract |
 | poll 주기 | main task가 `100 ms`마다 `canview_bridge_web_poll()` 호출 |
-| client idle | HTTP/WebSocket 활동이 5분 없으면 memory session을 폐기하고 client를 닫는다 |
+| client idle | 인증된 HTTP/WebSocket 활동이 5분 없으면 memory session을 폐기하고 client를 닫는다. public root/bootstrap/login 요청은 idle timer를 갱신하지 않는다 |
 | HTTP stack | ESP-IDF `esp_http_server` |
 | JSON | `cJSON`, 16 KiB fixed arena, 응답 4 KiB 이하 |
 | WebSocket | `esp_http_server` WebSocket, incoming frame 512 byte 이하, server event 1회 |

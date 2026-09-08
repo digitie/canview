@@ -15,9 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "generate_bridge_web_assets.py"
 HTML = ROOT / "ui" / "diagnostic-web" / "bridge-shell.html"
 WEB_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web.c"
+WEB_SESSION_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web_session.c"
+WEB_SESSION_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web_session.h"
 DNS_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "dns_server.c"
 WEB_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web.h"
 WEB_DEFAULTS = ROOT / "firmware" / "diagnostic-bridge" / "sdkconfig.defaults"
+SECURITY_SCRIPT = ROOT / "tests" / "security" / "bridge_http.py"
 
 
 class BridgeWebAssetTests(unittest.TestCase):
@@ -72,6 +75,8 @@ class BridgeWebAssetTests(unittest.TestCase):
 
     def test_web_source_keeps_fixed_read_only_boundary(self) -> None:
         source = WEB_SOURCE.read_text(encoding="utf-8")
+        session_source = WEB_SESSION_SOURCE.read_text(encoding="utf-8")
+        session_header = WEB_SESSION_HEADER.read_text(encoding="utf-8")
         dns_source = DNS_SOURCE.read_text(encoding="utf-8")
         header = WEB_HEADER.read_text(encoding="utf-8")
         defaults = WEB_DEFAULTS.read_text(encoding="utf-8")
@@ -86,10 +91,22 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("httpd_sess_trigger_close", source)
         self.assertIn("close_status", source)
         self.assertIn("button_hold_consumed", source)
-        self.assertIn("session_close_pending", source)
+        self.assertIn("canview_bridge_web_session_is_closing", source)
+        self.assertIn("canview_bridge_web_session_begin_close", source)
+        self.assertIn("record_authenticated_request", source)
+        self.assertIn("session_close_pending", session_header)
+        self.assertIn("canview_bridge_web_session_idle_expired", session_source)
+        self.assertIn("canview_bridge_web_session_close", session_source)
         self.assertIn("CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS", source)
         self.assertIn("web_client_idle_expired", source)
         self.assertIn("max_open_sockets = 1U", source)
+        self.assertIn("Keep the handle, locks, and auth state alive", source)
+        self.assertNotIn("(void)httpd_stop", source)
+        enter_body = source.split("static esp_err_t enter_request", 1)[1].split(
+            "static void leave_request", 1
+        )[0]
+        self.assertNotIn("record_authenticated_request", enter_body)
+        self.assertIn("const bool activity_recorded = allowed && record_authenticated_request", source)
         self.assertIn("volatile bool stopped", dns_source)
         self.assertIn("vTaskSuspend(NULL)", dns_source)
         self.assertIn("vTaskDelete(task)", dns_source)
@@ -97,6 +114,22 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("CONFIG_HTTPD_WS_SUPPORT=y", defaults)
         for forbidden in ("raw_replay", "canview_can_tx", "control_lease"):
             self.assertNotIn(forbidden, source.lower())
+
+    def test_live_probe_rejects_non_local_urls(self) -> None:
+        spec = importlib.util.spec_from_file_location("bridge_http_contract", SECURITY_SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        contract = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(contract)
+        for url in (
+            "https://127.0.0.1",
+            "http://evil.invalid",
+            "http://user@127.0.0.1",
+            "http://127.0.0.1/?token=leak",
+            "http://127.0.0.1/bridge",
+        ):
+            with self.assertRaises(contract.ContractError):
+                contract._request(url, "GET", "/", timeout=0.1)
 
 
 if __name__ == "__main__":

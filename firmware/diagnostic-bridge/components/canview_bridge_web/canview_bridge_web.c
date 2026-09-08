@@ -2,6 +2,7 @@
 #include "canview_bridge_web.h"
 #include "bridge_assets.h"
 #include "canview_bridge_auth.h"
+#include "canview_bridge_web_session.h"
 #include "dns_server.h"
 #include <limits.h>
 #include <stdio.h>
@@ -50,9 +51,7 @@ typedef struct
     httpd_handle_t server;
     esp_netif_t *wifi_ap_netif;
     esp_netif_t *wifi_sta_netif;
-    int active_client_fd;
-    bool session_close_pending;
-    uint64_t last_activity_ms;
+    canview_bridge_web_session_t session;
     uint32_t snapshot_revision;
     uint32_t event_sequence;
     size_t json_arena_used;
@@ -67,7 +66,6 @@ typedef struct
     uint8_t ws_body[CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES];
     bool button_down;
     bool button_hold_consumed;
-    bool client_activity_valid;
     bool service_window_open;
     bool event_loop_initialized;
     bool wifi_initialized;
@@ -343,31 +341,19 @@ static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t 
         (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "400 Bad Request", "invalid client");
     }
-    if (candidate->session_close_pending)
+    if (canview_bridge_web_session_is_closing(&candidate->session))
     {
         state_lock_give(candidate);
         (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "503 Service Unavailable", "session closing");
     }
-    if (candidate->active_client_fd >= 0 && candidate->active_client_fd != client_fd)
+    if (canview_bridge_web_session_has_other_client(&candidate->session, client_fd))
     {
         state_lock_give(candidate);
         (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "503 Service Unavailable", "one client only");
     }
-    uint64_t now_ms = 0U;
-    if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK)
-    {
-        state_lock_give(candidate);
-        (void)xSemaphoreGive(candidate->request_lock);
-        return send_custom_status(request, "503 Service Unavailable", "clock unavailable");
-    }
-    if (candidate->active_client_fd < 0)
-    {
-        candidate->active_client_fd = client_fd;
-    }
-    candidate->last_activity_ms = now_ms;
-    candidate->client_activity_valid = true;
+    /* Pre-auth root/bootstrap/login requests must not refresh the authenticated idle timer. */
     state_lock_give(candidate);
     *state = candidate;
     return ESP_OK;
@@ -379,6 +365,26 @@ static void leave_request(canview_bridge_web_state_t *state)
     {
         (void)xSemaphoreGive(state->request_lock);
     }
+}
+
+static bool record_authenticated_request(httpd_req_t *request,
+                                         canview_bridge_web_state_t *state)
+{
+    if (request == NULL || state == NULL)
+    {
+        return false;
+    }
+    /* Only callers that already validated Origin and bearer/session credentials reach this seam. */
+    const int client_fd = httpd_req_to_sockfd(request);
+    uint64_t now_ms = 0U;
+    if (client_fd < 0 || idf_now_ms(NULL, &now_ms) != CANVIEW_OK || !state_lock_take(state))
+    {
+        return false;
+    }
+    const canview_bridge_web_session_result_t status =
+        canview_bridge_web_session_record_activity(&state->session, client_fd, now_ms);
+    state_lock_give(state);
+    return status == CANVIEW_BRIDGE_WEB_SESSION_OK;
 }
 
 static bool enter_ws_io(canview_bridge_web_state_t *state)
@@ -414,9 +420,10 @@ static esp_err_t discard_start_state(void)
     if (web_state.server != NULL)
     {
         const esp_err_t status = httpd_stop(web_state.server);
-        if (status != ESP_OK && cleanup_status == ESP_OK)
+        if (status != ESP_OK)
         {
-            cleanup_status = status;
+            /* Keep the handle, locks, and auth state alive for a bounded caller retry. */
+            return cleanup_status == ESP_OK ? status : cleanup_status;
         }
         web_state.server = NULL;
     }
@@ -477,7 +484,7 @@ static esp_err_t discard_start_state(void)
     }
     const bool dns_pending = web_state.dns_started;
     secure_zero(&web_state, sizeof(web_state));
-    web_state.active_client_fd = -1;
+    canview_bridge_web_session_init(&web_state.session);
     web_state.dns_started = dns_pending;
     return cleanup_status;
 }
@@ -1074,6 +1081,17 @@ static esp_err_t handle_session_post(httpd_req_t *request)
         leave_request(state);
         return result;
     }
+    if (!record_authenticated_request(request, state))
+    {
+        const canview_status_t logout_status = logout_session(state);
+        secure_zero(token, sizeof(token));
+        result = logout_status == CANVIEW_OK
+                     ? send_custom_status(request, "503 Service Unavailable", "session unavailable")
+                     : httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                           "session unavailable");
+        leave_request(state);
+        return result;
+    }
     char token_text[CANVIEW_BRIDGE_WEB_WS_TOKEN_TEXT_BYTES + 1U] = {0};
     if (!base64url_encode(token, sizeof(token), token_text, sizeof(token_text)))
     {
@@ -1176,6 +1194,12 @@ static esp_err_t handle_system(httpd_req_t *request)
         leave_request(state);
         return result;
     }
+    if (!record_authenticated_request(request, state))
+    {
+        result = send_custom_status(request, "503 Service Unavailable", "session unavailable");
+        leave_request(state);
+        return result;
+    }
     uint32_t revision = 0U;
     if (!snapshot_revision(state, &revision))
     {
@@ -1219,6 +1243,12 @@ static esp_err_t handle_collection(httpd_req_t *request)
     if (!authenticated(request, state))
     {
         result = httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, "authentication required");
+        leave_request(state);
+        return result;
+    }
+    if (!record_authenticated_request(request, state))
+    {
+        result = send_custom_status(request, "503 Service Unavailable", "session unavailable");
         leave_request(state);
         return result;
     }
@@ -1371,8 +1401,9 @@ static esp_err_t ws_pre_handshake(httpd_req_t *request)
     const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token) &&
                          ws_token_authenticated(state, token);
     secure_zero(token, sizeof(token));
+    const bool activity_recorded = allowed && record_authenticated_request(request, state);
     leave_request(state);
-    return allowed ? ESP_OK : ESP_FAIL;
+    return activity_recorded ? ESP_OK : ESP_FAIL;
 }
 
 static cJSON *make_live_event(uint32_t sequence, uint32_t revision, uint64_t now_ms)
@@ -1422,6 +1453,11 @@ static esp_err_t ws_post_handshake(httpd_req_t *request)
         return ESP_FAIL;
     }
     secure_zero(token, sizeof(token));
+    if (!record_authenticated_request(request, state))
+    {
+        leave_request(state);
+        return ESP_FAIL;
+    }
     uint64_t now_ms = 0U;
     if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK)
     {
@@ -1490,7 +1526,7 @@ static esp_err_t handle_live(httpd_req_t *request)
     const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token) &&
                          ws_token_authenticated(state, token);
     secure_zero(token, sizeof(token));
-    if (!allowed)
+    if (!allowed || !record_authenticated_request(request, state))
     {
         leave_request(state);
         return ESP_FAIL;
@@ -1662,12 +1698,9 @@ static bool web_service_window_expired(canview_bridge_web_state_t *state, uint64
 
 static bool web_client_idle_expired(const canview_bridge_web_state_t *state, uint64_t now_ms)
 {
-    if (state == NULL || state->active_client_fd < 0 || !state->client_activity_valid)
-    {
-        return false;
-    }
-    return now_ms < state->last_activity_ms ||
-           now_ms - state->last_activity_ms > CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS;
+    return state != NULL && canview_bridge_web_session_idle_expired(
+                                 &state->session, now_ms,
+                                 CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS);
 }
 
 static void close_session(httpd_handle_t server, int client_fd)
@@ -1677,12 +1710,8 @@ static void close_session(httpd_handle_t server, int client_fd)
     {
         return;
     }
-    if (web_state.active_client_fd == client_fd)
+    if (canview_bridge_web_session_close(&web_state.session, client_fd))
     {
-        web_state.active_client_fd = -1;
-        web_state.session_close_pending = false;
-        web_state.last_activity_ms = 0U;
-        web_state.client_activity_valid = false;
         (void)canview_bridge_auth_logout(&web_state.auth);
     }
     state_lock_give(&web_state);
@@ -1772,7 +1801,7 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
         return stale_cleanup_status;
     }
     memset(&web_state, 0, sizeof(web_state));
-    web_state.active_client_fd = -1;
+    canview_bridge_web_session_init(&web_state.session);
     web_state.snapshot_revision = 1U;
     web_state.config = *config;
     const size_t password_length = bounded_length(config->ap_password,
@@ -1843,19 +1872,15 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
         status = register_uri(web_state.server, uris[index]);
         if (status != ESP_OK)
         {
-            (void)httpd_stop(web_state.server);
-            web_state.server = NULL;
-            discard_start_state();
-            return status;
+            const esp_err_t cleanup_result = discard_start_state();
+            return cleanup_result == ESP_OK ? status : cleanup_result;
         }
     }
     status = canview_bridge_dns_start();
     if (status != ESP_OK)
     {
-        (void)httpd_stop(web_state.server);
-        web_state.server = NULL;
-        discard_start_state();
-        return status;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? status : cleanup_result;
     }
     web_state.dns_started = true;
     web_state.initialized = true;
@@ -1918,24 +1943,21 @@ esp_err_t canview_bridge_web_poll(void)
         web_state.service_window_open = false;
         web_state.button_hold_consumed = true;
         (void)canview_bridge_auth_set_service_window(&web_state.auth, false);
-        if (web_state.active_client_fd >= 0 && web_state.server != NULL)
+        if (web_state.server != NULL &&
+            canview_bridge_web_session_begin_close(&web_state.session, &expired_client_fd))
         {
             expired_server = web_state.server;
-            expired_client_fd = web_state.active_client_fd;
-            web_state.session_close_pending = true;
-            web_state.last_activity_ms = 0U;
-            web_state.client_activity_valid = false;
             (void)canview_bridge_auth_logout(&web_state.auth);
         }
     }
     else if (web_client_idle_expired(&web_state, now_ms))
     {
-        expired_server = web_state.server;
-        expired_client_fd = web_state.active_client_fd;
-        web_state.session_close_pending = true;
-        web_state.last_activity_ms = 0U;
-        web_state.client_activity_valid = false;
-        (void)canview_bridge_auth_logout(&web_state.auth);
+        if (web_state.server != NULL &&
+            canview_bridge_web_session_begin_close(&web_state.session, &expired_client_fd))
+        {
+            expired_server = web_state.server;
+            (void)canview_bridge_auth_logout(&web_state.auth);
+        }
     }
     state_lock_give(&web_state);
     if (expired_server != NULL && expired_client_fd >= 0)

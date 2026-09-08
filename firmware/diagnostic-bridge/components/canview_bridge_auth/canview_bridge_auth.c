@@ -145,7 +145,7 @@ canview_status_t canview_bridge_auth_init(canview_bridge_auth_t *auth,
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
-    /* The caller supplies writable storage; do not inspect it before clearing it. */
+    /* The input is const caller-owned storage; copy it before the caller zeroizes it. */
     memset(auth, 0, sizeof(*auth));
     memcpy(auth->pin_digest, pin_digest, sizeof(auth->pin_digest));
     auth->callbacks = *callbacks;
