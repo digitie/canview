@@ -28,6 +28,9 @@ typedef struct
     uint32_t last_error;
     bool fail_frame;
     bool fail_drop;
+    canview_stm_fdcan_platform_t *platform;
+    bool reenter_service;
+    canview_status_t reentry_status;
 } sink_fixture_t;
 
 static canview_stm_fdcan_profile_t valid_profile(uint32_t bitrate)
@@ -53,6 +56,12 @@ static canview_status_t frame_sink(void *context, size_t channel,
     ++fixture->frames;
     fixture->last_channel = channel;
     fixture->last_frame = *frame;
+    if (fixture->reenter_service && fixture->platform != NULL)
+    {
+        fixture->reenter_service = false;
+        fixture->reentry_status =
+            canview_stm_fdcan_platform_service(fixture->platform, frame->source_timestamp_us);
+    }
     return fixture->fail_frame ? CANVIEW_TIMEOUT : CANVIEW_OK;
 }
 
@@ -255,6 +264,7 @@ static void lifecycle_tests(void)
     fake_hardware_ready();
     fake_output_fail_call = 1U;
     CHECK(canview_stm_fdcan_platform_start(&failed) == CANVIEW_TIMEOUT);
+    CHECK(fake_output_calls == 6U);
     CHECK(!failed.started[0] && !failed.started[1] && !failed.started[2]);
     fake_output_fail_call = 0U;
     CHECK(canview_stm_fdcan_platform_start(&failed) == CANVIEW_OK);
@@ -459,7 +469,66 @@ static void fifo_and_loss_tests(void)
     /* stop() must discard the previous session's raw snapshots. */
     CHECK(canview_stm_fdcan_platform_start(&platform) == CANVIEW_OK);
     CHECK(canview_stm_fdcan_platform_service(&platform, 102U) == CANVIEW_OK);
-    CHECK(fixture.frames == 22U && fixture.drops == 4U);
+    CHECK(fixture.frames == 20U && fixture.drops == 4U);
+    CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
+}
+
+static void hardware_loss_tests(void)
+{
+    fake_hardware_reset();
+    sink_fixture_t fixture = {0};
+    canview_stm_fdcan_platform_t platform = {0};
+    start_platform(&platform, &fixture);
+
+    fake_fdcan1.RXF0S = UINT32_C(1) | FDCAN_RXF0S_RF0L;
+    fake_fdcan1.IR = FDCAN_IR_RF0L;
+    FDCAN1_IT0_IRQHandler();
+    CHECK(canview_stm_fdcan_platform_service(&platform, 200U) == CANVIEW_OK);
+    CHECK(fixture.last_state == CANVIEW_STM_FDCAN_BUS_FAULT &&
+          (fixture.last_error & CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS) != 0U);
+
+    fake_fdcan1.RXF0S = 0U;
+    fake_fdcan1.IR = FDCAN_IR_MRAF;
+    FDCAN1_IT0_IRQHandler();
+    CHECK(canview_stm_fdcan_platform_service(&platform, 201U) == CANVIEW_OK);
+    CHECK(fixture.last_state == CANVIEW_STM_FDCAN_BUS_FAULT &&
+          (fixture.last_error & CANVIEW_STM_FDCAN_PLATFORM_ERROR_MESSAGE_RAM) != 0U);
+
+    fake_fdcan1.IR = FDCAN_IR_RF0F;
+    FDCAN1_IT0_IRQHandler();
+    CHECK(canview_stm_fdcan_platform_service(&platform, 202U) == CANVIEW_OK);
+    CHECK(fixture.last_state == CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE &&
+          (fixture.last_error & FDCAN_IR_RF0F) != 0U);
+    CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
+}
+
+static void callback_safety_tests(void)
+{
+    fake_hardware_reset();
+    sink_fixture_t fixture = {0};
+    canview_stm_fdcan_platform_t platform = {0};
+    start_platform(&platform, &fixture);
+    fixture.platform = &platform;
+    fixture.reenter_service = true;
+    put_fifo_word(0U, UINT32_C(0x321) << 18U, UINT32_C(1) << 16U, 0U, 0U);
+    fake_fdcan1.RXF0S = 1U;
+    fake_fdcan1.IR = FDCAN_IR_RF0N;
+    FDCAN1_IT0_IRQHandler();
+    CHECK(canview_stm_fdcan_platform_service(&platform, 300U) == CANVIEW_OK);
+    CHECK(fixture.reentry_status == CANVIEW_RESOURCE_BUSY);
+    CHECK(fixture.frames == 3U);
+
+    put_fifo_word(0U, UINT32_C(0x322) << 18U, UINT32_C(1) << 16U, 0U, 0U);
+    fake_fdcan1.RXF0S = 1U;
+    fake_fdcan1.IR = FDCAN_IR_RF0N;
+    FDCAN1_IT0_IRQHandler();
+    const uint8_t read_index = platform.raw_read_index[0];
+    fixture.fail_frame = true;
+    CHECK(canview_stm_fdcan_platform_service(&platform, 301U) == CANVIEW_TIMEOUT);
+    CHECK(platform.raw_read_index[0] == read_index && fixture.frames == 4U);
+    fixture.fail_frame = false;
+    CHECK(canview_stm_fdcan_platform_service(&platform, 302U) == CANVIEW_OK);
+    CHECK(platform.raw_read_index[0] != read_index && fixture.frames == 7U);
     CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
 }
 
@@ -467,6 +536,8 @@ int main(void)
 {
     lifecycle_tests();
     fifo_and_loss_tests();
+    hardware_loss_tests();
+    callback_safety_tests();
     (void)puts("PASS: STM32 FDCAN CMSIS adapter fake-register tests");
     return EXIT_SUCCESS;
 }

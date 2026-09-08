@@ -13,18 +13,31 @@ TESTS_ROOT = Path(__file__).resolve().parent
 if str(TESTS_ROOT) not in sys.path:
     sys.path.insert(0, str(TESTS_ROOT))
 
-from hil.assert_no_tx import assert_no_tx
+from hil.assert_no_tx import assert_no_tx, main as assert_no_tx_main
 from hil.run_can_capture import main as run_capture
 
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
+EXPECTED_SOURCE = "t103-fixture"
+EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
+EXPECTED_FIRMWARE_IDENTITY = "a8d515849d98b89bfc7904356cf3ad8c5a2334bd"
 
 
 class T103CaptureHelperTests(unittest.TestCase):
+    @staticmethod
+    def _assert(path: Path) -> tuple[int, str]:
+        return assert_no_tx(
+            path,
+            expected_source=EXPECTED_SOURCE,
+            expected_execution_id=EXPECTED_EXECUTION_ID,
+            expected_firmware_identity=EXPECTED_FIRMWARE_IDENTITY,
+        )
+
     def test_positive_fixture_has_no_tx(self) -> None:
-        status, message = assert_no_tx(FIXTURE)
+        status, message = self._assert(FIXTURE)
         self.assertEqual(0, status, message)
+        self.assertEqual(2, assert_no_tx(FIXTURE)[0])
 
     def test_tx_and_invalid_records_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -34,13 +47,13 @@ class T103CaptureHelperTests(unittest.TestCase):
             records[0]["fields"]["ack_frames"] = 1
             path.write_text("".join(json.dumps(record) + "\n" for record in records),
                             encoding="utf-8")
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(1, status, message)
             records[0]["fields"]["ack_frames"] = 0
             records[3]["fields"]["vehicle_tx"] = 1
             path.write_text("".join(json.dumps(record) + "\n" for record in records),
                             encoding="utf-8")
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
             path.write_text(
                 json.dumps({"schema_version": 1, "source": "x", "kind": "CAN_TX",
@@ -48,14 +61,14 @@ class T103CaptureHelperTests(unittest.TestCase):
                             "fields": {"arbitration_id": 1}}) + "\n",
                 encoding="utf-8",
             )
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
             path.write_text(
                 '{"schema_version":1,"source":"x","kind":"CAN_RX",'
                 '"sequence":1,"sequence":1,"monotonic_ns":1,"log_offset":0,"fields":{}}\n',
                 encoding="utf-8",
             )
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
 
     def test_truncated_oversized_and_replayed_evidence_is_blocked(self) -> None:
@@ -63,20 +76,20 @@ class T103CaptureHelperTests(unittest.TestCase):
             path = Path(directory) / "evidence.jsonl"
             fixture = FIXTURE.read_bytes()
             path.write_bytes(fixture[:-1])
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
             path.write_bytes(fixture + fixture)
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
             path.write_bytes(b"{" + b"\"n\":\"" + b"x" * (1 << 20) + b"\"}\n")
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
 
     def test_missing_schema_and_wide_integer_are_blocked(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "evidence.jsonl"
             path.write_text("{}\n", encoding="utf-8")
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
             path.write_text(
                 '{"schema_version":1,"source":"x","kind":"CAN_RX",'
@@ -84,15 +97,67 @@ class T103CaptureHelperTests(unittest.TestCase):
                 '"log_offset":0,"fields":{}}\n',
                 encoding="utf-8",
             )
-            status, message = assert_no_tx(path)
+            status, message = self._assert(path)
             self.assertEqual(2, status, message)
 
+    def test_unknown_semantics_and_identity_are_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.jsonl"
+            records = [json.loads(line) for line in FIXTURE.read_text(
+                encoding="utf-8").splitlines()]
+            records[0]["kind"] = "CAN_ACK"
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = self._assert(path)
+            self.assertEqual(2, status, message)
+
+            records[0]["kind"] = "CAN_CHANNEL_SUMMARY"
+            records[0]["fields"]["unknown_tx"] = True
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = self._assert(path)
+            self.assertEqual(2, status, message)
+
+            del records[0]["fields"]["unknown_tx"]
+            records[0]["fields"]["execution_id"] = "different-execution"
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = self._assert(path)
+            self.assertEqual(2, status, message)
+
+            records[0]["fields"]["execution_id"] = EXPECTED_EXECUTION_ID
+            records[0]["source"] = "unrelated-run"
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = self._assert(path)
+            self.assertEqual(2, status, message)
+
+            records[0]["source"] = EXPECTED_SOURCE
+            tx_record = dict(records[0])
+            tx_record["kind"] = "CAN_TX"
+            tx_record["fields"] = {
+                "execution_id": EXPECTED_EXECUTION_ID,
+                "firmware_identity": EXPECTED_FIRMWARE_IDENTITY,
+            }
+            records.insert(3, tx_record)
+            for index, record in enumerate(records, 1):
+                record["sequence"] = index
+                record["monotonic_ns"] = index * 100
+                record["log_offset"] = (index - 1) * 180
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = self._assert(path)
+            self.assertEqual(1, status, message)
+
     def test_missing_evidence_is_not_run(self) -> None:
-        status, message = assert_no_tx(Path("missing-t103-evidence.jsonl"))
+        status, message = self._assert(Path("missing-t103-evidence.jsonl"))
         self.assertEqual(2, status, message)
 
     def test_capture_wrapper_rejects_wrong_channel_count(self) -> None:
         self.assertEqual(2, run_capture(["--channels", "2"]))
+
+    def test_cli_requires_execution_identity(self) -> None:
+        self.assertEqual(2, assert_no_tx_main([str(FIXTURE)]))
 
 
 if __name__ == "__main__":

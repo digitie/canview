@@ -35,7 +35,8 @@ extern bool canview_stm_fdcan_test_wait_should_timeout(void);
 #define CANVIEW_STM_FDCAN_RX_INTERRUPTS                                                   \
     (FDCAN_IR_RF0N | FDCAN_IR_RF0F | FDCAN_IR_RF0L)
 #define CANVIEW_STM_FDCAN_STATUS_INTERRUPTS                                               \
-    (FDCAN_IR_RF0L | FDCAN_IR_EP | FDCAN_IR_EW | FDCAN_IR_BO | FDCAN_IR_MRAF | FDCAN_IR_PEA |  \
+    (FDCAN_IR_RF0F | FDCAN_IR_RF0L | FDCAN_IR_EP | FDCAN_IR_EW | FDCAN_IR_BO | FDCAN_IR_MRAF | \
+     FDCAN_IR_PEA |                                                                            \
      FDCAN_IR_PED)
 #define CANVIEW_STM_FDCAN_INTERRUPT_MASK                                                  \
     (CANVIEW_STM_FDCAN_RX_INTERRUPTS | CANVIEW_STM_FDCAN_STATUS_INTERRUPTS)
@@ -83,6 +84,7 @@ static void reset_runtime_state(canview_stm_fdcan_platform_t *platform)
         platform->reported_raw_drops[index] = 0U;
         platform->pending_interrupts[index] = 0U;
         platform->fifo_loss_unknown[index] = false;
+        platform->message_ram_fault[index] = false;
         platform->raw_ring_overflow[index] = false;
         platform->bus_off_count[index] = 0U;
         platform->sink_failures[index] = 0U;
@@ -91,6 +93,7 @@ static void reset_runtime_state(canview_stm_fdcan_platform_t *platform)
                                                ? CANVIEW_STM_FDCAN_BUS_NO_DATA
                                                : CANVIEW_STM_FDCAN_BUS_UNKNOWN_BITRATE;
     }
+    platform->servicing = false;
 }
 
 typedef struct
@@ -113,16 +116,17 @@ static canview_status_t set_capture_outputs(
         {CANVIEW_BOARD_CAN1_TX_REQ_PORT, CANVIEW_BOARD_CAN1_TX_REQ_PIN, true},
         {CANVIEW_BOARD_CAN2_TX_REQ_PORT, CANVIEW_BOARD_CAN2_TX_REQ_PIN, true},
         {CANVIEW_BOARD_CAN3_TX_REQ_PORT, CANVIEW_BOARD_CAN3_TX_REQ_PIN, true}};
+    canview_status_t result = CANVIEW_OK;
     for (size_t index = 0U; index < sizeof(outputs) / sizeof(outputs[0]); ++index)
     {
         const canview_status_t status =
             canview_stm_output(outputs[index].port, outputs[index].pin, outputs[index].high);
-        if (status != CANVIEW_OK)
+        if (status != CANVIEW_OK && result == CANVIEW_OK)
         {
-            return status;
+            result = status;
         }
     }
-    return CANVIEW_OK;
+    return result;
 }
 
 static bool timestamp_clock_ready(void)
@@ -262,6 +266,10 @@ canview_status_t canview_stm_fdcan_platform_start(canview_stm_fdcan_platform_t *
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    if (platform->servicing)
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
     if (active_platform != NULL)
     {
         return CANVIEW_RESOURCE_BUSY;
@@ -350,6 +358,10 @@ canview_status_t canview_stm_fdcan_platform_stop(canview_stm_fdcan_platform_t *p
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    if (platform->servicing)
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
     if (active_platform != NULL && active_platform != platform)
     {
         return CANVIEW_RESOURCE_BUSY;
@@ -396,6 +408,11 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
     {
         const uint32_t fifo_status = instance->RXF0S;
         const uint32_t fill_level = fifo_status & FDCAN_RXF0S_F0FL;
+        if ((fifo_status & FDCAN_RXF0S_RF0L) != 0U)
+        {
+            platform->fifo_loss_unknown[channel_index] = true;
+            platform->pending_interrupts[channel_index] |= FDCAN_IR_RF0L;
+        }
         if (fill_level == 0U)
         {
             break;
@@ -449,8 +466,8 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
     }
 }
 
-static bool pop_raw_element(canview_stm_fdcan_platform_t *platform, size_t channel_index,
-                            canview_stm_fdcan_raw_element_t *element)
+static bool peek_raw_element(const canview_stm_fdcan_platform_t *platform, size_t channel_index,
+                             canview_stm_fdcan_raw_element_t *element)
 {
     const uint8_t read_index = platform->raw_read_index[channel_index];
     const uint8_t write_index = platform->raw_write_index[channel_index];
@@ -461,9 +478,13 @@ static bool pop_raw_element(canview_stm_fdcan_platform_t *platform, size_t chann
     __DMB();
     *element = platform->raw_ring[channel_index]
                               [read_index % CANVIEW_STM_FDCAN_PLATFORM_RAW_RING_CAPACITY];
-    platform->raw_read_index[channel_index] =
-        (uint8_t)(read_index + 1U);
     return true;
+}
+
+static void release_raw_element(canview_stm_fdcan_platform_t *platform, size_t channel_index)
+{
+    const uint8_t read_index = platform->raw_read_index[channel_index];
+    platform->raw_read_index[channel_index] = (uint8_t)(read_index + 1U);
 }
 
 static canview_status_t service_raw_elements(canview_stm_fdcan_platform_t *platform,
@@ -473,7 +494,7 @@ static canview_status_t service_raw_elements(canview_stm_fdcan_platform_t *platf
     for (size_t count = 0U; count < CANVIEW_STM_FDCAN_PLATFORM_RAW_RING_CAPACITY; ++count)
     {
         canview_stm_fdcan_raw_element_t raw = {0};
-        if (!pop_raw_element(platform, channel_index, &raw))
+        if (!peek_raw_element(platform, channel_index, &raw))
         {
             break;
         }
@@ -482,6 +503,7 @@ static canview_status_t service_raw_elements(canview_stm_fdcan_platform_t *platf
             raw.words, raw.source_timestamp_us, &frame);
         if (decode_status != CANVIEW_OK)
         {
+            release_raw_element(platform, channel_index);
             if (result == CANVIEW_OK)
             {
                 result = decode_status;
@@ -500,7 +522,9 @@ static canview_status_t service_raw_elements(canview_stm_fdcan_platform_t *platf
             {
                 result = sink_status;
             }
+            return result;
         }
+        release_raw_element(platform, channel_index);
     }
     return result;
 }
@@ -540,6 +564,14 @@ static void handle_interrupt(size_t channel_index)
     const uint32_t interrupt_flags = instance->IR & CANVIEW_STM_FDCAN_INTERRUPT_MASK;
     const uint32_t receive_flags = interrupt_flags & CANVIEW_STM_FDCAN_RX_INTERRUPTS;
     const uint32_t non_receive_flags = interrupt_flags & ~CANVIEW_STM_FDCAN_RX_INTERRUPTS;
+    if ((interrupt_flags & FDCAN_IR_RF0L) != 0U)
+    {
+        platform->fifo_loss_unknown[channel_index] = true;
+    }
+    if ((interrupt_flags & FDCAN_IR_MRAF) != 0U)
+    {
+        platform->message_ram_fault[channel_index] = true;
+    }
     /* Acknowledge the snapshot before reading message RAM.  RX flags raised
      * while drain_fifo() runs are deliberately not W1C-cleared by this ISR;
      * they remain asserted for the next interrupt and cannot be lost. */
@@ -594,6 +626,11 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    if (platform->servicing)
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    platform->servicing = true;
     canview_status_t result = CANVIEW_OK;
     for (size_t index = 0U; index < CANVIEW_STM_FDCAN_CHANNEL_COUNT; ++index)
     {
@@ -614,9 +651,11 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const uint32_t mask = canview_stm_critical_enter(NULL);
         const uint32_t pending = platform->pending_interrupts[index];
         const bool fifo_loss = platform->fifo_loss_unknown[index];
+        const bool message_ram_fault = platform->message_ram_fault[index];
         const bool raw_ring_overflow = platform->raw_ring_overflow[index];
         platform->pending_interrupts[index] = 0U;
         platform->fifo_loss_unknown[index] = false;
+        platform->message_ram_fault[index] = false;
         platform->raw_ring_overflow[index] = false;
         canview_stm_critical_leave(NULL, mask);
         if (pending == 0U)
@@ -627,7 +666,8 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const uint32_t protocol_status = instance->PSR;
         const uint32_t error_count = instance->ECR;
         const canview_stm_fdcan_bus_state_t state =
-            fifo_loss ? CANVIEW_STM_FDCAN_BUS_FAULT : state_from_registers(protocol_status);
+            (fifo_loss || message_ram_fault) ? CANVIEW_STM_FDCAN_BUS_FAULT
+                                             : state_from_registers(protocol_status);
         if (state == CANVIEW_STM_FDCAN_BUS_OFF &&
             platform->previous_state[index] != CANVIEW_STM_FDCAN_BUS_OFF)
         {
@@ -642,6 +682,9 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const uint32_t last_error = ((protocol_status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos) |
                                     (pending & CANVIEW_STM_FDCAN_STATUS_INTERRUPTS) |
                                     (fifo_loss ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS : 0U) |
+                                    (message_ram_fault
+                                         ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_MESSAGE_RAM
+                                         : 0U) |
                                     (raw_ring_overflow
                                          ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_RAW_RING_OVERFLOW
                                          : 0U);
@@ -649,5 +692,6 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
                                      tx_error_count, platform->bus_off_count[index], last_error,
                                      source_timestamp_us);
     }
+    platform->servicing = false;
     return result;
 }

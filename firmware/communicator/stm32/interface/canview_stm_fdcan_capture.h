@@ -254,6 +254,16 @@ canview_status_t canview_stm_fdcan_capture_init(
     const canview_stm_critical_t *critical, canview_stm_fdcan_filter_fn *filter,
     void *filter_context);
 
+/** @brief 현재 capture session의 frame·timestamp·inventory·counter를 폐기한다.
+ * @param capture initialized capture context.
+ * @return session reset 성공 또는 입력 오류.
+ *
+ * profile, critical port, filter callback 계약은 유지한다. 호출자는 worker
+ * context에서만 실행해야 하며, reset 뒤 들어오는 frame만 새 session으로
+ * 해석한다.
+ */
+canview_status_t canview_stm_fdcan_capture_reset(canview_stm_fdcan_capture_t *capture);
+
 /** @brief ISR에서 bounded copy/validate/enqueue한다. callback/malloc/blocking은 없다.
  * @param capture initialized capture context.
  * @param channel frame이 발생한 channel.

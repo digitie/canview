@@ -28,8 +28,15 @@ physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
   IRQ는 FIFO element W1..W4와 TIM2 timestamp만 SPSC raw ring에 복사하고,
   worker `service()`가 decode와 capture/drop callback을 수행한다. RX interrupt는
   drain 전에 acknowledge하고 drain 중 신규 RX event는 다음 IRQ로 남긴다. FIFO
-  loss/raw-ring overflow는 latch해 worker status에 전달하며 stop/start는 raw
-  session state를 버린다. TX register, TX callback과 command path는 없다.
+  loss/raw-ring overflow는 latch해 worker status에 전달하며 RF0L/MRAF는 high-level
+  `BUS_FAULT`, RF0F는 status error로 보존한다. stop/start는 raw session state를
+  버리고, callback 재진입을 차단하며 실패한 raw frame은 callback 성공 전까지
+  release하지 않고 재시도한다. safe output은 한 출력 실패 뒤에도 모든 출력을
+  시도한다. TX register, TX callback과 command path는 없다.
+- module에는 worker 전용 `canview_stm_fdcan_capture_reset()`을 추가했다. reset은
+  profile/critical/filter 계약을 보존하고 frame·timestamp·inventory·drop history를
+  새 capture session으로 되돌리며, batch callback 중 재진입은 `RESOURCE_BUSY`로
+  닫는다.
 
 상세 owner·pin·message RAM·timestamp·ISR 경계는 [FDCAN capture 문서](../../firmware/communicator/stm32/docs/fdcan-capture.md)에 기록했다.
 
@@ -59,7 +66,10 @@ physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
 - [x] CAN FD frame은 corruption 없이 unsupported counter로 분리된다. (FD/BRS/DLC malformed matrix)
 - [x] bitrate mismatch, bus-off, no-data가 서로 다른 상태가 된다. (profile/status host test)
 - [x] source timestamp wrap과 batch delta overflow가 새 batch로 안전하게 나뉜다. (wrap/65535 boundary test)
-- [ ] analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 확인한다.
+- [ ] analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 확인한다. helper는
+  caller가 제공한 `source`, `execution_id`, `firmware_identity`를 모든 event에
+  exact match로 요구하고 unknown kind/field와 forbidden TX kind를 fail-closed로
+  거부한다.
 - [x] safety path가 observer queue saturation에 막히지 않는다. (filter/reentry/
   bounded filter consumption/fixed inventory host test)
 
@@ -70,7 +80,10 @@ ctest --preset host-sanitize -R fdcan --output-on-failure
 cmake --build firmware/communicator/stm32/build/debug
 cmake --build firmware/communicator/stm32/build/release
 python -B tests/hil/run_can_capture.py --channels 3 --mode capture-only
-python -B tests/hil/assert_no_tx.py tests/hil/fixtures/t103-capture-only.jsonl
+python -B tests/hil/assert_no_tx.py tests/hil/fixtures/t103-capture-only.jsonl `
+  --expected-source t103-fixture `
+  --expected-execution-id T103-FIXTURE-001 `
+  --expected-firmware-identity a8d515849d98b89bfc7904356cf3ad8c5a2334bd
 ```
 
 추가 host 검증은 `cmake --build build/host-coverage`와
@@ -81,11 +94,13 @@ capture-only JSONL 계약 시험이다. 둘 다 physical harness의 G2 결과를
 않는다. 실제 analyzer에서 ACK/data TX 0건을 측정하는 acceptance는 장비가 없어
 `NOT_RUN`이다.
 
-2026-09-09 source fix candidate `3e13b2ca6e72a3aec5a32a6357285c614bc191f9`에서
-focused CTest 2/2, 전체 Windows CTest 118/118, WSL 일반 clone ASan/UBSan 전체
+2026-09-09 pre-fix candidate `a8d515849d98b89bfc7904356cf3ad8c5a2334bd`에서
+ focused CTest 2/2, 전체 Windows CTest 118/118, WSL 일반 clone ASan/UBSan 전체
 CTest 118/118, no-TX helper 6/6, coverage 기준, STM32 Debug/Release target
-clean build와 warning/error scan 0건을 확인했다. 이 결과는 physical/HIL을 대신하지
-않으며, 실제 board·전원·CAN analyzer·차량 evidence는 계속 `NOT_RUN`이다.
+clean build와 warning/error scan 0건을 확인했다. 현재 review-fix worktree에서는
+no-TX helper 8/8과 focused CTest 2/2를 추가 확인했으며, 새 candidate의 전체
+검증과 원 reviewer 재검토는 merge 전 다시 수행한다. 이 결과는 physical/HIL을
+대신하지 않으며, 실제 board·전원·CAN analyzer·차량 evidence는 계속 `NOT_RUN`이다.
 
 ## evidence
 

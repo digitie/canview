@@ -42,7 +42,11 @@ ignition off, accessory, ignition on engine off, idle, 정차 switch 동작을 �
 
 ```bash
 python tests/hil/run_can_capture.py --mode capture-only --channels 3 --vehicle-profile tucson-tl-2017
-python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log
+# 세 값은 같은 실행의 trusted evidence manifest에서 주입한다.
+python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log `
+  --expected-source <manifest-source> `
+  --expected-execution-id <manifest-execution-id> `
+  --expected-firmware-identity <manifest-firmware-identity>
 python tools/validate_cvtrace.py private/evidence/tucson-tl-2017/*.cvtrace
 python tests/vehicle/compare_inventory.py --profile tucson-tl-2017
 ```

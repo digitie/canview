@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 import sys
@@ -12,6 +13,7 @@ from typing import Any, BinaryIO
 MAX_EVIDENCE_BYTES = 8 << 20
 MAX_RECORD_BYTES = 1 << 20
 MAX_INTEGER_DIGITS = 20
+MAX_IDENTITY_LENGTH = 128
 UINT64_MAX = (1 << 64) - 1
 REQUIRED_RECORD_KEYS = {
     "schema_version",
@@ -22,6 +24,44 @@ REQUIRED_RECORD_KEYS = {
     "log_offset",
     "fields",
 }
+COMMON_IDENTITY_FIELDS = frozenset({"execution_id", "firmware_identity"})
+EVENT_FIELD_ALLOWLIST = {
+    "RADIO_SUMMARY": COMMON_IDENTITY_FIELDS | {
+        "loss_percent", "sent", "delivered", "dropped", "duplicate_deliveries", "reordered",
+    },
+    "RADIO_DELAY_SUMMARY": COMMON_IDENTITY_FIELDS | {"max_delay_ms"},
+    "RESET_REQUEST": COMMON_IDENTITY_FIELDS | {"target", "reason"},
+    "BOOT_EPOCH": COMMON_IDENTITY_FIELDS | {"target", "epoch"},
+    "UART_FAULT_REJECTED": COMMON_IDENTITY_FIELDS | {"fault", "parser_state"},
+    "CAN_CHANNEL_SUMMARY": COMMON_IDENTITY_FIELDS | {
+        "channel", "rx_frames", "tx_frames", "ack_frames", "bus_state", "error_counter",
+    },
+    "RESOURCE_SUMMARY": COMMON_IDENTITY_FIELDS | {
+        "pool", "queue_depth", "heap_free_bytes", "rejected", "observer_drops",
+    },
+    "SAFETY_DECISION": COMMON_IDENTITY_FIELDS | {"check", "decision", "vehicle_tx", "reason"},
+    "COMMAND_REPLAY": COMMON_IDENTITY_FIELDS | {"request_token", "executed", "result"},
+    "FEEDBACK_SEQUENCE": COMMON_IDENTITY_FIELDS | {"case", "sequence"},
+    "FEEDBACK_RESULT": COMMON_IDENTITY_FIELDS | {"case", "result", "tx_permitted"},
+    "POWER_EVENT": COMMON_IDENTITY_FIELDS | {"stage", "tx_gate", "capture_state"},
+    "SECURITY_REJECT": COMMON_IDENTITY_FIELDS | {"vector", "accepted"},
+    "GUARDIAN_TIMEOUT": COMMON_IDENTITY_FIELDS | {"guardian", "tx_gate", "reset_requested"},
+    "RADIO_BUDGET": COMMON_IDENTITY_FIELDS | {
+        "softap_kbps", "observer_kbps", "control_kbps", "rssi_dbm", "overflow_policy",
+    },
+    "CAN_RX": COMMON_IDENTITY_FIELDS | {"channel", "frame_count", "capture_only"},
+    "BUDGET_SAMPLE": COMMON_IDENTITY_FIELDS | {"metrics"},
+    "UNKNOWN_ACTION_REJECTED": COMMON_IDENTITY_FIELDS | {"action_type"},
+    "TX_GATE_STATE": COMMON_IDENTITY_FIELDS | {"vehicle_tx", "mode"},
+    "HARNESS_COMPLETE": COMMON_IDENTITY_FIELDS | {"scenario", "firmware_mode"},
+}
+REQUIRED_EVENT_FIELDS = {
+    "CAN_CHANNEL_SUMMARY": {"channel", "rx_frames", "tx_frames", "ack_frames", "bus_state"},
+    "CAN_RX": {"channel", "frame_count", "capture_only"},
+    "TX_GATE_STATE": {"vehicle_tx", "mode"},
+    "HARNESS_COMPLETE": {"scenario", "firmware_mode"},
+}
+FORBIDDEN_KINDS = frozenset({"CAN_TX", "VEHICLE_CAN_TX"})
 
 
 class _DuplicateKey(ValueError):
@@ -59,7 +99,56 @@ def _is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _decode_record(line: bytes) -> dict[str, Any]:
+def _require_bounded_identity(value: Any, expected: str, label: str) -> None:
+    if (not isinstance(value, str) or not value or len(value) > MAX_IDENTITY_LENGTH
+            or value != expected):
+        raise ValueError(f"{label} does not match the expected execution identity")
+
+
+def _require_nonnegative_int(fields: dict[str, Any], name: str) -> None:
+    value = fields.get(name)
+    if not _is_int(value) or value < 0:
+        raise ValueError(f"{name} is not a non-negative integer")
+
+
+def _validate_event_fields(kind: str, fields: dict[str, Any]) -> None:
+    allowed = EVENT_FIELD_ALLOWLIST.get(kind)
+    if allowed is None:
+        if kind not in FORBIDDEN_KINDS:
+            raise ValueError(f"unknown evidence event kind: {kind}")
+    elif not set(fields).issubset(allowed):
+        raise ValueError(f"unknown fields for evidence event kind: {kind}")
+    required = REQUIRED_EVENT_FIELDS.get(kind, set())
+    if not required.issubset(fields):
+        raise ValueError(f"required fields are missing for evidence event kind: {kind}")
+    if kind == "CAN_CHANNEL_SUMMARY":
+        channel = fields.get("channel")
+        if not _is_int(channel) or channel not in {1, 2, 3}:
+            raise ValueError("invalid CAN channel")
+        for name in ("rx_frames", "tx_frames", "ack_frames"):
+            _require_nonnegative_int(fields, name)
+        if not isinstance(fields.get("bus_state"), str) or not fields["bus_state"]:
+            raise ValueError("invalid CAN bus state")
+        if "error_counter" in fields:
+            _require_nonnegative_int(fields, "error_counter")
+    elif kind == "CAN_RX":
+        channel = fields.get("channel")
+        if not _is_int(channel) or channel not in {1, 2, 3}:
+            raise ValueError("invalid CAN RX channel")
+        _require_nonnegative_int(fields, "frame_count")
+        if fields.get("capture_only") is not True:
+            raise ValueError("CAN RX event is not capture-only")
+    elif kind == "TX_GATE_STATE":
+        if fields.get("vehicle_tx") is not False or fields.get("mode") != "CAPTURE_ONLY":
+            raise ValueError("invalid capture-only gate state")
+    elif kind == "HARNESS_COMPLETE":
+        if (not isinstance(fields.get("scenario"), str) or not fields["scenario"]
+                or fields.get("firmware_mode") != "CAPTURE_ONLY"):
+            raise ValueError("invalid capture-only completion")
+
+
+def _decode_record(line: bytes, expected_source: str, expected_execution_id: str,
+                   expected_firmware_identity: str) -> dict[str, Any]:
     record = json.loads(
         line.decode("utf-8"),
         object_pairs_hook=_reject_duplicate_keys,
@@ -73,8 +162,8 @@ def _decode_record(line: bytes) -> dict[str, Any]:
         raise ValueError("record schema keys are incomplete or unknown")
     if record.get("schema_version") != 1:
         raise ValueError("unsupported schema_version")
-    if not isinstance(record.get("source"), str) or not record["source"]:
-        raise ValueError("source is not a non-empty string")
+    if record.get("source") != expected_source:
+        raise ValueError("source does not match the expected execution identity")
     if not isinstance(record.get("kind"), str) or not record["kind"]:
         raise ValueError("kind is not a non-empty string")
     if not _is_int(record.get("sequence")) or record["sequence"] == 0:
@@ -85,6 +174,11 @@ def _decode_record(line: bytes) -> dict[str, Any]:
         raise ValueError("log_offset is not an integer")
     if not isinstance(record.get("fields"), dict):
         raise ValueError("fields is not an object")
+    fields = record["fields"]
+    _require_bounded_identity(fields.get("execution_id"), expected_execution_id, "execution_id")
+    _require_bounded_identity(fields.get("firmware_identity"), expected_firmware_identity,
+                              "firmware_identity")
+    _validate_event_fields(record["kind"], fields)
     return record
 
 
@@ -104,7 +198,13 @@ def _bounded_lines(stream: BinaryIO):
         yield line
 
 
-def assert_no_tx(path: Path) -> tuple[int, str]:
+def assert_no_tx(path: Path, *, expected_source: str | None = None,
+                 expected_execution_id: str | None = None,
+                 expected_firmware_identity: str | None = None) -> tuple[int, str]:
+    expected_identity = (expected_source, expected_execution_id, expected_firmware_identity)
+    if any(not isinstance(value, str) or not value or len(value) > MAX_IDENTITY_LENGTH
+           for value in expected_identity):
+        return 2, "BLOCKED: expected source, execution ID, and firmware identity are required"
     try:
         with path.open("rb") as evidence:
             records = 0
@@ -120,7 +220,8 @@ def assert_no_tx(path: Path) -> tuple[int, str]:
             violations: list[str] = []
             for line_number, line in enumerate(_bounded_lines(evidence), 1):
                 try:
-                    record = _decode_record(line)
+                    record = _decode_record(line, expected_source, expected_execution_id,
+                                            expected_firmware_identity)
                 except (UnicodeDecodeError, json.JSONDecodeError, RecursionError, ValueError):
                     return 2, f"BLOCKED: invalid or incomplete evidence at line {line_number}"
 
@@ -137,7 +238,7 @@ def assert_no_tx(path: Path) -> tuple[int, str]:
                 kind = record["kind"]
                 fields = record["fields"]
                 upper_kind = kind.upper()
-                if upper_kind in {"CAN_TX", "VEHICLE_CAN_TX"}:
+                if upper_kind in FORBIDDEN_KINDS:
                     violations.append(f"line {line_number}: {kind}")
 
                 for boolean_name in ("vehicle_tx", "tx_permitted"):
@@ -207,10 +308,21 @@ def assert_no_tx(path: Path) -> tuple[int, str]:
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
-    if len(argv) != 1:
-        print(f"usage: {Path(sys.argv[0]).name} <analyzer.jsonl>", file=sys.stderr)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("path", type=Path)
+    parser.add_argument("--expected-source", required=True)
+    parser.add_argument("--expected-execution-id", required=True)
+    parser.add_argument("--expected-firmware-identity", required=True)
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit:
         return 2
-    status, message = assert_no_tx(Path(argv[0]))
+    status, message = assert_no_tx(
+        args.path,
+        expected_source=args.expected_source,
+        expected_execution_id=args.expected_execution_id,
+        expected_firmware_identity=args.expected_firmware_identity,
+    )
     print(message)
     return status
 

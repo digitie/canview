@@ -21,6 +21,7 @@
 /* High bits are adapter-owned and cannot be confused with FDCAN LEC values. */
 #define CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS (UINT32_C(0x80000000))
 #define CANVIEW_STM_FDCAN_PLATFORM_ERROR_RAW_RING_OVERFLOW (UINT32_C(0x40000000))
+#define CANVIEW_STM_FDCAN_PLATFORM_ERROR_MESSAGE_RAM (UINT32_C(0x20000000))
 
 /** @brief IRQ가 복사하고 worker가 decode하는 FDCAN FIFO element snapshot. */
 typedef struct
@@ -59,11 +60,13 @@ typedef struct
     uint32_t reported_raw_drops[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     volatile uint32_t pending_interrupts[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     volatile bool fifo_loss_unknown[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
+    volatile bool message_ram_fault[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     volatile bool raw_ring_overflow[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     uint32_t bus_off_count[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     uint32_t sink_failures[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     canview_stm_fdcan_bus_state_t previous_state[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     bool started[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
+    bool servicing;
     bool initialized;
 } canview_stm_fdcan_platform_t;
 

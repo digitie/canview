@@ -521,6 +521,53 @@ canview_status_t canview_stm_fdcan_capture_init(
     return CANVIEW_OK;
 }
 
+static void reset_channel_session(canview_stm_fdcan_channel_t *channel)
+{
+    const bool enabled = channel->enabled;
+    const uint32_t bitrate = channel->bitrate;
+    memset(channel, 0, sizeof(*channel));
+    channel->enabled = enabled;
+    channel->bitrate = bitrate;
+    channel->state = enabled ? CANVIEW_STM_FDCAN_BUS_NO_DATA
+                             : CANVIEW_STM_FDCAN_BUS_UNKNOWN_BITRATE;
+    channel->status_flags = enabled ? CANVIEW_STM_FDCAN_STATUS_CONFIGURED : 0U;
+}
+
+static void reset_session_state(canview_stm_fdcan_capture_t *capture)
+{
+    for (size_t index = 0U; index < CANVIEW_STM_FDCAN_CHANNEL_COUNT; ++index)
+    {
+        reset_channel_session(&capture->channels[index]);
+        capture->reported_dropped[index] = 0U;
+    }
+    memset(capture->inventory, 0, sizeof(capture->inventory));
+    capture->inventory_count = 0U;
+    capture->inventory_dropped = 0U;
+    capture->last_source_timestamp_us = 0U;
+    capture->timestamp_epoch_us = 0U;
+    capture->extended_timestamp_us = 0U;
+    capture->timestamp_initialized = false;
+    capture->reentry_requested = false;
+}
+
+canview_status_t canview_stm_fdcan_capture_reset(canview_stm_fdcan_capture_t *capture)
+{
+    if (capture == NULL || !capture->initialized)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    const uint32_t mask = capture->critical.enter(capture->critical.context);
+    if (capture->building)
+    {
+        capture->reentry_requested = true;
+        capture->critical.leave(capture->critical.context, mask);
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    reset_session_state(capture);
+    capture->critical.leave(capture->critical.context, mask);
+    return CANVIEW_OK;
+}
+
 canview_status_t canview_stm_fdcan_capture_ingest(canview_stm_fdcan_capture_t *capture,
                                                   size_t channel_index,
                                                   const canview_stm_fdcan_rx_frame_t *frame)

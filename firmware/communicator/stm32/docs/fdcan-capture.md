@@ -33,7 +33,11 @@ platform raw ring (채널별 16 slot, bounded)
 module은 `stm32g474xx.h`, CMSIS register, FreeRTOS와 HAL을 include하지 않는다.
 platform은 module의 public contract만 호출한다. caller는 capture와 callback
 context를 zero-init하고 정적 수명으로 보유해야 한다. `frame_sink`와
-`drop_sink`는 `service()`에서만 호출되며 재진입·blocking·heap 사용이 없다.
+`drop_sink`는 `service()`에서만 호출되며 callback 재진입은
+`CANVIEW_RESOURCE_BUSY`로 닫힌다. sink가 실패하면 해당 raw slot을 release하지
+않고 다음 `service()`에서 같은 snapshot을 재시도한다. callback은 blocking·heap
+사용 없이 처리해야 한다. `canview_stm_fdcan_capture_reset()`은 module worker가
+callback/build transaction 밖에서 호출하는 session reset API다.
 
 ## Board profile과 PHY 계약
 
@@ -59,20 +63,26 @@ frame을 FIFO0으로 받지만, module은 FD/BRS/DLC>8을 classic record로 내�
 
 STM32CubeG4 v1.6.3의 STM32G4 FDCAN instance layout을 기준으로 instance마다
 848 byte, RX FIFO0 offset 176 byte, element 72 byte, FIFO depth 3을 사용한다.
-source에는 instance/channel 수와 FIFO 범위를 compile-time assertion으로
-고정했다. FIFO fill level이나 get index가 이 계약을 벗어나면 element를
-읽거나 callback을 호출하지 않고 FIFO loss를 기록한다.
+설치된 STM32G4 CMSIS register map에는 RX FIFO status/address(`RXF0S`/`RXF0A`)가
+있고 임의 `RXF0C`/`RXESC` 구성 register는 없다. 따라서 Cube HAL의 fixed layout
+계산과 같은 848/176/72/3 값을 source compile-time assertion으로 고정했으며,
+존재하지 않는 register를 설정하는 방식으로 RAM layout을 바꾸지 않는다. FIFO
+fill level이나 get index가 이 계약을 벗어나면 element를 읽거나 callback을
+호출하지 않고 FIFO loss를 기록한다.
 
 FDCAN IRQ handler의 책임은 다음으로 제한된다.
 
 - FIFO status를 읽고 최대 3개 element를 처리한다.
 - element의 W1..W4와 TIM2 1 MHz counter snapshot을 raw ring에 복사한다.
 - raw ring이 가득 차면 element를 버리고 saturating raw-drop counter를 증가시킨다.
+- FIFO full(`RF0F`)과 FIFO message lost(`RF0L`)를 구분해 보존하고, `RF0L` 또는
+  message RAM access fault(`MRAF`)가 있으면 worker status를 `BUS_FAULT`로 닫는다.
 - ISR 진입 시점의 RX/non-RX interrupt snapshot을 FIFO drain 전에 acknowledge한다.
   drain 중 새로 올라온 RX flag를 마지막에 다시 지우지 않아 다음 IRQ로 남긴다.
-- pending interrupt와 FIFO loss/raw-ring overflow latch는 worker가 critical section에서
-  snapshot/clear하며, stop/start 때 raw index·pending·loss 상태를 새 session으로
-  초기화한다. singleton owner가 아닌 context의 stop은 GPIO나 peripheral을 건드리지 않는다.
+- pending interrupt와 FIFO loss/message-RAM/raw-ring overflow latch는 worker가
+  critical section에서 snapshot/clear하며, stop/start 때 raw index·pending·loss
+  상태를 새 session으로 초기화한다. singleton owner가 아닌 context의 stop은
+  GPIO나 peripheral을 건드리지 않는다.
 
 IRQ에서는 ID/DLC/data decode, callback, `printf`, malloc, blocking과 batch
 생성을 하지 않는다. worker `service()`가 raw snapshot을 `decode_element()`로
@@ -135,9 +145,10 @@ candidate 승격 또는 control permission의 근거가 아니다. 64개 entry�
 - strict C99 host unit: profile/PHY, raw decode, standard/extended/RTR, FD/BRS,
   malformed padding, three-channel ordering, channel별 wrap/delta overflow, no-data/
   passive/bus-off, callback reentry/transaction commit, ring/raw drop와 inventory 포화
-- CMSIS fake-register host adapter: clock/profile/output rollback, owner/session reset,
-  FIFO fill/index/loss, raw-ring 포화, IRQ wrapper, PSR/ECR 상태, sink timeout과
-  callback 계약. 이 시험은 register model일 뿐 실제 STM32 peripheral/HIL이 아니다.
+- CMSIS fake-register host adapter: clock/profile/output rollback, safe output 전체
+  시도, owner/session reset, FIFO fill/index/RF0F/RF0L/MRAF loss, raw-ring 포화,
+  IRQ wrapper, PSR/ECR 상태, sink timeout·raw retry와 callback 재진입 계약. 이
+  시험은 register model일 뿐 실제 STM32 peripheral/HIL이 아니다.
 - STM32G474 Arm GNU 15.3.Rel1 target Debug/Release: CMSIS compile, link,
   ELF/MAP/HEX/BIN, size/stack/금지 TX source·symbol gate
 - generated board/config, 전체 host CTest, sanitizer와 coverage는 immutable

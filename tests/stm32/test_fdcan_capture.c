@@ -944,6 +944,64 @@ static void filter_tests(void)
           CANVIEW_OK && stats.queued_frames == 1U);
 }
 
+static void session_reset_tests(void)
+{
+    const canview_stm_fdcan_profile_t profiles[3] = {
+        valid_profile(500000U), valid_profile(500000U), valid_profile(125000U)};
+    canview_stm_fdcan_capture_t capture = {0};
+    CHECK(canview_stm_fdcan_capture_reset(NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_stm_fdcan_capture_reset(&capture) == CANVIEW_INVALID_ARGUMENT);
+    init_capture(&capture, profiles, NULL, NULL);
+
+    canview_stm_fdcan_rx_frame_t first = frame(100U, 0x601U, 1U, 0U);
+    first.data[0] = 0x5AU;
+    CHECK(canview_stm_fdcan_capture_ingest(&capture, 0U, &first) == CANVIEW_OK);
+    canview_wire_can_batch_t batch = {0};
+    CHECK(canview_stm_fdcan_capture_build_batch(&capture, &batch) == CANVIEW_OK);
+    CHECK(batch.count == 1U && batch.base_time_us == 100U);
+
+    for (uint32_t index = 0U; index < CANVIEW_STM_FDCAN_RING_CAPACITY; ++index)
+    {
+        const canview_stm_fdcan_rx_frame_t queued = frame(200U + index, 0x610U, 0U, 0U);
+        CHECK(canview_stm_fdcan_capture_ingest(&capture, 1U, &queued) == CANVIEW_OK);
+    }
+    const canview_stm_fdcan_rx_frame_t dropped = frame(300U, 0x610U, 0U, 0U);
+    CHECK(canview_stm_fdcan_capture_ingest(&capture, 1U, &dropped) == CANVIEW_RESOURCE_BUSY);
+    CHECK(capture.timestamp_initialized && capture.inventory_count == 1U);
+
+    capture.building = true;
+    CHECK(canview_stm_fdcan_capture_reset(&capture) == CANVIEW_RESOURCE_BUSY);
+    CHECK(capture.reentry_requested);
+    capture.building = false;
+    CHECK(canview_stm_fdcan_capture_reset(&capture) == CANVIEW_OK);
+    CHECK(capture.initialized && !capture.building && !capture.reentry_requested &&
+          !capture.timestamp_initialized && capture.inventory_count == 0U &&
+          capture.inventory_dropped == 0U && capture.last_source_timestamp_us == 0U &&
+          capture.extended_timestamp_us == 0U);
+
+    canview_stm_fdcan_channel_stats_t stats = {0};
+    CHECK(canview_stm_fdcan_capture_get_stats(&capture, 0U, &stats) == CANVIEW_OK);
+    CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_NO_DATA &&
+          stats.status_flags == CANVIEW_STM_FDCAN_STATUS_CONFIGURED &&
+          stats.bitrate == 500000U && stats.accepted_frames == 0U &&
+          stats.dropped_frames == 0U && stats.queued_frames == 0U &&
+          stats.high_water_frames == 0U && stats.last_timestamp_us == 0U);
+    CHECK(canview_stm_fdcan_capture_get_stats(&capture, 1U, &stats) == CANVIEW_OK);
+    CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_NO_DATA &&
+          stats.bitrate == 500000U && stats.accepted_frames == 0U &&
+          stats.dropped_frames == 0U && stats.queued_frames == 0U);
+    size_t inventory_count = 1U;
+    uint32_t inventory_dropped = 1U;
+    CHECK(canview_stm_fdcan_capture_get_inventory_state(&capture, &inventory_count,
+                                                        &inventory_dropped) == CANVIEW_OK);
+    CHECK(inventory_count == 0U && inventory_dropped == 0U);
+
+    const canview_stm_fdcan_rx_frame_t after_reset = frame(10U, 0x602U, 0U, 0U);
+    CHECK(canview_stm_fdcan_capture_ingest(&capture, 0U, &after_reset) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_build_batch(&capture, &batch) == CANVIEW_OK &&
+          batch.count == 1U && batch.base_time_us == 10U && batch.records[0].can_id == 0x602U);
+}
+
 int main(void)
 {
     profile_tests();
@@ -958,6 +1016,7 @@ int main(void)
     inventory_tests();
     drop_accounting_tests();
     filter_tests();
+    session_reset_tests();
     (void)puts("PASS: STM32 three-channel FDCAN capture C99 tests");
     return EXIT_SUCCESS;
 }
