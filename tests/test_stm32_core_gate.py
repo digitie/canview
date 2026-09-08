@@ -43,16 +43,22 @@ class Stm32CoreGateTests(unittest.TestCase):
             valid = root / "valid.c"
             valid.write_text("uint32_t clock = RCC->CCIPR;\n", encoding="utf-8")
             self.assertTrue(check_source_safety(root))
+            valid.write_text("/* FDCAN1->TXBAR */\n// #define CANVIEW_STM_TX_PERMIT 1\n", encoding="utf-8")
+            self.assertTrue(check_source_safety(root))
             for source in (
                     "void send(void) { HAL_FDCAN_AddMessageToTxFifoQ(); }\n",
                     "void send(void) { LL_FDCAN_EnableTxBufferRequest(); }\n",
                     "void send(void) { FDCAN1->TXBAR = 1U; }\n",
                     "void send(void) {\n FDCAN1\n ->TXBAR = 1U;\n}\n",
                     "void send(void) {\n FDCAN_GlobalTypeDef *bus = FDCAN1;\n bus->TXBAR = 1U;\n}\n",
+                    "void send(void) { FDCAN1-> /* command */ TXBAR = 1U; }\n",
+                    "void send(void) { FDCAN_GlobalTypeDef *bus = FDCAN1; bus-> /* command */ TXBAR = 1U; }\n",
                     "#undef CANVIEW_STM_TX_PERMIT\n",
                     "#define CANVIEW_STM_TX_PERMIT 1\n",
                     "#undef " + "\\" + "\nCANVIEW_STM_TX_PERMIT\n",
-                    "#define " + "\\" + "\nCANVIEW_STM_TX_PERMIT 1\n"):
+                    "#define " + "\\" + "\nCANVIEW_STM_TX_PERMIT 1\n",
+                    "#undef /* contract */ CANVIEW_STM_TX_PERMIT\n",
+                    "#define /* contract */ CANVIEW_STM_TX_PERMIT 1\n"):
                 valid.write_text(source, encoding="utf-8")
                 with self.subTest(source=source), self.assertRaises(RuntimeError):
                     check_source_safety(root)
@@ -61,7 +67,7 @@ class Stm32CoreGateTests(unittest.TestCase):
         header = Path("F:/canview/interface/canview_build_mode.h")
         valid = [
             {"file": "main.c", "command":
-             "cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1 -include F:/canview/interface/canview_build_mode.h"},
+             "cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1 -include F:/canview/firmware/../interface/canview_build_mode.h"},
             {"file": "core.c", "arguments": [
                 "cc", "-DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1", "-include",
                 "F:/canview/interface/canview_build_mode.h"]},
@@ -71,6 +77,11 @@ class Stm32CoreGateTests(unittest.TestCase):
         for bad in (
                 [dict(valid[0], command="cc -include F:/canview/interface/canview_build_mode.h")],
                 [dict(valid[0], command="cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1")],
+                [dict(valid[0], command=
+                      "cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1 -include F:/stale/canview_build_mode.h")],
+                [dict(valid[0], command=(
+                    "cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1 -include stdint.h "
+                    "-DHEADER_LABEL=canview_build_mode.h"))],
                 [{"file": "main.c", "command": "cc"}],
                 [{"file": "startup.s", "command": "as"}]):
             with self.subTest(bad=bad), self.assertRaises(RuntimeError):

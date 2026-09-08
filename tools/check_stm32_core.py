@@ -1,8 +1,10 @@
 """STM32 bench ELF의 실제 크기/stack/TX 경계와 host register 상수를 검사한다."""
 import argparse
 import json
+import ntpath
 from pathlib import Path
 import re
+import shlex
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,8 +53,9 @@ def check_source_safety(source_root):
         if path.suffix.lower() not in (".c", ".h") or "build" in path.parts:
             continue
         text = path.read_text(encoding="utf-8")
-        # C의 line continuation과 멤버 접근의 줄바꿈을 포함한 logical text를 검사한다.
-        logical_text = re.sub(r"\\\r?\n", "", text)
+        # C 주석은 preprocessing에서 공백으로 바뀐다. 문자열/문자 literal은 보존해
+        # 예제 문자열을 register access로 잘못 판정하지 않으면서 token 사이 주석도 검사한다.
+        logical_text = re.sub(r"\\\r?\n", "", _strip_c_comments(text))
         logical_lines = logical_text.splitlines()
         seen = set()
 
@@ -75,9 +78,87 @@ def check_source_safety(source_root):
     return True
 
 
+def _strip_c_comments(text):
+    """C comment를 공백으로 치환하고 줄바꿈·literal은 보존한다."""
+    result = []
+    index = 0
+    state = "code"
+    while index < len(text):
+        character = text[index]
+        following = text[index + 1] if index + 1 < len(text) else ""
+        if state == "code":
+            if character == "/" and following == "/":
+                result.append(" ")
+                index += 2
+                state = "line-comment"
+                continue
+            if character == "/" and following == "*":
+                result.append(" ")
+                index += 2
+                state = "block-comment"
+                continue
+            result.append(character)
+            if character in ('"', "'"):
+                state = "string" if character == '"' else "character"
+            index += 1
+            continue
+        if state == "line-comment":
+            if character in ("\r", "\n"):
+                result.append(character)
+                state = "code"
+            else:
+                result.append(" ")
+            index += 1
+            continue
+        if state == "block-comment":
+            if character == "*" and following == "/":
+                result.append(" ")
+                index += 2
+                state = "code"
+            elif character in ("\r", "\n"):
+                result.append(character)
+                index += 1
+            else:
+                result.append(" ")
+                index += 1
+            continue
+        result.append(character)
+        if character == "\\" and index + 1 < len(text):
+            result.append(text[index + 1])
+            index += 2
+        else:
+            if (state == "string" and character == '"') or (
+                    state == "character" and character == "'"):
+                state = "code"
+            index += 1
+    return "".join(result)
+
+
+def _compile_arguments(entry):
+    arguments = entry.get("arguments")
+    if arguments is not None:
+        return [str(argument) for argument in arguments]
+    command = str(entry.get("command", ""))
+    try:
+        return shlex.split(command, posix=False)
+    except ValueError:
+        return command.split()
+
+
+def _canonical_path(value, base):
+    cleaned = str(value).strip().strip('"\'')
+    normalized = cleaned.replace("\\", "/")
+    if re.match(r"^[A-Za-z]:/", normalized):
+        return ntpath.normpath(normalized).replace("\\", "/").rstrip("/").casefold()
+    candidate = Path(cleaned)
+    if not candidate.is_absolute():
+        candidate = Path(base) / candidate
+    return candidate.resolve().as_posix().rstrip("/").casefold()
+
+
 def check_compile_contract(commands, header):
     """compile database의 모든 C unit에 immutable CAPTURE_ONLY 주입이 있는지 확인한다."""
-    header_name = Path(header).name.lower()
+    expected_header = _canonical_path(header, Path.cwd())
     missing = []
     checked = 0
     for entry in commands:
@@ -85,14 +166,20 @@ def check_compile_contract(commands, header):
         if source.suffix.lower() != ".c":
             continue
         checked += 1
-        command = entry.get("command")
-        if command is None:
-            command = " ".join(str(argument) for argument in entry.get("arguments", []))
-        normalized = str(command).replace("\\", "/").lower()
-        has_token = re.search(
-            r"(?<![a-z0-9_])-dcanview_stm_capture_only_contract=1(?![a-z0-9_])",
-            normalized) is not None
-        has_forced_header = "-include" in normalized and header_name in normalized
+        arguments = _compile_arguments(entry)
+        normalized_arguments = [argument.strip('"\'') for argument in arguments]
+        has_token = "-DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1" in normalized_arguments
+        has_forced_header = False
+        directory = entry.get("directory", Path.cwd())
+        for index, argument in enumerate(normalized_arguments):
+            if argument == "-include" and index + 1 < len(normalized_arguments):
+                if _canonical_path(normalized_arguments[index + 1], directory) == expected_header:
+                    has_forced_header = True
+                    break
+            if argument.startswith("-include="):
+                if _canonical_path(argument[len("-include="):], directory) == expected_header:
+                    has_forced_header = True
+                    break
         if not has_token or not has_forced_header:
             missing.append(str(source))
     if checked == 0:
