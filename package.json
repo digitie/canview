@@ -1,0 +1,10 @@
+{
+  "name": "canview-offline-browser-tests",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

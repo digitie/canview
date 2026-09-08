@@ -3,6 +3,7 @@
 #include "canview_bridge_web.h"
 #include <errno.h>
 #include <string.h>
+#include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lwip/inet.h"
@@ -16,6 +17,7 @@
 #define CANVIEW_BRIDGE_DNS_RECV_TIMEOUT_MS (1000U)
 #define CANVIEW_BRIDGE_DNS_TTL_SECONDS (60U)
 #define CANVIEW_BRIDGE_DNS_MAX_QUERIES_PER_SLICE (16U)
+#define CANVIEW_BRIDGE_DNS_HEARTBEAT_TIMEOUT_MS (1500U)
 
 typedef struct
 {
@@ -24,9 +26,13 @@ typedef struct
     StaticTask_t task_buffer;
     StackType_t task_stack[CANVIEW_BRIDGE_DNS_STACK_BYTES];
     TaskHandle_t volatile task;
+    esp_task_wdt_user_handle_t watchdog_user;
+    volatile TickType_t heartbeat_tick;
     volatile bool stop_requested;
     volatile bool stopped;
     volatile bool started;
+    volatile bool heartbeat_valid;
+    volatile bool watchdog_failed;
 } canview_bridge_dns_state_t;
 
 static canview_bridge_dns_state_t dns_state;
@@ -128,14 +134,51 @@ static void close_socket(int socket_fd)
     }
 }
 
+static bool dns_watchdog_checkpoint(canview_bridge_dns_state_t *state)
+{
+    if (state == NULL || state->watchdog_user == NULL ||
+        esp_task_wdt_reset_user(state->watchdog_user) != ESP_OK)
+    {
+        if (state != NULL)
+        {
+            state->watchdog_failed = true;
+        }
+        return false;
+    }
+    state->heartbeat_tick = xTaskGetTickCount();
+    state->heartbeat_valid = true;
+    return true;
+}
+
 static void dns_task(void *context)
 {
     canview_bridge_dns_state_t *state = context;
+    if (state == NULL)
+    {
+        vTaskDelete(NULL);
+        return;
+    }
+    if (!dns_watchdog_checkpoint(state))
+    {
+        state->stopped = true;
+        for (;;)
+        {
+            vTaskSuspend(NULL);
+        }
+    }
     while (!state->stop_requested)
     {
+        if (!dns_watchdog_checkpoint(state))
+        {
+            break;
+        }
         const int socket_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if (socket_fd < 0)
         {
+            if (!dns_watchdog_checkpoint(state))
+            {
+                break;
+            }
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
             continue;
         }
@@ -144,6 +187,10 @@ static void dns_task(void *context)
         if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0)
         {
             close_socket(socket_fd);
+            if (!dns_watchdog_checkpoint(state))
+            {
+                break;
+            }
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
             continue;
         }
@@ -154,6 +201,10 @@ static void dns_task(void *context)
         if (bind(socket_fd, (const struct sockaddr *)&address, sizeof(address)) != 0)
         {
             close_socket(socket_fd);
+            if (!dns_watchdog_checkpoint(state))
+            {
+                break;
+            }
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
             continue;
         }
@@ -162,6 +213,11 @@ static void dns_task(void *context)
         {
             if (state->stop_requested)
             {
+                break;
+            }
+            if (!dns_watchdog_checkpoint(state))
+            {
+                state->stop_requested = true;
                 break;
             }
             if (queries_in_slice >= CANVIEW_BRIDGE_DNS_MAX_QUERIES_PER_SLICE)
@@ -202,6 +258,10 @@ static void dns_task(void *context)
         close_socket(socket_fd);
         if (!state->stop_requested)
         {
+            if (!dns_watchdog_checkpoint(state))
+            {
+                break;
+            }
             vTaskDelay(pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_RETRY_MS));
         }
     }
@@ -219,11 +279,21 @@ esp_err_t canview_bridge_dns_start(void)
         return ESP_ERR_INVALID_STATE;
     }
     memset(&dns_state, 0, sizeof(dns_state));
+    esp_err_t status = esp_task_wdt_add_user("bridge_dns", &dns_state.watchdog_user);
+    if (status != ESP_OK)
+    {
+        dns_state.watchdog_user = NULL;
+        return status;
+    }
+    dns_state.heartbeat_tick = xTaskGetTickCount();
+    dns_state.heartbeat_valid = true;
     dns_state.task = xTaskCreateStatic(dns_task, "bridge_dns", CANVIEW_BRIDGE_DNS_STACK_BYTES,
                                        &dns_state, CANVIEW_BRIDGE_DNS_PRIORITY,
                                        dns_state.task_stack, &dns_state.task_buffer);
     if (dns_state.task == NULL)
     {
+        (void)esp_task_wdt_delete_user(dns_state.watchdog_user);
+        dns_state.watchdog_user = NULL;
         return ESP_ERR_NO_MEM;
     }
     dns_state.started = true;
@@ -249,6 +319,15 @@ esp_err_t canview_bridge_dns_stop(void)
     {
         return ESP_ERR_TIMEOUT;
     }
+    if (dns_state.watchdog_user != NULL)
+    {
+        const esp_err_t status = esp_task_wdt_delete_user(dns_state.watchdog_user);
+        if (status != ESP_OK)
+        {
+            return status;
+        }
+        dns_state.watchdog_user = NULL;
+    }
     TaskHandle_t task = dns_state.task;
     if (task != NULL)
     {
@@ -256,5 +335,21 @@ esp_err_t canview_bridge_dns_stop(void)
     }
     dns_state.task = NULL;
     memset(&dns_state, 0, sizeof(dns_state));
+    return ESP_OK;
+}
+
+esp_err_t canview_bridge_dns_health(void)
+{
+    if (!dns_state.started || dns_state.stopped || dns_state.watchdog_failed ||
+        !dns_state.heartbeat_valid)
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+    const TickType_t now = xTaskGetTickCount();
+    const TickType_t age = now - dns_state.heartbeat_tick;
+    if (age > pdMS_TO_TICKS(CANVIEW_BRIDGE_DNS_HEARTBEAT_TIMEOUT_MS))
+    {
+        return ESP_ERR_TIMEOUT;
+    }
     return ESP_OK;
 }

@@ -25,6 +25,7 @@ WEB_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_b
 WEB_DEFAULTS = ROOT / "firmware" / "diagnostic-bridge" / "sdkconfig.defaults"
 SECURITY_SCRIPT = ROOT / "tests" / "security" / "bridge_http.py"
 CMAKE_SOURCE = ROOT / "CMakeLists.txt"
+WORKFLOW = ROOT / ".github" / "workflows" / "foundation.yml"
 
 
 class BridgeWebAssetTests(unittest.TestCase):
@@ -88,6 +89,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         header = WEB_HEADER.read_text(encoding="utf-8")
         defaults = WEB_DEFAULTS.read_text(encoding="utf-8")
         cmake = CMAKE_SOURCE.read_text(encoding="utf-8")
+        workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("#define CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES (8192U)", header)
         self.assertIn("#define CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES (512U)", header)
         self.assertIn("CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES", source)
@@ -109,6 +111,12 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("httpd_sess_set_recv_override", source)
         self.assertIn("receive_with_pre_auth_deadline", source)
         self.assertIn("CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS", source)
+        self.assertIn("CANVIEW_BRIDGE_WEB_WORKER_HEARTBEAT_TIMEOUT_MS", source)
+        self.assertIn("httpd_queue_work", source)
+        self.assertIn("esp_task_wdt_add_user", source)
+        self.assertIn("esp_task_wdt_reset_user", source)
+        self.assertIn("SO_RCVTIMEO", source)
+        self.assertIn("pre_auth_deadline_remaining", source)
         self.assertIn("arm_pre_auth_client", source)
         self.assertIn("close(client_fd)", source)
         self.assertIn("session_close_pending", session_header)
@@ -123,6 +131,9 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("canview_bridge_auth_reconcile", auth_source)
         self.assertIn("canview_bridge_auth_reconcile", auth_header)
         self.assertIn("DNS task owns its descriptor", dns_source)
+        self.assertIn("esp_task_wdt_add_user", dns_source)
+        self.assertIn("esp_task_wdt_reset_user", dns_source)
+        self.assertIn("canview_bridge_dns_health", dns_source)
         self.assertNotIn("const int socket_fd = dns_state.socket_fd", dns_source)
         self.assertIn("CANVIEW_LONG_TESTS", cmake)
         self.assertIn("--duration-seconds 1", cmake)
@@ -141,6 +152,10 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("vTaskDelete(task)", dns_source)
         self.assertIn("vehicle_tx", source)
         self.assertIn("CONFIG_HTTPD_WS_SUPPORT=y", defaults)
+        self.assertIn("browser-contract:", workflow)
+        self.assertIn("npm ci --ignore-scripts", workflow)
+        self.assertIn("node tools/ui/check-browser.cjs", workflow)
+        self.assertIn("package-lock.json", workflow)
         for forbidden in ("raw_replay", "canview_can_tx", "control_lease"):
             self.assertNotIn(forbidden, source.lower())
 

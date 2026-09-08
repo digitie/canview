@@ -15,6 +15,7 @@
 #include "esp_mac.h"
 #include "esp_netif.h"
 #include "esp_random.h"
+#include "esp_task_wdt.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
@@ -33,6 +34,7 @@
 #define CANVIEW_BRIDGE_WEB_WS_PROTOCOL "canview-session"
 #define CANVIEW_BRIDGE_WEB_WS_TOKEN_PREFIX "canview-session."
 #define CANVIEW_BRIDGE_WEB_WS_TOKEN_TEXT_BYTES (22U)
+#define CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS (5000U)
 #define CANVIEW_BRIDGE_WEB_ORIGIN_IP "http://192.168.4.1"
 #define CANVIEW_BRIDGE_WEB_ORIGIN_HOST "http://canview-diag.local"
 
@@ -56,10 +58,14 @@ typedef struct
     canview_bridge_web_session_t session;
     uint32_t snapshot_revision;
     uint32_t event_sequence;
+    uint32_t httpd_heartbeat_sequence;
+    uint32_t httpd_heartbeat_acknowledged;
     size_t json_arena_used;
     uint64_t button_started_ms;
     uint64_t service_window_started_ms;
     uint64_t mutation_window_started_ms;
+    uint64_t httpd_heartbeat_sent_ms;
+    esp_task_wdt_user_handle_t httpd_watchdog_user;
     uint8_t mutation_count;
     char ap_password[CANVIEW_BRIDGE_WEB_AP_PASSWORD_BYTES];
     char request_body[CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES + 1U];
@@ -76,6 +82,8 @@ typedef struct
     bool wifi_initialized;
     bool wifi_started;
     bool dns_started;
+    bool httpd_heartbeat_pending;
+    bool httpd_watchdog_failed;
     bool initialized;
 } canview_bridge_web_state_t;
 
@@ -316,6 +324,74 @@ static void state_lock_give(canview_bridge_web_state_t *state)
     }
 }
 
+static void httpd_heartbeat_work(void *context)
+{
+    canview_bridge_web_state_t *state = context;
+    if (state == NULL || state->httpd_watchdog_user == NULL)
+    {
+        return;
+    }
+    if (esp_task_wdt_reset_user(state->httpd_watchdog_user) != ESP_OK)
+    {
+        if (state_lock_take(state))
+        {
+            state->httpd_watchdog_failed = true;
+            state_lock_give(state);
+        }
+        return;
+    }
+    if (state_lock_take(state))
+    {
+        if (state->httpd_heartbeat_pending)
+        {
+            state->httpd_heartbeat_acknowledged = state->httpd_heartbeat_sequence;
+        }
+        state_lock_give(state);
+    }
+}
+
+/* Caller holds state_lock. A queued callback is the HTTPD task's liveness proof. */
+static esp_err_t queue_httpd_heartbeat_locked(canview_bridge_web_state_t *state,
+                                              uint64_t now_ms)
+{
+    if (state == NULL || state->server == NULL || state->httpd_watchdog_user == NULL ||
+        state->httpd_watchdog_failed)
+    {
+        return ESP_ERR_INVALID_STATE;
+    }
+    if (state->httpd_heartbeat_pending)
+    {
+        if (state->httpd_heartbeat_acknowledged == state->httpd_heartbeat_sequence)
+        {
+            state->httpd_heartbeat_pending = false;
+        }
+        else if (now_ms < state->httpd_heartbeat_sent_ms ||
+                 now_ms - state->httpd_heartbeat_sent_ms >=
+                     CANVIEW_BRIDGE_WEB_WORKER_HEARTBEAT_TIMEOUT_MS)
+        {
+            return ESP_ERR_TIMEOUT;
+        }
+    }
+    if (state->httpd_heartbeat_pending)
+    {
+        return ESP_OK;
+    }
+    ++state->httpd_heartbeat_sequence;
+    if (state->httpd_heartbeat_sequence == 0U)
+    {
+        state->httpd_heartbeat_sequence = 1U;
+    }
+    state->httpd_heartbeat_sent_ms = now_ms;
+    state->httpd_heartbeat_pending = true;
+    const esp_err_t status = httpd_queue_work(state->server, httpd_heartbeat_work, state);
+    if (status != ESP_OK)
+    {
+        state->httpd_heartbeat_pending = false;
+        return status;
+    }
+    return ESP_OK;
+}
+
 static bool arm_pre_auth_client(canview_bridge_web_state_t *state, int client_fd,
                                 uint64_t started_ms);
 
@@ -476,6 +552,15 @@ static esp_err_t discard_start_state(void)
             return status;
         }
         web_state.server = NULL;
+    }
+    if (web_state.httpd_watchdog_user != NULL)
+    {
+        const esp_err_t status = esp_task_wdt_delete_user(web_state.httpd_watchdog_user);
+        if (status != ESP_OK)
+        {
+            return status;
+        }
+        web_state.httpd_watchdog_user = NULL;
     }
     if (web_state.wifi_started)
     {
@@ -1791,34 +1876,69 @@ static bool web_client_idle_expired(const canview_bridge_web_state_t *state, uin
                                  CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS);
 }
 
-static bool pre_auth_deadline_expired(int client_fd)
+static bool pre_auth_deadline_remaining(int client_fd, bool *tracked, uint32_t *remaining_ms)
 {
-    if (client_fd < 0 || !state_lock_take(&web_state))
+    if (client_fd < 0 || tracked == NULL || remaining_ms == NULL ||
+        !state_lock_take(&web_state))
     {
-        return true;
+        return false;
     }
-    bool expired = false;
+    *tracked = false;
+    *remaining_ms = 0U;
     if (web_state.pre_auth_client_valid && web_state.pre_auth_client_fd == client_fd)
     {
+        *tracked = true;
         uint64_t now_ms = 0U;
-        expired = idf_now_ms(NULL, &now_ms) != CANVIEW_OK ||
-                  now_ms < web_state.pre_auth_started_ms ||
-                  now_ms - web_state.pre_auth_started_ms >= CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS;
+        if (idf_now_ms(NULL, &now_ms) == CANVIEW_OK &&
+            now_ms >= web_state.pre_auth_started_ms &&
+            now_ms - web_state.pre_auth_started_ms < CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS)
+        {
+            const uint64_t remaining = CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS -
+                                       (now_ms - web_state.pre_auth_started_ms);
+            *remaining_ms = remaining > UINT32_MAX ? UINT32_MAX : (uint32_t)remaining;
+        }
     }
     state_lock_give(&web_state);
-    return expired;
+    return true;
 }
 
 static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, char *buffer,
                                           size_t buffer_length, int flags)
 {
-    if (server == NULL || client_fd < 0 || buffer == NULL || buffer_length == 0U ||
-        pre_auth_deadline_expired(client_fd))
+    if (server == NULL || client_fd < 0 || buffer == NULL || buffer_length == 0U)
     {
         return HTTPD_SOCK_ERR_FAIL;
     }
-    (void)server;
+    bool tracked = false;
+    uint32_t remaining_ms = 0U;
+    if (!pre_auth_deadline_remaining(client_fd, &tracked, &remaining_ms))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    if (tracked && remaining_ms == 0U)
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    const uint32_t timeout_ms = tracked && remaining_ms < CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS
+                                    ? remaining_ms
+                                    : CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS;
+    const struct timeval timeout = {.tv_sec = (long)(timeout_ms / 1000U),
+                                    .tv_usec = (long)((timeout_ms % 1000U) * 1000U)};
+    if (setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) != 0)
+    {
+        return HTTPD_SOCK_ERR_INVALID;
+    }
     const int received = recv(client_fd, buffer, buffer_length, flags);
+    if (tracked)
+    {
+        bool still_tracked = false;
+        uint32_t still_remaining_ms = 0U;
+        if (!pre_auth_deadline_remaining(client_fd, &still_tracked, &still_remaining_ms) ||
+            (still_tracked && still_remaining_ms == 0U))
+        {
+            return HTTPD_SOCK_ERR_FAIL;
+        }
+    }
     if (received >= 0)
     {
         return received;
@@ -2039,6 +2159,12 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
         const esp_err_t cleanup_result = discard_start_state();
         return cleanup_result == ESP_OK ? status : cleanup_result;
     }
+    status = esp_task_wdt_add_user("bridge_httpd", &web_state.httpd_watchdog_user);
+    if (status != ESP_OK)
+    {
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? status : cleanup_result;
+    }
     const httpd_uri_t *uris[] = {&uri_root,       &uri_bootstrap, &uri_session_post,
                                  &uri_session_delete, &uri_system,    &uri_peers,
                                  &uri_buses,      &uri_frames,    &uri_filters,
@@ -2061,6 +2187,21 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     }
     web_state.dns_started = true;
     web_state.initialized = true;
+    if (!state_lock_take(&web_state))
+    {
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? ESP_ERR_TIMEOUT : cleanup_result;
+    }
+    uint64_t heartbeat_now_ms = 0U;
+    status = idf_now_ms(NULL, &heartbeat_now_ms) == CANVIEW_OK
+                 ? queue_httpd_heartbeat_locked(&web_state, heartbeat_now_ms)
+                 : ESP_ERR_INVALID_STATE;
+    state_lock_give(&web_state);
+    if (status != ESP_OK)
+    {
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? status : cleanup_result;
+    }
     ESP_LOGI(CANVIEW_BRIDGE_WEB_TAG, "read-only local shell ready channel=%u client-limit=1 tx=0",
              CANVIEW_BRIDGE_WEB_WIFI_CHANNEL);
     return ESP_OK;
@@ -2082,10 +2223,21 @@ esp_err_t canview_bridge_web_poll(void)
     {
         return ESP_ERR_INVALID_STATE;
     }
+    const esp_err_t dns_status = canview_bridge_dns_health();
+    if (dns_status != ESP_OK)
+    {
+        return dns_status;
+    }
     const bool pressed = web_state.config.button_pressed(web_state.config.button_context);
     if (!state_lock_take(&web_state))
     {
         return ESP_ERR_TIMEOUT;
+    }
+    const esp_err_t heartbeat_status = queue_httpd_heartbeat_locked(&web_state, now_ms);
+    if (heartbeat_status != ESP_OK)
+    {
+        state_lock_give(&web_state);
+        return heartbeat_status;
     }
     if (canview_bridge_auth_reconcile(&web_state.auth, now_ms) != CANVIEW_OK)
     {
