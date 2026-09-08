@@ -126,6 +126,9 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Target images must be attributable to the PR head, not GitHub's synthetic merge ref.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.14'
@@ -171,6 +174,10 @@ jobs:
           }
       - name: Install pinned SDKs and build all target images
         shell: pwsh
+        env:
+          CANVIEW_EXPECTED_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+          CANVIEW_PULL_REQUEST_BASE_REVISION: ${{ github.event.pull_request.base.sha }}
+          CANVIEW_PULL_REQUEST_MERGE_REVISION: ${{ github.sha }}
         run: |
           $ErrorActionPreference = 'Stop'
           $logRoot = Join-Path $env:RUNNER_TEMP "canview-target-logs"
@@ -286,6 +293,13 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or $sourceRevision -notmatch '^[0-9a-f]{40}$') {
               throw "Unable to bind target artifacts to the checked-out source revision"
             }
+            $expectedSourceRevision = $env:CANVIEW_EXPECTED_SOURCE_REVISION.Trim().ToLowerInvariant()
+            if ($expectedSourceRevision -notmatch '^[0-9a-f]{40}$') {
+              throw "Expected target source revision is missing or malformed"
+            }
+            if ($sourceRevision.ToLowerInvariant() -ne $expectedSourceRevision) {
+              throw "Target checkout revision mismatch: expected $expectedSourceRevision, found $sourceRevision"
+            }
             $runIdentity = if ([string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ID)) {
               "local"
             } else {
@@ -308,7 +322,10 @@ jobs:
             $toolchainProvenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
             [ordered]@{
               schemaVersion = 2
-              sourceRevision = $sourceRevision
+              sourceRevision = $sourceRevision.ToLowerInvariant()
+              expectedSourceRevision = $expectedSourceRevision
+              pullRequestBaseRevision = $env:CANVIEW_PULL_REQUEST_BASE_REVISION
+              pullRequestMergeRevision = $env:CANVIEW_PULL_REQUEST_MERGE_REVISION
               ciRun = $runIdentity
               buildConfiguration = [ordered]@{
                 projects = @("firmware/communicator/stm32", "firmware/communicator/esp32",

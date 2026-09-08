@@ -161,6 +161,12 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("npm ci --ignore-scripts", workflow)
         self.assertIn("node tools/ui/check-browser.cjs", workflow)
         self.assertIn("package-lock.json", workflow)
+        self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", workflow)
+        self.assertIn("CANVIEW_EXPECTED_SOURCE_REVISION", workflow)
+        self.assertIn("Target checkout revision mismatch", workflow)
+        self.assertIn("expectedSourceRevision", workflow)
+        self.assertIn("pullRequestBaseRevision", workflow)
+        self.assertIn("pullRequestMergeRevision", workflow)
         for forbidden in ("raw_replay", "canview_can_tx", "control_lease"):
             self.assertNotIn(forbidden, source.lower())
 
