@@ -2,6 +2,16 @@
 
 ## 현재 진척도
 
+2026-09-08 T-500 protocol/CAN fault bench와 HIL harness는 최종 candidate
+`ff3121ce04328ff61a73f13492f8be9927f0dc98`에서 A-10/B-10 독립 reviewer
+`PASS`, unresolved P0/P1/P2/P3 0건, CI `34235313714` 6/6 success 후 PR #30
+merge commit `8f5d97ff924fe7fdb757a3a86a30cde5a80c2a09`으로 `origin/main`에
+통합됐다. focused unit 46/46, 전체 Python 97/97, host 12/12, evidence
+validator, sanitizer, document link와 plan 검사를 통과했다. g2 read-only rig와
+physical/HIL·flash·전원/reset/brownout·CAN analyzer·차량 bus·provisioning은
+`SKIPPED` 또는 `NOT_RUN`이며 차량 CAN TX는 `NO-GO`다. T-500은 harness 준비
+범위에서 `DONE`이고 physical G2/G4·차량 승인은 아니다.
+
 2026-09-08 T-102 STM32 source foundation의 최종 candidate는 `18941170ef475777c62db2f1471b74f937c807ea`이다. generated hardware digest·forced CAPTURE_ONLY build contract/link anchor/source TX gate·reset reason·stack watermark·service policy skeleton·version 2 40-byte diagnostic record·cooperative scheduler를 연결했고, metadata assembly는 BSP provider target으로 분리했다. C preprocessing phase-order source gate와 mutation regression까지 반영한 뒤 Host Debug/Release 116/116, Clang ASan/UBSan 116/116, TSan pool 1/1, coverage, generator/sdkconfig/plan/link, Doxygen/Sphinx strict, STM32 Debug/Release clean-first target ELF/MAP/BIN/HEX 및 warning/error 0을 확인했다. 독립 reviewer A-005/B-005는 모두 PASS이고 unresolved P0/P1/P2/P3는 0건이다. GitHub Actions `34216963785`와 최종 문서 closure head `34218499019`의 6개 job 및 target artifact/warning gate가 PASS했고, PR #29는 merge commit `50410ba23fcecfa1f28cea837d04a061c201d648`으로 `origin/main`에 통합됐다. 실제 board flash/HIL·clock/reset/rail/brownout·UART/FDCAN 계측·Flash root 배치·차량 CAN은 `NOT_RUN`이다. FDCAN/UART 송수신과 차량 CAN TX는 활성화하지 않는다.
 
 2026-09-08 최신 T-400 source candidate는 `586127450d14b8ef5a59f90edd1c49947b866bb7`이다. `7479cf1`에서 모든 qualification job을 immutable PR-head checkout으로 고정했고, `5861274`에서 Diagnostic Bridge의 HTTPD queue blocking을 명시적으로 비활성화하여 generator·validator·mutation test까지 연결했다. 실제 ESP-IDF 6.0.3 Bridge build, host/config/security/browser regression과 GitHub Actions `34196236147` 여섯 job이 성공했다. target manifest는 source/expected/base revision을 일치시키고 STM32 Debug/Release·Communicator ESP32·Diagnostic Bridge·Controller의 BIN/ELF/MAP 18개를 `18/18` bytes/SHA-256로 검증했으며, target warning/error scan은 0건, Windows checkout source provenance는 6/6이다. 독립 Reviewer A 실행 `CV-HOSTILE-20260908-POSTFIX-586`과 Reviewer B 실행 `c3636fd3-5ab5-4637-8a9b-2cd813359631`은 모두 source P0/P1 없이 `CONDITIONAL`로 완료했고, 통합 결과는 [T-400-02 review](reviews/adversarial/2026-09-08-T-400-02.md)에 보존했다. 물리 board/HIL, live endpoint, production provisioning, vehicle integration은 `NOT_RUN`이며 차량 CAN TX는 `NO-GO`다.
@@ -28,10 +38,14 @@
 
 ## 다음 한 작업
 
-현재 작업은 공용 fault bench 준비 단계의 [T-500](tasks/T-500-bench-hil-harness.md)이며, T-102 source closure는 PR #29 merge commit `50410ba`로 `origin/main`에 통합됐다. T-500의 deterministic host runner·12개 scenario inventory·fail-closed lab adapter 계약을 `codex/t500-hil-harness`에서 구현 중이다. 실제 board flash/HIL·clock/reset/rail/brownout·UART/FDCAN 계측은 `NOT_RUN`이며 CAN TX는 계속 `NO-GO`다.
+현재 다음 구현은 [T-103](tasks/T-103-stm32-fdcan-capture.md) STM32 3채널
+FDCAN capture-only C firmware다. 선행 T-004, T-102, T-500은 main에 통합됐다.
+세 CAN channel의 listen-only 수신·bounded ring·timestamp·bus 상태를 구현하며
+임의 CAN TX, ACK와 차량 송신은 만들지 않는다. 실제 board flash/HIL·clock/reset/
+rail/brownout·FDCAN 계측은 장비가 없으면 `NOT_RUN`으로 남긴다.
 
-- 현재 문서: docs/tasks/T-500-bench-hil-harness.md, tests/hil/README.md, docs/architecture/README.md, docs/development/windows.md
-- 다음 구현 순서: T-500 host/lab contract·실패 fixture·CI closure → T-103 Communicator STM32 3채널 FDCAN capture-only C firmware → T-104 UART DMA/control C firmware. 장비가 없으면 G1/G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
+- 현재 문서: docs/tasks/T-103-stm32-fdcan-capture.md, docs/architecture/README.md, docs/development/windows.md, docs/runbooks/agent-workflow.md
+- 다음 검증 순서: T-103 C source → host unit/malformed/concurrency/sanitizer → STM32 target ELF/MAP/BIN/HEX warning 0 → 독립 reviewer 2명 → Draft PR/CI/merge. 장비가 없으면 G1/G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
 - Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.

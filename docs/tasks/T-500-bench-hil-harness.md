@@ -1,6 +1,6 @@
 # T-500 protocol/CAN fault bench와 HIL harness
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - 우선순위: `P0`
 - Gate: `G2/G4`
 - 선행: `T-001`, `T-003`, `T-004`
@@ -51,6 +51,24 @@ analyzer·차량 bus는 실행하지 않는다. 차량 CAN TX와 raw replay는 �
 - [x] 실패 시 첫 violated invariant와 관련 log offset을 출력한다.
 - [x] CI에서는 host subset, lab에서는 hardware subset을 같은 scenario 형식으로 실행한다. (lab adapter는 연결 전 `SKIPPED/BLOCKED`)
 - [x] machine-readable budget manifest의 map/stack/heap/queue/WCET/latency 위반이 첫 invariant로 보고된다.
+
+## 2026-09-08 merge closure
+
+T-500 source와 host harness는 PR [#30](https://github.com/digitie/canview/pull/30)의
+merge commit `8f5d97ff924fe7fdb757a3a86a30cde5a80c2a09`으로 `origin/main`에
+통합됐다. 최종 candidate `ff3121ce04328ff61a73f13492f8be9927f0dc98`에 대해
+Reviewer A `CV-HOSTILE-20260908-T500-A-10`과 Reviewer B
+`CV-HOSTILE-20260908-T500-B-10`이 모두 `PASS`를 반환했고 unresolved
+P0/P1/P2/P3는 0건이다. 원본은 [통합 report](../reviews/adversarial/2026-09-08-T-500.md),
+[A raw](../reviews/adversarial/evidence/2026-09-08-T-500-reviewer-a.md),
+[B raw](../reviews/adversarial/evidence/2026-09-08-T-500-reviewer-b.md)에 보존했다.
+
+최종 CI `34235313714`의 6개 job과 target firmware build가 success로 종료했고,
+host unit 46/46, 전체 Python 97/97, host inventory 12/12, sanitizer,
+문서 링크·plan 검사를 확인했다. g2 read-only rig는 장비 부재로 `SKIPPED`이며
+물리 board/HIL·flash·전원/reset/brownout·CAN analyzer·차량 bus·provisioning은
+`NOT_RUN`이다. 이 task는 harness 준비 완료이지 physical G2/G4 또는 차량 기능
+승인이 아니며 차량 CAN TX는 `NO-GO`다.
 
 ## 계획 보완 수용 기준
 
