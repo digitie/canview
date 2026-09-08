@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import importlib.util
 from pathlib import Path
 import subprocess
 import sys
@@ -19,6 +20,17 @@ WEB_DEFAULTS = ROOT / "firmware" / "diagnostic-bridge" / "sdkconfig.defaults"
 
 
 class BridgeWebAssetTests(unittest.TestCase):
+    def test_canonical_gzip_stored_block_boundaries(self) -> None:
+        spec = importlib.util.spec_from_file_location("bridge_asset_generator", SCRIPT)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        generator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(generator)
+        for source in (b"", b"a" * 65535, b"b" * 65536):
+            compressed = generator.canonical_gzip(source)
+            self.assertEqual(compressed[:10], b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff")
+            self.assertEqual(gzip.decompress(compressed), source)
+
     def generate(self, output_dir: Path) -> None:
         result = subprocess.run(
             [sys.executable, "-B", str(SCRIPT), "--input", str(HTML), "--output-dir", str(output_dir)],
@@ -39,10 +51,11 @@ class BridgeWebAssetTests(unittest.TestCase):
             self.assertEqual((first / "bridge_assets.c").read_bytes(), (second / "bridge_assets.c").read_bytes())
             generated = (first / "bridge_assets.c").read_text(encoding="utf-8")
             values = [int(value, 16) for value in generated.split("const uint8_t canview_bridge_index_html_gz[] = {")[1].split("};", 1)[0].replace(",", " ").split()]
-            self.assertEqual(bytes(values)[9], 0xFF)
-            self.assertEqual(gzip.decompress(bytes(values)), HTML.read_bytes())
+            compressed = bytes(values)
+            self.assertEqual(compressed[:10], b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff")
+            self.assertEqual(gzip.decompress(compressed), HTML.read_bytes())
             self.assertEqual(hashlib.sha256(bytes(values)).hexdigest(),
-                             "8bf58e72c167c8d59f2ed48b888ca775c3a309b03d89308dc7d7d40c10f73cce")
+                             "0e92efdfeb3b8ccab8c3eb1da5116b2a2c6f337d080de15ebf653fa3cda43edc")
 
     def test_shell_does_not_persist_token_or_call_external_network(self) -> None:
         body = HTML.read_text(encoding="utf-8").lower()
