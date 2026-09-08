@@ -240,6 +240,9 @@ if(BUILD_TESTING)
     add_test(NAME foundation-python COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_generators.py -v)
     add_test(NAME esp32-sdkconfig-negative COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_sdkconfig.py -v)
     add_test(NAME python-unit COMMAND ${Python3_EXECUTABLE} -X utf8 -B -m unittest discover -s ${PROJECT_SOURCE_DIR}/tests -p "test_*.py")
+    # The repository-mounted Windows/WSL path can make the complete Python
+    # unit suite exceed one minute even though individual tests remain bounded.
+    set_tests_properties(python-unit PROPERTIES TIMEOUT 180)
     add_test(NAME bridge-http-contract COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/security/bridge_http.py)
     set_tests_properties(bridge-http-contract PROPERTIES TIMEOUT 15)
