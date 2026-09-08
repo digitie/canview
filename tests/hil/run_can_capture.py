@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
 import sys
 
 
@@ -24,6 +25,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mode", choices=("capture-only",), default="capture-only")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--output", type=Path, default=ROOT / "build" / "hil-t103-capture")
+    parser.add_argument("--expected-commit", required=True,
+                        help="immutable candidate commit expected by this evidence run")
+    parser.add_argument("--expected-firmware-source-sha256", required=True,
+                        help="SHA-256 of firmware/shared/protocol source tree")
     return parser
 
 
@@ -31,6 +36,12 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.channels != 3 or args.mode != "capture-only":
         print("BLOCKED: T-103 requires exactly three capture-only channels", file=sys.stderr)
+        return 2
+    expected_commit = args.expected_commit.lower()
+    expected_firmware_identity = args.expected_firmware_source_sha256.lower()
+    if (re.fullmatch(r"[0-9a-f]{40}", expected_commit) is None or
+            re.fullmatch(r"[0-9a-f]{64}", expected_firmware_identity) is None):
+        print("BLOCKED: candidate commit or firmware source digest is malformed", file=sys.stderr)
         return 2
     result = run_main([
         "--suite", "host",
@@ -53,8 +64,10 @@ def main(argv: list[str] | None = None) -> int:
                 or not isinstance(scenario_results[0], dict)
                 or report.get("status") != "PASS"
                 or scenario_results[0].get("id") != "can-load"
+                or firmware.get("git_commit", "").lower() != expected_commit
+                or firmware.get("source_sha256", "").lower() != expected_firmware_identity
                 or event_identity.get("firmware_identity") != firmware.get("source_sha256")):
-            raise ValueError("capture report identity or selection is invalid")
+            raise ValueError("capture report identity, candidate, or selection is invalid")
         event_path = (output / scenario_results[0]["events_file"]).resolve()
         if output.resolve() not in event_path.parents:
             raise ValueError("capture event path escapes output directory")

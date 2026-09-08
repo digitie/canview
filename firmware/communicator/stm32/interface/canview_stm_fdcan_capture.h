@@ -224,12 +224,14 @@ typedef struct
     uint32_t last_error;
     uint32_t bitrate;
     uint64_t last_timestamp_us;
+    uint64_t last_status_timestamp_us;
     uint32_t last_source_timestamp_us;
     uint64_t timestamp_epoch_us;
     canview_stm_fdcan_bus_state_t state;
     uint8_t status_flags;
     bool enabled;
     bool timestamp_initialized;
+    bool status_timestamp_initialized;
     bool data_seen;
 } canview_stm_fdcan_channel_t;
 
@@ -322,7 +324,7 @@ canview_status_t canview_stm_fdcan_capture_observe(canview_stm_fdcan_capture_t *
  * @param last_error LEC와 pending hardware error snapshot. adapter-owned high bits are
  *                   sticky for the current session.
  * @param timestamp_us status snapshot의 extended timestamp.
- * @return 상태 반영 성공, 역행 timestamp, disabled channel 또는 입력 오류.
+ * @return 상태 반영 성공, stale/역행 timestamp, disabled channel 또는 입력 오류.
  */
 canview_status_t canview_stm_fdcan_capture_set_status(
     canview_stm_fdcan_capture_t *capture, size_t channel, canview_stm_fdcan_bus_state_t state,

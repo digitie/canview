@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
 EXPECTED_SOURCE = "t103-fixture"
 EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
-EXPECTED_FIRMWARE_IDENTITY = "368345fe55b4d49c77967bf8d045f4acd7e99b9d7d5dccbc209155639957dcd2"
+EXPECTED_COMMIT = "b938bd603f059281a29f54f6e91f17ba8ab72d38"
+EXPECTED_FIRMWARE_IDENTITY = "f321910ee51e02920b19da0ccb5f7823e9cac3b54bab7232f77b2a791ec1107d"
 
 
 class T103CaptureHelperTests(unittest.TestCase):
@@ -42,7 +43,11 @@ class T103CaptureHelperTests(unittest.TestCase):
     def test_capture_wrapper_validates_runner_event_identity_and_no_tx(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "capture"
-            self.assertEqual(0, run_capture(["--output", str(output)]))
+            self.assertEqual(
+                0,
+                run_capture(["--output", str(output), "--expected-commit", EXPECTED_COMMIT,
+                             "--expected-firmware-source-sha256", EXPECTED_FIRMWARE_IDENTITY]),
+            )
             report = json.loads((output / "report.json").read_text(encoding="utf-8"))
             event_identity = report["event_identity"]
             records = (output / report["scenario_results"][0]["events_file"]).read_text(
@@ -191,7 +196,23 @@ class T103CaptureHelperTests(unittest.TestCase):
         self.assertEqual(2, status, message)
 
     def test_capture_wrapper_rejects_wrong_channel_count(self) -> None:
-        self.assertEqual(2, run_capture(["--channels", "2"]))
+        self.assertEqual(2, run_capture([
+            "--channels", "2", "--expected-commit", EXPECTED_COMMIT,
+            "--expected-firmware-source-sha256", EXPECTED_FIRMWARE_IDENTITY]))
+
+    def test_capture_wrapper_rejects_wrong_candidate_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "capture"
+            self.assertEqual(
+                2,
+                run_capture(["--output", str(output), "--expected-commit", "0" * 40,
+                             "--expected-firmware-source-sha256", EXPECTED_FIRMWARE_IDENTITY]),
+            )
+            self.assertEqual(
+                2,
+                run_capture(["--output", str(output), "--expected-commit", EXPECTED_COMMIT,
+                             "--expected-firmware-source-sha256", "0" * 64]),
+            )
 
     def test_cli_requires_execution_identity(self) -> None:
         self.assertEqual(2, assert_no_tx_main([str(FIXTURE)]))

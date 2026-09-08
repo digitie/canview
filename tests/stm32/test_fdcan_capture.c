@@ -487,6 +487,26 @@ static void timestamp_transaction_tests(void)
     CHECK(canview_stm_fdcan_capture_ingest(&capture, 1U, &forward_gap) == CANVIEW_MALFORMED);
     CHECK(capture.last_source_timestamp_us == 100U && capture.extended_timestamp_us == 100U);
 
+    canview_stm_fdcan_capture_t half_range_forward = {0};
+    init_capture(&half_range_forward, profiles, NULL, NULL);
+    const canview_stm_fdcan_rx_frame_t half_forward_first = frame(100U, 0x514U, 0U, 0U);
+    const canview_stm_fdcan_rx_frame_t half_forward_second =
+        frame(100U + CANVIEW_STM_FDCAN_TIMESTAMP_HALF_RANGE, 0x515U, 0U, 0U);
+    CHECK(canview_stm_fdcan_capture_ingest(&half_range_forward, 0U, &half_forward_first) ==
+          CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_ingest(&half_range_forward, 0U, &half_forward_second) ==
+          CANVIEW_MALFORMED);
+
+    canview_stm_fdcan_capture_t half_range_backward = {0};
+    init_capture(&half_range_backward, profiles, NULL, NULL);
+    const canview_stm_fdcan_rx_frame_t half_backward_first =
+        frame(CANVIEW_STM_FDCAN_TIMESTAMP_HALF_RANGE, 0x516U, 0U, 0U);
+    const canview_stm_fdcan_rx_frame_t half_backward_second = frame(0U, 0x517U, 0U, 0U);
+    CHECK(canview_stm_fdcan_capture_ingest(&half_range_backward, 0U, &half_backward_first) ==
+          CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_ingest(&half_range_backward, 0U, &half_backward_second) ==
+          CANVIEW_MALFORMED);
+
     /* 채널 0이 wrap한 직후 채널 1의 이전 epoch frame도 정상적으로 보존한다. */
     canview_stm_fdcan_capture_t cross_wrap = {0};
     init_capture(&cross_wrap, profiles, NULL, NULL);
@@ -817,6 +837,28 @@ static void timestamp_tests(void)
                                                CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U,
                                                0U, 10U) == CANVIEW_OK);
 
+    canview_stm_fdcan_capture_t stale_status_capture = {0};
+    init_capture(&stale_status_capture, profiles, NULL, NULL);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &stale_status_capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U, 0U,
+              1000U) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &stale_status_capture, 0U, CANVIEW_STM_FDCAN_BUS_OFF, 0U, 0U, 1U, 0U,
+              2000U) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &stale_status_capture, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U, 0U,
+              1500U) == CANVIEW_STALE);
+    CHECK(canview_stm_fdcan_capture_get_stats(&stale_status_capture, 0U, &stats) == CANVIEW_OK);
+    CHECK(stats.state == CANVIEW_STM_FDCAN_BUS_OFF && stats.bus_off_count == 1U);
+
+    canview_stm_fdcan_capture_t frame_before_status = {0};
+    init_capture(&frame_before_status, profiles, NULL, NULL);
+    const canview_stm_fdcan_rx_frame_t newest_frame = frame(3000U, 0x518U, 0U, 0U);
+    CHECK(canview_stm_fdcan_capture_ingest(&frame_before_status, 0U, &newest_frame) == CANVIEW_OK);
+    CHECK(canview_stm_fdcan_capture_set_status(
+              &frame_before_status, 0U, CANVIEW_STM_FDCAN_BUS_ERROR_ACTIVE, 0U, 0U, 0U, 0U,
+              2000U) == CANVIEW_STALE);
+
     canview_stm_fdcan_capture_t sticky_fault_capture = {0};
     init_capture(&sticky_fault_capture, profiles, NULL, NULL);
     CHECK(canview_stm_fdcan_capture_set_status(
@@ -1011,7 +1053,9 @@ static void session_reset_tests(void)
     CHECK(capture.initialized && !capture.building && !capture.reentry_requested &&
           !capture.timestamp_initialized && capture.inventory_count == 0U &&
           capture.inventory_dropped == 0U && capture.last_source_timestamp_us == 0U &&
-          capture.extended_timestamp_us == 0U);
+          capture.extended_timestamp_us == 0U &&
+          !capture.channels[0].status_timestamp_initialized &&
+          capture.channels[0].last_status_timestamp_us == 0U);
 
     canview_stm_fdcan_channel_stats_t stats = {0};
     CHECK(canview_stm_fdcan_capture_get_stats(&capture, 0U, &stats) == CANVIEW_OK);

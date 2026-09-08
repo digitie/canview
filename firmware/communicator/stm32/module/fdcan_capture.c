@@ -242,6 +242,10 @@ static canview_status_t extend_timestamp(canview_stm_fdcan_timestamp_state_t *st
     const bool source_is_lower = source_timestamp_us < previous_source;
     const uint32_t distance = source_is_lower ? previous_source - source_timestamp_us
                                               : source_timestamp_us - previous_source;
+    if (distance == CANVIEW_STM_FDCAN_TIMESTAMP_HALF_RANGE)
+    {
+        return CANVIEW_MALFORMED;
+    }
     if (distance > CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
     {
         if (!source_is_lower || state->timestamp_epoch_us >
@@ -284,18 +288,36 @@ static canview_status_t timestamp_near_anchor(uint32_t source_timestamp_us,
         return CANVIEW_INVALID_ARGUMENT;
     }
     uint64_t candidate = anchor_epoch_us + (uint64_t)source_timestamp_us;
-    if (candidate > anchor_timestamp_us &&
-        candidate - anchor_timestamp_us > CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
+    if (candidate > anchor_timestamp_us)
     {
+        const uint64_t distance = candidate - anchor_timestamp_us;
+        if (distance == (uint64_t)CANVIEW_STM_FDCAN_TIMESTAMP_HALF_RANGE)
+        {
+            return CANVIEW_MALFORMED;
+        }
+        if (distance <= CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
+        {
+            *timestamp_us = candidate;
+            return CANVIEW_OK;
+        }
         if (candidate < CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT)
         {
             return CANVIEW_MALFORMED;
         }
         candidate -= CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT;
     }
-    else if (anchor_timestamp_us > candidate &&
-             anchor_timestamp_us - candidate > CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
+    else if (anchor_timestamp_us > candidate)
     {
+        const uint64_t distance = anchor_timestamp_us - candidate;
+        if (distance == (uint64_t)CANVIEW_STM_FDCAN_TIMESTAMP_HALF_RANGE)
+        {
+            return CANVIEW_MALFORMED;
+        }
+        if (distance <= CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
+        {
+            *timestamp_us = candidate;
+            return CANVIEW_OK;
+        }
         if (candidate > UINT64_MAX - CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT)
         {
             return CANVIEW_OVERSIZE;
@@ -1032,6 +1054,29 @@ canview_status_t canview_stm_fdcan_capture_set_status(
         capture->critical.leave(capture->critical.context, mask);
         return CANVIEW_RESOURCE_BUSY;
     }
+    const uint32_t hardware_fault_flags = last_error & CANVIEW_STM_FDCAN_ERROR_STICKY_MASK;
+    const bool status_is_stale =
+        (channel->status_timestamp_initialized && timestamp_us < channel->last_status_timestamp_us) ||
+        (channel->timestamp_initialized && timestamp_us < channel->last_timestamp_us);
+    if (status_is_stale)
+    {
+        const uint32_t new_hardware_fault_flags =
+            hardware_fault_flags & ~channel->sticky_error_flags;
+        if (new_hardware_fault_flags != 0U)
+        {
+            channel->sticky_error_flags |= hardware_fault_flags;
+            add_saturating(&channel->hardware_fault_count, 1U);
+            channel->state = CANVIEW_STM_FDCAN_BUS_FAULT;
+            channel->last_error |= hardware_fault_flags;
+        }
+        capture->critical.leave(capture->critical.context, mask);
+        return CANVIEW_STALE;
+    }
+    if (!channel->status_timestamp_initialized || timestamp_us > channel->last_status_timestamp_us)
+    {
+        channel->status_timestamp_initialized = true;
+        channel->last_status_timestamp_us = timestamp_us;
+    }
     /*
      * A PSR/ECR snapshot is not a received frame.  In particular, a worker
      * status sample can be older than a frame still waiting in the raw ring;
@@ -1045,7 +1090,6 @@ canview_status_t canview_stm_fdcan_capture_set_status(
         capture->timestamp_epoch_us = timestamp_us & UINT64_C(0xffffffff00000000);
         capture->extended_timestamp_us = timestamp_us;
     }
-    const uint32_t hardware_fault_flags = last_error & CANVIEW_STM_FDCAN_ERROR_STICKY_MASK;
     const uint32_t new_hardware_fault_flags =
         hardware_fault_flags & ~channel->sticky_error_flags;
     if (new_hardware_fault_flags != 0U)
@@ -1058,7 +1102,10 @@ canview_status_t canview_stm_fdcan_capture_set_status(
                         : state;
     channel->rx_error_count = rx_error_count;
     channel->tx_error_count = tx_error_count;
-    channel->bus_off_count = bus_off_count;
+    if (bus_off_count > channel->bus_off_count)
+    {
+        channel->bus_off_count = bus_off_count;
+    }
     channel->last_error = last_error | channel->sticky_error_flags;
     if (channel->state == CANVIEW_STM_FDCAN_BUS_NO_DATA)
     {

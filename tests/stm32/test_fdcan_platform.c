@@ -454,6 +454,7 @@ static void fifo_and_loss_tests(void)
     CHECK(canview_stm_fdcan_platform_service(&platform, 105U) == CANVIEW_OK);
     CHECK(fixture.frames == 19U && fixture.drops == 2U);
     CHECK((fixture.last_error & CANVIEW_STM_FDCAN_PLATFORM_ERROR_RAW_RING_OVERFLOW) != 0U);
+    CHECK((platform.session_fault_flags[0] & CANVIEW_STM_FDCAN_ERROR_RAW_RING_OVERFLOW) != 0U);
 
     platform.reported_raw_drops[0] = UINT32_MAX;
     CHECK(canview_stm_fdcan_platform_service(&platform, 106U) == CANVIEW_OK);
@@ -476,7 +477,11 @@ static void fifo_and_loss_tests(void)
     FDCAN1_IT0_IRQHandler();
     platform.raw_read_index[0] = platform.raw_write_index[0];
     CHECK(canview_stm_fdcan_platform_service(&platform, 108U) == CANVIEW_OK);
+    CHECK((platform.session_fault_flags[0] & CANVIEW_STM_FDCAN_ERROR_RAW_RING_OVERFLOW) != 0U);
     CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
+    CHECK(platform.session_fault_flags[0] == 0U && !platform.fifo_loss_unknown[0] &&
+          !platform.message_ram_fault[0] && !platform.raw_ring_overflow[0] &&
+          platform.raw_drops[0] == 0U && platform.sink_failures[0] == 0U);
 
     FDCAN1_IT0_IRQHandler();
     CHECK(canview_stm_fdcan_platform_service(&platform, 108U) == CANVIEW_OK);
