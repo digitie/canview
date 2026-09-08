@@ -367,26 +367,6 @@ static void leave_request(canview_bridge_web_state_t *state)
     }
 }
 
-static bool record_authenticated_request(httpd_req_t *request,
-                                         canview_bridge_web_state_t *state)
-{
-    if (request == NULL || state == NULL)
-    {
-        return false;
-    }
-    /* Only callers that already validated Origin and bearer/session credentials reach this seam. */
-    const int client_fd = httpd_req_to_sockfd(request);
-    uint64_t now_ms = 0U;
-    if (client_fd < 0 || idf_now_ms(NULL, &now_ms) != CANVIEW_OK || !state_lock_take(state))
-    {
-        return false;
-    }
-    const canview_bridge_web_session_result_t status =
-        canview_bridge_web_session_record_activity(&state->session, client_fd, now_ms);
-    state_lock_give(state);
-    return status == CANVIEW_BRIDGE_WEB_SESSION_OK;
-}
-
 static bool enter_ws_io(canview_bridge_web_state_t *state)
 {
     return state != NULL && state->ws_io_lock != NULL &&
@@ -403,19 +383,16 @@ static void leave_ws_io(canview_bridge_web_state_t *state)
 
 static esp_err_t discard_start_state(void)
 {
-    esp_err_t cleanup_status = ESP_OK;
     web_state.initialized = false;
     if (web_state.dns_started)
     {
         const esp_err_t status = canview_bridge_dns_stop();
-        if (status == ESP_OK)
+        if (status != ESP_OK)
         {
-            web_state.dns_started = false;
+            /* Do not tear down Wi-Fi while the DNS task may still use its socket. */
+            return status;
         }
-        else
-        {
-            cleanup_status = status;
-        }
+        web_state.dns_started = false;
     }
     if (web_state.server != NULL)
     {
@@ -423,25 +400,25 @@ static esp_err_t discard_start_state(void)
         if (status != ESP_OK)
         {
             /* Keep the handle, locks, and auth state alive for a bounded caller retry. */
-            return cleanup_status == ESP_OK ? status : cleanup_status;
+            return status;
         }
         web_state.server = NULL;
     }
     if (web_state.wifi_started)
     {
         const esp_err_t status = esp_wifi_stop();
-        if (status != ESP_OK && cleanup_status == ESP_OK)
+        if (status != ESP_OK)
         {
-            cleanup_status = status;
+            return status;
         }
         web_state.wifi_started = false;
     }
     if (web_state.wifi_initialized)
     {
         const esp_err_t status = esp_wifi_deinit();
-        if (status != ESP_OK && cleanup_status == ESP_OK)
+        if (status != ESP_OK)
         {
-            cleanup_status = status;
+            return status;
         }
         web_state.wifi_initialized = false;
     }
@@ -458,9 +435,9 @@ static esp_err_t discard_start_state(void)
     if (web_state.event_loop_initialized)
     {
         const esp_err_t status = esp_event_loop_delete_default();
-        if (status != ESP_OK && cleanup_status == ESP_OK)
+        if (status != ESP_OK)
         {
-            cleanup_status = status;
+            return status;
         }
         web_state.event_loop_initialized = false;
     }
@@ -482,11 +459,9 @@ static esp_err_t discard_start_state(void)
     {
         vSemaphoreDelete(lock);
     }
-    const bool dns_pending = web_state.dns_started;
     secure_zero(&web_state, sizeof(web_state));
     canview_bridge_web_session_init(&web_state.session);
-    web_state.dns_started = dns_pending;
-    return cleanup_status;
+    return ESP_OK;
 }
 
 static bool origin_allowed(httpd_req_t *request, bool required)
@@ -669,18 +644,55 @@ static bool parse_bearer(httpd_req_t *request,
     return parsed;
 }
 
-static bool authenticated(httpd_req_t *request, canview_bridge_web_state_t *state)
+/* Authentication and activity recording share one lock to close the revocation race. */
+static bool token_authenticated_and_record(httpd_req_t *request,
+                                           canview_bridge_web_state_t *state,
+                                           const uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES])
+{
+    if (request == NULL || state == NULL || token == NULL)
+    {
+        return false;
+    }
+    const int client_fd = httpd_req_to_sockfd(request);
+    uint64_t now_ms = 0U;
+    if (client_fd < 0 || idf_now_ms(NULL, &now_ms) != CANVIEW_OK || !state_lock_take(state))
+    {
+        return false;
+    }
+    bool valid = canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
+    if (valid)
+    {
+        valid = canview_bridge_web_session_record_activity(&state->session, client_fd, now_ms) ==
+                CANVIEW_BRIDGE_WEB_SESSION_OK;
+    }
+    state_lock_give(state);
+    return valid;
+}
+
+static bool authenticated_and_record(httpd_req_t *request, canview_bridge_web_state_t *state)
 {
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool parsed = parse_bearer(request, token);
-    canview_status_t status = CANVIEW_AUTH_FAILED;
+    const bool valid = parsed && token_authenticated_and_record(request, state, token);
+    secure_zero(token, sizeof(token));
+    return valid;
+}
+
+static bool authenticated_and_logout(httpd_req_t *request, canview_bridge_web_state_t *state)
+{
+    uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
+    const bool parsed = parse_bearer(request, token);
+    bool valid = false;
     if (parsed && state_lock_take(state))
     {
-        status = canview_bridge_auth_check_token(&state->auth, token);
+        if (canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK)
+        {
+            valid = canview_bridge_auth_logout(&state->auth) == CANVIEW_OK;
+        }
         state_lock_give(state);
     }
     secure_zero(token, sizeof(token));
-    return status == CANVIEW_OK;
+    return valid;
 }
 
 static bool mutation_allowed(canview_bridge_web_state_t *state, uint64_t now_ms)
@@ -728,29 +740,40 @@ static canview_status_t issue_challenge(canview_bridge_web_state_t *state,
     return status;
 }
 
-static canview_status_t open_session(canview_bridge_web_state_t *state,
+static canview_status_t open_session(httpd_req_t *request, canview_bridge_web_state_t *state,
                                      const uint8_t challenge[CANVIEW_BRIDGE_AUTH_CHALLENGE_BYTES],
                                      const uint8_t client_nonce[CANVIEW_BRIDGE_AUTH_CLIENT_NONCE_BYTES],
                                      const char *pin, size_t pin_length,
                                      uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES])
 {
-    if (!state_lock_take(state))
+    if (request == NULL || state == NULL || token == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    const int client_fd = httpd_req_to_sockfd(request);
+    if (client_fd < 0 || !state_lock_take(state))
     {
         return CANVIEW_RESOURCE_BUSY;
     }
-    const canview_status_t status = canview_bridge_auth_open_session(
+    canview_status_t status = canview_bridge_auth_open_session(
         &state->auth, challenge, client_nonce, pin, pin_length, token);
-    state_lock_give(state);
-    return status;
-}
-
-static canview_status_t logout_session(canview_bridge_web_state_t *state)
-{
-    if (!state_lock_take(state))
+    if (status == CANVIEW_OK)
     {
-        return CANVIEW_RESOURCE_BUSY;
+        uint64_t now_ms = 0U;
+        if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK)
+        {
+            status = CANVIEW_TIMEOUT;
+        }
+        else if (canview_bridge_web_session_record_activity(&state->session, client_fd, now_ms) !=
+                 CANVIEW_BRIDGE_WEB_SESSION_OK)
+        {
+            status = CANVIEW_RESOURCE_BUSY;
+        }
+        if (status != CANVIEW_OK)
+        {
+            (void)canview_bridge_auth_logout(&state->auth);
+        }
     }
-    const canview_status_t status = canview_bridge_auth_logout(&state->auth);
     state_lock_give(state);
     return status;
 }
@@ -1062,7 +1085,7 @@ static esp_err_t handle_session_post(httpd_req_t *request)
                          base64url_decode(nonce_item->valuestring, nonce_length, client_nonce,
                                           sizeof(client_nonce), sizeof(client_nonce));
     const canview_status_t auth_status = decoded
-                                             ? open_session(state, challenge, client_nonce,
+                                             ? open_session(request, state, challenge, client_nonce,
                                                             pin_item->valuestring, pin_length,
                                                             token)
                                              : CANVIEW_AUTH_FAILED;
@@ -1077,18 +1100,10 @@ static esp_err_t handle_session_post(httpd_req_t *request)
     if (auth_status != CANVIEW_OK)
     {
         secure_zero(token, sizeof(token));
-        result = httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, "authentication failed");
-        leave_request(state);
-        return result;
-    }
-    if (!record_authenticated_request(request, state))
-    {
-        const canview_status_t logout_status = logout_session(state);
-        secure_zero(token, sizeof(token));
-        result = logout_status == CANVIEW_OK
-                     ? send_custom_status(request, "503 Service Unavailable", "session unavailable")
-                     : httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR,
-                                           "session unavailable");
+        result = auth_status == CANVIEW_AUTH_FAILED
+                     ? httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED,
+                                           "authentication failed")
+                     : send_custom_status(request, "503 Service Unavailable", "session unavailable");
         leave_request(state);
         return result;
     }
@@ -1150,13 +1165,9 @@ static esp_err_t handle_session_delete(httpd_req_t *request)
     {
         result = send_custom_status(request, "429 Too Many Requests", "mutation rate limited");
     }
-    else if (!authenticated(request, state))
+    else if (!authenticated_and_logout(request, state))
     {
         result = httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, "authentication required");
-    }
-    else if (logout_session(state) != CANVIEW_OK)
-    {
-        result = httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "logout unavailable");
     }
     else
     {
@@ -1188,15 +1199,9 @@ static esp_err_t handle_system(httpd_req_t *request)
     {
         return result;
     }
-    if (!authenticated(request, state))
+    if (!authenticated_and_record(request, state))
     {
         result = httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, "authentication required");
-        leave_request(state);
-        return result;
-    }
-    if (!record_authenticated_request(request, state))
-    {
-        result = send_custom_status(request, "503 Service Unavailable", "session unavailable");
         leave_request(state);
         return result;
     }
@@ -1240,15 +1245,9 @@ static esp_err_t handle_collection(httpd_req_t *request)
     {
         return result;
     }
-    if (!authenticated(request, state))
+    if (!authenticated_and_record(request, state))
     {
         result = httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, "authentication required");
-        leave_request(state);
-        return result;
-    }
-    if (!record_authenticated_request(request, state))
-    {
-        result = send_custom_status(request, "503 Service Unavailable", "session unavailable");
         leave_request(state);
         return result;
     }
@@ -1378,15 +1377,12 @@ static bool parse_ws_token(httpd_req_t *request,
     return parsed;
 }
 
-static bool ws_token_authenticated(canview_bridge_web_state_t *state,
-                                   const uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES])
+static bool ws_authenticated_and_record(httpd_req_t *request, canview_bridge_web_state_t *state)
 {
-    if (token == NULL || !state_lock_take(state))
-    {
-        return false;
-    }
-    const bool valid = canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
-    state_lock_give(state);
+    uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
+    const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token);
+    const bool valid = allowed && token_authenticated_and_record(request, state, token);
+    secure_zero(token, sizeof(token));
     return valid;
 }
 
@@ -1397,13 +1393,9 @@ static esp_err_t ws_pre_handshake(httpd_req_t *request)
     {
         return ESP_FAIL;
     }
-    uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
-    const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token) &&
-                         ws_token_authenticated(state, token);
-    secure_zero(token, sizeof(token));
-    const bool activity_recorded = allowed && record_authenticated_request(request, state);
+    const bool valid = ws_authenticated_and_record(request, state);
     leave_request(state);
-    return activity_recorded ? ESP_OK : ESP_FAIL;
+    return valid ? ESP_OK : ESP_FAIL;
 }
 
 static cJSON *make_live_event(uint32_t sequence, uint32_t revision, uint64_t now_ms)
@@ -1441,19 +1433,10 @@ static esp_err_t ws_post_handshake(httpd_req_t *request)
     {
         return result;
     }
-    uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     uint32_t sequence = 0U;
     uint32_t revision = 0U;
     secure_zero(state->ws_response, sizeof(state->ws_response));
-    if (!origin_allowed(request, true) || !parse_ws_token(request, token) ||
-        !ws_token_authenticated(state, token))
-    {
-        secure_zero(token, sizeof(token));
-        leave_request(state);
-        return ESP_FAIL;
-    }
-    secure_zero(token, sizeof(token));
-    if (!record_authenticated_request(request, state))
+    if (!ws_authenticated_and_record(request, state))
     {
         leave_request(state);
         return ESP_FAIL;
@@ -1522,11 +1505,7 @@ static esp_err_t handle_live(httpd_req_t *request)
     {
         return result;
     }
-    uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
-    const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token) &&
-                         ws_token_authenticated(state, token);
-    secure_zero(token, sizeof(token));
-    if (!allowed || !record_authenticated_request(request, state))
+    if (!ws_authenticated_and_record(request, state))
     {
         leave_request(state);
         return ESP_FAIL;
@@ -1810,27 +1789,27 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     web_state.lock = xSemaphoreCreateMutex();
     if (web_state.lock == NULL)
     {
-        discard_start_state();
-        return ESP_ERR_NO_MEM;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? ESP_ERR_NO_MEM : cleanup_result;
     }
     web_state.request_lock = xSemaphoreCreateMutex();
     if (web_state.request_lock == NULL)
     {
-        discard_start_state();
-        return ESP_ERR_NO_MEM;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? ESP_ERR_NO_MEM : cleanup_result;
     }
     web_state.ws_io_lock = xSemaphoreCreateMutex();
     if (web_state.ws_io_lock == NULL)
     {
-        discard_start_state();
-        return ESP_ERR_NO_MEM;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? ESP_ERR_NO_MEM : cleanup_result;
     }
     const canview_bridge_auth_callbacks_t callbacks = {idf_now_ms, idf_digest, idf_mac, idf_random,
                                                        NULL};
     if (canview_bridge_auth_init(&web_state.auth, config->pin_digest, &callbacks) != CANVIEW_OK)
     {
-        discard_start_state();
-        return ESP_ERR_INVALID_ARG;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? ESP_ERR_INVALID_ARG : cleanup_result;
     }
     web_state.config.pin_digest = NULL;
     web_state.config.ap_password = NULL;
@@ -1841,8 +1820,8 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     secure_zero(web_state.ap_password, sizeof(web_state.ap_password));
     if (status != ESP_OK)
     {
-        discard_start_state();
-        return status;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? status : cleanup_result;
     }
     httpd_config_t http_config = HTTPD_DEFAULT_CONFIG();
     http_config.stack_size = 6144U;
@@ -1859,8 +1838,8 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     status = httpd_start(&web_state.server, &http_config);
     if (status != ESP_OK)
     {
-        discard_start_state();
-        return status;
+        const esp_err_t cleanup_result = discard_start_state();
+        return cleanup_result == ESP_OK ? status : cleanup_result;
     }
     const httpd_uri_t *uris[] = {&uri_root,       &uri_bootstrap, &uri_session_post,
                                  &uri_session_delete, &uri_system,    &uri_peers,

@@ -170,6 +170,13 @@ void app_main(void)
         {
             ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "read-only web shell start failed status=%d",
                      (int)web_status);
+            /* A failed start may retain a resource for a bounded stop retry. */
+            const esp_err_t cleanup_status = stop_web_with_retry();
+            if (cleanup_status != ESP_OK)
+            {
+                ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "web startup cleanup failed status=%d",
+                         (int)cleanup_status);
+            }
             status = web_poll_status(web_status);
         }
         else if (canview_esp_core_arm_watchdog(&core) != CANVIEW_OK)

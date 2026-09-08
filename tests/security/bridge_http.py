@@ -21,6 +21,7 @@ WEB_SESSION_HEADER_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_
 WEB_HEADER_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/include/canview_bridge_web.h"
 WEB_CMAKE_PATH = ROOT / "firmware/diagnostic-bridge/components/canview_bridge_web/CMakeLists.txt"
 WEB_DEFAULTS_PATH = ROOT / "firmware/diagnostic-bridge/sdkconfig.defaults"
+APP_SOURCE_PATH = ROOT / "firmware/diagnostic-bridge/main/app_main.c"
 BROWSER_TEST_PATH = ROOT / "tests/ui/diagnostic-browser.cjs"
 ALLOWED_LIVE_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "192.168.4.1",
                                 "canview-diag.local"})
@@ -50,6 +51,7 @@ def check_static_contract() -> int:
     header = read_text(WEB_HEADER_PATH)
     cmake = read_text(WEB_CMAKE_PATH)
     defaults = read_text(WEB_DEFAULTS_PATH)
+    app_source = read_text(APP_SOURCE_PATH)
 
     required_source = (
         "#include \"esp_http_server.h\"",
@@ -62,7 +64,9 @@ def check_static_contract() -> int:
         "parse_ws_token",
         "canview_bridge_web_session_is_closing",
         "canview_bridge_web_session_begin_close",
-        "record_authenticated_request",
+        "token_authenticated_and_record",
+        "Authentication and activity recording share one lock",
+        "Do not tear down Wi-Fi while the DNS task may still use its socket",
         "web_client_idle_expired",
         "http_config.max_open_sockets = 1U",
         "http_config.recv_wait_timeout = 5U",
@@ -80,10 +84,12 @@ def check_static_contract() -> int:
     enter_body = source.split("static esp_err_t enter_request", 1)[1].split(
         "static void leave_request", 1
     )[0]
-    if "record_authenticated_request" in enter_body:
+    if "token_authenticated_and_record" in enter_body:
         raise ContractError("pre-auth enter_request가 logical session activity를 갱신함")
-    require(source, "const bool activity_recorded = allowed && record_authenticated_request",
+    require(source, "const bool valid = allowed && token_authenticated_and_record",
             "WebSocket authentication activity")
+    require(app_source, "const esp_err_t cleanup_status = stop_web_with_retry()",
+            "startup cleanup retry")
 
     for needle in (
         "session_close_pending",

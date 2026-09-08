@@ -18,6 +18,7 @@ WEB_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_b
 WEB_SESSION_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web_session.c"
 WEB_SESSION_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web_session.h"
 DNS_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "dns_server.c"
+APP_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "main" / "app_main.c"
 WEB_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web.h"
 WEB_DEFAULTS = ROOT / "firmware" / "diagnostic-bridge" / "sdkconfig.defaults"
 SECURITY_SCRIPT = ROOT / "tests" / "security" / "bridge_http.py"
@@ -78,6 +79,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         session_source = WEB_SESSION_SOURCE.read_text(encoding="utf-8")
         session_header = WEB_SESSION_HEADER.read_text(encoding="utf-8")
         dns_source = DNS_SOURCE.read_text(encoding="utf-8")
+        app_source = APP_SOURCE.read_text(encoding="utf-8")
         header = WEB_HEADER.read_text(encoding="utf-8")
         defaults = WEB_DEFAULTS.read_text(encoding="utf-8")
         self.assertIn("#define CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES (8192U)", header)
@@ -93,7 +95,9 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("button_hold_consumed", source)
         self.assertIn("canview_bridge_web_session_is_closing", source)
         self.assertIn("canview_bridge_web_session_begin_close", source)
-        self.assertIn("record_authenticated_request", source)
+        self.assertIn("token_authenticated_and_record", source)
+        self.assertIn("Authentication and activity recording share one lock", source)
+        self.assertIn("Do not tear down Wi-Fi while the DNS task may still use its socket", source)
         self.assertIn("session_close_pending", session_header)
         self.assertIn("canview_bridge_web_session_idle_expired", session_source)
         self.assertIn("canview_bridge_web_session_close", session_source)
@@ -105,8 +109,9 @@ class BridgeWebAssetTests(unittest.TestCase):
         enter_body = source.split("static esp_err_t enter_request", 1)[1].split(
             "static void leave_request", 1
         )[0]
-        self.assertNotIn("record_authenticated_request", enter_body)
-        self.assertIn("const bool activity_recorded = allowed && record_authenticated_request", source)
+        self.assertNotIn("token_authenticated_and_record", enter_body)
+        self.assertIn("const bool valid = allowed && token_authenticated_and_record", source)
+        self.assertIn("const esp_err_t cleanup_status = stop_web_with_retry()", app_source)
         self.assertIn("volatile bool stopped", dns_source)
         self.assertIn("vTaskSuspend(NULL)", dns_source)
         self.assertIn("vTaskDelete(task)", dns_source)
