@@ -39,6 +39,7 @@ class BridgeWebAssetTests(unittest.TestCase):
             self.assertEqual((first / "bridge_assets.c").read_bytes(), (second / "bridge_assets.c").read_bytes())
             generated = (first / "bridge_assets.c").read_text(encoding="utf-8")
             values = [int(value, 16) for value in generated.split("const uint8_t canview_bridge_index_html_gz[] = {")[1].split("};", 1)[0].replace(",", " ").split()]
+            self.assertEqual(bytes(values)[9], 0xFF)
             self.assertEqual(gzip.decompress(bytes(values)), HTML.read_bytes())
             self.assertEqual(hashlib.sha256(bytes(values)).hexdigest(),
                              "8bf58e72c167c8d59f2ed48b888ca775c3a309b03d89308dc7d7d40c10f73cce")
