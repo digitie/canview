@@ -344,6 +344,12 @@ static void inventory_percentiles(const canview_stm_fdcan_inventory_entry_t *sou
         }
         sorted[position] = value;
     }
+    if (count == 0U)
+    {
+        *p50_us = 0U;
+        *p95_us = 0U;
+        return;
+    }
     *p50_us = sorted[(count - 1U) / 2U];
     *p95_us = sorted[(count * 95U + 99U) / 100U - 1U];
 }
