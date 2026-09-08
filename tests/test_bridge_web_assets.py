@@ -84,6 +84,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("json_nesting_bounded", source)
         self.assertIn("canview_bridge_web_stop", source)
         self.assertIn("httpd_sess_trigger_close", source)
+        self.assertIn("close_status", source)
         self.assertIn("button_hold_consumed", source)
         self.assertIn("session_close_pending", source)
         self.assertIn("max_open_sockets = 1U", source)

@@ -1906,7 +1906,12 @@ esp_err_t canview_bridge_web_poll(void)
     state_lock_give(&web_state);
     if (expired_server != NULL && expired_client_fd >= 0)
     {
-        (void)httpd_sess_trigger_close(expired_server, expired_client_fd);
+        const esp_err_t close_status = httpd_sess_trigger_close(expired_server, expired_client_fd);
+        if (close_status != ESP_OK)
+        {
+            const esp_err_t stop_status = canview_bridge_web_stop();
+            return stop_status == ESP_OK ? close_status : stop_status;
+        }
     }
     return ESP_OK;
 }
