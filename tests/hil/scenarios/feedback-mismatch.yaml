@@ -8,14 +8,25 @@
     {"type": "feedback", "cases": ["feedback-success", "result-before-ack", "feedback-mismatch", "feedback-timeout", "manual-override"]}
   ],
   "expect": {
-    "required_kinds": ["FEEDBACK_RESULT"],
-    "minimum_counts": {"FEEDBACK_RESULT": 5},
+    "required_kinds": ["FEEDBACK_RESULT", "FEEDBACK_SEQUENCE"],
+    "minimum_counts": {"FEEDBACK_RESULT": 5, "FEEDBACK_SEQUENCE": 1},
     "required_fields": [
       {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-success", "result": "SUCCESS", "tx_permitted": false}},
       {"kind": "FEEDBACK_RESULT", "fields": {"case": "result-before-ack", "result": "RESULT_BEFORE_ACK", "tx_permitted": false}},
       {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-mismatch", "result": "MISMATCH", "tx_permitted": false}},
       {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-timeout", "result": "TIMEOUT", "tx_permitted": false}},
-      {"kind": "FEEDBACK_RESULT", "fields": {"case": "manual-override", "result": "MANUAL_OVERRIDE", "tx_permitted": false}}
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "manual-override", "result": "MANUAL_OVERRIDE", "tx_permitted": false}},
+      {"kind": "FEEDBACK_SEQUENCE", "fields": {"case": "result-before-ack", "sequence": ["RESULT", "ACK"]}}
+    ],
+    "ordered_events": [
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-success", "result": "SUCCESS", "tx_permitted": false}},
+      {"kind": "FEEDBACK_SEQUENCE", "fields": {"case": "result-before-ack", "sequence": ["RESULT", "ACK"]}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "result-before-ack", "result": "RESULT_BEFORE_ACK", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-mismatch", "result": "MISMATCH", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "feedback-timeout", "result": "TIMEOUT", "tx_permitted": false}},
+      {"kind": "FEEDBACK_RESULT", "fields": {"case": "manual-override", "result": "MANUAL_OVERRIDE", "tx_permitted": false}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "feedback-mismatch", "firmware_mode": "CAPTURE_ONLY"}}
     ]
   }
 }

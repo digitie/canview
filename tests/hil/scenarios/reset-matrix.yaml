@@ -19,6 +19,18 @@
       {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-esp", "epoch": 1}},
       {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-stm32", "epoch": 1}},
       {"kind": "BOOT_EPOCH", "fields": {"target": "diagnostic-bridge", "epoch": 1}}
+    ],
+    "ordered_events": [
+      {"kind": "RESET_REQUEST", "fields": {"target": "controller", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "controller", "epoch": 1}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-esp", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-esp", "epoch": 1}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-stm32", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-stm32", "epoch": 1}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "diagnostic-bridge", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "diagnostic-bridge", "epoch": 1}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "reset-matrix", "firmware_mode": "CAPTURE_ONLY"}}
     ]
   }
 }

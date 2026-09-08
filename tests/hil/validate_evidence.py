@@ -16,9 +16,9 @@ if __package__ in {None, ""}:
     if str(TESTS_ROOT) not in sys.path:
         sys.path.insert(0, str(TESTS_ROOT))
 
-from hil.adapter import HOST_ADAPTER_VERSION, LAB_ADAPTER_VERSION
+from hil.adapter import HOST_ADAPTER_VERSION, LAB_ADAPTER_VERSION, HostAdapter
 from hil.analyze import analyze
-from hil.events import MAX_EVENT_COUNT, EventLogError, read_jsonl
+from hil.events import MAX_EVENT_COUNT, EventLog, EventLogError, read_jsonl
 from hil.run import (BUDGET_PATH, RUNNER_VERSION, SCENARIO_DIR,
                      _path_label, _seed_for_scenario, firmware_identity,
                      harness_identity, load_budget)
@@ -196,14 +196,21 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
     except (OSError, ScenarioError) as error:
         raise EvidenceError(f"trusted scenario inventory unavailable: {error}") from error
 
+    expected_ids: list[str] | None = None
     if status == "PASS":
         inventory = report.get("scenario_inventory")
-        expected_ids = list(trusted_scenarios)
+        inventory_ids = inventory.get("ids") if isinstance(inventory, dict) else None
         if (not isinstance(inventory, dict)
                 or inventory.get("directory") != _path_label(SCENARIO_DIR)
-                or inventory.get("count") != len(expected_ids)
-                or inventory.get("ids") != expected_ids):
+                or not isinstance(inventory_ids, list)
+                or not inventory_ids
+                or any(not isinstance(item, str) or item not in trusted_scenarios
+                       for item in inventory_ids)
+                or len(inventory_ids) != len(set(inventory_ids))
+                or inventory_ids != sorted(inventory_ids)
+                or inventory.get("count") != len(inventory_ids)):
             raise EvidenceError("scenario inventory does not match trusted inventory")
+        expected_ids = inventory_ids
     budget_manifest = report.get("budget_manifest")
     if scenario_results and budget_manifest != _path_label(BUDGET_PATH):
         raise EvidenceError("budget manifest identity is missing")
@@ -228,9 +235,11 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
                 or scenario_seed < 0
                 or scenario_seed > (1 << 64) - 1):
             raise EvidenceError(f"invalid scenario seed: {scenario_id}")
-        if not isinstance(item.get("source"), str) or not item["source"]:
+        if (not isinstance(item.get("source"), str) or not item["source"]
+                or Path(item["source"]).is_absolute()):
             raise EvidenceError(f"scenario source is missing: {scenario_id}")
-        if not isinstance(item.get("adapter"), str) or not item["adapter"]:
+        if (not isinstance(item.get("adapter"), str)
+                or item["adapter"] != HOST_ADAPTER_VERSION):
             raise EvidenceError(f"scenario adapter is missing: {scenario_id}")
         metrics = item.get("metrics")
         if (not isinstance(metrics, dict)
@@ -270,16 +279,29 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
         first = item.get("first_violation")
         if not isinstance(violations, list):
             raise EvidenceError(f"violations missing: {scenario_id}")
+        event_offsets = {
+            record["log_offset"] for record in records
+            if _is_int(record.get("log_offset"))
+        }
         for violation in violations:
             if (not isinstance(violation, dict)
                     or not isinstance(violation.get("invariant"), str)
                     or not _is_int(violation.get("log_offset"))
                     or violation["log_offset"] < 0
-                    or not isinstance(violation.get("message"), str)
-                    or (violation.get("event_sequence") is not None
+                     or not isinstance(violation.get("message"), str)
+                     or (violation.get("event_sequence") is not None
                         and (not _is_int(violation.get("event_sequence"))
                              or violation["event_sequence"] < 1))):
                 raise EvidenceError(f"invalid violation: {scenario_id}")
+            if violation["log_offset"] not in event_offsets:
+                raise EvidenceError(f"violation offset is outside event log: {scenario_id}")
+            event_sequence = violation.get("event_sequence")
+            if event_sequence is not None:
+                if event_sequence > len(records):
+                    raise EvidenceError(f"violation sequence is outside event log: {scenario_id}")
+                referenced = records[event_sequence - 1]
+                if referenced.get("log_offset") != violation["log_offset"]:
+                    raise EvidenceError(f"violation location is inconsistent: {scenario_id}")
         checks = item.get("checks")
         if (not isinstance(checks, list)
                 or any(not isinstance(check, dict)
@@ -297,6 +319,15 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
                 raise EvidenceError(f"FAIL scenario has no first violation: {scenario_id}")
             if first not in violations:
                 raise EvidenceError(f"FAIL scenario first violation is not preserved: {scenario_id}")
+            if first.get("invariant") in {
+                    "capture_only.can_tx_zero", "capture_only.tx_count_valid"}:
+                offending = tx if first["invariant"] == "capture_only.can_tx_zero" \
+                    else invalid_tx_counts
+                if not any(record.get("log_offset") == first["log_offset"]
+                           and (first.get("event_sequence") is None
+                                or record.get("sequence") == first["event_sequence"])
+                           for record in offending):
+                    raise EvidenceError(f"first TX violation does not identify offending event: {scenario_id}")
         trusted = trusted_scenarios.get(scenario_id)
         if trusted is None:
             if item_status == "PASS":
@@ -311,6 +342,15 @@ def validate(report_path: Path, expected_status: str | None = None) -> dict[str,
                 or item.get("source") != _path_label(trusted.source_path)
                 or item.get("adapter") != HOST_ADAPTER_VERSION):
             raise EvidenceError(f"scenario identity does not match trusted source: {scenario_id}")
+        if item_status == "PASS":
+            expected_log = EventLog()
+            expected_simulation = HostAdapter().execute(
+                trusted, _seed_for_scenario(seed, scenario_id), expected_log)
+            if (records != expected_log.records
+                    or metrics != expected_simulation.metrics
+                    or event_bytes != expected_log.byte_length):
+                raise EvidenceError(
+                    f"trusted scenario trace does not match deterministic replay: {scenario_id}")
         expected = analyze(trusted, records, metrics, budget)
         if (item_status != expected["status"]
                 or checks != expected["checks"]

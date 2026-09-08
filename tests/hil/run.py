@@ -20,7 +20,8 @@ if __package__ in {None, ""}:
     if str(TESTS_ROOT) not in sys.path:
         sys.path.insert(0, str(TESTS_ROOT))
 
-from hil.adapter import LAB_ADAPTER_VERSION, HostAdapter, RigConfigError, parse_rig_config
+from hil.adapter import (HOST_ADAPTER_VERSION, LAB_ADAPTER_VERSION,
+                          HostAdapter, RigConfigError, parse_rig_config)
 from hil.analyze import analyze
 from hil.events import EventLog, EventLogError
 from hil.scenario import ScenarioError, load_scenarios, load_yaml_object
@@ -99,12 +100,18 @@ class RunError(ValueError):
 
 
 def _symlink_component(path: Path) -> Path | None:
-    """경로의 기존 component 중 symlink를 찾아 반환한다."""
+    """경로의 기존 component 중 redirect link를 찾아 반환한다."""
     absolute = Path(os.path.abspath(path))
     current = Path(absolute.anchor)
     for part in absolute.parts[1:]:
         current /= part
-        if current.is_symlink():
+        try:
+            if current.is_symlink():
+                return current
+            is_junction = getattr(current, "is_junction", None)
+            if is_junction is not None and is_junction():
+                return current
+        except OSError:
             return current
     return None
 
@@ -119,8 +126,9 @@ def _prepare_output(output: Path) -> None:
     if link is not None:
         raise RunError("output_path_contains_symlink")
     events = output / "events"
-    if events.exists() and events.is_symlink():
-        raise RunError("events_path_contains_symlink")
+    if events.exists() and (events.is_symlink()
+                            or (getattr(events, "is_junction", lambda: False)())):
+        raise RunError("events_path_contains_redirect")
     events.mkdir(parents=True, exist_ok=True)
     link = _symlink_component(events)
     if link is not None:
@@ -187,12 +195,14 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
 
 def _blocked_report(output: Path, args: argparse.Namespace, status: str,
                     reason: str, rig: dict[str, Any] | None = None) -> int:
+    report_seed = (args.seed if isinstance(args.seed, int)
+                   and 0 <= args.seed <= (1 << 64) - 1 else 0)
     report = {
         "schema_version": 1,
         "runner_version": RUNNER_VERSION,
         "suite": args.suite,
         "status": status,
-        "seed": args.seed,
+        "seed": report_seed,
         "firmware": firmware_identity(),
         "harness": harness_identity(),
         "scenario_results": [],
@@ -200,6 +210,7 @@ def _blocked_report(output: Path, args: argparse.Namespace, status: str,
         "adapter": {"name": (HOST_ADAPTER_VERSION if args.suite == "host"
                                else LAB_ADAPTER_VERSION),
                      "connected": False,
+                     "hardware_execution": False,
                      "rig": rig or {}},
         "failure": {"reason": reason},
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -282,7 +293,11 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
                      "hardware_execution": False},
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
-    _write_json(output / "report.json", report)
+    try:
+        _write_json(output / "report.json", report)
+    except (OSError, RunError):
+        return _blocked_report(output, args, "BLOCKED",
+                               "report_output_limit_or_encoding_error")
     print(f"{status} suite={args.suite} scenarios={len(scenarios)} seed={args.seed} "
           f"firmware={report['firmware']['source_sha256'][:12]} "
           f"physical_hil=NOT_RUN report={output / 'report.json'}")
@@ -337,8 +352,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.seed < 0 or args.seed > (1 << 64) - 1:
-        print("seed must be in 0..2^64-1", file=sys.stderr)
-        return 2
+        output = Path(args.output).absolute()
+        return _blocked_report(output, args, "BLOCKED", "seed_out_of_range")
     output = Path(args.output).absolute()
     if args.suite == "g2-readonly":
         return run_lab(args, output)
@@ -346,9 +361,9 @@ def main(argv: list[str] | None = None) -> int:
         scenarios = load_scenarios(args.scenario_dir.resolve(), args.suite,
                                     args.scenarios)
         budget = load_budget()
-    except (OSError, ScenarioError) as error:
-        print(f"BLOCKED suite={args.suite} reason={error}", file=sys.stderr)
-        return 2
+    except (OSError, ScenarioError):
+        return _blocked_report(output, args, "BLOCKED",
+                               "scenario_or_budget_contract_invalid")
     return run_host(args, scenarios, budget, output)
 
 

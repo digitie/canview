@@ -150,31 +150,93 @@ def analyze(scenario: Scenario, records: list[dict[str, Any]],
           unexpected[0] if unexpected else None)
 
     unsafe_records: list[dict[str, Any]] = []
+    feedback_results = {"SUCCESS", "RESULT_BEFORE_ACK", "MISMATCH",
+                        "TIMEOUT", "MANUAL_OVERRIDE"}
     for record in records:
         if not isinstance(record, dict) or not isinstance(record.get("fields"), dict):
             continue
         kind = str(record.get("kind", "")).upper()
         fields = record["fields"]
-        unsafe = (
-            (kind == "SAFETY_DECISION"
-             and (fields.get("decision") == "ALLOW"
-                  or fields.get("vehicle_tx") is True))
-            or (kind == "TX_GATE_STATE"
-                and (fields.get("vehicle_tx") is not False
-                     or fields.get("mode") != "CAPTURE_ONLY"))
-            or (kind in {"POWER_EVENT", "GUARDIAN_TIMEOUT"}
-                and fields.get("tx_gate") != "OFF")
-            or (kind == "SECURITY_REJECT" and fields.get("accepted") is not False)
-            or (kind == "COMMAND_REPLAY"
-                and (fields.get("executed") is not False
-                     or fields.get("result") not in {"ACCEPTED", "DUPLICATE"}))
-            or (kind == "FEEDBACK_RESULT" and fields.get("tx_permitted") is not False)
-        )
+        if kind == "SAFETY_DECISION":
+            unsafe = not (
+                isinstance(fields.get("check"), str)
+                and bool(fields["check"])
+                and fields.get("decision") == "DENY"
+                and isinstance(fields.get("vehicle_tx"), bool)
+                and fields["vehicle_tx"] is False
+            )
+        elif kind == "TX_GATE_STATE":
+            unsafe = not (
+                isinstance(fields.get("vehicle_tx"), bool)
+                and fields["vehicle_tx"] is False
+                and fields.get("mode") == "CAPTURE_ONLY"
+            )
+        elif kind in {"POWER_EVENT", "GUARDIAN_TIMEOUT"}:
+            name_key = "stage" if kind == "POWER_EVENT" else "guardian"
+            unsafe = not (
+                isinstance(fields.get(name_key), str)
+                and bool(fields[name_key])
+                and fields.get("tx_gate") == "OFF"
+            )
+        elif kind == "SECURITY_REJECT":
+            unsafe = not (
+                isinstance(fields.get("vector"), str)
+                and bool(fields["vector"])
+                and isinstance(fields.get("accepted"), bool)
+                and fields["accepted"] is False
+            )
+        elif kind == "COMMAND_REPLAY":
+            unsafe = not (
+                isinstance(fields.get("request_token"), str)
+                and bool(fields["request_token"])
+                and isinstance(fields.get("executed"), bool)
+                and fields["executed"] is False
+                and fields.get("result") in {"ACCEPTED", "DUPLICATE"}
+            )
+        elif kind == "FEEDBACK_RESULT":
+            unsafe = not (
+                isinstance(fields.get("case"), str)
+                and bool(fields["case"])
+                and fields.get("result") in feedback_results
+                and isinstance(fields.get("tx_permitted"), bool)
+                and fields["tx_permitted"] is False
+            )
+        elif kind == "FEEDBACK_SEQUENCE":
+            unsafe = not (
+                isinstance(fields.get("case"), str)
+                and bool(fields["case"])
+                and fields.get("sequence") == ["RESULT", "ACK"]
+            )
+        else:
+            unsafe = False
         if unsafe:
             unsafe_records.append(record)
     check("safety.no_unsafe_outcome", not unsafe_records,
           "event contains an unsafe or fail-open outcome",
           unsafe_records[0] if unsafe_records else None)
+
+    ordered_events = expect.get("ordered_events")
+    if ordered_events is not None and not isinstance(ordered_events, list):
+        check("scenario.ordered_events.contract", False,
+              "ordered_events must be a list")
+        ordered_events = []
+    for event_index, expected_event in enumerate(ordered_events or [], 1):
+        expected_kind = (expected_event.get("kind")
+                         if isinstance(expected_event, dict) else None)
+        expected_fields = (expected_event.get("fields", {})
+                           if isinstance(expected_event, dict) else {})
+        record = records[event_index - 1] if event_index <= len(records) else None
+        matched = (isinstance(expected_event, dict)
+                   and isinstance(expected_kind, str) and bool(expected_kind)
+                   and isinstance(expected_fields, dict)
+                   and isinstance(record, dict)
+                   and record.get("kind") == expected_kind
+                   and isinstance(record.get("fields"), dict)
+                   and all(record["fields"].get(key) == value
+                           for key, value in expected_fields.items()))
+        check(f"scenario.ordered_event.{event_index}", matched,
+              f"ordered event {event_index} does not match",
+              record if isinstance(record, dict) else None)
 
     kinds = event_kinds(records)
     required_kinds = expect.get("required_kinds", [])
@@ -233,6 +295,62 @@ def analyze(scenario: Scenario, records: list[dict[str, Any]],
         check(f"scenario.minimum_count.{kind}", valid,
               f"event count for {kind} is {count}, minimum is {minimum}")
 
+    for record in records:
+        if not isinstance(record, dict) or not isinstance(record.get("fields"), dict):
+            continue
+        kind = str(record.get("kind", "")).upper()
+        fields = record["fields"]
+        if kind == "RESOURCE_SUMMARY":
+            summary_ok = (
+                isinstance(fields.get("pool"), str)
+                and bool(fields["pool"])
+                and _is_int(fields.get("queue_depth"))
+                and fields["queue_depth"] >= 0
+                and _is_int(fields.get("heap_free_bytes"))
+                and fields["heap_free_bytes"] >= 0
+                and _is_int(fields.get("rejected"))
+                and fields["rejected"] >= 0
+                and _is_int(fields.get("observer_drops"))
+                and fields["observer_drops"] >= 0
+            )
+            check("resource.summary.contract", summary_ok,
+                  "resource summary fields are invalid", record)
+            queue_limits = budget.get("queue_depth")
+            if isinstance(queue_limits, dict) and _is_int(queue_limits.get("maximum")):
+                queue_depth = fields.get("queue_depth")
+                check("budget.event.queue_depth.maximum",
+                      _is_int(queue_depth) and queue_depth <= queue_limits["maximum"],
+                      "resource summary queue depth exceeds maximum", record)
+            heap_limits = budget.get("heap_free_bytes")
+            if isinstance(heap_limits, dict) and _is_int(heap_limits.get("minimum")):
+                check("budget.event.heap_free_bytes.minimum",
+                      _is_int(fields.get("heap_free_bytes"))
+                      and fields["heap_free_bytes"] >= heap_limits["minimum"],
+                      "resource summary free heap is below minimum", record)
+        elif kind == "BUDGET_SAMPLE":
+            sample = fields.get("metrics")
+            sample_ok = isinstance(sample, dict)
+            check("budget.event_sample.contract", sample_ok,
+                  "budget sample metrics are not an object", record)
+            if not sample_ok:
+                continue
+            for metric, limits in budget.items():
+                if not isinstance(metric, str) or not isinstance(limits, dict):
+                    continue
+                value = sample.get(metric)
+                if not _is_int(value):
+                    check(f"budget.event.{metric}", False,
+                          f"budget sample metric is invalid: {metric}", record)
+                    continue
+                if _is_int(limits.get("maximum")):
+                    check(f"budget.event.{metric}.maximum",
+                          value <= limits["maximum"],
+                          f"budget sample {metric} exceeds maximum", record)
+                if _is_int(limits.get("minimum")):
+                    check(f"budget.event.{metric}.minimum",
+                          value >= limits["minimum"],
+                          f"budget sample {metric} is below minimum", record)
+
     for metric, limits in budget.items():
         if not isinstance(metric, str) or not metric or not isinstance(limits, dict):
             check("budget.entry.contract", False,
@@ -258,6 +376,29 @@ def analyze(scenario: Scenario, records: list[dict[str, Any]],
             else:
                 check(f"budget.{metric}.minimum", value >= minimum,
                       f"{metric}={value} is below minimum {minimum}")
+
+    final_gate = records[-2] if len(records) >= 2 else None
+    completion = records[-1] if records else None
+    final_gate_ok = (
+        isinstance(final_gate, dict)
+        and final_gate.get("kind") == "TX_GATE_STATE"
+        and isinstance(final_gate.get("fields"), dict)
+        and final_gate["fields"].get("vehicle_tx") is False
+        and final_gate["fields"].get("mode") == "CAPTURE_ONLY"
+    )
+    check("events.final_gate", final_gate_ok,
+          "final event before completion is not a capture-only gate state",
+          final_gate if isinstance(final_gate, dict) else None)
+    completion_ok = (
+        isinstance(completion, dict)
+        and completion.get("kind") == "HARNESS_COMPLETE"
+        and isinstance(completion.get("fields"), dict)
+        and completion["fields"].get("scenario") == scenario.scenario_id
+        and completion["fields"].get("firmware_mode") == "CAPTURE_ONLY"
+    )
+    check("events.completion", completion_ok,
+          "final event is not a valid harness completion",
+          completion if isinstance(completion, dict) else None)
 
     first = violations[0] if violations else None
     return {

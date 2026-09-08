@@ -246,6 +246,20 @@ def _validate_action(action: dict[str, Any], path: Path, index: int) -> None:
 
 
 def _validate_expect(expect: dict[str, Any], path: Path) -> None:
+    ordered_events = expect.get("ordered_events")
+    if ordered_events is not None:
+        if (not isinstance(ordered_events, list) or not ordered_events
+                or len(ordered_events) > MAX_COLLECTION_ITEMS):
+            raise ScenarioError(f"ordered_events must be a bounded non-empty list: {path}")
+        for event in ordered_events:
+            if not isinstance(event, dict):
+                raise ScenarioError(f"ordered event must be an object: {path}")
+            _require_string(event.get("kind"), "ordered event kind", path)
+            fields = event.get("fields", {})
+            if not isinstance(fields, dict) or any(not isinstance(key, str)
+                                                   for key in fields):
+                raise ScenarioError(f"ordered event fields must be an object: {path}")
+
     required_kinds = expect.get("required_kinds")
     if required_kinds is not None:
         if (not isinstance(required_kinds, list) or not required_kinds

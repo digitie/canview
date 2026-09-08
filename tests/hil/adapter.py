@@ -51,6 +51,11 @@ class HostAdapter:
             log.append(monotonic_ns, "host-simulator", kind, **fields)
             monotonic_ns += 1_000
 
+        def emit_map(kind: str, fields: dict[str, Any]) -> None:
+            nonlocal monotonic_ns
+            log.append_fields(monotonic_ns, "host-simulator", kind, fields)
+            monotonic_ns += 1_000
+
         seen_tokens: set[str] = set()
         for action in scenario.actions:
             action_type = str(action["type"])
@@ -91,6 +96,7 @@ class HostAdapter:
                     int(action.get("heap_free_bytes", 8192)))
                 emit("RESOURCE_SUMMARY", pool=str(action.get("pool", "unknown")),
                      queue_depth=queue_depth,
+                     heap_free_bytes=int(action.get("heap_free_bytes", 8192)),
                      rejected=int(action.get("rejected", 0)),
                      observer_drops=int(action.get("observer_drops", 0)))
             elif action_type == "safety_gates":
@@ -109,6 +115,8 @@ class HostAdapter:
                 for case in action.get("cases", []):
                     case_text = str(case)
                     if case_text == "result-before-ack":
+                        emit("FEEDBACK_SEQUENCE", case=case_text,
+                             sequence=["RESULT", "ACK"])
                         feedback_result = "RESULT_BEFORE_ACK"
                     elif "mismatch" in case_text:
                         feedback_result = "MISMATCH"
@@ -156,8 +164,8 @@ class HostAdapter:
                             metric_value)
                 emit("BUDGET_SAMPLE", metrics=dict(result.metrics))
             elif action_type == "event":
-                emit(str(action.get("kind", "SCENARIO_EVENT")),
-                     **dict(action.get("fields", {})))
+                emit_map(str(action.get("kind", "SCENARIO_EVENT")),
+                         dict(action.get("fields", {})))
             else:
                 emit("UNKNOWN_ACTION_REJECTED", action_type=action_type)
 

@@ -10,6 +10,19 @@
   "expect": {
     "required_kinds": ["GUARDIAN_TIMEOUT"],
     "minimum_counts": {"GUARDIAN_TIMEOUT": 4},
-    "required_fields": [{"kind": "GUARDIAN_TIMEOUT", "fields": {"tx_gate": "OFF"}, "minimum": 4}]
+    "required_fields": [
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "acc", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "uv", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "guardian", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "valid-frame-flood", "tx_gate": "OFF"}}
+    ],
+    "ordered_events": [
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "acc", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "uv", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "guardian", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "valid-frame-flood", "tx_gate": "OFF"}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "guardian-timeouts", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
   }
 }

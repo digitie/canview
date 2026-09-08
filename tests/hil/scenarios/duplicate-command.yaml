@@ -11,8 +11,16 @@
     "required_kinds": ["COMMAND_REPLAY"],
     "minimum_counts": {"COMMAND_REPLAY": 3},
     "required_fields": [
-      {"kind": "COMMAND_REPLAY", "fields": {"executed": false, "result": "ACCEPTED"}, "minimum": 2},
-      {"kind": "COMMAND_REPLAY", "fields": {"executed": false, "result": "DUPLICATE"}}
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "ACCEPTED"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "DUPLICATE"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-002", "executed": false, "result": "ACCEPTED"}}
+    ],
+    "ordered_events": [
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "ACCEPTED"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "DUPLICATE"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-002", "executed": false, "result": "ACCEPTED"}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "duplicate-command", "firmware_mode": "CAPTURE_ONLY"}}
     ]
   }
 }

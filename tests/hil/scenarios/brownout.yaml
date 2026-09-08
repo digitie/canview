@@ -10,6 +10,17 @@
   "expect": {
     "required_kinds": ["POWER_EVENT"],
     "minimum_counts": {"POWER_EVENT": 3},
-    "required_fields": [{"kind": "POWER_EVENT", "fields": {"tx_gate": "OFF"}, "minimum": 3}]
+    "required_fields": [
+      {"kind": "POWER_EVENT", "fields": {"stage": "config", "tx_gate": "OFF"}},
+      {"kind": "POWER_EVENT", "fields": {"stage": "capture", "tx_gate": "OFF"}},
+      {"kind": "POWER_EVENT", "fields": {"stage": "command", "tx_gate": "OFF"}}
+    ],
+    "ordered_events": [
+      {"kind": "POWER_EVENT", "fields": {"stage": "config", "tx_gate": "OFF"}},
+      {"kind": "POWER_EVENT", "fields": {"stage": "capture", "tx_gate": "OFF"}},
+      {"kind": "POWER_EVENT", "fields": {"stage": "command", "tx_gate": "OFF"}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "brownout", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
   }
 }

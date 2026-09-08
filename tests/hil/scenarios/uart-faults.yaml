@@ -10,6 +10,21 @@
   "expect": {
     "required_kinds": ["UART_FAULT_REJECTED"],
     "minimum_counts": {"UART_FAULT_REJECTED": 5},
-    "required_fields": [{"kind": "UART_FAULT_REJECTED", "fields": {"parser_state": "RESYNC"}, "minimum": 5}]
+    "required_fields": [
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "insert", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "delete", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "flip", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "cts-100ms", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "cts-1s", "parser_state": "RESYNC"}}
+    ],
+    "ordered_events": [
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "insert", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "delete", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "flip", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "cts-100ms", "parser_state": "RESYNC"}},
+      {"kind": "UART_FAULT_REJECTED", "fields": {"fault": "cts-1s", "parser_state": "RESYNC"}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "uart-faults", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
   }
 }

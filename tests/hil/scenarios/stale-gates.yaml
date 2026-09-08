@@ -10,6 +10,19 @@
   "expect": {
     "required_kinds": ["SAFETY_DECISION"],
     "minimum_counts": {"SAFETY_DECISION": 4},
-    "required_fields": [{"kind": "SAFETY_DECISION", "fields": {"decision": "DENY", "vehicle_tx": false}, "minimum": 4}]
+    "required_fields": [
+      {"kind": "SAFETY_DECISION", "fields": {"check": "stale-revision", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "wrong-profile", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "expired-lease", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "hardware-gate-off", "decision": "DENY", "vehicle_tx": false}}
+    ],
+    "ordered_events": [
+      {"kind": "SAFETY_DECISION", "fields": {"check": "stale-revision", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "wrong-profile", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "expired-lease", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "hardware-gate-off", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "stale-gates", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
   }
 }

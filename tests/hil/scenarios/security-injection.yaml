@@ -10,6 +10,17 @@
   "expect": {
     "required_kinds": ["SECURITY_REJECT"],
     "minimum_counts": {"SECURITY_REJECT": 3},
-    "required_fields": [{"kind": "SECURITY_REJECT", "fields": {"accepted": false}, "minimum": 3}]
+    "required_fields": [
+      {"kind": "SECURITY_REJECT", "fields": {"vector": "control-tag-mutation", "accepted": false}},
+      {"kind": "SECURITY_REJECT", "fields": {"vector": "uart-injection", "accepted": false}},
+      {"kind": "SECURITY_REJECT", "fields": {"vector": "live-token-257", "accepted": false}}
+    ],
+    "ordered_events": [
+      {"kind": "SECURITY_REJECT", "fields": {"vector": "control-tag-mutation", "accepted": false}},
+      {"kind": "SECURITY_REJECT", "fields": {"vector": "uart-injection", "accepted": false}},
+      {"kind": "SECURITY_REJECT", "fields": {"vector": "live-token-257", "accepted": false}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "security-injection", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
   }
 }

@@ -48,6 +48,14 @@ harness source digest, scenario digest, adapter, metrics, physical/HIL 상태가
 3. expected event/field
 4. map/stack/heap/queue/WCET/latency budget
 
+scenario가 `ordered_events`를 선언하면 action event의 순서와 field subset을
+앞에서부터 검증하고, 모든 실행은 `CAPTURE_ONLY` `TX_GATE_STATE`와
+`HARNESS_COMPLETE`로 끝나야 한다. `validate_evidence.py`는 trusted host
+scenario의 PASS report에 대해 현재 inventory를 deterministic replay하여 event,
+metric, seed와 byte length를 report와 대조한다. 따라서 report에 적힌 metric만으로
+예산 통과를 주장할 수 없고, 선택 실행은 trusted inventory의 명시된 부분집합으로만
+검증된다.
+
 실패 report는 반드시 `first_violation.invariant`와 `log_offset`을 포함한다.
 `fixtures/forbidden-can-tx.jsonl`은 capture-only TX 판정이 실제로 실패해야 하는
 negative fixture다. positive host scenario에서는 CAN TX event를 생성하지 않는다.

@@ -42,6 +42,28 @@ def _object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _is_redirect(path: Path) -> bool:
+    """symbolic link 또는 Windows junction/reparse point인지 확인한다."""
+    try:
+        if path.is_symlink():
+            return True
+        is_junction = getattr(path, "is_junction", None)
+        return bool(is_junction is not None and is_junction())
+    except OSError:
+        return True
+
+
+def _redirect_component(path: Path) -> Path | None:
+    """기존 경로 component 중 쓰기를 다른 위치로 보낼 수 있는 것을 찾는다."""
+    absolute = Path(os.path.abspath(path))
+    current = Path(absolute.anchor)
+    for part in absolute.parts[1:]:
+        current /= part
+        if _is_redirect(current):
+            return current
+    return None
+
+
 class EventLog:
     """Sequence와 byte offset을 함께 소유하는 bounded-in-test event log."""
 
@@ -62,6 +84,11 @@ class EventLog:
     def append(self, monotonic_ns: int, source: str, kind: str,
                **fields: Any) -> dict[str, Any]:
         """하나의 event를 추가하고 immutable record를 반환한다."""
+        return self.append_fields(monotonic_ns, source, kind, fields)
+
+    def append_fields(self, monotonic_ns: int, source: str, kind: str,
+                      fields: dict[str, Any]) -> dict[str, Any]:
+        """reserved Python keyword와 충돌하지 않도록 field map으로 event를 추가한다."""
         if (not isinstance(monotonic_ns, int)
                 or isinstance(monotonic_ns, bool) or monotonic_ns < 0):
             raise EventLogError("monotonic_ns must be a non-negative integer")
@@ -70,6 +97,8 @@ class EventLog:
             raise EventLogError("source and kind are required")
         if len(self._records) >= MAX_EVENT_COUNT:
             raise EventLogError("event count is too large")
+        if not isinstance(fields, dict):
+            raise EventLogError("event fields must be an object")
         record = {
             "schema_version": EVENT_SCHEMA_VERSION,
             "sequence": len(self._records) + 1,
@@ -93,7 +122,8 @@ class EventLog:
         """event를 deterministic JSONL로 저장한다."""
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            if path.parent.is_symlink() or path.is_symlink():
+            if (_redirect_component(path.parent) is not None
+                    or _is_redirect(path)):
                 raise EventLogError("refusing to write through a symlink")
             payload = "".join(_encode(record) for record in self._records)
             payload_bytes = payload.encode("utf-8")

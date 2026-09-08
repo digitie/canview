@@ -10,6 +10,11 @@
   "expect": {
     "required_kinds": ["RESOURCE_SUMMARY"],
     "minimum_counts": {"RESOURCE_SUMMARY": 1},
-    "required_fields": [{"kind": "RESOURCE_SUMMARY", "fields": {"pool": "observer", "queue_depth": 96, "rejected": 32, "observer_drops": 32}}]
+    "required_fields": [{"kind": "RESOURCE_SUMMARY", "fields": {"pool": "observer", "queue_depth": 96, "heap_free_bytes": 6144, "rejected": 32, "observer_drops": 32}}],
+    "ordered_events": [
+      {"kind": "RESOURCE_SUMMARY", "fields": {"pool": "observer", "queue_depth": 96, "heap_free_bytes": 6144, "rejected": 32, "observer_drops": 32}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "resource-exhaustion", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
   }
 }
