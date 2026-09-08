@@ -332,6 +332,32 @@ static void fault_tests(void)
     TIM2->CNT -= 1U; /* backward */
     CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
     healthy_boot();
+    for (uint32_t tick = 0U; tick < 4U; ++tick)
+    {
+        SysTick_Handler();
+    }
+    TIM2->CNT += 4U; /* 1 us/ms: timer is running but too slow. */
+    CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
+    CHECK(canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
+    for (uint32_t register_case = 0U; register_case < 3U; ++register_case)
+    {
+        healthy_boot();
+        if (register_case == 0U)
+        {
+            --TIM2->PSC;
+        }
+        if (register_case == 1U)
+        {
+            --TIM2->ARR;
+        }
+        if (register_case == 2U)
+        {
+            TIM2->DIER = 1U;
+        }
+        CHECK(canview_stm_board_health(NULL) == CANVIEW_TIMEOUT);
+        CHECK(canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
+    }
+    healthy_boot();
     for (uint32_t tick = 0U; tick < 21U; ++tick)
     {
         SysTick_Handler();

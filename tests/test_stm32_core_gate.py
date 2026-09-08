@@ -6,8 +6,8 @@ import tempfile
 from copy import deepcopy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from tools.check_stm32_core import (check_memory, check_source_safety, check_stack,
-                                    check_symbols, stack_evidence)
+from tools.check_stm32_core import (check_compile_contract, check_memory, check_source_safety,
+                                    check_stack, check_symbols, stack_evidence)
 
 
 class Stm32CoreGateTests(unittest.TestCase):
@@ -47,10 +47,34 @@ class Stm32CoreGateTests(unittest.TestCase):
                     "void send(void) { HAL_FDCAN_AddMessageToTxFifoQ(); }\n",
                     "void send(void) { LL_FDCAN_EnableTxBufferRequest(); }\n",
                     "void send(void) { FDCAN1->TXBAR = 1U; }\n",
-                    "#undef CANVIEW_STM_TX_PERMIT\n"):
+                    "void send(void) {\n FDCAN1\n ->TXBAR = 1U;\n}\n",
+                    "void send(void) {\n FDCAN_GlobalTypeDef *bus = FDCAN1;\n bus->TXBAR = 1U;\n}\n",
+                    "#undef CANVIEW_STM_TX_PERMIT\n",
+                    "#define CANVIEW_STM_TX_PERMIT 1\n",
+                    "#undef " + "\\" + "\nCANVIEW_STM_TX_PERMIT\n",
+                    "#define " + "\\" + "\nCANVIEW_STM_TX_PERMIT 1\n"):
                 valid.write_text(source, encoding="utf-8")
                 with self.subTest(source=source), self.assertRaises(RuntimeError):
                     check_source_safety(root)
+
+    def test_compile_contract_covers_every_c_unit(self):
+        header = Path("F:/canview/interface/canview_build_mode.h")
+        valid = [
+            {"file": "main.c", "command":
+             "cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1 -include F:/canview/interface/canview_build_mode.h"},
+            {"file": "core.c", "arguments": [
+                "cc", "-DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1", "-include",
+                "F:/canview/interface/canview_build_mode.h"]},
+            {"file": "startup.s", "command": "as"},
+        ]
+        self.assertEqual(check_compile_contract(valid, header), 2)
+        for bad in (
+                [dict(valid[0], command="cc -include F:/canview/interface/canview_build_mode.h")],
+                [dict(valid[0], command="cc -DCANVIEW_STM_CAPTURE_ONLY_CONTRACT=1")],
+                [{"file": "main.c", "command": "cc"}],
+                [{"file": "startup.s", "command": "as"}]):
+            with self.subTest(bad=bad), self.assertRaises(RuntimeError):
+                check_compile_contract(bad, header)
 
     def test_stack_fail_closed(self):
         self.assertEqual(check_stack(["source:1:function\t2048\tstatic", "source:2:f\t0\tdynamic,bounded"]), 2048)

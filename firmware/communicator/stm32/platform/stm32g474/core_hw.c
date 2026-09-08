@@ -25,6 +25,9 @@
 #define MICROSECOND_HZ (UINT32_C(1000000))
 #define MILLISECOND_HZ (UINT32_C(1000))
 #define STACK_GUARD_BYTES (64U)
+#define TIM2_PRESCALER (CANVIEW_STM_SYSCLK_HZ / MICROSECOND_HZ - 1U)
+#define HEALTH_SAMPLE_INTERVAL_MS (4U)
+#define HEALTH_MIN_TIMER_US_PER_MS (500U)
 
 #if defined(CANVIEW_STM_REGISTER_TEST)
 #define REGISTER_TEST_STACK_BYTES (4096U)
@@ -67,6 +70,8 @@ typedef struct
     canview_stm_reset_reason_t reset_reason;
     uint32_t previous_health_ms;
     uint32_t previous_health_us;
+    uint32_t health_window_ms;
+    uint32_t health_window_us;
     bool health_sampled;
     bool watchdog_ready;
     bool clock_ready;
@@ -297,7 +302,7 @@ canview_status_t canview_stm_time_start(void *context)
     (void)RCC->APB1ENR1;
     TIM2->CR1 = 0U;
     TIM2->DIER = 0U;
-    TIM2->PSC = CANVIEW_STM_SYSCLK_HZ / MICROSECOND_HZ - 1U;
+    TIM2->PSC = TIM2_PRESCALER;
     TIM2->ARR = UINT32_MAX;
     TIM2->EGR = TIM_EGR_UG;
     TIM2->SR = 0U;
@@ -339,7 +344,8 @@ canview_status_t canview_stm_board_health(void *context)
     (void)context;
     if (hardware.fault || !hardware.time_ready || !hardware.clock_ready ||
         (RCC->CR & (RCC_CR_HSERDY | RCC_CR_PLLRDY)) != (RCC_CR_HSERDY | RCC_CR_PLLRDY) ||
-        (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL || (TIM2->CR1 & TIM_CR1_CEN) == 0U)
+        (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL || (TIM2->CR1 & TIM_CR1_CEN) == 0U ||
+        TIM2->PSC != TIM2_PRESCALER || TIM2->ARR != UINT32_MAX || TIM2->DIER != 0U)
     {
         hardware.fault = true;
         return CANVIEW_TIMEOUT;
@@ -365,12 +371,28 @@ canview_status_t canview_stm_board_health(void *context)
             hardware.fault = true;
             return CANVIEW_TIMEOUT;
         }
+        hardware.previous_health_ms = current_ms;
+        hardware.previous_health_us = current_us;
     }
-    if (!hardware.health_sampled || current_ms != hardware.previous_health_ms)
+    if (!hardware.health_sampled)
     {
         hardware.previous_health_ms = current_ms;
         hardware.previous_health_us = current_us;
+        hardware.health_window_ms = current_ms;
+        hardware.health_window_us = current_us;
         hardware.health_sampled = true;
+    }
+    else if ((uint32_t)(current_ms - hardware.health_window_ms) >= HEALTH_SAMPLE_INTERVAL_MS)
+    {
+        const uint32_t elapsed_ms = current_ms - hardware.health_window_ms;
+        const uint32_t elapsed_us = current_us - hardware.health_window_us;
+        if (elapsed_us < elapsed_ms * HEALTH_MIN_TIMER_US_PER_MS)
+        {
+            hardware.fault = true;
+            return CANVIEW_TIMEOUT;
+        }
+        hardware.health_window_ms = current_ms;
+        hardware.health_window_us = current_us;
     }
     return CANVIEW_OK;
 }

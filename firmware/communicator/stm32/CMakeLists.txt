@@ -108,6 +108,13 @@ target_compile_options(canview_stm_build_provider PRIVATE
     -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")
 target_link_libraries(canview_stm_build_provider PRIVATE canview_warnings)
 add_subdirectory(module)
+set(STM32_CAPTURE_ONLY_COMPILE_OPTIONS
+    "$<$<COMPILE_LANGUAGE:C>:-include>"
+    "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h>")
+foreach(core canview_wire canview_app)
+    target_compile_definitions(${core} PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
+    target_compile_options(${core} PRIVATE ${STM32_CAPTURE_ONLY_COMPILE_OPTIONS})
+endforeach()
 foreach(core canview_wire canview_app canview_stm_build_provider canview_stm_core)
     target_compile_options(${core} PRIVATE ${MCU_OPTIONS} -ffunction-sections -fdata-sections -fstack-usage)
 endforeach()

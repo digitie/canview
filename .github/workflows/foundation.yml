@@ -212,8 +212,10 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or $cubeTree -notmatch '^[0-9a-f]{40}$') {
               throw "Unable to resolve STM32CubeG4 tree for artifact provenance"
             }
-            $cubeStatus = (& git -C $cubeRoot status --porcelain=v1).Trim()
-            if ($LASTEXITCODE -ne 0 -or $cubeStatus.Length -ne 0) {
+            $cubeStatusLines = @(& git -C $cubeRoot status --porcelain=v1)
+            $cubeStatusExit = $LASTEXITCODE
+            $cubeStatus = ($cubeStatusLines -join "`n").Trim()
+            if ($cubeStatusExit -ne 0 -or $cubeStatus.Length -ne 0) {
               throw "STM32CubeG4 checkout is dirty; refusing target artifact provenance"
             }
             $cubeProvenance = [ordered]@{

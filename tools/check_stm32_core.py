@@ -9,12 +9,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 FORBIDDEN_TX_SOURCE_PATTERNS = (
     re.compile(r"\b(?:HAL|LL)_FDCAN_[A-Za-z0-9_]*(?:TX|Tx|Transmit|transmit)[A-Za-z0-9_]*\b"),
-    re.compile(r"\bFDCAN[1-3]\s*(?:->|\.)\s*[A-Za-z0-9_]*(?:TX|Tx|tx)[A-Za-z0-9_]*\b"),
+    re.compile(r"(?:->|\.)\s*TX[A-Za-z0-9_]*\b"),
 )
 FORBIDDEN_MODE_SOURCE_PATTERN = re.compile(
     r"^\s*#\s*(?:undef|define)\s+CANVIEW_STM_(?:BUILD_MODE(?:_CAPTURE_ONLY)?|"
     r"CONTROL_CAPABILITIES|TX_PERMIT|ENABLE_BENCH_TX|ENABLE_VEHICLE_TX|"
-    r"CAPTURE_ONLY_CONTRACT)\b")
+    r"CAPTURE_ONLY_CONTRACT)\b", re.MULTILINE)
 
 
 def check_memory(size):
@@ -51,13 +51,55 @@ def check_source_safety(source_root):
         if path.suffix.lower() not in (".c", ".h") or "build" in path.parts:
             continue
         text = path.read_text(encoding="utf-8")
-        for line_number, line in enumerate(text.splitlines(), start=1):
-            mode_override = path.name != "canview_build_mode.h" and FORBIDDEN_MODE_SOURCE_PATTERN.search(line)
-            if mode_override or any(pattern.search(line) for pattern in FORBIDDEN_TX_SOURCE_PATTERNS):
-                violations.append(f"{path}:{line_number}: {line.strip()}")
+        # C의 line continuation과 멤버 접근의 줄바꿈을 포함한 logical text를 검사한다.
+        logical_text = re.sub(r"\\\r?\n", "", text)
+        logical_lines = logical_text.splitlines()
+        seen = set()
+
+        def record(match):
+            line_number = logical_text.count("\n", 0, match.start()) + 1
+            line = logical_lines[line_number - 1].strip() if logical_lines else ""
+            key = (line_number, line)
+            if key not in seen:
+                seen.add(key)
+                violations.append(f"{path}:{line_number}: {line}")
+
+        if path.name != "canview_build_mode.h":
+            for match in FORBIDDEN_MODE_SOURCE_PATTERN.finditer(logical_text):
+                record(match)
+        for pattern in FORBIDDEN_TX_SOURCE_PATTERNS:
+            for match in pattern.finditer(logical_text):
+                record(match)
     if violations:
         raise RuntimeError("CAPTURE_ONLY source TX boundary violation: " + "; ".join(violations))
     return True
+
+
+def check_compile_contract(commands, header):
+    """compile database의 모든 C unit에 immutable CAPTURE_ONLY 주입이 있는지 확인한다."""
+    header_name = Path(header).name.lower()
+    missing = []
+    checked = 0
+    for entry in commands:
+        source = Path(entry.get("file", ""))
+        if source.suffix.lower() != ".c":
+            continue
+        checked += 1
+        command = entry.get("command")
+        if command is None:
+            command = " ".join(str(argument) for argument in entry.get("arguments", []))
+        normalized = str(command).replace("\\", "/").lower()
+        has_token = re.search(
+            r"(?<![a-z0-9_])-dcanview_stm_capture_only_contract=1(?![a-z0-9_])",
+            normalized) is not None
+        has_forced_header = "-include" in normalized and header_name in normalized
+        if not has_token or not has_forced_header:
+            missing.append(str(source))
+    if checked == 0:
+        raise RuntimeError("STM32 CAPTURE_ONLY compile contract의 C unit이 없음")
+    if missing:
+        raise RuntimeError(f"STM32 CAPTURE_ONLY compile contract 누락: {missing}")
+    return checked
 
 
 def check_stack(lines):
@@ -123,11 +165,14 @@ def main():
     symbols = run([str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", str(args.elf)])
     check_symbols(symbols)
     commands = json.loads((args.elf.parent / "compile_commands.json").read_text(encoding="utf-8"))
+    check_compile_contract(commands, ROOT / "firmware/communicator/stm32/interface/canview_build_mode.h")
     stacks = stack_evidence(args.elf.parent, commands, lambda output: run(
         [str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", "--format=posix", str(output)]))
     max_frame = check_stack(line for path in stacks
                            for line in path.read_text(encoding="utf-8").splitlines())
     check_source_safety(ROOT / "firmware/communicator/stm32")
+    check_source_safety(ROOT / "shared/app/src")
+    check_source_safety(ROOT / "shared/protocol/src")
     # 모델 register의 숫자와 고정 vendor CMSIS를 독립 compile-time 비교한다.
     model = ROOT / "firmware/communicator/stm32/tests/register_model.h"
     constants = re.findall(r"^#define (\w+) (UINT32_C\(0x[0-9a-f]+\)|UINT32_C\([0-9]+\)|\([0-9]+U\))$",

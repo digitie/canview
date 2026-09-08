@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #define CANVIEW_STM_STACK_WATERMARK_PATTERN UINT8_C(0xa5)
+#define CANVIEW_STM_STACK_WATERMARK_PATTERN_INVERTED UINT8_C(0x5a)
 #define CANVIEW_STM_STACK_WATERMARK_MIN_BYTES (64U)
 #define CANVIEW_STM_STACK_WATERMARK_MAX_BYTES (24U * 1024U)
 #define CANVIEW_STM_STACK_SAMPLE_MAX_BYTES (256U)
@@ -43,8 +44,9 @@ canview_status_t canview_stm_stack_watermark_arm(canview_stm_stack_watermark_t *
                                                   volatile uint8_t *region, size_t region_size);
 
 /**
- * @brief pattern prefix를 bounded scan하고 최소 free watermark를 갱신한다.
- * 큰 한 번의 overwrite가 sample budget을 넘으면 TIMEOUT으로 fail-closed한다.
+ * @brief low-address의 연속 pattern prefix를 bounded scan하고 최소 free watermark를 갱신한다.
+ * scan budget보다 큰 free prefix는 budget 크기의 보수적 lower bound로 보고한다.
+ * pattern 불일치나 malformed context는 free 공간으로 승격하지 않는다.
  */
 canview_status_t canview_stm_stack_watermark_sample(
     canview_stm_stack_watermark_t *watermark,

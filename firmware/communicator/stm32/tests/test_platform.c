@@ -72,25 +72,38 @@ static void stack_tests(void)
     CHECK(canview_stm_stack_watermark_arm(&watermark, region, sizeof(region)) == CANVIEW_OK);
     for (size_t index = 0U; index < sizeof(region); ++index)
     {
-        CHECK(region[index] == CANVIEW_STM_STACK_WATERMARK_PATTERN);
+        const uint8_t expected = (index & 1U) == 0U
+                                     ? CANVIEW_STM_STACK_WATERMARK_PATTERN
+                                     : CANVIEW_STM_STACK_WATERMARK_PATTERN_INVERTED;
+        CHECK(region[index] == expected);
     }
     CHECK(canview_stm_stack_watermark_arm(&watermark, region, sizeof(region)) ==
           CANVIEW_RESOURCE_BUSY);
     CHECK(canview_stm_stack_watermark_sample(&watermark, &snapshot) == CANVIEW_OK);
-    CHECK(snapshot.valid && snapshot.current_free_bytes == sizeof(region) &&
-          snapshot.minimum_free_bytes == sizeof(region));
+    CHECK(snapshot.valid && snapshot.current_free_bytes == CANVIEW_STM_STACK_SAMPLE_MAX_BYTES &&
+          snapshot.minimum_free_bytes == CANVIEW_STM_STACK_SAMPLE_MAX_BYTES);
 
     region[sizeof(region) - 1U] = 0U;
     CHECK(canview_stm_stack_watermark_sample(&watermark, &snapshot) == CANVIEW_OK);
-    CHECK(snapshot.valid && snapshot.current_free_bytes == sizeof(region) - 1U &&
-          snapshot.minimum_free_bytes == sizeof(region) - 1U);
+    CHECK(snapshot.valid && snapshot.current_free_bytes == CANVIEW_STM_STACK_SAMPLE_MAX_BYTES &&
+          snapshot.minimum_free_bytes == CANVIEW_STM_STACK_SAMPLE_MAX_BYTES);
     memset(&region[400U], 0, sizeof(region) - 400U);
     CHECK(canview_stm_stack_watermark_sample(&watermark, &snapshot) == CANVIEW_OK);
-    CHECK(snapshot.valid && snapshot.current_free_bytes == 400U &&
-          snapshot.minimum_free_bytes == 400U);
+    CHECK(snapshot.valid && snapshot.current_free_bytes == CANVIEW_STM_STACK_SAMPLE_MAX_BYTES &&
+          snapshot.minimum_free_bytes == CANVIEW_STM_STACK_SAMPLE_MAX_BYTES);
+
+    canview_stm_stack_watermark_t mixed_watermark = {0};
+    CHECK(canview_stm_stack_watermark_arm(&mixed_watermark, region, sizeof(region)) == CANVIEW_OK);
+    memset(&region[64U], 0, sizeof(region) - 64U);
+    region[500U] = CANVIEW_STM_STACK_WATERMARK_PATTERN;
+    CHECK(canview_stm_stack_watermark_sample(&mixed_watermark, &snapshot) == CANVIEW_OK);
+    CHECK(snapshot.valid && snapshot.current_free_bytes == 64U &&
+          snapshot.minimum_free_bytes == 64U);
+
     memset(region, 0, 400U);
-    CHECK(canview_stm_stack_watermark_sample(&watermark, &snapshot) == CANVIEW_TIMEOUT);
-    CHECK(!snapshot.valid && watermark.minimum_free_bytes == 400U);
+    CHECK(canview_stm_stack_watermark_sample(&mixed_watermark, &snapshot) == CANVIEW_OK);
+    CHECK(snapshot.valid && snapshot.current_free_bytes == 0U &&
+          snapshot.minimum_free_bytes == 0U);
 
     canview_stm_stack_watermark_t zero_watermark = {0};
     CHECK(canview_stm_stack_watermark_arm(&zero_watermark, small_region, sizeof(small_region)) ==

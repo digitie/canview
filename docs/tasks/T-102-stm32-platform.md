@@ -18,7 +18,7 @@ T-102a의 safe GPIO·HSE/PLL·TIM2/SysTick·IWDG·cooperative scheduler를 유�
 - target의 모든 C translation unit에 `CAPTURE_ONLY` header와 composition token을 forced include하고, BSP link anchor·source/API/register gate·실 compiler negative fixture로 mode 우회를 검사한다.
 - build metadata assembly를 module에서 BSP provider target으로 이동해 module이 generated board/protocol header에 직접 의존하지 않게 했다.
 - generated `board_pins.h`에 board+pin input SHA-256 기반 `CANVIEW_BOARD_HARDWARE_DIGEST`를 추가했다. protocol/UART schema digest·profile·hardware digest·mode를 포함한 non-cryptographic build contract digest와 target symbol을 제공한다.
-- linker의 실제 high-end reserved stack window를 `__stack_limit`으로 export하고 current MSP에서 64-byte guard를 제외한 static watermark를 arm한다. sample은 256-byte bounded scan이며 128-byte 미만 free watermark/scan timeout은 health fault다.
+- linker의 실제 high-end reserved stack window를 `__stack_limit`으로 export하고 current MSP에서 64-byte guard를 제외한 static `0xA5/0x5A` checkerboard watermark를 arm한다. sample은 low-address 연속 prefix를 256 byte bounded scan하고 더 긴 영역은 보수적인 lower bound로만 보고하며, 128-byte 미만 free watermark는 health fault다. TIM2 `PSC/ARR/DIER` invariant와 4ms/50% 진행 lower bound도 health에서 검사한다.
 - RCC reset flags를 단일/복합 원인으로 fail-closed 분류하고, protected root의 RAM shadow와 service-reset erase pending decision skeleton을 추가했다. Flash write/erase, authenticity 증명과 debug lock 변경은 없다.
 - reset/build/profile/stack/capability를 version 2, reset reason byte를 포함한 pointer 없는 40-byte little-endian diagnostic record로 encode하고 boot에서 metadata·stack·CAPTURE_ONLY invariants를 확인한다. 초기화 전 HardFault는 명시적 system reset을 요청하며 clock health fault는 terminal latch한다. 실제 UART 송신은 T-104다.
 

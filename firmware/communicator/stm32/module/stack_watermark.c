@@ -1,6 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "canview_stm_stack.h"
 
+static uint8_t watermark_pattern(size_t index)
+{
+    return (index & 1U) == 0U ? CANVIEW_STM_STACK_WATERMARK_PATTERN
+                              : CANVIEW_STM_STACK_WATERMARK_PATTERN_INVERTED;
+}
+
 canview_status_t canview_stm_stack_watermark_arm(canview_stm_stack_watermark_t *watermark,
                                                   volatile uint8_t *region, size_t region_size)
 {
@@ -20,7 +26,7 @@ canview_status_t canview_stm_stack_watermark_arm(canview_stm_stack_watermark_t *
     watermark->busy = true;
     for (size_t index = 0U; index < region_size; ++index)
     {
-        region[index] = CANVIEW_STM_STACK_WATERMARK_PATTERN;
+        region[index] = watermark_pattern(index);
     }
     watermark->region = region;
     watermark->region_size = region_size;
@@ -52,35 +58,22 @@ canview_status_t canview_stm_stack_watermark_sample(
     }
 
     watermark->busy = true;
-    size_t cursor = watermark->minimum_free_bytes;
-    size_t inspected = 0U;
-    while (cursor > 0U && inspected < CANVIEW_STM_STACK_SAMPLE_MAX_BYTES)
+    const size_t scan_limit = watermark->region_size < CANVIEW_STM_STACK_SAMPLE_MAX_BYTES
+                                  ? watermark->region_size
+                                  : CANVIEW_STM_STACK_SAMPLE_MAX_BYTES;
+    size_t current_free = 0U;
+    while (current_free < scan_limit &&
+           watermark->region[current_free] == watermark_pattern(current_free))
     {
-        --cursor;
-        ++inspected;
-        if (watermark->region[cursor] == CANVIEW_STM_STACK_WATERMARK_PATTERN)
-        {
-            const size_t current_free = cursor + 1U;
-            if (current_free < watermark->minimum_free_bytes)
-            {
-                watermark->minimum_free_bytes = current_free;
-            }
-            const canview_stm_stack_watermark_snapshot_t result = {
-                current_free, watermark->minimum_free_bytes, true};
-            watermark->busy = false;
-            *snapshot = result;
-            return CANVIEW_OK;
-        }
+        ++current_free;
     }
-    if (cursor == 0U)
+    if (current_free < watermark->minimum_free_bytes)
     {
-        watermark->minimum_free_bytes = 0U;
-        const canview_stm_stack_watermark_snapshot_t result = {0U, 0U, true};
-        watermark->busy = false;
-        *snapshot = result;
-        return CANVIEW_OK;
+        watermark->minimum_free_bytes = current_free;
     }
-
+    const canview_stm_stack_watermark_snapshot_t result = {
+        current_free, watermark->minimum_free_bytes, true};
     watermark->busy = false;
-    return CANVIEW_TIMEOUT;
+    *snapshot = result;
+    return CANVIEW_OK;
 }
