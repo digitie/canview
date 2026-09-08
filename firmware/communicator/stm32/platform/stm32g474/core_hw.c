@@ -341,6 +341,7 @@ canview_status_t canview_stm_board_health(void *context)
         (RCC->CR & (RCC_CR_HSERDY | RCC_CR_PLLRDY)) != (RCC_CR_HSERDY | RCC_CR_PLLRDY) ||
         (RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL || (TIM2->CR1 & TIM_CR1_CEN) == 0U)
     {
+        hardware.fault = true;
         return CANVIEW_TIMEOUT;
     }
     canview_stm_stack_watermark_snapshot_t stack_snapshot;
@@ -411,9 +412,10 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
     hardware.fault = true;
+    NVIC_SystemReset();
     for (;;)
     {
-        __WFI(); /* IWDG refresh 없음. PHY는 reset/default standby. */
+        __WFI(); /* reset이 반환하는 비정상 구현에서도 IWDG refresh는 금지한다. */
     }
 }
 
@@ -447,6 +449,9 @@ void canview_stm_board_diagnostic(canview_stm_diagnostic_t *diagnostic)
         const canview_status_t service_status = canview_stm_service_policy_evaluate(
             &unloaded_root, hardware.reset_reason, &service_decision);
         const bool service_policy_safe = service_status != CANVIEW_OK;
+        const bool capture_only_contract_valid =
+            canview_stm_capture_only_contract_anchor ==
+            CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE;
         const canview_stm_diagnostic_t snapshot = {
             .reset_flags = hardware.reset_flags,
             .reset_reason = hardware.reset_reason,
@@ -458,7 +463,7 @@ void canview_stm_board_diagnostic(canview_stm_diagnostic_t *diagnostic)
             .production_debug_lock_known = service_policy_safe
                                                ? false
                                                : service_decision.production_debug_lock_known,
-            .build_metadata_valid = metadata_status == CANVIEW_OK,
+            .build_metadata_valid = metadata_status == CANVIEW_OK && capture_only_contract_valid,
             .build_contract_digest = metadata.build_contract_digest,
             .board_profile = metadata.board_profile,
             .stack_free_bytes = stack_status == CANVIEW_OK ? stack_snapshot.current_free_bytes : 0U,

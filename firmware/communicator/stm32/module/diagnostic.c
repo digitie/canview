@@ -18,9 +18,9 @@ static void put_u32_le(uint8_t *buffer, size_t offset, uint32_t value)
 
 static bool reset_reason_valid(canview_stm_reset_reason_t reset_reason)
 {
-    const int value = (int)reset_reason;
-    return value >= (int)CANVIEW_STM_RESET_REASON_UNKNOWN &&
-           value <= (int)CANVIEW_STM_RESET_REASON_MAX;
+    const int32_t value = (int32_t)reset_reason;
+    return value >= (int32_t)CANVIEW_STM_RESET_REASON_UNKNOWN &&
+           value <= (int32_t)CANVIEW_STM_RESET_REASON_MAX;
 }
 
 static uint16_t status_bits(const canview_stm_diagnostic_t *diagnostic)
@@ -79,7 +79,7 @@ canview_status_t canview_stm_diagnostic_encode(const canview_stm_diagnostic_t *d
     }
 
     buffer[4U] = CANVIEW_STM_DIAGNOSTIC_RECORD_VERSION;
-    buffer[5U] = 0U;
+    buffer[5U] = (uint8_t)diagnostic->reset_reason;
     put_u32_le(buffer, 0U, CANVIEW_STM_DIAGNOSTIC_RECORD_MAGIC);
     put_u16_le(buffer, 6U, status_bits(diagnostic));
     put_u32_le(buffer, 8U, diagnostic->reset_flags);

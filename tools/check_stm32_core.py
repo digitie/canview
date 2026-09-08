@@ -7,6 +7,15 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 
+FORBIDDEN_TX_SOURCE_PATTERNS = (
+    re.compile(r"\b(?:HAL|LL)_FDCAN_[A-Za-z0-9_]*(?:TX|Tx|Transmit|transmit)[A-Za-z0-9_]*\b"),
+    re.compile(r"\bFDCAN[1-3]\s*(?:->|\.)\s*[A-Za-z0-9_]*(?:TX|Tx|tx)[A-Za-z0-9_]*\b"),
+)
+FORBIDDEN_MODE_SOURCE_PATTERN = re.compile(
+    r"^\s*#\s*(?:undef|define)\s+CANVIEW_STM_(?:BUILD_MODE(?:_CAPTURE_ONLY)?|"
+    r"CONTROL_CAPABILITIES|TX_PERMIT|ENABLE_BENCH_TX|ENABLE_VEHICLE_TX|"
+    r"CAPTURE_ONLY_CONTRACT)\b")
+
 
 def check_memory(size):
     fields = size.splitlines()[-1].split()
@@ -20,15 +29,35 @@ def check_symbols(symbols):
     names = {line.split()[-1] for line in symbols.splitlines() if line.split()}
     forbidden = {"malloc", "calloc", "realloc", "free", "_sbrk",
                  "HAL_FDCAN_AddMessageToTxFifoQ", "HAL_FDCAN_AddMessageToTxBuffer"}
+    forbidden.update(name for name in names
+                     if re.search(r"(?:FDCAN|CAN).*(?:TX|Tx|Transmit|transmit)", name))
     if names & forbidden:
         raise RuntimeError(f"금지 heap/TX symbol: {sorted(names & forbidden)}")
     required = {"canview_stm_clock_start", "canview_stm_watchdog_start",
                 "canview_stm_scheduler_step", "canview_stm_build_metadata_get",
                 "canview_stm_stack_watermark_arm", "canview_stm_stack_watermark_sample",
                 "canview_stm_service_policy_evaluate", "canview_stm_diagnostic_encode",
-                "SysTick_Handler", "NMI_Handler", "HardFault_Handler"}
+                "canview_stm_capture_only_contract_anchor", "SysTick_Handler", "NMI_Handler",
+                "HardFault_Handler"}
     if not required <= names:
         raise RuntimeError(f"실제 core link 누락: {sorted(required - names)}")
+
+
+def check_source_safety(source_root):
+    """CAPTURE_ONLY target source가 FDCAN TX API/register를 사용하지 않는지 검사한다."""
+    source_root = Path(source_root).resolve()
+    violations = []
+    for path in sorted(source_root.rglob("*")):
+        if path.suffix.lower() not in (".c", ".h") or "build" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            mode_override = path.name != "canview_build_mode.h" and FORBIDDEN_MODE_SOURCE_PATTERN.search(line)
+            if mode_override or any(pattern.search(line) for pattern in FORBIDDEN_TX_SOURCE_PATTERNS):
+                violations.append(f"{path}:{line_number}: {line.strip()}")
+    if violations:
+        raise RuntimeError("CAPTURE_ONLY source TX boundary violation: " + "; ".join(violations))
+    return True
 
 
 def check_stack(lines):
@@ -98,6 +127,7 @@ def main():
         [str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", "--format=posix", str(output)]))
     max_frame = check_stack(line for path in stacks
                            for line in path.read_text(encoding="utf-8").splitlines())
+    check_source_safety(ROOT / "firmware/communicator/stm32")
     # 모델 register의 숫자와 고정 vendor CMSIS를 독립 compile-time 비교한다.
     model = ROOT / "firmware/communicator/stm32/tests/register_model.h"
     constants = re.findall(r"^#define (\w+) (UINT32_C\(0x[0-9a-f]+\)|UINT32_C\([0-9]+\)|\([0-9]+U\))$",

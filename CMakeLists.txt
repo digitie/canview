@@ -25,6 +25,18 @@ endif()
 find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
+add_library(canview_stm_build_provider STATIC
+    firmware/communicator/stm32/bsp/build_metadata.c)
+target_include_directories(canview_stm_build_provider PUBLIC
+    firmware/communicator/stm32/interface
+    firmware/communicator/stm32/bsp
+    shared/interface
+    protocol)
+target_compile_features(canview_stm_build_provider PUBLIC c_std_99)
+target_compile_definitions(canview_stm_build_provider PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
+target_compile_options(canview_stm_build_provider PRIVATE
+    -include "${PROJECT_SOURCE_DIR}/firmware/communicator/stm32/interface/canview_build_mode.h")
+target_link_libraries(canview_stm_build_provider PRIVATE canview_warnings)
 add_subdirectory(firmware/communicator/stm32/module)
 add_subdirectory(firmware/module/esp_core)
 add_library(canview_bridge_auth_host STATIC
@@ -131,12 +143,15 @@ if(BUILD_TESTING)
         firmware/communicator/stm32/tests/test_registers.c
         firmware/communicator/stm32/platform/stm32g474/core_hw.c)
     add_executable(canview-stm32-platform-tests firmware/communicator/stm32/tests/test_platform.c)
+    target_compile_definitions(canview-stm32-platform-tests PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
     target_link_libraries(canview-stm32-platform-tests PRIVATE canview_stm_core canview_warnings)
     add_test(NAME stm32-platform-contracts COMMAND canview-stm32-platform-tests)
     set_tests_properties(stm32-platform-contracts PROPERTIES TIMEOUT 30)
     target_compile_definitions(canview-stm32-register-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_compile_definitions(canview-stm32-register-tests PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
     target_include_directories(canview-stm32-register-tests PRIVATE
-        firmware/communicator/stm32/tests firmware/communicator/stm32/platform/stm32g474)
+        firmware/communicator/stm32/tests firmware/communicator/stm32/platform/stm32g474
+        firmware/communicator/stm32/bsp)
     target_link_libraries(canview-stm32-register-tests PRIVATE canview_stm_core canview_warnings)
     add_test(NAME stm32-core-register-model COMMAND canview-stm32-register-tests)
     set_tests_properties(stm32-core-register-model PROPERTIES TIMEOUT 30)
@@ -194,6 +209,10 @@ if(BUILD_TESTING)
     add_test(NAME generated-uart COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tools/generate_protocol.py --schema
         ${PROJECT_SOURCE_DIR}/protocol/schema/uart-v1.0.yaml --check)
+    add_test(NAME stm32-build-mode-negative COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tools/check_stm32_build_mode.py
+        --compiler ${CMAKE_C_COMPILER}
+        --header ${PROJECT_SOURCE_DIR}/firmware/communicator/stm32/interface/canview_build_mode.h)
     add_test(NAME uart-schema COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/protocol/test_uart_schema.py -v)
     # Keep the default CTest contract bounded. The 24-hour virtual soak remains

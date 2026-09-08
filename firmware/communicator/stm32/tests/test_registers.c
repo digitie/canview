@@ -243,11 +243,13 @@ static void healthy_boot(void)
 
 static void reset_reason_tests(void)
 {
-    const uint32_t flags[] = {RCC_CSR_BORRSTF, RCC_CSR_SFTRSTF, RCC_CSR_PINRSTF,
-                              RCC_CSR_LPWRRSTF, RCC_CSR_OBLRSTF,
+    const uint32_t flags[] = {0U, RCC_CSR_BORRSTF, RCC_CSR_IWDGRSTF, RCC_CSR_SFTRSTF,
+                              RCC_CSR_PINRSTF, RCC_CSR_LPWRRSTF, RCC_CSR_OBLRSTF,
                               RCC_CSR_BORRSTF | RCC_CSR_IWDGRSTF};
     const canview_stm_reset_reason_t reasons[] = {
+        CANVIEW_STM_RESET_REASON_UNKNOWN,
         CANVIEW_STM_RESET_REASON_BROWNOUT,
+        CANVIEW_STM_RESET_REASON_WATCHDOG,
         CANVIEW_STM_RESET_REASON_SOFTWARE,
         CANVIEW_STM_RESET_REASON_PIN,
         CANVIEW_STM_RESET_REASON_LOW_POWER,
@@ -262,6 +264,12 @@ static void reset_reason_tests(void)
         canview_stm_board_diagnostic(&diagnostic);
         CHECK(diagnostic.reset_reason == reasons[index]);
         CHECK(!diagnostic.tx_permit && diagnostic.control_capabilities == 0U);
+        uint8_t record[CANVIEW_STM_DIAGNOSTIC_ENCODED_BYTES];
+        size_t record_bytes = 0U;
+        CHECK(canview_stm_board_diagnostic_encode(record, sizeof(record), &record_bytes) ==
+              CANVIEW_OK);
+        CHECK(record_bytes == CANVIEW_STM_DIAGNOSTIC_ENCODED_BYTES &&
+              record[5U] == (uint8_t)reasons[index]);
     }
 }
 
@@ -377,13 +385,14 @@ static void fault_tests(void)
     }
     CHECK(reset_requests == 1U);
     CHECK(canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
-    healthy_boot();
+    initialize(0U);
     if (setjmp(stopped) == 0)
     {
         HardFault_Handler();
         CHECK(false);
     }
-    CHECK(wait_calls == 1U && canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
+    CHECK(reset_requests == 1U && wait_calls == 0U &&
+          canview_stm_watchdog_feed(NULL) == CANVIEW_TIMEOUT);
     healthy_boot();
     if (setjmp(stopped) == 0)
     {

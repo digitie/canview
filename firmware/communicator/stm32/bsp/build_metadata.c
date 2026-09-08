@@ -11,6 +11,9 @@
 #define CANVIEW_STM_FNV_OFFSET UINT32_C(2166136261)
 #define CANVIEW_STM_FNV_PRIME UINT32_C(16777619)
 
+const uint32_t canview_stm_capture_only_contract_anchor =
+    CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE;
+
 static uint32_t digest_text(uint32_t digest, const char *text)
 {
     while (*text != '\0')
@@ -25,6 +28,7 @@ static uint32_t digest_text(uint32_t digest, const char *text)
 static uint32_t build_contract_digest(void)
 {
     uint32_t digest = CANVIEW_STM_FNV_OFFSET;
+    digest ^= canview_stm_capture_only_contract_anchor;
     digest = digest_text(digest, CANVIEW_PROTOCOL_SCHEMA_SHA256);
     digest = digest_text(digest, CANVIEW_UART_PROTOCOL_SCHEMA_SHA256);
     digest = digest_text(digest, CANVIEW_BOARD_HARDWARE_DIGEST);

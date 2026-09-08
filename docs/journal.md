@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-102 hostile review finding fix)
+
+T-102의 immutable candidate를 독립 검토한 A(`CV-HOSTILE-20260908-T102-A-002`)와 B(`CV-HOSTILE-20260908-T102-B-002`)의 원문을 evidence에 보존했다. 두 report의 reset reason 직렬화 P1, 초기화 전 HardFault 무한 대기 P1, health fault latch·module/BSP 경계·CAPTURE_ONLY target-wide 강제·negative test·CubeG4 provenance·fixed-width 정수 finding을 반영했다. diagnostic record는 version 2와 offset 5 reset-reason byte를 사용하고, HardFault는 IWDG 준비 여부와 무관하게 system reset을 먼저 요청한다. build metadata는 BSP provider target으로 분리했으며 target forced include, link anchor, FDCAN TX source/symbol gate와 실 compiler override fixture를 추가했다.
+
+수정 후 pinned Windows Host Debug/Release CTest는 각각 116/116, STM32 function100%/line≥95%/branch≥90% coverage, STM32 Debug/Release target ELF/MAP/BIN/HEX와 post-build gate는 warning/error 0으로 통과했다. post-fix candidate의 fresh reviewer 재검토와 CI는 아직 남아 있고 physical board/HIL·clock/reset/rail/brownout·UART/FDCAN·Flash root·차량 CAN evidence는 `NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
+
 ## 2026-09-08 (codex, T-102 STM32 C source와 target 검증)
 
 `codex/t102-stm32-platform`에서 사용자의 G1 이전 firmware 구현 허용과 C 작성 지시에 따라 T-102 source를 진행했다. STM32 `CAPTURE_ONLY` build contract, generated hardware digest와 build metadata, RCC reset reason, static stack watermark, protected service policy skeleton, little-endian diagnostic record를 추가하고 기존 safe GPIO·HSE/PLL·TIM2/SysTick·IWDG·cooperative scheduler와 연결했다. stack watermark의 host register-model 경계 및 scan timeout 시험을 보강했으며, target linker는 실제 reserved stack window를 `__stack_limit`으로 export한다. FDCAN/UART 송수신과 차량 CAN TX는 열지 않았다.

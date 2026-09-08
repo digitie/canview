@@ -24,9 +24,9 @@ canview_status_t canview_stm_service_root_init(canview_stm_service_root_t *root)
 
 static bool reset_reason_valid(canview_stm_reset_reason_t reset_reason)
 {
-    const int value = (int)reset_reason;
-    return value >= (int)CANVIEW_STM_RESET_REASON_UNKNOWN &&
-           value <= (int)CANVIEW_STM_RESET_REASON_MAX;
+    const int32_t value = (int32_t)reset_reason;
+    return value >= (int32_t)CANVIEW_STM_RESET_REASON_UNKNOWN &&
+           value <= (int32_t)CANVIEW_STM_RESET_REASON_MAX;
 }
 
 canview_status_t canview_stm_service_policy_evaluate(

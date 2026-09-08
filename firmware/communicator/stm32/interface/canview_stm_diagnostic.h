@@ -35,7 +35,7 @@ typedef struct
 } canview_stm_diagnostic_t;
 
 #define CANVIEW_STM_DIAGNOSTIC_RECORD_MAGIC UINT32_C(0x31445643)
-#define CANVIEW_STM_DIAGNOSTIC_RECORD_VERSION UINT8_C(1)
+#define CANVIEW_STM_DIAGNOSTIC_RECORD_VERSION UINT8_C(2)
 #define CANVIEW_STM_DIAGNOSTIC_ENCODED_BYTES (40U)
 
 #define CANVIEW_STM_DIAGNOSTIC_STATUS_TX_PERMIT UINT16_C(0x0001)
@@ -49,7 +49,9 @@ typedef struct
  * @brief pointer를 포함하지 않는 little-endian diagnostic record를 만든다.
  *
  * T-104 UART가 이 record를 운반할 수 있지만, 이것은 UART wire ABI가 아니다.
- * capacity 부족/invalid enum/size overflow에서는 output record를 변경하지 않는다.
+ * byte 0..3은 magic, byte 4는 version, byte 5는 canview_stm_reset_reason_t,
+ * byte 6..7은 status다. capacity 부족/invalid enum/size overflow에서는 output
+ * record를 변경하지 않는다.
  */
 canview_status_t canview_stm_diagnostic_encode(const canview_stm_diagnostic_t *diagnostic,
                                                uint8_t *buffer, size_t capacity,

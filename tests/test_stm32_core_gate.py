@@ -6,7 +6,8 @@ import tempfile
 from copy import deepcopy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from tools.check_stm32_core import check_memory, check_stack, check_symbols, stack_evidence
+from tools.check_stm32_core import (check_memory, check_source_safety, check_stack,
+                                    check_symbols, stack_evidence)
 
 
 class Stm32CoreGateTests(unittest.TestCase):
@@ -24,6 +25,7 @@ class Stm32CoreGateTests(unittest.TestCase):
                  "canview_stm_scheduler_step", "canview_stm_build_metadata_get",
                  "canview_stm_stack_watermark_arm", "canview_stm_stack_watermark_sample",
                  "canview_stm_service_policy_evaluate", "canview_stm_diagnostic_encode",
+                 "canview_stm_capture_only_contract_anchor",
                  "SysTick_Handler", "NMI_Handler", "HardFault_Handler"]
         symbols = "\n".join("08000000 T " + name for name in names)
         check_symbols(symbols)
@@ -34,6 +36,21 @@ class Stm32CoreGateTests(unittest.TestCase):
                      "HAL_FDCAN_AddMessageToTxFifoQ", "HAL_FDCAN_AddMessageToTxBuffer"):
             with self.subTest(forbidden=name), self.assertRaises(RuntimeError):
                 check_symbols(symbols + "\n08000100 T " + name)
+
+    def test_capture_only_source_boundary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            valid = root / "valid.c"
+            valid.write_text("uint32_t clock = RCC->CCIPR;\n", encoding="utf-8")
+            self.assertTrue(check_source_safety(root))
+            for source in (
+                    "void send(void) { HAL_FDCAN_AddMessageToTxFifoQ(); }\n",
+                    "void send(void) { LL_FDCAN_EnableTxBufferRequest(); }\n",
+                    "void send(void) { FDCAN1->TXBAR = 1U; }\n",
+                    "#undef CANVIEW_STM_TX_PERMIT\n"):
+                valid.write_text(source, encoding="utf-8")
+                with self.subTest(source=source), self.assertRaises(RuntimeError):
+                    check_source_safety(root)
 
     def test_stack_fail_closed(self):
         self.assertEqual(check_stack(["source:1:function\t2048\tstatic", "source:2:f\t0\tdynamic,bounded"]), 2048)

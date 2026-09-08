@@ -10,6 +10,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE UINT32_C(0x43415030)
+
+/** @brief target link가 CAPTURE_ONLY BSP provider를 실제로 포함했음을 나타내는 sentinel. */
+extern const uint32_t canview_stm_capture_only_contract_anchor;
+
 /**
  * @brief 정적 문자열을 가리키는 build contract snapshot.
  *
@@ -29,7 +34,7 @@ typedef struct
     bool tx_permit;
 } canview_stm_build_metadata_t;
 
-/** @brief generated schema/profile와 CAPTURE_ONLY metadata를 caller에 복사한다. */
+/** @brief BSP metadata provider가 조립한 schema/profile와 CAPTURE_ONLY metadata를 복사한다. */
 canview_status_t canview_stm_build_metadata_get(canview_stm_build_metadata_t *metadata);
 
 #endif

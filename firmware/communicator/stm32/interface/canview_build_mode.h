@@ -8,6 +8,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* CMake가 모든 STM32 C translation unit에 주입하는 immutable composition token이다. */
+#ifndef CANVIEW_STM_CAPTURE_ONLY_CONTRACT
+#error CANVIEW_STM_CAPTURE_ONLY_contract_is_required
+#endif
+#if CANVIEW_STM_CAPTURE_ONLY_CONTRACT != 1
+#error CANVIEW_STM_CAPTURE_ONLY_contract_must_be_one
+#endif
+
 /* 이 image는 capture-only bench foundation이다. 다른 mode를 compile flag로
  * 주입하는 우회 경로를 제공하지 않는다. */
 #if defined(CANVIEW_STM_BUILD_MODE) || defined(CANVIEW_STM_BUILD_MODE_CAPTURE_ONLY) || \

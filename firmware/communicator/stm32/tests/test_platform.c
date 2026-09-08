@@ -43,6 +43,8 @@ static void metadata_tests(void)
     CHECK(metadata.build_mode != NULL && strcmp(metadata.build_mode, "CAPTURE_ONLY") == 0);
     CHECK(metadata.board_profile != 0U && metadata.build_contract_digest != 0U);
     CHECK(metadata.control_capabilities == 0U && !metadata.tx_permit);
+    CHECK(canview_stm_capture_only_contract_anchor ==
+          CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE);
     CHECK(CANVIEW_STM_BUILD_MODE == CANVIEW_STM_BUILD_MODE_CAPTURE_ONLY);
 }
 
@@ -269,7 +271,8 @@ static void diagnostic_tests(void)
           CANVIEW_OK);
     CHECK(written == CANVIEW_STM_DIAGNOSTIC_ENCODED_BYTES);
     CHECK(read_u32_le(buffer, 0U) == CANVIEW_STM_DIAGNOSTIC_RECORD_MAGIC);
-    CHECK(buffer[4U] == CANVIEW_STM_DIAGNOSTIC_RECORD_VERSION && buffer[5U] == 0U);
+    CHECK(buffer[4U] == CANVIEW_STM_DIAGNOSTIC_RECORD_VERSION &&
+          buffer[5U] == (uint8_t)diagnostic.reset_reason);
     CHECK(read_u16_le(buffer, 6U) ==
           (CANVIEW_STM_DIAGNOSTIC_STATUS_AUTHENTICITY_KNOWN |
            CANVIEW_STM_DIAGNOSTIC_STATUS_DEBUG_LOCK_KNOWN |
@@ -284,6 +287,23 @@ static void diagnostic_tests(void)
     CHECK(read_u32_le(buffer, 28U) == (uint32_t)diagnostic.stack_free_bytes);
     CHECK(read_u32_le(buffer, 32U) == (uint32_t)diagnostic.stack_min_free_bytes);
     CHECK(read_u32_le(buffer, 36U) == 0U);
+
+    const canview_stm_reset_reason_t encoded_reasons[] = {
+        CANVIEW_STM_RESET_REASON_UNKNOWN,
+        CANVIEW_STM_RESET_REASON_BROWNOUT,
+        CANVIEW_STM_RESET_REASON_WATCHDOG,
+        CANVIEW_STM_RESET_REASON_SOFTWARE,
+        CANVIEW_STM_RESET_REASON_PIN,
+        CANVIEW_STM_RESET_REASON_LOW_POWER,
+        CANVIEW_STM_RESET_REASON_OPTION_BYTE,
+        CANVIEW_STM_RESET_REASON_AMBIGUOUS};
+    for (size_t index = 0U; index < sizeof(encoded_reasons) / sizeof(encoded_reasons[0]); ++index)
+    {
+        diagnostic.reset_reason = encoded_reasons[index];
+        CHECK(canview_stm_diagnostic_encode(&diagnostic, buffer, sizeof(buffer), &written) ==
+              CANVIEW_OK);
+        CHECK(buffer[5U] == (uint8_t)encoded_reasons[index]);
+    }
 }
 
 int main(void)

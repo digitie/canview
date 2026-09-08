@@ -200,6 +200,30 @@ jobs:
             . tools/environment/setup-windows.ps1 -ToolRoot $env:CANVIEW_TARGET_TOOLROOT -ArmGnuRoot $armRoot -ArmGnuArchive $env:CANVIEW_TARGET_ARM_ARCHIVE
             $provenancePath = Join-Path $armRoot "canview-arm-gnu-provenance.json"
             Copy-Item -LiteralPath $provenancePath -Destination (Join-Path $logRoot "arm-gnu-provenance-after-setup.json") -Force
+            $toolchainManifest = Get-Content -Raw -LiteralPath "tools/toolchain-versions.json" | ConvertFrom-Json
+            $cubeRoot = $env:STM32CUBE_G4_ROOT
+            $cubeExpected = $toolchainManifest.sdk.stm32CubeG4
+            $cubeRevision = (& git -C $cubeRoot rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $cubeRevision -notmatch '^[0-9a-f]{40}$' -or
+                $cubeRevision.ToLowerInvariant() -ne $cubeExpected.gitCommit.ToLowerInvariant()) {
+              throw "STM32CubeG4 checkout revision mismatch: expected $($cubeExpected.gitCommit), found $cubeRevision"
+            }
+            $cubeTree = (& git -C $cubeRoot rev-parse 'HEAD^{tree}').Trim()
+            if ($LASTEXITCODE -ne 0 -or $cubeTree -notmatch '^[0-9a-f]{40}$') {
+              throw "Unable to resolve STM32CubeG4 tree for artifact provenance"
+            }
+            $cubeStatus = (& git -C $cubeRoot status --porcelain=v1).Trim()
+            if ($LASTEXITCODE -ne 0 -or $cubeStatus.Length -ne 0) {
+              throw "STM32CubeG4 checkout is dirty; refusing target artifact provenance"
+            }
+            $cubeProvenance = [ordered]@{
+              repository = $cubeExpected.repository
+              version = $cubeExpected.version
+              commit = $cubeRevision.ToLowerInvariant()
+              tree = $cubeTree.ToLowerInvariant()
+              mcu = $cubeExpected.mcu
+            }
+            $cubeProvenance | ConvertTo-Json -Depth 4 | Out-File -LiteralPath (Join-Path $logRoot "stm32cubeg4-provenance.json") -Encoding utf8
             function Invoke-TargetCommand {
               param([string]$Name, [scriptblock]$Command)
               $log = Join-Path $logRoot "$Name.log"
@@ -333,7 +357,7 @@ jobs:
             }
             $toolchainProvenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
             [ordered]@{
-              schemaVersion = 2
+              schemaVersion = 3
               sourceRevision = $sourceRevision.ToLowerInvariant()
               expectedSourceRevision = $expectedSourceRevision
               pullRequestBaseRevision = $env:CANVIEW_PULL_REQUEST_BASE_REVISION
@@ -347,6 +371,7 @@ jobs:
               }
               sourceProvenance = @($provenanceDigests)
               toolchainProvenance = $toolchainProvenance
+              sdkProvenance = [ordered]@{ stm32CubeG4 = $cubeProvenance }
               artifacts = @($artifactManifest)
             } | ConvertTo-Json -Depth 6 | Out-File -LiteralPath (Join-Path $logRoot "target-artifacts.json") -Encoding utf8
           } catch {

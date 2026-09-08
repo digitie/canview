@@ -19,7 +19,7 @@ def main():
     for group, binary, sources in (
         ("portable", "canview-stm32-core-tests", ["app/boot.c", "module/scheduler.c", "module/queue.c"]),
         ("platform", "canview-stm32-platform-tests",
-         ["module/build_metadata.c", "module/stack_watermark.c",
+         ["bsp/build_metadata.c", "module/stack_watermark.c",
           "module/service_policy.c", "module/diagnostic.c"]),
         ("register", "canview-stm32-register-tests", ["platform/stm32g474/core_hw.c"]),
     ):

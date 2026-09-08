@@ -15,10 +15,12 @@
 T-102a의 safe GPIO·HSE/PLL·TIM2/SysTick·IWDG·cooperative scheduler를 유지하면서 다음 C99 계약을 추가했다.
 
 - `canview_build_mode.h`에서 STM32 image를 `CAPTURE_ONLY` 하나로 고정하고 TX mode override macro를 compile error로 거부했다.
+- target의 모든 C translation unit에 `CAPTURE_ONLY` header와 composition token을 forced include하고, BSP link anchor·source/API/register gate·실 compiler negative fixture로 mode 우회를 검사한다.
+- build metadata assembly를 module에서 BSP provider target으로 이동해 module이 generated board/protocol header에 직접 의존하지 않게 했다.
 - generated `board_pins.h`에 board+pin input SHA-256 기반 `CANVIEW_BOARD_HARDWARE_DIGEST`를 추가했다. protocol/UART schema digest·profile·hardware digest·mode를 포함한 non-cryptographic build contract digest와 target symbol을 제공한다.
 - linker의 실제 high-end reserved stack window를 `__stack_limit`으로 export하고 current MSP에서 64-byte guard를 제외한 static watermark를 arm한다. sample은 256-byte bounded scan이며 128-byte 미만 free watermark/scan timeout은 health fault다.
 - RCC reset flags를 단일/복합 원인으로 fail-closed 분류하고, protected root의 RAM shadow와 service-reset erase pending decision skeleton을 추가했다. Flash write/erase, authenticity 증명과 debug lock 변경은 없다.
-- reset/build/profile/stack/capability를 pointer 없이 40-byte little-endian diagnostic record로 encode하고 boot에서 metadata·stack·CAPTURE_ONLY invariants를 확인한다. 실제 UART 송신은 T-104다.
+- reset/build/profile/stack/capability를 version 2, reset reason byte를 포함한 pointer 없는 40-byte little-endian diagnostic record로 encode하고 boot에서 metadata·stack·CAPTURE_ONLY invariants를 확인한다. 초기화 전 HardFault는 명시적 system reset을 요청하며 clock health fault는 terminal latch한다. 실제 UART 송신은 T-104다.
 
 변경된 public/module/test 경계와 owner·수명·bounded 조건은 [STM32 core-bench 계약](../../firmware/communicator/stm32/docs/core-bench.md)에 기록했다.
 
@@ -63,7 +65,7 @@ firmware/communicator/stm32/tests/*
 - [x] safe GPIO write가 clock/peripheral init보다 먼저 실행된다. (기존 T-102a source/host fixture)
 - [x] one worker가 progress하지 않으면 IWDG가 reset하고 PHY default로 돌아간다. (cooperative vote/health fixture; physical reset은 미실행)
 - [x] `.data+.bss`, stack, map report가 통합 설계 budget 안이다. (target ELF/linker/stack-usage gate)
-- [x] `CAPTURE_ONLY`가 default이며 command TX symbol을 link하지 않는다. (compile-time guard와 target symbol scan)
+- [x] `CAPTURE_ONLY`가 default이며 command TX symbol을 link하지 않는다. (forced compile-time contract, BSP link anchor, source/API/register gate와 target symbol scan)
 - [ ] reset reason과 build digest를 UART diagnostic으로 읽을 수 있다. (40-byte source record는 준비했지만 UART transport는 T-104)
 - [x] boot authenticity 또는 production debug lock이 불확실하면 reported control capability와 TX permit이 0이다. (root/policy C test와 target default)
 
@@ -91,7 +93,7 @@ host `ctest`는 별도의 T-001 root test preset이 추가된 뒤 저장소 루�
 
 map/size/stack-usage, HSE failure scope, IWDG reset log를 남긴다. hardware 미도착 시 host test까지 진행하되 task 상태는 G1 evidence 전까지 완료하지 않는다.
 
-2026-09-08 검증 결과: pinned Windows Clang 23.1.0/CMake 4.4.3/Ninja 1.13.2에서 Host Debug/Release 전체 CTest가 각각 115/115 통과했고, 공용 core·ESP32 core·STM32 platform/register coverage gate를 통과했다. `generate_boards --check`, document link, plan, sdkconfig/generator negative·mutation test, Doxygen 32 API/Sphinx strict도 통과했다. pinned Arm GNU 15.3.Rel1와 STM32CubeG4 1.6.3에서 Debug/Release target ELF/MAP/BIN/HEX가 생성되고 post-build text/data/bss·stack/symbol gate 및 compiler/linker/CMake warning/error scan이 0건이었다. physical board/HIL·UART 실제 송신·clock/reset/rail 계측·Flash root 배치·FDCAN은 `NOT_RUN`이며 독립 reviewer/CI는 다음 gate다.
+2026-09-08 검증 결과: pinned Windows Clang 23.1.0/CMake 4.4.3/Ninja 1.13.2에서 Host Debug/Release 전체 CTest가 각각 116/116 통과했고, 공용 core·ESP32 core·STM32 platform/register coverage gate를 통과했다. `stm32-build-mode-negative` 실 compiler fixture에서 forced include·mode/TX override 거부를 확인했고, `generate_boards --check`, document link, plan, sdkconfig/generator negative·mutation test, Doxygen 32 API/Sphinx strict도 통과했다. pinned Arm GNU 15.3.Rel1와 STM32CubeG4 1.6.3에서 Debug/Release target ELF/MAP/BIN/HEX가 생성되고 post-build text/data/bss·stack/symbol/source TX gate 및 compiler/linker/CMake warning/error scan이 0건이었다. physical board/HIL·UART 실제 송신·clock/reset/rail 계측·Flash root 배치·FDCAN은 `NOT_RUN`이며 post-fix 독립 reviewer/CI는 다음 gate다.
 
 
 ## 산출물·범위 경계
