@@ -4,7 +4,7 @@
 
 T-102 최종 candidate는 18941170ef475777c62db2f1471b74f937c807ea이다. 346257b에서 발견된 C preprocessing phase-order P2를 line splice 후 comment removal 순서로 수정하고, 직접·alias FDCAN member와 mode directive의 LF/CRLF split-comment 조합 및 reversed-order mutation 회귀시험을 추가했다. 최종 immutable reviewer A CV-HOSTILE-20260908-T102-POSTFIX-A-005와 B CV-HOSTILE-20260908-T102-POSTFIX-B-005는 각각 PASS, unresolved P0/P1/P2/P3 0건을 반환했다. 원문은 [통합 report](reviews/adversarial/2026-09-08-T-102.md)와 [A raw](reviews/adversarial/evidence/2026-09-08-T-102-postfix-reviewer-a-r4.md), [B raw](reviews/adversarial/evidence/2026-09-08-T-102-postfix-reviewer-b-r4.md)에 보존했다.
 
-최종 소스 수정 뒤 Host Debug/Release 116/116, Clang ASan/UBSan 116/116, TSan pool 1/1, coverage 116/116 및 9/9 subset, STM32 core gate 6/6, generator/sdkconfig/plan/link, Doxygen/Sphinx strict, STM32 Debug/Release clean-first ELF/MAP/BIN/HEX와 warning/error 0을 다시 확인했다. PR #29는 final CI 대기 상태이며, 실제 board flash/HIL·ST-LINK/serial·clock/reset/rail/brownout·UART/FDCAN 계측·Flash root 배치·차량 CAN·provisioning은 NOT_RUN, 차량 CAN TX는 NO-GO다.
+최종 소스 수정 뒤 Host Debug/Release 116/116, Clang ASan/UBSan 116/116, TSan pool 1/1, coverage 116/116 및 9/9 subset, STM32 core gate 6/6, generator/sdkconfig/plan/link, Doxygen/Sphinx strict, STM32 Debug/Release clean-first ELF/MAP/BIN/HEX와 warning/error 0을 다시 확인했다. GitHub Actions `34216963785`의 Linux sanitizer/portability 2종, Windows C99, browser contract, target firmware 총 6개 job과 target artifact/warning gate가 PASS했다. PR #29 merge closure가 남아 있으며, 실제 board flash/HIL·ST-LINK/serial·clock/reset/rail/brownout·UART/FDCAN 계측·Flash root 배치·차량 CAN·provisioning은 NOT_RUN, 차량 CAN TX는 NO-GO다.
 
 ## 2026-09-08 (codex, T-102 hostile review finding fix)
 
