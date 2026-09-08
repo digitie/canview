@@ -15,20 +15,21 @@
 | JSON | `cJSON`, 16 KiB fixed arena, 응답 4 KiB 이하 |
 | WebSocket | `esp_http_server` WebSocket, incoming frame 512 byte 이하, server event 1회 |
 | DNS | fixed-buffer UDP captive response task, 외부 DNS forwarding 없음 |
-| shutdown | 현재 runtime shutdown API는 없다. 시작 실패는 terminal idle이며 retry하지 않는다. |
+| shutdown | `canview_bridge_web_stop()`이 HTTP/DNS/Wi-Fi/netif/event-loop와 memory auth를 idempotent하게 정리한다. DNS task가 제한시간 안에 끝나지 않으면 timeout을 반환하고 재시도를 허용한다. |
 
-HTTP handler는 `web_state.lock`을 잡은 뒤 auth/session과 JSON arena를 함께 사용한다. auth public API는 non-reentrant이고 이 mutex가 호출자 serialization을 제공한다. WebSocket의 bounded network I/O는 별도 `ws_io_lock`으로 직렬화하여 수신 대기가 auth/session poll을 붙잡지 않게 한다. cJSON allocator hook은 이 singleton component에서 한 번 등록되며 다른 cJSON task와 공유하지 않는다. session body, response와 protocol token buffer는 사용 후 zeroize한다.
+HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 response buffer만 직렬화하고, `state_lock`은 auth/session·snapshot의 짧은 critical section에서만 사용한다. 따라서 body 수신·HTTP response·WebSocket send가 owner state mutex를 붙잡지 않는다. WebSocket의 bounded network I/O는 별도 `ws_io_lock`으로 직렬화하고 send가 끝날 때까지 response buffer 수명을 보장한다. cJSON allocator hook은 이 singleton component에서 한 번 등록되며 다른 cJSON task와 공유하지 않는다. session body, response와 protocol token buffer는 사용 후 zeroize한다.
 
 `canview_bridge_web_config_t`의 credential 포인터는 start 호출 중에만 유효하면 된다. PIN digest는 auth state로 복사하고, AP password는 `esp_wifi_set_config()`에 복사한 직후 web state에서 zeroize한다. app도 start 반환 뒤 local credential buffer를 zeroize한다. callback은 `button_pressed` 하나만 남으며 web service가 정지할 때까지 caller가 수명을 보장해야 한다. ISR은 button callback이나 web API를 호출하지 않는다.
 
 ## 부팅과 service window
 
 1. BSP board profile을 SDK/GPIO open보다 먼저 검사한다.
-2. safe GPIO, fixed pool, runtime/TWDT, core health를 초기화한다.
+2. safe GPIO, runtime, deferred core health와 fixed pool을 초기화한다. 이 단계에서는 외부 초기화 중 TWDT subscription을 아직 만들지 않는다.
 3. read-only NVS에서 `bridge_auth/pin_digest`와 `bridge_auth/ap_password`를 읽는다. 누락·길이·문자 검사는 실패로 처리하며 기본 credential을 만들지 않는다.
 4. `WIFI_MODE_APSTA`를 시작한다. AP channel은 KR channel `6`으로 고정하고 STA에 external AP credential을 설정하거나 `esp_wifi_connect()`를 호출하지 않는다.
 5. DNS와 HTTP server를 시작한다. 외부 AP/NAPT와 vehicle CAN path는 없다.
-6. GPIO4가 3초 연속 low일 때만 10분 service window를 연다. release는 window를 닫지 않지만 timeout과 reset/재부팅은 session을 폐기한다.
+6. web start 성공 직후 같은 owner가 `canview_esp_core_arm_watchdog()`를 호출하고서 service loop를 시작한다. 실패하면 web 자원을 중지하고 safe idle로 남는다.
+7. GPIO4가 3초 연속 low일 때만 10분 service window를 연다. release는 window를 닫지 않지만 timeout과 reset/재부팅은 session을 폐기하고 active HTTP/WebSocket client를 닫는다.
 
 window가 닫힌 동안 `/api/v1/bootstrap`은 challenge를 발급하지 않는다. window가 열린 뒤 challenge를 발급하고, 같은 window의 challenge 재발급은 이전 challenge를 폐기한다.
 

@@ -600,13 +600,15 @@ firmware/diagnostic-bridge/
 ├─ sdkconfig.defaults
 ├─ partitions.csv
 ├─ main/
-│  └─ app_main.c
+│  ├─ app_main.c
+│  └─ bridge_bootstrap.c/.h
 └─ components/
    ├─ canview_transport/   ESP-NOW codec·peer·session·time sync
    ├─ canview_observer/    stats/raw model·filter·diagnostic lease
    ├─ canview_capture/     PSRAM ring·marker·capture state machine
    ├─ canview_candidates/  descriptor·evidence persistence
-   ├─ canview_web/         SoftAP·DNS·HTTP·WebSocket·auth
+   ├─ canview_bridge_web/  SoftAP·DNS·HTTP·WebSocket·auth
+   ├─ canview_web/         후속 API 확장 위치
    └─ canview_storage/     NVS·Flash/SD·export
 
 ui/diagnostic-web/
