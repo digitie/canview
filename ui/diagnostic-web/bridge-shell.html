@@ -29,16 +29,24 @@
 (() => {
   const status = document.getElementById('status');
   const form = document.getElementById('login');
+  const pinInput = document.getElementById('pin');
   const submit = document.getElementById('submit');
+  const MAX_RECONNECT_DELAY_MS = 30000;
   let token = null;
   let live = null;
   let reconnectTimer = null;
+  let reconnectDelayMs = 1000;
   let expectedSequence = null;
   let snapshotRevision = null;
   const enc = bytes => { let s=''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
   const nonce = () => { const b = new Uint8Array(16); crypto.getRandomValues(b); return enc(b); };
-  const bootstrap = async () => { const r = await fetch('/api/v1/bootstrap', {cache:'no-store'}); if (!r.ok) throw new Error('bootstrap '+r.status); return r.json(); };
-  const system = async () => { const r = await fetch('/api/v1/system', {headers:{Authorization:'Bearer '+token}, cache:'no-store'}); if (!r.ok) throw new Error('system '+r.status); return r.json(); };
+  const requestJson = async (url, options, label) => {
+    const r = await fetch(url, options);
+    if (!r.ok) { const error = new Error(label+' '+r.status); error.status = r.status; throw error; }
+    return r.json();
+  };
+  const bootstrap = () => requestJson('/api/v1/bootstrap', {cache:'no-store'}, 'bootstrap');
+  const system = () => requestJson('/api/v1/system', {headers:{Authorization:'Bearer '+token}, cache:'no-store'}, 'system');
   const applySnapshot = snapshot => {
     if (!Number.isSafeInteger(snapshot.snapshot_revision)) throw new Error('snapshot revision');
     snapshotRevision = snapshot.snapshot_revision;
@@ -46,13 +54,41 @@
     status.textContent = '인증됨 · read-only\n'+JSON.stringify(snapshot, null, 2);
   };
   const resync = async () => { if (token) applySnapshot(await system()); };
+  const clearSession = message => {
+    if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    if (live !== null) {
+      const socket = live;
+      live = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      socket.close();
+    }
+    token = null;
+    expectedSequence = null;
+    snapshotRevision = null;
+    reconnectDelayMs = 1000;
+    form.hidden = false;
+    pinInput.value = '';
+    submit.disabled = false;
+    status.textContent = message;
+  };
+  const isAuthFailure = error => error && (error.status === 401 || error.status === 403);
   const scheduleReconnect = () => {
     if (!token || reconnectTimer !== null) return;
+    const delay = reconnectDelayMs;
+    reconnectDelayMs = Math.min(MAX_RECONNECT_DELAY_MS, reconnectDelayMs * 2);
     reconnectTimer = setTimeout(async () => {
       reconnectTimer = null;
-      try { await resync(); connectLive(); }
-      catch (error) { status.textContent = '세션 snapshot 실패 · 재접속 대기'; scheduleReconnect(); }
-    }, 1000);
+      try {
+        await resync();
+        reconnectDelayMs = 1000;
+        connectLive();
+      }
+      catch (error) {
+        if (isAuthFailure(error)) { clearSession('세션 만료 · 다시 인증하세요'); }
+        else { status.textContent = '세션 snapshot 실패 · 재접속 대기'; scheduleReconnect(); }
+      }
+    }, delay);
   };
   const connectLive = () => {
     if (!token || live !== null) return;
@@ -69,7 +105,10 @@
         expectedSequence = message.seq;
         snapshotRevision = message.snapshot_revision;
         status.textContent = '인증됨 · live read-only\n'+JSON.stringify(message, null, 2);
-      } catch (error) { if (live !== null) live.close(); }
+      } catch (error) {
+        if (isAuthFailure(error)) clearSession('세션 만료 · 다시 인증하세요');
+        else if (live !== null) live.close();
+      }
     };
     live.onclose = () => { live = null; scheduleReconnect(); };
     live.onerror = () => { if (live !== null) live.close(); };
@@ -78,14 +117,17 @@
     event.preventDefault(); submit.disabled = true;
     try {
       const b = await bootstrap();
-      const r = await fetch('/api/v1/session', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({challenge:b.challenge, client_nonce:nonce(), pin:document.getElementById('pin').value})});
-      if (!r.ok) throw new Error('session '+r.status);
-      token = (await r.json()).token;
+      const session = await requestJson('/api/v1/session', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({challenge:b.challenge, client_nonce:nonce(), pin:pinInput.value})}, 'session');
+      token = session.token;
       applySnapshot(await system());
       form.hidden = true;
+      reconnectDelayMs = 1000;
       connectLive();
-    } catch (error) { token = null; status.textContent = '인증 실패 또는 service window 닫힘'; }
-    submit.disabled = false;
+    } catch (error) {
+      if (isAuthFailure(error)) clearSession('인증 만료 또는 service window 닫힘');
+      else { token = null; form.hidden = false; status.textContent = '인증 실패 또는 service window 닫힘'; submit.disabled = false; }
+    }
+    if (token !== null) submit.disabled = false;
   });
 })();
 </script>

@@ -85,5 +85,5 @@ Pop-Location
 ```
 
 host auth CTest는 service window, null/bounds, malformed PIN, one-time challenge, token expiry, lockout과 clock rollback을 확인한다. 실제 ESP32 flash, ST-LINK/serial, AP association, Android/iOS captive browser, power rail/reset/brownout, PSRAM/clock/watchdog soak, ESP-NOW, 차량 CAN/capture와 production provisioning은 현재 실행하지 않았으며 `NOT_RUN`이다. CAN TX는 계속 `NO-GO`다.
-오프라인 Playwright 검사는 Edge에서 driver shell 74 checks와 Diagnostic Bridge shell 10 checks, 외부 요청 0건을 확인한다. 이 결과는 실제 ESP32 endpoint, AP association 또는 Android/iOS 실기기 시험을 대체하지 않는다.
+오프라인 Playwright 검사는 Edge에서 driver shell 74 checks, 기존 Diagnostic Bridge prototype 10 checks와 실제 `bridge-shell.html`의 local HTTP/WebSocket fault-injection 8 checks, 외부 요청 0건을 확인한다. 이 결과는 실제 ESP32 endpoint, AP association 또는 Android/iOS 실기기 시험을 대체하지 않는다.
 기본 CTest의 UART fault stream은 1초 bounded smoke로 실행하며, 24시간 virtual soak은 `CANVIEW_LONG_TESTS=ON`으로 별도 요청한 경우에만 `uart-fault-stream-24h`로 등록한다. 이는 실제 4 Mbps UART waveform, RTS/CTS, board soak을 대체하지 않는다.

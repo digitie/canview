@@ -14,6 +14,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "generate_bridge_web_assets.py"
 HTML = ROOT / "ui" / "diagnostic-web" / "bridge-shell.html"
+BRIDGE_SHELL_BROWSER = ROOT / "tests" / "ui" / "bridge-shell-browser.cjs"
 WEB_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web.c"
 WEB_SESSION_SOURCE = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "canview_bridge_web_session.c"
 WEB_SESSION_HEADER = ROOT / "firmware" / "diagnostic-bridge" / "components" / "canview_bridge_web" / "include" / "canview_bridge_web_session.h"
@@ -64,10 +65,11 @@ class BridgeWebAssetTests(unittest.TestCase):
             self.assertEqual(compressed[:10], b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff")
             self.assertEqual(gzip.decompress(compressed), HTML.read_bytes())
             self.assertEqual(hashlib.sha256(bytes(values)).hexdigest(),
-                             "0e92efdfeb3b8ccab8c3eb1da5116b2a2c6f337d080de15ebf653fa3cda43edc")
+                             "827332a3f981987fe01d7a0988226d0117383e241ba69ea49b83e960061c28a7")
 
     def test_shell_does_not_persist_token_or_call_external_network(self) -> None:
         body = HTML.read_text(encoding="utf-8").lower()
+        shell = HTML.read_text(encoding="utf-8")
         self.assertNotIn("localstorage", body)
         self.assertNotIn("sessionstorage", body)
         self.assertNotIn("fetch('http", body)
@@ -77,6 +79,9 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("await resync()", body)
         self.assertIn("snapshot_revision", body)
         self.assertNotIn("?token", body)
+        self.assertIn("clearSession", shell)
+        self.assertIn("MAX_RECONNECT_DELAY_MS", shell)
+        self.assertIn("세션 만료 · 다시 인증하세요", shell)
 
     def test_web_source_keeps_fixed_read_only_boundary(self) -> None:
         source = WEB_SOURCE.read_text(encoding="utf-8")
@@ -169,6 +174,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("browser-contract:", workflow)
         self.assertIn("npm ci --ignore-scripts", workflow)
         self.assertIn("node tools/ui/check-browser.cjs", workflow)
+        self.assertIn("runBridgeShellTests", workflow + BRIDGE_SHELL_BROWSER.read_text(encoding="utf-8"))
         self.assertIn("package-lock.json", workflow)
         self.assertIn("ref: ${{ github.event.pull_request.head.sha || github.sha }}", workflow)
         self.assertIn("CANVIEW_EXPECTED_SOURCE_REVISION", workflow)
