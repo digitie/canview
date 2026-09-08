@@ -1,5 +1,25 @@
 # CANView 작업 일지
 
+## 2026-09-09 (codex, T-103 STM32 FDCAN capture-only C source)
+
+사용자의 `G1 이전 fw 구현 허용`, `C로 작성`, `완주까지 진행` 지시에 따라 T-500과
+T-102 source 선행을 기준으로 T-103을 `IN_PROGRESS`로 시작했다. `canview_stm_fdcan_capture`
+module은 3 channel board PHY contract(TCAN1046/TCAN1046/MAX3055), 80 MHz nominal timing
+table, classic CAN 0..8 byte validation, timestamp wrap/역행 보호, bounded 64-slot ring,
+wire batch, filter reentry와 generic ID inventory를 구현한다. `fdcan_capture` CMSIS adapter는
+FDCAN1/2/3 RX FIFO0를 monitor mode로 설정할 수 있지만 TX register/API는 없으며, ISR에서는
+raw W1..W4와 TIM2 timestamp만 SPSC ring에 넣고 worker service가 decode/callback/drop 보고를
+수행한다. raw ring 포화도 module drop counter로 합산한다.
+
+검증은 pinned Windows Clang/CMake/Ninja에서 focused FDCAN test와 전체 CTest `117/117`,
+pinned Arm GNU 15.3.Rel1/STM32CubeG4 1.6.3에서 STM32 Debug/Release ELF/MAP/HEX/BIN,
+post-build memory/stack/source-TX gate와 warning/error `0`을 확인했다. 이전 WSL sanitizer
+실행은 Windows worktree metadata를 WSL `git`가 해석하지 못해 `python-unit` 10건이
+`firmware source digest is missing`으로 실패했으며 sanitizer PASS로 취급하지 않는다.
+source commit 후 정상 `.git` clone에서 ASan/UBSan 전체 suite를 재실행한다. 실제 board/HIL,
+FDCAN electrical/bitrate/IRQ latency, reset/brownout, CAN analyzer TX-zero, vehicle bus와
+provisioning은 장비가 없어 `NOT_RUN`이며 CAN TX는 계속 `NO-GO`다.
+
 ## 2026-09-08 (codex, T-500 merge closure)
 
 T-500 최종 candidate `ff3121ce04328ff61a73f13492f8be9927f0dc98`의 독립
@@ -375,3 +395,22 @@ T-002 merge `c18a8a5` 이후 branch `agent/codex-t003-espnow-codec-session`에�
 **발견**: 기존 canview에는 docs/tasks/README.md에만 task 요약이 있었고 AGENTS.md·SKILL.md·ADR·runbook·resume·journal 정본이 없었다.
 
 **다음**: T-001 host toolchain/CI와 T-100 KiCad 회로도·BOM을 병렬 착수한다.
+## 2026-09-09 (codex, T-103 STM32 FDCAN capture-only C source)
+
+사용자의 `G1 이전 fw 구현 허용`, `C로 작성`, `완주까지 진행` 지시에 따라 T-500과
+T-102 source 선행을 기준으로 T-103을 `IN_PROGRESS`로 시작했다. `canview_stm_fdcan_capture`
+module은 3 channel board PHY contract(TCAN1046/TCAN1046/MAX3055), 80 MHz nominal timing
+table, classic CAN 0..8 byte validation, timestamp wrap/역행 보호, bounded 64-slot ring,
+wire batch, filter reentry와 generic ID inventory를 구현한다. `fdcan_capture` CMSIS adapter는
+FDCAN1/2/3 RX FIFO0를 monitor mode로 설정할 수 있지만 TX register/API는 없으며, ISR에서는
+raw W1..W4와 TIM2 timestamp만 SPSC ring에 넣고 worker service가 decode/callback/drop 보고를
+수행한다. raw ring 포화도 module drop counter로 합산한다.
+
+검증은 pinned Windows Clang/CMake/Ninja에서 focused FDCAN test와 전체 CTest `117/117`,
+pinned Arm GNU 15.3.Rel1/STM32CubeG4 1.6.3에서 STM32 Debug/Release ELF/MAP/HEX/BIN,
+post-build memory/stack/source-TX gate와 warning/error `0`을 확인했다. 이전 WSL sanitizer
+실행은 Windows worktree metadata를 WSL `git`가 해석하지 못해 `python-unit` 10건이
+`firmware source digest is missing`으로 실패했으며 sanitizer PASS로 취급하지 않는다.
+source commit 후 정상 `.git` clone에서 ASan/UBSan 전체 suite를 재실행한다. 실제 board/HIL,
+FDCAN electrical/bitrate/IRQ latency, reset/brownout, CAN analyzer TX-zero, vehicle bus와
+provisioning은 장비가 없어 `NOT_RUN`이며 CAN TX는 계속 `NO-GO`다.

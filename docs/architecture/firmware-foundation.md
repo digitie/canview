@@ -8,8 +8,10 @@ MCU 독립 framing/CRC/COBS/classic CAN batch/sequence window, 안전 idle 부�
 
 2026-09-07 T-200a의 Communicator ESP32 core를 T-400a에서 Bridge와 [공용 bench core](../../firmware/docs/esp-core-bench.md)로 추출했다. `firmware/app/esp_core.c`가 boot/health·고정 pool을 조합하고 `firmware/module/esp_core`와 interface는 SDK 독립 C99다. `firmware/platform/esp32s3/core_runtime.c`와 `canview_esp32_runtime` component가 IDF/TWDT 경계를 소유한다. 보드별 BSP가 메모리·진단 입력을 고정하며 아래 기존 startup 설명은 Controller의 아직 교체하지 않은 safe-idle 경로에 해당한다.
 
-전체 ESP-NOW/UART message ABI 동결, 인증·pairing·ACK/command lifecycle, filter·QoS, FDCAN/DMA,
-LVGL·센서·차량 자동화, OTA loader·복구·서명 검증은 **아직 구현하지 않았다**.
+전체 ESP-NOW/UART message ABI 동결, 인증·pairing·ACK/command lifecycle, UART DMA,
+LVGL·센서·차량 자동화, OTA loader·복구·서명 검증은 **아직 구현하지 않았다**. T-103은
+STM32의 classic CAN capture-only C module과 G474 CMSIS adapter source를 추가했지만,
+기본 app의 runtime wiring과 physical G2는 아직 닫지 않았다.
 기존 architecture의 안전 요구를 축소하거나 제품 gate를 통과 처리하는 기반이 아니다.
 Controller/Bridge에 raw CAN TX 경로를 추가하지 않았으며, 차량 송신은 계속 NO-GO다.
 
@@ -72,11 +74,14 @@ I²S 데이터 방향은 MCU 기준 재생 DOUT16/녹음 DIN14다. SoC 유효 GP
 
 출력 latch를 mode보다 먼저 설정한다. Controller와 STM32 BSP는 GPIO 오류에서 다음 출력을 실행하지 않는다. Communicator ESP와 Bridge BSP는 partial 오류에서도 모든 지정 safe pin을 시도하고 최초 오류를 보존한 뒤 FAULT에 고정하며 다음 lifecycle 단계로 가지 않는다.
 reset 이전·brownout·rail 이상 시 안전은 외부 pull/gate/supervisor에 의존한다. host BSP mock은 전기적 안전 증거가 아니다.
-UART TX/RTS, FDCAN alternate function, watchdog pulse는 활성화하지 않는다.
+기본 composition에서는 UART TX/RTS와 FDCAN alternate function을 활성화하지 않는다.
+T-103 adapter source는 별도 validated profile/start API로 FDCAN RX alternate function과
+monitor mode를 준비하지만 [모듈 계약](../../firmware/communicator/stm32/docs/fdcan-capture.md)의
+G2 조건 전에는 app에서 호출하지 않는다. watchdog pulse는 계속 비활성이다.
 
 STM32 clock 계획값은 HSE16 MHz → PLL M4/N80/R2 → CPU160 MHz,
 PCLK1/FDCAN80 MHz, UART4 Mbps/BRR20이다. T-102a는 HSE/PLL·TIM2/SysTick·IWDG의 bounded 초기화를 구현한다.
-host register 모델과 실제 CMSIS 상수 대조는 실물 clock/error/timeout/bitrate 계측을 대신하지 않는다. UART/FDCAN은 아직 활성화하지 않는다.
+host register 모델과 실제 CMSIS 상수 대조는 실물 clock/error/timeout/bitrate 계측을 대신하지 않는다. UART runtime은 아직 활성화하지 않으며, FDCAN capture는 T-103 source/target compile까지만 준비되어 실제 app wiring과 receive 계측은 `NOT_RUN`이다.
 STM32 linker는 bench용 전체 Flash, heap 예약0, stack 예약8 KiB다. stack 사용량/HIL/OTA loader 영역 검증은 별도다.
 PSRAM 용량과 ECC 실제 가용량, cache/DMA 제한은 target bring-up에서 확인한다.
 

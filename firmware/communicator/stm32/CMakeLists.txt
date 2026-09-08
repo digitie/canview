@@ -63,6 +63,7 @@ add_executable(${TARGET_NAME}
     bsp/core.c
     platform/stm32g474/safe_gpio.c
     platform/stm32g474/core_hw.c
+    platform/stm32g474/fdcan_capture.c
     platform/stm32g474/syscalls.c
     "${STARTUP_SOURCE}"
     "${SYSTEM_SOURCE}"
@@ -123,6 +124,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE canview_stm_build_provider)
 # Keep vendor implementation outside the project's ISO warning contract.
 set_source_files_properties(
     app/main.c bsp/board.c bsp/core.c platform/stm32g474/safe_gpio.c platform/stm32g474/core_hw.c
+    platform/stm32g474/fdcan_capture.c
     platform/stm32g474/syscalls.c
     PROPERTIES COMPILE_OPTIONS "-Werror;-Wpedantic;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef")
 

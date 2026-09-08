@@ -1,10 +1,35 @@
 # T-103 STM32 3채널 FDCAN capture-only 경로
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G2`
 - 선행: `T-004`, `T-102`, `T-500`
 - 후속: `T-203`, `T-501`
+
+## 2026-09-09 C source 구현
+
+사용자가 `G1 이전 fw 구현 허용`과 `C로 작성`을 명시했으므로 실물 board/HIL을
+기다리지 않고 T-103의 C99 source와 host/target compile을 진행했다. 이 구현은
+physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
+
+- `module/fdcan_capture.c`에 80 MHz nominal timing table, channel별 PHY contract,
+  standard/extended/RTR/DLC/padding 검증, classic-only FD 분리와 64-slot static
+  channel ring을 추가했다.
+- u32 TIM2 source timestamp를 half-range 규칙으로 확장하고, accepted frame만
+  global state를 변경한다. 같은 channel 역행·forward gap·observe 역행은
+  `FAULT`/error로 닫고 cross-channel의 작은 reorder만 허용한다.
+- worker가 세 ring을 merge해 wire batch를 만들고, delta overflow는 다음 batch로
+  남긴다. callback reentry와 observer filter, raw/module ring drop은 queue를
+  막지 않으며 exact/saturating counter로 보존한다.
+- generic ID inventory는 `(bus, flags, DLC, ID)` key와 frame/change count,
+  bit-change mask, period p50/p95, rate만 제공하며 DBC signal 의미를 확정하지
+  않는다. fixed table 포화도 capture를 중단하지 않는다.
+- `platform/stm32g474/fdcan_capture.c`는 CMSIS FDCAN monitor/RX FIFO0 adapter다.
+  IRQ는 FIFO element W1..W4와 TIM2 timestamp만 SPSC raw ring에 복사하고,
+  worker `service()`가 decode와 capture/drop callback을 수행한다. TX register,
+  TX callback과 command path는 없다.
+
+상세 owner·pin·message RAM·timestamp·ISR 경계는 [FDCAN capture 문서](../../firmware/communicator/stm32/docs/fdcan-capture.md)에 기록했다.
 
 ## 목표
 
@@ -27,22 +52,27 @@
 
 ## 수용 기준
 
-- [ ] 세 simulator stream의 bus ID, ID, data, ordering이 보존된다.
-- [ ] classic CAN 최대 예상 load에서 ring/drop counter가 정확하다.
-- [ ] CAN FD frame은 corruption 없이 unsupported counter로 분리된다.
-- [ ] bitrate mismatch, bus-off, no-data가 서로 다른 상태가 된다.
-- [ ] source timestamp wrap과 batch delta overflow가 새 batch로 안전하게 나뉜다.
+- [x] 세 simulator stream의 bus ID, ID, data, ordering이 보존된다. (strict C99 host test)
+- [x] classic CAN 최대 예상 load에서 ring/drop counter가 정확하다. (64-slot saturation와 raw-drop API test)
+- [x] CAN FD frame은 corruption 없이 unsupported counter로 분리된다. (FD/BRS/DLC malformed matrix)
+- [x] bitrate mismatch, bus-off, no-data가 서로 다른 상태가 된다. (profile/status host test)
+- [x] source timestamp wrap과 batch delta overflow가 새 batch로 안전하게 나뉜다. (wrap/65535 boundary test)
 - [ ] analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 확인한다.
-- [ ] safety path가 observer queue saturation에 막히지 않는다.
+- [x] safety path가 observer queue saturation에 막히지 않는다. (filter/reentry/fixed inventory host test)
 
 ## 검증
 
 ```bash
-cmake --build firmware/communicator/stm32/build/debug
 ctest --preset host-sanitize -R fdcan --output-on-failure
-python tests/hil/run_can_capture.py --channels 3 --mode capture-only
-python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log
+cmake --build firmware/communicator/stm32/build/debug
+cmake --build firmware/communicator/stm32/build/release
+python -B tests/hil/run_can_capture.py --channels 3 --mode capture-only
+python -B tests/hil/assert_no_tx.py tests/hil/fixtures/t103-capture-only.jsonl
 ```
+
+`tests/hil/run_can_capture.py`와 analyzer 명령은 physical harness가 연결된 뒤
+T-500 시나리오를 소비하는 G2 실행 명령이다. 현재 consumer source에는 fake
+HIL PASS를 만들지 않았고, 장비가 없어 `NOT_RUN`이다.
 
 ## evidence
 
@@ -51,5 +81,8 @@ CAN simulator seed/profile, analyzer log, frame count·drop·latency report, fir
 
 ## 산출물·범위 경계
 
-- 예상 산출물은 STM32의 FDCAN bus adapter·capture ring·timestamp API, `tests/hil/run_can_capture.py`와 raw fixture다. DBC 화면 decode·임의 CAN TX는 범위 밖이다.
-- ring slot은 ISR producer가 소유권을 넘긴 뒤 worker만 읽고 release한다. DMA/cache/overflow·3채널 wrap 경쟁을 시험하며 불명확한 timestamp를 fresh로 표시하지 않는다. 실패 시 listen-only/default-deny로 남는다.
+- 산출물은 STM32의 FDCAN bus adapter·capture ring·timestamp API와 strict C99
+  regression이다. T-500이 소유한 HIL runner는 별도 harness를 소비하며 이
+  task가 없는 physical evidence를 생성하지 않는다. DBC 화면 decode·임의 CAN
+  TX는 범위 밖이다.
+- platform raw ring slot은 IRQ producer가 snapshot 소유권을 넘긴 뒤 worker가 읽고 release한다. module capture ring은 worker callback이 producer이고 batch worker가 consumer다. DMA/cache/overflow·3채널 wrap 경쟁을 시험하며 불명확한 timestamp를 fresh로 표시하지 않는다. 실패 시 listen-only/default-deny로 남는다.
