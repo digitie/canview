@@ -191,10 +191,6 @@ static void add_saturating(uint32_t *value, uint32_t amount)
 
 static canview_status_t validate_input_frame(const canview_stm_fdcan_rx_frame_t *frame)
 {
-    if (frame == NULL)
-    {
-        return CANVIEW_INVALID_ARGUMENT;
-    }
     if ((frame->flags & (uint8_t)~CANVIEW_STM_FDCAN_FRAME_FLAGS_MASK) != 0U)
     {
         return CANVIEW_MALFORMED;
@@ -232,10 +228,6 @@ static canview_status_t extend_timestamp(canview_stm_fdcan_timestamp_state_t *st
                                          uint32_t source_timestamp_us, uint64_t *timestamp_us,
                                          bool *wrapped)
 {
-    if (state == NULL || timestamp_us == NULL || wrapped == NULL)
-    {
-        return CANVIEW_INVALID_ARGUMENT;
-    }
     *wrapped = false;
     if (!state->initialized)
     {
@@ -276,6 +268,44 @@ static canview_status_t extend_timestamp(canview_stm_fdcan_timestamp_state_t *st
     return CANVIEW_OK;
 }
 
+/*
+ * A channel may start after another channel has crossed the u32 timer wrap.
+ * Select the epoch nearest the already observed high-water mark instead of
+ * treating that first sample as a forward jump.  The half-range tie remains
+ * invalid because no ordering can be proven at exactly half the counter.
+ */
+static canview_status_t timestamp_near_anchor(uint32_t source_timestamp_us,
+                                               uint64_t anchor_timestamp_us,
+                                               uint64_t anchor_epoch_us,
+                                               uint64_t *timestamp_us)
+{
+    if (anchor_epoch_us > UINT64_MAX - (uint64_t)source_timestamp_us)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    uint64_t candidate = anchor_epoch_us + (uint64_t)source_timestamp_us;
+    if (candidate > anchor_timestamp_us &&
+        candidate - anchor_timestamp_us > CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
+    {
+        if (candidate < CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT)
+        {
+            return CANVIEW_MALFORMED;
+        }
+        candidate -= CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT;
+    }
+    else if (anchor_timestamp_us > candidate &&
+             anchor_timestamp_us - candidate > CANVIEW_STM_FDCAN_TIMESTAMP_MAX_DELTA)
+    {
+        if (candidate > UINT64_MAX - CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT)
+        {
+            return CANVIEW_OVERSIZE;
+        }
+        candidate += CANVIEW_STM_FDCAN_TIMESTAMP_WRAP_INCREMENT;
+    }
+    *timestamp_us = candidate;
+    return CANVIEW_OK;
+}
+
 static uint8_t wire_flags(uint8_t input_flags)
 {
     uint8_t result = 0U;
@@ -313,12 +343,6 @@ static void inventory_percentiles(const canview_stm_fdcan_inventory_entry_t *sou
             --position;
         }
         sorted[position] = value;
-    }
-    if (count == 0U)
-    {
-        *p50_us = 0U;
-        *p95_us = 0U;
-        return;
     }
     *p50_us = sorted[(count - 1U) / 2U];
     *p95_us = sorted[(count * 95U + 99U) / 100U - 1U];
@@ -531,14 +555,28 @@ canview_status_t canview_stm_fdcan_capture_ingest(canview_stm_fdcan_capture_t *c
         return CANVIEW_RESOURCE_BUSY;
     }
     canview_stm_fdcan_timestamp_state_t timestamp_state = {
-        .last_source_timestamp_us = capture->last_source_timestamp_us,
-        .timestamp_epoch_us = capture->timestamp_epoch_us,
-        .extended_timestamp_us = capture->extended_timestamp_us,
-        .initialized = capture->timestamp_initialized};
+        .last_source_timestamp_us = channel->last_source_timestamp_us,
+        .timestamp_epoch_us = channel->timestamp_epoch_us,
+        .extended_timestamp_us = channel->last_timestamp_us,
+        .initialized = channel->timestamp_initialized};
     uint64_t timestamp_us = 0U;
     bool wrapped = false;
-    const canview_status_t timestamp_status =
-        extend_timestamp(&timestamp_state, frame->source_timestamp_us, &timestamp_us, &wrapped);
+    canview_status_t timestamp_status = CANVIEW_OK;
+    if (!timestamp_state.initialized && capture->timestamp_initialized)
+    {
+        timestamp_status = timestamp_near_anchor(frame->source_timestamp_us,
+                                                  capture->extended_timestamp_us,
+                                                  capture->timestamp_epoch_us, &timestamp_us);
+        timestamp_state.last_source_timestamp_us = frame->source_timestamp_us;
+        timestamp_state.timestamp_epoch_us = timestamp_us & UINT64_C(0xffffffff00000000);
+        timestamp_state.extended_timestamp_us = timestamp_us;
+        timestamp_state.initialized = timestamp_status == CANVIEW_OK;
+    }
+    else
+    {
+        timestamp_status =
+            extend_timestamp(&timestamp_state, frame->source_timestamp_us, &timestamp_us, &wrapped);
+    }
     if (timestamp_status != CANVIEW_OK)
     {
         increment_saturating(&channel->malformed);
@@ -555,10 +593,17 @@ canview_status_t canview_stm_fdcan_capture_ingest(canview_stm_fdcan_capture_t *c
         capture->critical.leave(capture->critical.context, mask);
         return CANVIEW_MALFORMED;
     }
-    capture->last_source_timestamp_us = timestamp_state.last_source_timestamp_us;
-    capture->timestamp_epoch_us = timestamp_state.timestamp_epoch_us;
-    capture->extended_timestamp_us = timestamp_state.extended_timestamp_us;
-    capture->timestamp_initialized = timestamp_state.initialized;
+    channel->last_source_timestamp_us = timestamp_state.last_source_timestamp_us;
+    channel->timestamp_epoch_us = timestamp_state.timestamp_epoch_us;
+    channel->last_timestamp_us = timestamp_us;
+    channel->timestamp_initialized = timestamp_state.initialized;
+    if (!capture->timestamp_initialized || timestamp_us > capture->extended_timestamp_us)
+    {
+        capture->last_source_timestamp_us = frame->source_timestamp_us;
+        capture->timestamp_epoch_us = timestamp_us & UINT64_C(0xffffffff00000000);
+        capture->extended_timestamp_us = timestamp_us;
+        capture->timestamp_initialized = true;
+    }
     canview_stm_fdcan_record_t record = {0};
     record.timestamp_us = timestamp_us;
     record.can_id = frame->can_id;
@@ -577,8 +622,6 @@ canview_status_t canview_stm_fdcan_capture_ingest(canview_stm_fdcan_capture_t *c
         channel->high_water = channel->count;
     }
     increment_saturating(&channel->accepted);
-    channel->last_timestamp_us = timestamp_us;
-    channel->timestamp_initialized = true;
     channel->data_seen = true;
     channel->status_flags |= CANVIEW_STM_FDCAN_STATUS_DATA_SEEN;
     if (wrapped)
@@ -621,24 +664,6 @@ canview_status_t canview_stm_fdcan_capture_record_drops(canview_stm_fdcan_captur
     return CANVIEW_OK;
 }
 
-static bool load_pending(canview_stm_fdcan_capture_t *capture, size_t channel_index)
-{
-    if (capture->pending_valid[channel_index])
-    {
-        return true;
-    }
-    const uint32_t mask = capture->critical.enter(capture->critical.context);
-    const canview_stm_fdcan_channel_t *const channel = &capture->channels[channel_index];
-    const bool available = channel->count != 0U;
-    if (available)
-    {
-        capture->pending[channel_index] = channel->records[channel->read_index];
-        capture->pending_valid[channel_index] = true;
-    }
-    capture->critical.leave(capture->critical.context, mask);
-    return available;
-}
-
 static bool record_equal(const canview_stm_fdcan_record_t *first,
                          const canview_stm_fdcan_record_t *second)
 {
@@ -657,48 +682,58 @@ static bool record_equal(const canview_stm_fdcan_record_t *first,
     return true;
 }
 
-static canview_status_t remove_pending(canview_stm_fdcan_capture_t *capture, size_t channel_index,
-                                       const canview_stm_fdcan_record_t *record)
+typedef struct
 {
-    const uint32_t mask = capture->critical.enter(capture->critical.context);
-    canview_stm_fdcan_channel_t *const channel = &capture->channels[channel_index];
-    canview_status_t status = CANVIEW_INCOMPLETE;
-    if (channel->count != 0U && record_equal(&channel->records[channel->read_index], record))
+    canview_stm_fdcan_record_t record;
+    uint8_t channel_index;
+    bool accepted;
+} canview_stm_fdcan_batch_item_t;
+
+static bool peek_transaction_record(const canview_stm_fdcan_capture_t *capture,
+                                    size_t channel_index, size_t offset,
+                                    canview_stm_fdcan_record_t *record)
+{
+    canview_stm_fdcan_capture_t *const mutable_capture = (canview_stm_fdcan_capture_t *)capture;
+    const uint32_t mask = mutable_capture->critical.enter(mutable_capture->critical.context);
+    const canview_stm_fdcan_channel_t *const channel = &capture->channels[channel_index];
+    const bool available = offset < channel->count;
+    if (available)
     {
-        channel->read_index = (channel->read_index + 1U) % CANVIEW_STM_FDCAN_RING_CAPACITY;
-        --channel->count;
-        capture->pending_valid[channel_index] = false;
-        status = CANVIEW_OK;
+        const size_t record_index =
+            (channel->read_index + offset) % CANVIEW_STM_FDCAN_RING_CAPACITY;
+        *record = channel->records[record_index];
     }
-    else if (channel->count != 0U)
-    {
-        status = CANVIEW_MALFORMED;
-    }
-    capture->critical.leave(capture->critical.context, mask);
-    return status;
+    mutable_capture->critical.leave(mutable_capture->critical.context, mask);
+    return available;
 }
 
-static bool select_oldest(canview_stm_fdcan_capture_t *capture, size_t *channel_index)
+static bool select_transaction_record(const canview_stm_fdcan_capture_t *capture,
+                                      const size_t offsets[CANVIEW_STM_FDCAN_CHANNEL_COUNT],
+                                      size_t *channel_index,
+                                      canview_stm_fdcan_record_t *record)
 {
     bool found = false;
     size_t selected = 0U;
+    canview_stm_fdcan_record_t selected_record = {0};
     for (size_t index = 0U; index < CANVIEW_STM_FDCAN_CHANNEL_COUNT; ++index)
     {
-        if (!load_pending(capture, index))
+        canview_stm_fdcan_record_t candidate = {0};
+        if (!peek_transaction_record(capture, index, offsets[index], &candidate))
         {
             continue;
         }
-        if (!found || capture->pending[index].timestamp_us < capture->pending[selected].timestamp_us ||
-            (capture->pending[index].timestamp_us == capture->pending[selected].timestamp_us &&
-             index < selected))
+        if (!found || candidate.timestamp_us < selected_record.timestamp_us ||
+            (candidate.timestamp_us == selected_record.timestamp_us && index < selected))
         {
             selected = index;
+            selected_record = candidate;
             found = true;
         }
     }
     if (found)
     {
         *channel_index = selected;
+        *record = selected_record;
     }
     return found;
 }
@@ -723,13 +758,6 @@ static uint8_t dropped_since_last(canview_stm_fdcan_capture_t *capture)
         capture->reported_dropped[index] = current;
     }
     return (uint8_t)(total > UINT8_MAX ? UINT8_MAX : total);
-}
-
-static void increment_filtered(canview_stm_fdcan_capture_t *capture, size_t channel_index)
-{
-    const uint32_t mask = capture->critical.enter(capture->critical.context);
-    increment_saturating(&capture->channels[channel_index].filtered);
-    capture->critical.leave(capture->critical.context, mask);
 }
 
 static void convert_record(const canview_stm_fdcan_record_t *source, uint64_t base_time_us,
@@ -762,15 +790,19 @@ canview_status_t canview_stm_fdcan_capture_build_batch(canview_stm_fdcan_capture
     capture->building = true;
     capture->reentry_requested = false;
     canview_wire_can_batch_t result = {0};
+    canview_stm_fdcan_batch_item_t items[CANVIEW_WIRE_CAN_MAX_RECORDS] = {0};
+    size_t offsets[CANVIEW_STM_FDCAN_CHANNEL_COUNT] = {0U};
+    size_t item_count = 0U;
     bool base_set = false;
-    while ((size_t)result.count < CANVIEW_WIRE_CAN_MAX_RECORDS)
+    while (item_count < CANVIEW_WIRE_CAN_MAX_RECORDS &&
+           (size_t)result.count < CANVIEW_WIRE_CAN_MAX_RECORDS)
     {
         size_t selected = 0U;
-        if (!select_oldest(capture, &selected))
+        canview_stm_fdcan_record_t candidate = {0};
+        if (!select_transaction_record(capture, offsets, &selected, &candidate))
         {
             break;
         }
-        const canview_stm_fdcan_record_t candidate = capture->pending[selected];
         bool accepted = true;
         if (capture->filter != NULL)
         {
@@ -782,53 +814,82 @@ canview_status_t canview_stm_fdcan_capture_build_batch(canview_stm_fdcan_capture
                 return CANVIEW_RESOURCE_BUSY;
             }
         }
-        if (!accepted)
+        if (accepted)
         {
-            const canview_status_t remove_status = remove_pending(capture, selected, &candidate);
-            if (remove_status != CANVIEW_OK)
+            if (!base_set)
             {
-                capture->building = false;
-                memset(batch, 0, sizeof(*batch));
-                return remove_status;
+                result.base_time_us = candidate.timestamp_us;
+                base_set = true;
             }
-            increment_filtered(capture, selected);
-            inventory_update(capture, &candidate);
-            continue;
-        }
-        if (!base_set)
-        {
-            result.base_time_us = candidate.timestamp_us;
-            base_set = true;
-        }
-        else
-        {
-            if (candidate.timestamp_us < result.base_time_us)
+            else
             {
-                capture->building = false;
-                memset(batch, 0, sizeof(*batch));
-                return CANVIEW_MALFORMED;
+                if (candidate.timestamp_us < result.base_time_us)
+                {
+                    capture->building = false;
+                    memset(batch, 0, sizeof(*batch));
+                    return CANVIEW_MALFORMED;
+                }
+                if (candidate.timestamp_us - result.base_time_us > UINT16_MAX)
+                {
+                    break;
+                }
             }
-            if (candidate.timestamp_us - result.base_time_us > UINT16_MAX)
+            convert_record(&candidate, result.base_time_us, &result.records[result.count]);
+            ++result.count;
+        }
+        items[item_count].record = candidate;
+        items[item_count].channel_index = (uint8_t)selected;
+        items[item_count].accepted = accepted;
+        ++item_count;
+        ++offsets[selected];
+    }
+
+    /* Commit all ring reads only after every observer callback has returned. */
+    const uint32_t commit_mask = capture->critical.enter(capture->critical.context);
+    size_t verified_offsets[CANVIEW_STM_FDCAN_CHANNEL_COUNT] = {0U};
+    canview_status_t commit_status = CANVIEW_OK;
+    for (size_t index = 0U; index < item_count; ++index)
+    {
+        const size_t channel_index = items[index].channel_index;
+        const canview_stm_fdcan_channel_t *const channel = &capture->channels[channel_index];
+        if (verified_offsets[channel_index] >= channel->count ||
+            !record_equal(&channel->records[(channel->read_index +
+                                             verified_offsets[channel_index]) %
+                                            CANVIEW_STM_FDCAN_RING_CAPACITY],
+                          &items[index].record))
+        {
+            commit_status = CANVIEW_MALFORMED;
+            break;
+        }
+        ++verified_offsets[channel_index];
+    }
+    if (commit_status == CANVIEW_OK)
+    {
+        for (size_t index = 0U; index < CANVIEW_STM_FDCAN_CHANNEL_COUNT; ++index)
+        {
+            canview_stm_fdcan_channel_t *const channel = &capture->channels[index];
+            channel->read_index = (channel->read_index + offsets[index]) %
+                                   CANVIEW_STM_FDCAN_RING_CAPACITY;
+            channel->count -= offsets[index];
+        }
+        for (size_t index = 0U; index < item_count; ++index)
+        {
+            if (!items[index].accepted)
             {
-                break;
+                increment_saturating(&capture->channels[items[index].channel_index].filtered);
             }
         }
-        const canview_status_t remove_status = remove_pending(capture, selected, &candidate);
-        if (remove_status != CANVIEW_OK)
-        {
-            capture->building = false;
-            memset(batch, 0, sizeof(*batch));
-            return remove_status;
-        }
-        inventory_update(capture, &candidate);
-        convert_record(&candidate, result.base_time_us, &result.records[result.count]);
-        ++result.count;
-        if (capture->reentry_requested)
-        {
-            capture->building = false;
-            memset(batch, 0, sizeof(*batch));
-            return CANVIEW_RESOURCE_BUSY;
-        }
+    }
+    capture->critical.leave(capture->critical.context, commit_mask);
+    if (commit_status != CANVIEW_OK)
+    {
+        capture->building = false;
+        memset(batch, 0, sizeof(*batch));
+        return commit_status;
+    }
+    for (size_t index = 0U; index < item_count; ++index)
+    {
+        inventory_update(capture, &items[index].record);
     }
     const uint8_t drops = dropped_since_last(capture);
     result.dropped_since_last = drops;
@@ -918,20 +979,12 @@ canview_status_t canview_stm_fdcan_capture_set_status(
         capture->critical.leave(capture->critical.context, mask);
         return CANVIEW_RESOURCE_BUSY;
     }
-    if (channel->timestamp_initialized && timestamp_us < channel->last_timestamp_us)
-    {
-        channel->state = CANVIEW_STM_FDCAN_BUS_FAULT;
-        channel->status_flags |= CANVIEW_STM_FDCAN_STATUS_MALFORMED;
-        capture->critical.leave(capture->critical.context, mask);
-        return CANVIEW_MALFORMED;
-    }
-    if (capture->timestamp_initialized && timestamp_us < capture->extended_timestamp_us)
-    {
-        channel->state = CANVIEW_STM_FDCAN_BUS_FAULT;
-        channel->status_flags |= CANVIEW_STM_FDCAN_STATUS_MALFORMED;
-        capture->critical.leave(capture->critical.context, mask);
-        return CANVIEW_MALFORMED;
-    }
+    /*
+     * A PSR/ECR snapshot is not a received frame.  In particular, a worker
+     * status sample can be older than a frame still waiting in the raw ring;
+     * it must never move the channel's data timestamp backwards or make old
+     * data appear fresh.
+     */
     if (!capture->timestamp_initialized || timestamp_us > capture->extended_timestamp_us)
     {
         capture->timestamp_initialized = true;
@@ -944,8 +997,6 @@ canview_status_t canview_stm_fdcan_capture_set_status(
     channel->tx_error_count = tx_error_count;
     channel->bus_off_count = bus_off_count;
     channel->last_error = last_error;
-    channel->last_timestamp_us = timestamp_us;
-    channel->timestamp_initialized = true;
     if (state == CANVIEW_STM_FDCAN_BUS_NO_DATA)
     {
         channel->status_flags |= CANVIEW_STM_FDCAN_STATUS_NO_DATA;

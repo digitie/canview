@@ -2,17 +2,18 @@
 
 ## 현재 진척도
 
-2026-09-09 T-103 STM32 3채널 FDCAN capture-only C source를 시작했다. `module/fdcan_capture.c`는
-profile별 timing/PHY 검증, classic CAN decode validation, half-range timestamp 확장,
-64-slot 채널 ring, wire batch와 generic ID inventory를 제공하며, G474 CMSIS adapter는
-FDCAN monitor/RX FIFO0와 SPSC raw ring을 사용해 IRQ에서 snapshot만 하고 worker에서 decode/
-callback을 수행한다. Communicator STM32 target Debug/Release에서 ELF/MAP/HEX/BIN과
-post-build size/stack/source TX gate가 warning/error 0으로 생성됐고, Windows host 전체
-CTest 117/117 및 focused FDCAN/transaction/inventory/drop 회귀가 통과했다. 아직 immutable
-candidate/2인 hostile review/CI closure가 남아 있으며, 실제 board flash·ST-LINK·GPIO/PHY/
-bitrate·IRQ latency·reset/brownout·CAN analyzer·차량 capture는 `NOT_RUN`, 차량 CAN TX는
-`NO-GO`다. 다음은 source commit 후 Linux sanitizer를 정상 Git clone에서 재실행하고,
-review evidence/PR closure를 닫는 것이다.
+2026-09-09 T-103 STM32 3채널 FDCAN capture-only C source와 초기 적대적 리뷰 finding
+수정을 진행 중이다. module batch는 callback 이후 transactional commit과 channel별
+timestamp epoch를 사용하고, PSR/ECR snapshot은 frame timestamp를 덮어쓰지 않는다.
+G474 CMSIS adapter는 RX flag 선행 acknowledge, FIFO/raw-ring loss latch, singleton
+owner와 stop/start session reset을 갖는다. no-TX JSONL analyzer도 bounded schema/
+duplicate/sequence/complete/TX-gate 검증으로 fail-closed하게 보강했다.
+
+현재 worktree의 T103 focused CTest 2/2, no-TX helper 6/6, STM32 module 및 fake-register
+adapter coverage function 100%/line≥95%/branch≥90%가 통과했다. target Debug/Release
+재빌드, full host/WSL sanitizer, immutable post-fix reviewer 2명과 CI closure가 남아
+있다. 실제 board flash·ST-LINK·GPIO/PHY·bitrate·IRQ latency·reset/brownout·CAN
+analyzer·차량 capture는 `NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
 
 2026-09-08 T-500 protocol/CAN fault bench와 HIL harness는 최종 candidate
 `ff3121ce04328ff61a73f13492f8be9927f0dc98`에서 A-10/B-10 독립 reviewer

@@ -68,7 +68,11 @@ FDCAN IRQ handler의 책임은 다음으로 제한된다.
 - FIFO status를 읽고 최대 3개 element를 처리한다.
 - element의 W1..W4와 TIM2 1 MHz counter snapshot을 raw ring에 복사한다.
 - raw ring이 가득 차면 element를 버리고 saturating raw-drop counter를 증가시킨다.
-- RX FIFO acknowledge와 pending interrupt bit만 갱신한다.
+- ISR 진입 시점의 RX/non-RX interrupt snapshot을 FIFO drain 전에 acknowledge한다.
+  drain 중 새로 올라온 RX flag를 마지막에 다시 지우지 않아 다음 IRQ로 남긴다.
+- pending interrupt와 FIFO loss/raw-ring overflow latch는 worker가 critical section에서
+  snapshot/clear하며, stop/start 때 raw index·pending·loss 상태를 새 session으로
+  초기화한다. singleton owner가 아닌 context의 stop은 GPIO나 peripheral을 건드리지 않는다.
 
 IRQ에서는 ID/DLC/data decode, callback, `printf`, malloc, blocking과 batch
 생성을 하지 않는다. worker `service()`가 raw snapshot을 `decode_element()`로
@@ -90,8 +94,12 @@ module은 u32 source counter를 다음 규칙으로 확장한다.
 - source distance가 half-range보다 크고 낮아진 경우에만 2^32 wrap으로 본다.
 - 같은 channel의 extended timestamp가 역행하면 frame을 거부하고 `FAULT`를
   latch한다.
+- channel마다 source timestamp/epoch를 따로 보유한다. 다른 channel이 뒤늦게
+  시작하면 global high-water에 가장 가까운 epoch를 선택하므로, 한 channel의
+  wrap 뒤 다른 channel의 이전 epoch frame도 정상적인 순서로 보존한다.
 - 다른 channel의 작은 역순 도착은 multi-channel scheduling 지연으로 허용하지만
-  global high-water는 낮추지 않는다.
+  global high-water는 낮추지 않는다. PSR/ECR 상태 snapshot은 수신 frame이 아니므로
+  channel의 마지막 frame timestamp를 덮어쓰거나 오래된 frame을 fresh로 만들지 않는다.
 - malformed, unsupported, ring full frame은 timestamp state를 변경하지 않는다.
 - batch의 base timestamp와 record 사이 delta가 `UINT16_MAX`를 넘으면 다음
   batch로 남긴다.
@@ -107,9 +115,12 @@ bus state는 `UNKNOWN_BITRATE`, `NO_DATA`, `ERROR_ACTIVE`, `ERROR_PASSIVE`,
 채널별 static ring은 64 record다. producer는 validated frame을 bounded copy한
 뒤 ownership을 넘기고, 단일 worker가 세 ring의 pending record를 timestamp와
 channel index tie-break로 merge한다. `CANVIEW_WIRE_CAN_MAX_RECORDS`까지만
-한 batch에 넣으며, observer filter가 거부한 record도 queue를 막지 않고
-`filtered_frames`와 inventory에 반영한다. callback reentry는
-`CANVIEW_RESOURCE_BUSY`로 종료하고 pending record를 보존한다.
+한 번의 callback/commit transaction에서 처리한다. observer filter가 거부한
+record도 bounded item으로 소비해 queue를 막지 않고 `filtered_frames`와 inventory에
+반영한다. callback reentry는 `CANVIEW_RESOURCE_BUSY`로 종료하고 pending record를
+보존한다. callback이 실행되는 동안 ring index를 바꾸지 않으며, callback 뒤 ring
+front가 snapshot과 같은지 확인한 뒤에만 일괄 commit한다. producer race나 변조가
+감지되면 `MALFORMED`를 반환하고 ring을 소비하지 않는다.
 
 inventory는 `(bus_id, wire flags, DLC, CAN ID)`별 frame count, data byte 변화
 mask, 최초/최종 timestamp, 최대 8개 period sample, p50/p95와 제한된 rate만
@@ -122,12 +133,17 @@ candidate 승격 또는 control permission의 근거가 아니다. 64개 entry�
 다음은 현재 source/host/target에서 확인하는 항목이다.
 
 - strict C99 host unit: profile/PHY, raw decode, standard/extended/RTR, FD/BRS,
-  malformed padding, three-channel ordering, wrap/delta overflow, no-data/
-  passive/bus-off, callback reentry, ring/raw drop와 inventory 포화
+  malformed padding, three-channel ordering, channel별 wrap/delta overflow, no-data/
+  passive/bus-off, callback reentry/transaction commit, ring/raw drop와 inventory 포화
+- CMSIS fake-register host adapter: clock/profile/output rollback, owner/session reset,
+  FIFO fill/index/loss, raw-ring 포화, IRQ wrapper, PSR/ECR 상태, sink timeout과
+  callback 계약. 이 시험은 register model일 뿐 실제 STM32 peripheral/HIL이 아니다.
 - STM32G474 Arm GNU 15.3.Rel1 target Debug/Release: CMSIS compile, link,
   ELF/MAP/HEX/BIN, size/stack/금지 TX source·symbol gate
-- generated board/config, 전체 host CTest, sanitizer와 coverage는 후보 commit에서
-  다시 실행해 기록한다.
+- generated board/config, 전체 host CTest, sanitizer와 coverage는 immutable
+  candidate에서 다시 실행해 기록한다. 현재 host coverage gate는 module
+  function 100%/line 99.1%/branch 94.1%, fake adapter function 100%/line
+  98.6%/branch 93.2%이다.
 
 다음 항목은 이 문서나 target build가 성공해도 닫히지 않는다.
 

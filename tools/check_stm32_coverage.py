@@ -21,6 +21,9 @@ def main():
         ("platform", "canview-stm32-platform-tests",
          ["bsp/build_metadata.c", "module/stack_watermark.c",
           "module/service_policy.c", "module/diagnostic.c"]),
+        ("fdcan-module", "canview-stm32-fdcan-tests", ["module/fdcan_capture.c"]),
+        ("fdcan-platform", "canview-stm32-fdcan-platform-tests",
+         ["platform/stm32g474/fdcan_capture.c"]),
         ("register", "canview-stm32-register-tests", ["platform/stm32g474/core_hw.c"]),
     ):
         run_dir = report / group

@@ -84,7 +84,7 @@ class HostAdapter:
                     channel_id = int(channel["channel"])
                     rx_frames = int(channel.get("rx_frames", 128))
                     emit("CAN_CHANNEL_SUMMARY", channel=channel_id,
-                         rx_frames=rx_frames, tx_frames=0,
+                         rx_frames=rx_frames, tx_frames=0, ack_frames=0,
                          bus_state=str(channel.get("bus_state", "ERROR_PASSIVE")),
                          error_counter=int(channel.get("error_counter", 0)))
             elif action_type == "resource":

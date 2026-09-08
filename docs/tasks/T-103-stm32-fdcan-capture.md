@@ -26,8 +26,10 @@ physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
   않는다. fixed table 포화도 capture를 중단하지 않는다.
 - `platform/stm32g474/fdcan_capture.c`는 CMSIS FDCAN monitor/RX FIFO0 adapter다.
   IRQ는 FIFO element W1..W4와 TIM2 timestamp만 SPSC raw ring에 복사하고,
-  worker `service()`가 decode와 capture/drop callback을 수행한다. TX register,
-  TX callback과 command path는 없다.
+  worker `service()`가 decode와 capture/drop callback을 수행한다. RX interrupt는
+  drain 전에 acknowledge하고 drain 중 신규 RX event는 다음 IRQ로 남긴다. FIFO
+  loss/raw-ring overflow는 latch해 worker status에 전달하며 stop/start는 raw
+  session state를 버린다. TX register, TX callback과 command path는 없다.
 
 상세 owner·pin·message RAM·timestamp·ISR 경계는 [FDCAN capture 문서](../../firmware/communicator/stm32/docs/fdcan-capture.md)에 기록했다.
 
@@ -58,7 +60,8 @@ physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
 - [x] bitrate mismatch, bus-off, no-data가 서로 다른 상태가 된다. (profile/status host test)
 - [x] source timestamp wrap과 batch delta overflow가 새 batch로 안전하게 나뉜다. (wrap/65535 boundary test)
 - [ ] analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 확인한다.
-- [x] safety path가 observer queue saturation에 막히지 않는다. (filter/reentry/fixed inventory host test)
+- [x] safety path가 observer queue saturation에 막히지 않는다. (filter/reentry/
+  bounded filter consumption/fixed inventory host test)
 
 ## 검증
 
@@ -70,9 +73,13 @@ python -B tests/hil/run_can_capture.py --channels 3 --mode capture-only
 python -B tests/hil/assert_no_tx.py tests/hil/fixtures/t103-capture-only.jsonl
 ```
 
-`tests/hil/run_can_capture.py`와 analyzer 명령은 physical harness가 연결된 뒤
-T-500 시나리오를 소비하는 G2 실행 명령이다. 현재 consumer source에는 fake
-HIL PASS를 만들지 않았고, 장비가 없어 `NOT_RUN`이다.
+추가 host 검증은 `cmake --build build/host-coverage`와
+`python -B tools/check_stm32_coverage.py --build build/host-coverage`로
+module 및 fake-register adapter의 독립 profile을 검사한다. `run_can_capture.py`는
+현재 fixture를 host에서 can-load하는 smoke이고, `assert_no_tx.py`는 strict
+capture-only JSONL 계약 시험이다. 둘 다 physical harness의 G2 결과를 대신하지
+않는다. 실제 analyzer에서 ACK/data TX 0건을 측정하는 acceptance는 장비가 없어
+`NOT_RUN`이다.
 
 ## evidence
 

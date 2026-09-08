@@ -29,13 +29,61 @@ class T103CaptureHelperTests(unittest.TestCase):
     def test_tx_and_invalid_records_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "evidence.jsonl"
+            lines = FIXTURE.read_text(encoding="utf-8").splitlines()
+            records = [json.loads(line) for line in lines]
+            records[0]["fields"]["ack_frames"] = 1
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = assert_no_tx(path)
+            self.assertEqual(1, status, message)
+            records[0]["fields"]["ack_frames"] = 0
+            records[3]["fields"]["vehicle_tx"] = 1
+            path.write_text("".join(json.dumps(record) + "\n" for record in records),
+                            encoding="utf-8")
+            status, message = assert_no_tx(path)
+            self.assertEqual(2, status, message)
             path.write_text(
-                json.dumps({"kind": "CAN_TX", "fields": {"arbitration_id": 1}}) + "\n",
+                json.dumps({"schema_version": 1, "source": "x", "kind": "CAN_TX",
+                            "sequence": 1, "monotonic_ns": 1, "log_offset": 0,
+                            "fields": {"arbitration_id": 1}}) + "\n",
                 encoding="utf-8",
             )
             status, message = assert_no_tx(path)
-            self.assertEqual(1, status, message)
-            path.write_text("not-json\n", encoding="utf-8")
+            self.assertEqual(2, status, message)
+            path.write_text(
+                '{"schema_version":1,"source":"x","kind":"CAN_RX",'
+                '"sequence":1,"sequence":1,"monotonic_ns":1,"log_offset":0,"fields":{}}\n',
+                encoding="utf-8",
+            )
+            status, message = assert_no_tx(path)
+            self.assertEqual(2, status, message)
+
+    def test_truncated_oversized_and_replayed_evidence_is_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.jsonl"
+            fixture = FIXTURE.read_bytes()
+            path.write_bytes(fixture[:-1])
+            status, message = assert_no_tx(path)
+            self.assertEqual(2, status, message)
+            path.write_bytes(fixture + fixture)
+            status, message = assert_no_tx(path)
+            self.assertEqual(2, status, message)
+            path.write_bytes(b"{" + b"\"n\":\"" + b"x" * (1 << 20) + b"\"}\n")
+            status, message = assert_no_tx(path)
+            self.assertEqual(2, status, message)
+
+    def test_missing_schema_and_wide_integer_are_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.jsonl"
+            path.write_text("{}\n", encoding="utf-8")
+            status, message = assert_no_tx(path)
+            self.assertEqual(2, status, message)
+            path.write_text(
+                '{"schema_version":1,"source":"x","kind":"CAN_RX",'
+                '"sequence":999999999999999999999999999999,"monotonic_ns":1,'
+                '"log_offset":0,"fields":{}}\n',
+                encoding="utf-8",
+            )
             status, message = assert_no_tx(path)
             self.assertEqual(2, status, message)
 

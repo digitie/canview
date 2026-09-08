@@ -211,6 +211,8 @@ typedef struct
     uint32_t last_error;
     uint32_t bitrate;
     uint64_t last_timestamp_us;
+    uint32_t last_source_timestamp_us;
+    uint64_t timestamp_epoch_us;
     canview_stm_fdcan_bus_state_t state;
     uint8_t status_flags;
     bool enabled;
@@ -225,12 +227,10 @@ typedef struct
     canview_stm_fdcan_inventory_entry_t inventory[CANVIEW_STM_FDCAN_INVENTORY_CAPACITY];
     size_t inventory_count;
     uint32_t inventory_dropped;
-    canview_stm_fdcan_record_t pending[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     uint32_t reported_dropped[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     uint32_t last_source_timestamp_us;
     uint64_t timestamp_epoch_us;
     uint64_t extended_timestamp_us;
-    bool pending_valid[CANVIEW_STM_FDCAN_CHANNEL_COUNT];
     canview_stm_critical_t critical;
     canview_stm_fdcan_filter_fn *filter;
     void *filter_context;

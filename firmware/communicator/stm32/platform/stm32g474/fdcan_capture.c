@@ -8,6 +8,10 @@
 
 #include <string.h>
 
+#if defined(CANVIEW_STM_FDCAN_TEST)
+extern bool canview_stm_fdcan_test_wait_should_timeout(void);
+#endif
+
 #define CANVIEW_STM_FDCAN_POLL_LIMIT (UINT32_C(100000))
 #define CANVIEW_STM_FDCAN_MESSAGE_RAM_INSTANCE_BYTES (UINT32_C(848))
 #define CANVIEW_STM_FDCAN_RX_FIFO0_OFFSET_BYTES (UINT32_C(176))
@@ -69,6 +73,26 @@ static FDCAN_GlobalTypeDef *const instances[CANVIEW_STM_FDCAN_CHANNEL_COUNT] = {
 /* STM32에는 FDCAN adapter가 하나만 존재한다. IRQ vector는 이 singleton만 참조한다. */
 static canview_stm_fdcan_platform_t *volatile active_platform;
 
+static void reset_runtime_state(canview_stm_fdcan_platform_t *platform)
+{
+    for (size_t index = 0U; index < CANVIEW_STM_FDCAN_CHANNEL_COUNT; ++index)
+    {
+        platform->raw_read_index[index] = 0U;
+        platform->raw_write_index[index] = 0U;
+        platform->raw_drops[index] = 0U;
+        platform->reported_raw_drops[index] = 0U;
+        platform->pending_interrupts[index] = 0U;
+        platform->fifo_loss_unknown[index] = false;
+        platform->raw_ring_overflow[index] = false;
+        platform->bus_off_count[index] = 0U;
+        platform->sink_failures[index] = 0U;
+        platform->started[index] = false;
+        platform->previous_state[index] = platform->config.profiles[index].enabled
+                                               ? CANVIEW_STM_FDCAN_BUS_NO_DATA
+                                               : CANVIEW_STM_FDCAN_BUS_UNKNOWN_BITRATE;
+    }
+}
+
 typedef struct
 {
     uint8_t port;
@@ -112,6 +136,12 @@ static bool timestamp_clock_ready(void)
 
 static bool wait_register(volatile const uint32_t *reg, uint32_t mask, uint32_t wanted)
 {
+#if defined(CANVIEW_STM_FDCAN_TEST)
+    if (canview_stm_fdcan_test_wait_should_timeout())
+    {
+        return false;
+    }
+#endif
     for (uint32_t attempt = 0U; attempt < CANVIEW_STM_FDCAN_POLL_LIMIT; ++attempt)
     {
         if ((*reg & mask) == wanted)
@@ -221,12 +251,7 @@ canview_status_t canview_stm_fdcan_platform_init(
     }
     memset(platform, 0, sizeof(*platform));
     platform->config = *config;
-    for (size_t index = 0U; index < CANVIEW_STM_FDCAN_CHANNEL_COUNT; ++index)
-    {
-        platform->previous_state[index] = config->profiles[index].enabled
-                                               ? CANVIEW_STM_FDCAN_BUS_NO_DATA
-                                               : CANVIEW_STM_FDCAN_BUS_UNKNOWN_BITRATE;
-    }
+    reset_runtime_state(platform);
     platform->initialized = true;
     return CANVIEW_OK;
 }
@@ -250,6 +275,7 @@ canview_status_t canview_stm_fdcan_platform_start(canview_stm_fdcan_platform_t *
         }
         any_enabled = any_enabled || platform->config.profiles[index].enabled;
     }
+    reset_runtime_state(platform);
     if (!any_enabled || (RCC->CCIPR & RCC_CCIPR_FDCANSEL) != RCC_CCIPR_FDCANSEL_0 ||
         !timestamp_clock_ready())
     {
@@ -324,6 +350,16 @@ canview_status_t canview_stm_fdcan_platform_stop(canview_stm_fdcan_platform_t *p
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
+    if (active_platform != NULL && active_platform != platform)
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    /* Detach the singleton before touching pins so a pending IRQ cannot use a
+     * context that is being stopped. */
+    if (active_platform == platform)
+    {
+        active_platform = NULL;
+    }
     canview_status_t result = CANVIEW_OK;
     const canview_status_t safe_status = set_capture_outputs(platform->config.profiles, false);
     if (safe_status != CANVIEW_OK)
@@ -345,10 +381,7 @@ canview_status_t canview_stm_fdcan_platform_stop(canview_stm_fdcan_platform_t *p
         platform->pending_interrupts[index] = 0U;
         platform->started[index] = false;
     }
-    if (active_platform == platform)
-    {
-        active_platform = NULL;
-    }
+    reset_runtime_state(platform);
     return result;
 }
 
@@ -369,14 +402,16 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
         }
         if (fill_level > CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT)
         {
-            instance->IR = FDCAN_IR_RF0L;
+            platform->fifo_loss_unknown[channel_index] = true;
+            platform->pending_interrupts[channel_index] |= FDCAN_IR_RF0L;
             break;
         }
         const uint32_t get_index =
             (fifo_status & FDCAN_RXF0S_F0GI) >> FDCAN_RXF0S_F0GI_Pos;
         if (get_index >= CANVIEW_STM_FDCAN_RX_FIFO0_ELEMENT_COUNT)
         {
-            instance->IR = FDCAN_IR_RF0L;
+            platform->fifo_loss_unknown[channel_index] = true;
+            platform->pending_interrupts[channel_index] |= FDCAN_IR_RF0L;
             break;
         }
         const uintptr_t element_address =
@@ -393,6 +428,7 @@ static void drain_fifo(canview_stm_fdcan_platform_t *platform, size_t channel_in
             {
                 ++platform->raw_drops[channel_index];
             }
+            platform->raw_ring_overflow[channel_index] = true;
             platform->pending_interrupts[channel_index] |= FDCAN_IR_RF0L;
         }
         else
@@ -502,13 +538,22 @@ static void handle_interrupt(size_t channel_index)
     }
     FDCAN_GlobalTypeDef *const instance = instances[channel_index];
     const uint32_t interrupt_flags = instance->IR & CANVIEW_STM_FDCAN_INTERRUPT_MASK;
-    if ((interrupt_flags & CANVIEW_STM_FDCAN_RX_INTERRUPTS) != 0U)
+    const uint32_t receive_flags = interrupt_flags & CANVIEW_STM_FDCAN_RX_INTERRUPTS;
+    const uint32_t non_receive_flags = interrupt_flags & ~CANVIEW_STM_FDCAN_RX_INTERRUPTS;
+    /* Acknowledge the snapshot before reading message RAM.  RX flags raised
+     * while drain_fifo() runs are deliberately not W1C-cleared by this ISR;
+     * they remain asserted for the next interrupt and cannot be lost. */
+    if (non_receive_flags != 0U)
     {
+        instance->IR = non_receive_flags;
+    }
+    if (receive_flags != 0U)
+    {
+        instance->IR = receive_flags;
         drain_fifo(platform, channel_index, instance);
     }
     if (interrupt_flags != 0U)
     {
-        instance->IR = interrupt_flags;
         platform->pending_interrupts[channel_index] |= interrupt_flags;
     }
 }
@@ -568,7 +613,11 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         }
         const uint32_t mask = canview_stm_critical_enter(NULL);
         const uint32_t pending = platform->pending_interrupts[index];
+        const bool fifo_loss = platform->fifo_loss_unknown[index];
+        const bool raw_ring_overflow = platform->raw_ring_overflow[index];
         platform->pending_interrupts[index] = 0U;
+        platform->fifo_loss_unknown[index] = false;
+        platform->raw_ring_overflow[index] = false;
         canview_stm_critical_leave(NULL, mask);
         if (pending == 0U)
         {
@@ -577,7 +626,8 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         const FDCAN_GlobalTypeDef *const instance = instances[index];
         const uint32_t protocol_status = instance->PSR;
         const uint32_t error_count = instance->ECR;
-        const canview_stm_fdcan_bus_state_t state = state_from_registers(protocol_status);
+        const canview_stm_fdcan_bus_state_t state =
+            fifo_loss ? CANVIEW_STM_FDCAN_BUS_FAULT : state_from_registers(protocol_status);
         if (state == CANVIEW_STM_FDCAN_BUS_OFF &&
             platform->previous_state[index] != CANVIEW_STM_FDCAN_BUS_OFF)
         {
@@ -589,9 +639,12 @@ canview_status_t canview_stm_fdcan_platform_service(canview_stm_fdcan_platform_t
         platform->previous_state[index] = state;
         const uint16_t rx_error_count = (uint16_t)((error_count >> 8U) & UINT32_C(0xff));
         const uint16_t tx_error_count = (uint16_t)(error_count & UINT32_C(0xff));
-        const uint32_t last_error =
-            ((protocol_status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos) |
-            (pending & CANVIEW_STM_FDCAN_STATUS_INTERRUPTS);
+        const uint32_t last_error = ((protocol_status & FDCAN_PSR_LEC) >> FDCAN_PSR_LEC_Pos) |
+                                    (pending & CANVIEW_STM_FDCAN_STATUS_INTERRUPTS) |
+                                    (fifo_loss ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_FIFO_LOSS : 0U) |
+                                    (raw_ring_overflow
+                                         ? CANVIEW_STM_FDCAN_PLATFORM_ERROR_RAW_RING_OVERFLOW
+                                         : 0U);
         platform->config.status_sink(platform->config.sink_context, index, state, rx_error_count,
                                      tx_error_count, platform->bus_off_count[index], last_error,
                                      source_timestamp_us);

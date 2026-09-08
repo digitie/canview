@@ -1,24 +1,30 @@
 # CANView 작업 일지
 
-## 2026-09-09 (codex, T-103 STM32 FDCAN capture-only C source)
+## 2026-09-09 (codex, T-103 hostile finding fix와 adapter coverage)
 
-사용자의 `G1 이전 fw 구현 허용`, `C로 작성`, `완주까지 진행` 지시에 따라 T-500과
-T-102 source 선행을 기준으로 T-103을 `IN_PROGRESS`로 시작했다. `canview_stm_fdcan_capture`
-module은 3 channel board PHY contract(TCAN1046/TCAN1046/MAX3055), 80 MHz nominal timing
-table, classic CAN 0..8 byte validation, timestamp wrap/역행 보호, bounded 64-slot ring,
-wire batch, filter reentry와 generic ID inventory를 구현한다. `fdcan_capture` CMSIS adapter는
-FDCAN1/2/3 RX FIFO0를 monitor mode로 설정할 수 있지만 TX register/API는 없으며, ISR에서는
-raw W1..W4와 TIM2 timestamp만 SPSC ring에 넣고 worker service가 decode/callback/drop 보고를
-수행한다. raw ring 포화도 module drop counter로 합산한다.
+초기 immutable T-103 candidate에 대한 독립 Reviewer A/B raw report는 각각
+`CV-HOSTILE-20260909-T103-A-01`과 `CV-HOSTILE-20260909-T103-B-01`이며 둘 다
+`BLOCK`이다. 원문은 `docs/reviews/adversarial/evidence/2026-09-09-T-103-reviewer-a.md`
+와 `...-reviewer-b.md`에 그대로 보존했다. A는 batch callback reentry, cross-channel
+timestamp wrap, PSR/ECR timestamp 오염, IRQ acknowledge, session/owner와 FIFO loss를
+지적했고, B는 no-TX evidence parser, timestamp wrap, filter budget, adapter coverage와
+bounded parser를 지적했다. 이 report를 PASS로 낮추지 않고 post-fix 재검토를 요구한다.
 
-검증은 pinned Windows Clang/CMake/Ninja에서 focused FDCAN test와 전체 CTest `117/117`,
-pinned Arm GNU 15.3.Rel1/STM32CubeG4 1.6.3에서 STM32 Debug/Release ELF/MAP/HEX/BIN,
-post-build memory/stack/source-TX gate와 warning/error `0`을 확인했다. 이전 WSL sanitizer
-실행은 Windows worktree metadata를 WSL `git`가 해석하지 못해 `python-unit` 10건이
-`firmware source digest is missing`으로 실패했으며 sanitizer PASS로 취급하지 않는다.
-source commit 후 정상 `.git` clone에서 ASan/UBSan 전체 suite를 재실행한다. 실제 board/HIL,
-FDCAN electrical/bitrate/IRQ latency, reset/brownout, CAN analyzer TX-zero, vehicle bus와
-provisioning은 장비가 없어 `NOT_RUN`이며 CAN TX는 계속 `NO-GO`다.
+그 finding을 반영해 module batch를 callback 이후 transactional commit으로 바꾸고,
+channel별 timestamp epoch와 status/frame timestamp를 분리했다. IRQ는 RX flag를
+FIFO drain 전에 acknowledge하고 FIFO/raw-ring loss를 latch하며, singleton owner와
+stop/start session reset을 명시했다. no-TX analyzer는 bounded JSONL/schema/duplicate/
+sequence/complete/TX-gate 검증으로 fail-closed하게 고쳤다. module과 CMSIS adapter의
+strict C99 fake-register 시험 및 mutation 경계를 추가했다.
+
+현재 candidate worktree에서 T103 focused CTest 2/2, no-TX helper 6/6, 독립 coverage
+function 100%/line≥95%/branch≥90%를 통과했다. FDCAN module coverage는
+function 100%/line 99.1%/branch 94.1%, CMSIS adapter fake-register coverage는
+function 100%/line 98.6%/branch 93.2%다. target Debug/Release, full host/WSL
+sanitizer와 post-fix reviewer/CI는 아직 다시 실행할 대상이며, 실제 board flash,
+FDCAN electrical/bitrate/IRQ latency, reset/brownout, analyzer TX-zero와 차량
+capture는 장비가 없어 `NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
+
 
 ## 2026-09-08 (codex, T-500 merge closure)
 
