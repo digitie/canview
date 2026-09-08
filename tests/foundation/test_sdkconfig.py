@@ -43,7 +43,8 @@ EXPECTED_FORBIDDEN = {
                                                "CONFIG_ESPTOOLPY_FLASHSIZE_16MB",
                                                "CONFIG_ESP_NETIF_BRIDGE_EN", "CONFIG_ESP_NETIF_L2_TAP",
                                                "CONFIG_LWIP_FORCE_ROUTER_FORWARDING",
-                                               "CONFIG_LWIP_IPV6_FORWARD", "CONFIG_LWIP_IP_FORWARD"),
+                                               "CONFIG_LWIP_IPV6_FORWARD", "CONFIG_LWIP_IP_FORWARD",
+                                               "CONFIG_HTTPD_QUEUE_WORK_BLOCKING"),
 }
 
 
@@ -118,7 +119,8 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
                    "# CONFIG_ESP_NETIF_L2_TAP is not set\n"
                    "# CONFIG_LWIP_FORCE_ROUTER_FORWARDING is not set\n"
                    "# CONFIG_LWIP_IPV6_FORWARD is not set\n"
-                   "# CONFIG_LWIP_IP_FORWARD is not set\n")
+                   "# CONFIG_LWIP_IP_FORWARD is not set\n"
+                   "# CONFIG_HTTPD_QUEUE_WORK_BLOCKING is not set\n")
         return {"comm-r2-n16r8": cls.GOOD, "bridge-r1-n8r2": bridge}
 
     def test_positive_and_crlf(self):
@@ -275,6 +277,7 @@ CONFIG_PARTITION_TABLE_OFFSET=0x8000
                               ("CONFIG_HTTPD_WS_SUPPORT", "y"),
                               ("CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT", "y"),
                               ("CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT", "y"),
+                              ("CONFIG_HTTPD_QUEUE_WORK_BLOCKING", "n"),
                               ("CONFIG_ESP_TASK_WDT_PANIC", "y"), ("CONFIG_ESP_TASK_WDT_TIMEOUT_S", "2"),
                               ("CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT", "y"),
                               ("CONFIG_ESP_SYSTEM_PANIC_REBOOT_DELAY_SECONDS", "0"),

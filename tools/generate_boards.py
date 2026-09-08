@@ -211,7 +211,8 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
         if board["id"] == "bridge-r1-n8r2":
             sdk += ["CONFIG_HTTPD_WS_SUPPORT=y",
                     "CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT=y",
-                    "CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y"]
+                    "CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y",
+                    "# CONFIG_HTTPD_QUEUE_WORK_BLOCKING is not set"]
         result[board["path"] + "/sdkconfig.defaults"] = "\n".join(sdk + [""])
         result[board["path"] + "/partitions.csv"] = "\n".join([
             "# DO NOT EDIT. Foundation bench-only factory image, NOT OTA layout.",

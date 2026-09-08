@@ -152,6 +152,7 @@ def check_static_contract() -> int:
         "CONFIG_HTTPD_WS_SUPPORT=y",
         "CONFIG_HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT=y",
         "CONFIG_HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT=y",
+        "# CONFIG_HTTPD_QUEUE_WORK_BLOCKING is not set",
     ):
         require(defaults, needle, "Bridge sdkconfig.defaults")
 

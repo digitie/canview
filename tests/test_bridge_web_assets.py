@@ -182,6 +182,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("vTaskDelete(task)", dns_source)
         self.assertIn("vehicle_tx", source)
         self.assertIn("CONFIG_HTTPD_WS_SUPPORT=y", defaults)
+        self.assertIn("# CONFIG_HTTPD_QUEUE_WORK_BLOCKING is not set", defaults)
         self.assertIn("browser-contract:", workflow)
         self.assertIn("npm ci --ignore-scripts", workflow)
         self.assertIn("node tools/ui/check-browser.cjs", workflow)
