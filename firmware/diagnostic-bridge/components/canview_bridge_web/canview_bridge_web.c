@@ -34,7 +34,7 @@
 #define CANVIEW_BRIDGE_WEB_WS_PROTOCOL "canview-session"
 #define CANVIEW_BRIDGE_WEB_WS_TOKEN_PREFIX "canview-session."
 #define CANVIEW_BRIDGE_WEB_WS_TOKEN_TEXT_BYTES (22U)
-#define CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS (5000U)
+#define CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS (1000U)
 #define CANVIEW_BRIDGE_WEB_ORIGIN_IP "http://192.168.4.1"
 #define CANVIEW_BRIDGE_WEB_ORIGIN_HOST "http://canview-diag.local"
 
@@ -324,20 +324,26 @@ static void state_lock_give(canview_bridge_web_state_t *state)
     }
 }
 
-static void httpd_heartbeat_work(void *context)
+static bool reset_httpd_watchdog_user(canview_bridge_web_state_t *state)
 {
-    canview_bridge_web_state_t *state = context;
-    if (state == NULL || state->httpd_watchdog_user == NULL)
+    if (state == NULL || state->httpd_watchdog_user == NULL ||
+        esp_task_wdt_reset_user(state->httpd_watchdog_user) != ESP_OK)
     {
-        return;
-    }
-    if (esp_task_wdt_reset_user(state->httpd_watchdog_user) != ESP_OK)
-    {
-        if (state_lock_take(state))
+        if (state != NULL && state_lock_take(state))
         {
             state->httpd_watchdog_failed = true;
             state_lock_give(state);
         }
+        return false;
+    }
+    return true;
+}
+
+static void httpd_heartbeat_work(void *context)
+{
+    canview_bridge_web_state_t *state = context;
+    if (!reset_httpd_watchdog_user(state))
+    {
         return;
     }
     if (state_lock_take(state))
@@ -1928,7 +1934,15 @@ static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, 
     {
         return HTTPD_SOCK_ERR_INVALID;
     }
+    if (!reset_httpd_watchdog_user(&web_state))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
     const int received = recv(client_fd, buffer, buffer_length, flags);
+    if (!reset_httpd_watchdog_user(&web_state))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
     if (tracked)
     {
         bool still_tracked = false;

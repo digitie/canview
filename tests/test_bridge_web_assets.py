@@ -112,6 +112,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("receive_with_pre_auth_deadline", source)
         self.assertIn("CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS", source)
         self.assertIn("CANVIEW_BRIDGE_WEB_WORKER_HEARTBEAT_TIMEOUT_MS", source)
+        self.assertIn("CANVIEW_BRIDGE_WEB_HTTP_RECV_TIMEOUT_MS (1000U)", source)
         self.assertIn("httpd_queue_work", source)
         self.assertIn("esp_task_wdt_add_user", source)
         self.assertIn("esp_task_wdt_reset_user", source)
