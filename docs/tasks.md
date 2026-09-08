@@ -96,7 +96,7 @@ py -3 tools/validate_document_links.py
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |
 |---|---|---:|---|---|
-| [T-500](tasks/T-500-bench-hil-harness.md) | BLOCKED | P0 | protocol/CAN fault bench와 HIL harness | T-001, T-003, T-004 |
+| [T-500](tasks/T-500-bench-hil-harness.md) | IN_PROGRESS | P0 | protocol/CAN fault bench와 HIL harness | T-001, T-003, T-004 |
 | [T-501](tasks/T-501-tucson-bus-discovery.md) | BLOCKED | P0 | 2017 Tucson TL bus, bitrate와 connector discovery | T-101, T-103, T-203, T-401, T-500 |
 | [T-502](tasks/T-502-readonly-signal-validation.md) | BLOCKED | P1 | 4WD, TPMS, DPF, 연비와 주행 신호 read-only 승격 | T-501, T-301, T-403 |
 | [T-503](tasks/T-503-audio-command-validation.md) | BLOCKED | P0 | OEM audio command와 feedback 수신 조사 | T-501, T-403, T-500 |

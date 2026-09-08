@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "resource-exhaustion",
+  "title": "pool queue and observer flood admission control",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "resource", "pool": "observer", "queue_depth": 96, "heap_free_bytes": 6144, "rejected": 32, "observer_drops": 32}
+  ],
+  "expect": {
+    "required_kinds": ["RESOURCE_SUMMARY"],
+    "minimum_counts": {"RESOURCE_SUMMARY": 1},
+    "required_fields": [{"kind": "RESOURCE_SUMMARY", "fields": {"pool": "observer", "queue_depth": 96, "heap_free_bytes": 6144, "rejected": 32, "observer_drops": 32}}],
+    "ordered_events": [
+      {"kind": "RESOURCE_SUMMARY", "fields": {"pool": "observer", "queue_depth": 96, "heap_free_bytes": 6144, "rejected": 32, "observer_drops": 32}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "resource-exhaustion", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
+  }
+}

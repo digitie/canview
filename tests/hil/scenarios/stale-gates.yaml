@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "stale-gates",
+  "title": "stale revision profile lease and hard gate deny",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "safety_gates", "checks": ["stale-revision", "wrong-profile", "expired-lease", "hardware-gate-off"]}
+  ],
+  "expect": {
+    "required_kinds": ["SAFETY_DECISION"],
+    "minimum_counts": {"SAFETY_DECISION": 4},
+    "required_fields": [
+      {"kind": "SAFETY_DECISION", "fields": {"check": "stale-revision", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "wrong-profile", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "expired-lease", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "hardware-gate-off", "decision": "DENY", "vehicle_tx": false}}
+    ],
+    "ordered_events": [
+      {"kind": "SAFETY_DECISION", "fields": {"check": "stale-revision", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "wrong-profile", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "expired-lease", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "SAFETY_DECISION", "fields": {"check": "hardware-gate-off", "decision": "DENY", "vehicle_tx": false}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "stale-gates", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
+  }
+}

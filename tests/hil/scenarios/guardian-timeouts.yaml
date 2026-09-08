@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "guardian-timeouts",
+  "title": "ACC UV guardian timeout and valid frame flood gate off",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "guardian", "guardians": ["acc", "uv", "guardian", "valid-frame-flood"]}
+  ],
+  "expect": {
+    "required_kinds": ["GUARDIAN_TIMEOUT"],
+    "minimum_counts": {"GUARDIAN_TIMEOUT": 4},
+    "required_fields": [
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "acc", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "uv", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "guardian", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "valid-frame-flood", "tx_gate": "OFF"}}
+    ],
+    "ordered_events": [
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "acc", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "uv", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "guardian", "tx_gate": "OFF"}},
+      {"kind": "GUARDIAN_TIMEOUT", "fields": {"guardian": "valid-frame-flood", "tx_gate": "OFF"}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "guardian-timeouts", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
+  }
+}

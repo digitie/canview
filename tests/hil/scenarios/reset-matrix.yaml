@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "reset-matrix",
+  "title": "independent and simultaneous reset epochs",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "reset", "targets": ["controller", "communicator-esp", "communicator-stm32", "diagnostic-bridge"]}
+  ],
+  "expect": {
+    "required_kinds": ["RESET_REQUEST", "BOOT_EPOCH"],
+    "minimum_counts": {"RESET_REQUEST": 4, "BOOT_EPOCH": 4},
+    "required_fields": [
+      {"kind": "RESET_REQUEST", "fields": {"target": "controller"}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-esp"}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-stm32"}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "diagnostic-bridge"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "controller", "epoch": 1}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-esp", "epoch": 1}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-stm32", "epoch": 1}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "diagnostic-bridge", "epoch": 1}}
+    ],
+    "ordered_events": [
+      {"kind": "RESET_REQUEST", "fields": {"target": "controller", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "controller", "epoch": 1}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-esp", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-esp", "epoch": 1}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "communicator-stm32", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "communicator-stm32", "epoch": 1}},
+      {"kind": "RESET_REQUEST", "fields": {"target": "diagnostic-bridge", "reason": "scenario"}},
+      {"kind": "BOOT_EPOCH", "fields": {"target": "diagnostic-bridge", "epoch": 1}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "reset-matrix", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
+  }
+}

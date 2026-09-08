@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "adapter": "lab-contract-v1",
+  "available": false,
+  "can_channels": [1, 2, 3],
+  "device_ids": []
+}

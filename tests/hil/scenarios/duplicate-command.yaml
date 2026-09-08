@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "duplicate-command",
+  "title": "duplicate command result replay without re-execution",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "duplicate_command", "tokens": ["token-001", "token-001", "token-002"]}
+  ],
+  "expect": {
+    "required_kinds": ["COMMAND_REPLAY"],
+    "minimum_counts": {"COMMAND_REPLAY": 3},
+    "required_fields": [
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "ACCEPTED"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "DUPLICATE"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-002", "executed": false, "result": "ACCEPTED"}}
+    ],
+    "ordered_events": [
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "ACCEPTED"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-001", "executed": false, "result": "DUPLICATE"}},
+      {"kind": "COMMAND_REPLAY", "fields": {"request_token": "token-002", "executed": false, "result": "ACCEPTED"}},
+      {"kind": "TX_GATE_STATE", "fields": {"vehicle_tx": false, "mode": "CAPTURE_ONLY"}},
+      {"kind": "HARNESS_COMPLETE", "fields": {"scenario": "duplicate-command", "firmware_mode": "CAPTURE_ONLY"}}
+    ]
+  }
+}
