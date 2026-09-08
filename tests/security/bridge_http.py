@@ -93,6 +93,8 @@ def check_static_contract() -> int:
         "return HTTPD_SOCK_ERR_FAIL",
         "web_client_idle_expired",
         "HTTPD select() is not bounded by the socket receive timeout",
+        "close_status == ESP_ERR_NOT_FOUND",
+        "close_status != ESP_OK && close_status != ESP_ERR_NOT_FOUND",
         "http_config.max_open_sockets = 1U",
         "http_config.lru_purge_enable = false",
         "http_config.recv_wait_timeout = 5U",
@@ -101,12 +103,20 @@ def check_static_contract() -> int:
         "json_nesting_bounded",
         "CANVIEW_BRIDGE_WEB_MAX_JSON_BYTES",
         "CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS",
-        "const esp_err_t close_status",
+        "esp_err_t close_status = ESP_OK",
         "control_scope",
         "vehicle_tx",
     )
     for needle in required_source:
         require(source, needle, "canview_bridge_web.c")
+
+    poll_body = source.split("esp_err_t canview_bridge_web_poll", 1)[1].split(
+        "bool canview_bridge_web_service_window_open", 1
+    )[0]
+    trigger_index = poll_body.index("close_status = httpd_sess_trigger_close")
+    unlock_index = poll_body.index("state_lock_give(&web_state);", trigger_index)
+    if trigger_index >= unlock_index:
+        raise ContractError("expired HTTPD session close가 state_lock 해제 뒤 실행됨")
 
     enter_body = source.split("static esp_err_t enter_request", 1)[1].split(
         "static void leave_request", 1

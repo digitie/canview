@@ -146,6 +146,14 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("CANVIEW_BRIDGE_WEB_CLIENT_IDLE_TIMEOUT_MS", source)
         self.assertIn("web_client_idle_expired", source)
         self.assertIn("HTTPD select() is not bounded by the socket receive timeout", source)
+        self.assertIn("close_status == ESP_ERR_NOT_FOUND", source)
+        self.assertIn("close_status != ESP_OK && close_status != ESP_ERR_NOT_FOUND", source)
+        poll_body = source.split("esp_err_t canview_bridge_web_poll", 1)[1].split(
+            "bool canview_bridge_web_service_window_open", 1
+        )[0]
+        trigger_index = poll_body.index("close_status = httpd_sess_trigger_close")
+        unlock_index = poll_body.index("state_lock_give(&web_state);", trigger_index)
+        self.assertLess(trigger_index, unlock_index)
         self.assertIn("max_open_sockets = 1U", source)
         self.assertIn("lru_purge_enable = false", source)
         self.assertIn("Keep the handle, locks, and auth state alive", source)

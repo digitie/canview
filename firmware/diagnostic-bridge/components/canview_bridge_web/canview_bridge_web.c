@@ -2561,15 +2561,23 @@ esp_err_t canview_bridge_web_poll(void)
         expired_client_fd = web_state.pre_auth_client_fd;
         web_state.pre_auth_close_pending = true;
     }
-    state_lock_give(&web_state);
+    esp_err_t close_status = ESP_OK;
     if (expired_server != NULL && expired_client_fd >= 0)
     {
-        const esp_err_t close_status = httpd_sess_trigger_close(expired_server, expired_client_fd);
-        if (close_status != ESP_OK)
+        /* Keep the application ownership reservation while HTTPD captures its session pointer. */
+        close_status = httpd_sess_trigger_close(expired_server, expired_client_fd);
+        if (close_status == ESP_ERR_NOT_FOUND)
         {
-            const esp_err_t stop_status = canview_bridge_web_stop();
-            return stop_status == ESP_OK ? close_status : stop_status;
+            /* The close callback may have won the race; reconcile without stopping the service. */
+            clear_pre_auth_client(&web_state, expired_client_fd);
+            (void)canview_bridge_web_session_close(&web_state.session, expired_client_fd);
         }
+    }
+    state_lock_give(&web_state);
+    if (close_status != ESP_OK && close_status != ESP_ERR_NOT_FOUND)
+    {
+        const esp_err_t stop_status = canview_bridge_web_stop();
+        return stop_status == ESP_OK ? close_status : stop_status;
     }
     return ESP_OK;
 }
