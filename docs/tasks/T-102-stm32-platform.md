@@ -99,3 +99,9 @@ map/size/stack-usage, HSE failure scope, IWDG reset log를 남긴다. hardware �
 ## 산출물·범위 경계
 
 - FDCAN capture·command executor·OTA bootloader는 범위 밖이다. boot/clock/watchdog 검증 실패 시 모든 capability와 TX gate를 닫고 이전 검증된 capture-only scaffold로 제한한다.
+
+## 2026-09-08 source/review closure
+
+최종 candidate 18941170ef475777c62db2f1471b74f937c807ea에서 A-005와 B-005 독립 hostile reviewer가 모두 PASS를 반환했고 unresolved P0/P1/P2/P3는 없다. 초기 BLOCK 및 각 post-fix finding은 [T-102 통합 review](../reviews/adversarial/2026-09-08-T-102.md)와 reviewer raw evidence에 disposition했다. C99 source gate는 C translation phase의 line splice 후 comment removal 순서를 따르며, target 전체 forced CAPTURE_ONLY contract와 compiler/source mutation gate를 유지한다.
+
+PR #29의 source/host/target compile closure를 진행한다. 물리 G1/G2인 board flash, ST-LINK/serial, clock/reset/rail/brownout, UART/FDCAN 계측, Flash root map과 차량 evidence는 장비·선행 조건이 없어 NOT_RUN으로 유지한다. reset reason의 실제 UART 전송은 T-104, 보호 Flash root map은 T-107에서 닫는다.

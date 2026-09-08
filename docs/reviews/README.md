@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-08 | T-102 STM32 platform source/review closure | b2495a9 → 1894117, C99 boot/clock/IWDG/scheduler·stack/reset·CAPTURE_ONLY·CMake/SDK/CI gate | embedded runtime·안전 / SDK·build·evidence | [report](adversarial/2026-09-08-T-102.md), A-005/B-005 최종 PASS, unresolved P0/P1/P2/P3 0; PR #29 CI/merge 대기, physical/HIL NOT_RUN, CAN TX NO-GO |
 | 2026-09-08 | T-400 web bootstrap source/CI post-fix closure | `9fe46cd` → `5861274`, C web/auth·SDK/config·read-only·artifact provenance | embedded runtime / SDK·security·build | [report](adversarial/2026-09-08-T-400-02.md), A/B `CONDITIONAL`, source P0/P1/P2/P3 0; CI `34196236147` 6/6·artifact 18/18·target warning/error 0; physical/HIL·live endpoint·provisioning·vehicle integration `NOT_RUN`, CAN TX `NO-GO` |
 | 2026-09-08 | T-400 web bootstrap reviewer service 실행 기록 | `9fe46cd` → `19a4233`, C web/auth·SDK/config·read-only 경계 | embedded runtime / SDK·security·build | [report](adversarial/2026-09-08-T-400.md), fresh A/B raw report 미반환으로 `BLOCK`; PR #28 Draft·physical/HIL `NOT_RUN` |
 | 2026-09-07 | T-400 P2 Bridge handoff | `c8a725d` → `5b6a299`, board identity/profile·ISR/pool·safe GPIO·coverage evidence | embedded runtime / SDK·generator·CMake | [report](adversarial/2026-09-07-T-400.md), initial A/B `BLOCK` P1/P2; first post-fix A/B whole-diff execution은 독립성 무효 `BLOCK`, fresh source-only A/B P0/P1 없음, coverage P2는 C3 A 조건부/B PASS로 `FIXED`. CI `34126431204` 5/5·artifact 18/18·warning 0 뒤 PR #25 merge `d8d8057`; physical/HIL `NOT_RUN` |
