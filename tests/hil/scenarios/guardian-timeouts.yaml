@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "guardian-timeouts",
+  "title": "ACC UV guardian timeout and valid frame flood gate off",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "guardian", "guardians": ["acc", "uv", "guardian", "valid-frame-flood"]}
+  ],
+  "expect": {
+    "required_kinds": ["GUARDIAN_TIMEOUT"],
+    "required_fields": [{"kind": "GUARDIAN_TIMEOUT", "fields": {"tx_gate": "OFF"}}]
+  }
+}

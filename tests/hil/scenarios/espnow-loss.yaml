@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "espnow-loss",
+  "title": "ESP-NOW loss rates and bounded retry summary",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "radio_loss", "rates": [0, 1, 5, 20, 50], "packets": 256, "duplicate_deliveries": 3, "reordered": 5},
+    {"type": "radio_delay", "max_ms": 80}
+  ],
+  "expect": {
+    "required_kinds": ["RADIO_SUMMARY", "RADIO_DELAY_SUMMARY"]
+  }
+}

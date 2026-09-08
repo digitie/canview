@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "brownout",
+  "title": "brownout during config capture and command admission",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "power", "stages": ["config", "capture", "command"]}
+  ],
+  "expect": {
+    "required_kinds": ["POWER_EVENT"],
+    "required_fields": [{"kind": "POWER_EVENT", "fields": {"tx_gate": "OFF"}}]
+  }
+}

@@ -1,5 +1,11 @@
 # CANView 작업 일지
 
+## 2026-09-08 (codex, T-102 merge와 T-500 host harness 시작)
+
+PR #29의 최종 문서 closure head `10716b12a19b7244982d6e1572f1fad81057d348`에서 GitHub Actions `34218499019`의 6개 job 전체 성공을 다시 확인하고, PR #29를 merge commit `50410ba23fcecfa1f28cea837d04a061c201d648`로 `origin/main`에 통합했다. T-102 candidate `1894117`은 source/review/CI closure를 통과했지만 board flash, G1/G2 physical/HIL, UART/FDCAN 계측, Flash root, 차량 CAN과 provisioning은 `NOT_RUN`이며 CAN TX는 `NO-GO`다.
+
+T-103이 요구하는 공용 선행으로 T-500을 `codex/t500-hil-harness`에서 시작했다. `tests/hil/`에 JSON-compatible YAML 1.2 scenario 12개, deterministic host adapter, seed·firmware/harness source digest·scenario digest report, monotonic JSONL offset, capture-only TX zero/allow-list/budget/first-violation analyzer와 fail-closed lab rig 계약을 추가했다. malformed input·중복 key·tampered offset도 fail-closed로 거부한다. host subset은 실제 HIL이 아니며, 연결되지 않은 rig는 `SKIPPED/BLOCKED`로만 출력한다.
+
 ## 2026-09-08 (codex, T-102 review closure 준비)
 
 T-102 최종 candidate는 18941170ef475777c62db2f1471b74f937c807ea이다. 346257b에서 발견된 C preprocessing phase-order P2를 line splice 후 comment removal 순서로 수정하고, 직접·alias FDCAN member와 mode directive의 LF/CRLF split-comment 조합 및 reversed-order mutation 회귀시험을 추가했다. 최종 immutable reviewer A CV-HOSTILE-20260908-T102-POSTFIX-A-005와 B CV-HOSTILE-20260908-T102-POSTFIX-B-005는 각각 PASS, unresolved P0/P1/P2/P3 0건을 반환했다. 원문은 [통합 report](reviews/adversarial/2026-09-08-T-102.md)와 [A raw](reviews/adversarial/evidence/2026-09-08-T-102-postfix-reviewer-a-r4.md), [B raw](reviews/adversarial/evidence/2026-09-08-T-102-postfix-reviewer-b-r4.md)에 보존했다.

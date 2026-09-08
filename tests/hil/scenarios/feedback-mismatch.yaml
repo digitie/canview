@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "feedback-mismatch",
+  "title": "result before ACK and feedback mismatch timeout",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "feedback", "cases": ["feedback-success", "result-before-ack", "feedback-mismatch", "feedback-timeout", "manual-override"]}
+  ],
+  "expect": {
+    "required_kinds": ["FEEDBACK_RESULT"]
+  }
+}

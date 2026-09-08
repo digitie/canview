@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "id": "stale-gates",
+  "title": "stale revision profile lease and hard gate deny",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "safety_gates", "checks": ["stale-revision", "wrong-profile", "expired-lease", "hardware-gate-off"]}
+  ],
+  "expect": {
+    "required_kinds": ["SAFETY_DECISION"],
+    "required_fields": [{"kind": "SAFETY_DECISION", "fields": {"decision": "DENY", "vehicle_tx": false}}]
+  }
+}

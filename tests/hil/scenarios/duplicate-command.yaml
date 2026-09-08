@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "duplicate-command",
+  "title": "duplicate command result replay without re-execution",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "duplicate_command", "tokens": ["token-001", "token-001", "token-002"]}
+  ],
+  "expect": {
+    "required_kinds": ["COMMAND_REPLAY"]
+  }
+}

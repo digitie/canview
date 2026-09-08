@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "uart-faults",
+  "title": "UART insertion deletion flip and CTS stall rejection",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "uart_fault", "faults": ["insert", "delete", "flip", "cts-100ms", "cts-1s"]}
+  ],
+  "expect": {
+    "required_kinds": ["UART_FAULT_REJECTED"]
+  }
+}

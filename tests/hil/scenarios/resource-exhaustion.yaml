@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "resource-exhaustion",
+  "title": "pool queue and observer flood admission control",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "resource", "pool": "observer", "queue_depth": 96, "heap_free_bytes": 6144, "rejected": 32, "observer_drops": 32}
+  ],
+  "expect": {
+    "required_kinds": ["RESOURCE_SUMMARY"]
+  }
+}

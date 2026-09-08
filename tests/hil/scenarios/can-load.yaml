@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "can-load",
+  "title": "three independent CAN channel load and bus state",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "can_load", "channels": [
+      {"channel": 1, "rx_frames": 512, "bus_state": "ERROR_ACTIVE"},
+      {"channel": 2, "rx_frames": 512, "bus_state": "ERROR_PASSIVE"},
+      {"channel": 3, "rx_frames": 512, "bus_state": "BUS_OFF", "error_counter": 255}
+    ]}
+  ],
+  "expect": {
+    "required_kinds": ["CAN_CHANNEL_SUMMARY"],
+    "required_fields": [{"kind": "CAN_CHANNEL_SUMMARY", "fields": {"channel": 1, "tx_frames": 0}}]
+  }
+}

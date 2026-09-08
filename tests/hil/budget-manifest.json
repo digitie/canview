@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "budgets": {
+    "map_bytes": { "maximum": 32768 },
+    "stack_bytes": { "maximum": 2048 },
+    "heap_free_bytes": { "minimum": 4096 },
+    "queue_depth": { "maximum": 128 },
+    "wcet_us": { "maximum": 1000 },
+    "latency_us": { "maximum": 5000 }
+  }
+}

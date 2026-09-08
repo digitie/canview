@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "radio-pressure",
+  "title": "SoftAP bridge observer and control radio budget pressure",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "radio_pressure", "softap_kbps": 80, "observer_kbps": 40, "control_kbps": 8, "rssi_dbm": -90}
+  ],
+  "expect": {
+    "required_kinds": ["RADIO_BUDGET"]
+  }
+}

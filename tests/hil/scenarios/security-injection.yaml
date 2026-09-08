@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "security-injection",
+  "title": "control tag UART injection and live token cache rejection",
+  "suites": ["host", "g2-readonly"],
+  "mode": "CAPTURE_ONLY",
+  "actions": [
+    {"type": "security", "vectors": ["control-tag-mutation", "uart-injection", "live-token-257"]}
+  ],
+  "expect": {
+    "required_kinds": ["SECURITY_REJECT"]
+  }
+}
