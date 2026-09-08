@@ -1,6 +1,6 @@
 set(CANVIEW_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../..")
 idf_component_register(
-    SRCS "app_main.c" "../bsp/board.c" "../bsp/bridge_button.c" "../bsp/runtime.c"
+    SRCS "app_main.c" "bridge_bootstrap.c" "../bsp/board.c" "../bsp/bridge_button.c" "../bsp/runtime.c"
     INCLUDE_DIRS "../bsp" "${CANVIEW_ROOT}/firmware/interface"
     REQUIRES canview_esp_core canview_esp32_platform canview_esp32_runtime canview_bridge_auth
              canview_bridge_web nvs_flash

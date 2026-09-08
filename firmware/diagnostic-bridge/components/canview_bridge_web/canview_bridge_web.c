@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "cJSON.h"
+#include "esp_event.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_mac.h"
@@ -21,6 +22,7 @@
 
 #define CANVIEW_BRIDGE_WEB_TAG "bridge_web"
 #define CANVIEW_BRIDGE_WEB_JSON_ARENA_BYTES (16384U)
+#define CANVIEW_BRIDGE_WEB_MAX_JSON_DEPTH (8U)
 #define CANVIEW_BRIDGE_WEB_MIN_AP_PASSWORD_LENGTH (16U)
 #define CANVIEW_BRIDGE_WEB_MAX_AP_PASSWORD_LENGTH (63U)
 #define CANVIEW_BRIDGE_WEB_MUTATION_WINDOW_MS (1000U)
@@ -43,8 +45,11 @@ typedef struct
     canview_bridge_web_config_t config;
     canview_bridge_json_arena_t json_arena;
     SemaphoreHandle_t lock;
+    SemaphoreHandle_t request_lock;
     SemaphoreHandle_t ws_io_lock;
     httpd_handle_t server;
+    esp_netif_t *wifi_ap_netif;
+    esp_netif_t *wifi_sta_netif;
     int active_client_fd;
     uint32_t snapshot_revision;
     uint32_t event_sequence;
@@ -59,7 +64,12 @@ typedef struct
     char ws_response[CANVIEW_BRIDGE_WEB_MAX_RESPONSE_BYTES];
     uint8_t ws_body[CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES];
     bool button_down;
+    bool button_hold_consumed;
     bool service_window_open;
+    bool event_loop_initialized;
+    bool wifi_initialized;
+    bool wifi_started;
+    bool dns_started;
     bool initialized;
 } canview_bridge_web_state_t;
 
@@ -286,6 +296,20 @@ static esp_err_t send_custom_status(httpd_req_t *request, const char *status, co
     return httpd_resp_sendstr(request, message);
 }
 
+static bool state_lock_take(canview_bridge_web_state_t *state)
+{
+    return state != NULL && state->lock != NULL &&
+           xSemaphoreTake(state->lock, portMAX_DELAY) == pdTRUE;
+}
+
+static void state_lock_give(canview_bridge_web_state_t *state)
+{
+    if (state != NULL && state->lock != NULL)
+    {
+        (void)xSemaphoreGive(state->lock);
+    }
+}
+
 static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t **state)
 {
     if (request == NULL || state == NULL || request->user_ctx == NULL)
@@ -293,15 +317,27 @@ static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t 
         return ESP_ERR_INVALID_ARG;
     }
     canview_bridge_web_state_t *candidate = request->user_ctx;
-    if (!candidate->initialized || candidate->lock == NULL ||
-        xSemaphoreTake(candidate->lock, portMAX_DELAY) != pdTRUE)
+    if (candidate->request_lock == NULL ||
+        xSemaphoreTake(candidate->request_lock, portMAX_DELAY) != pdTRUE)
     {
+        return send_custom_status(request, "503 Service Unavailable", "service unavailable");
+    }
+    if (!state_lock_take(candidate))
+    {
+        (void)xSemaphoreGive(candidate->request_lock);
+        return send_custom_status(request, "503 Service Unavailable", "service unavailable");
+    }
+    if (!candidate->initialized)
+    {
+        state_lock_give(candidate);
+        (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "503 Service Unavailable", "service unavailable");
     }
     const int client_fd = httpd_req_to_sockfd(request);
     if (client_fd < 0)
     {
-        (void)xSemaphoreGive(candidate->lock);
+        state_lock_give(candidate);
+        (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "400 Bad Request", "invalid client");
     }
     if (candidate->active_client_fd < 0)
@@ -310,18 +346,20 @@ static esp_err_t enter_request(httpd_req_t *request, canview_bridge_web_state_t 
     }
     if (candidate->active_client_fd != client_fd)
     {
-        (void)xSemaphoreGive(candidate->lock);
+        state_lock_give(candidate);
+        (void)xSemaphoreGive(candidate->request_lock);
         return send_custom_status(request, "503 Service Unavailable", "one client only");
     }
+    state_lock_give(candidate);
     *state = candidate;
     return ESP_OK;
 }
 
 static void leave_request(canview_bridge_web_state_t *state)
 {
-    if (state != NULL && state->lock != NULL)
+    if (state != NULL && state->request_lock != NULL)
     {
-        (void)xSemaphoreGive(state->lock);
+        (void)xSemaphoreGive(state->request_lock);
     }
 }
 
@@ -339,27 +377,91 @@ static void leave_ws_io(canview_bridge_web_state_t *state)
     }
 }
 
-static void discard_start_state(void)
+static esp_err_t discard_start_state(void)
 {
+    esp_err_t cleanup_status = ESP_OK;
+    web_state.initialized = false;
+    if (web_state.dns_started)
+    {
+        const esp_err_t status = canview_bridge_dns_stop();
+        if (status == ESP_OK)
+        {
+            web_state.dns_started = false;
+        }
+        else
+        {
+            cleanup_status = status;
+        }
+    }
     if (web_state.server != NULL)
     {
-        (void)httpd_stop(web_state.server);
+        const esp_err_t status = httpd_stop(web_state.server);
+        if (status != ESP_OK && cleanup_status == ESP_OK)
+        {
+            cleanup_status = status;
+        }
         web_state.server = NULL;
     }
+    if (web_state.wifi_started)
+    {
+        const esp_err_t status = esp_wifi_stop();
+        if (status != ESP_OK && cleanup_status == ESP_OK)
+        {
+            cleanup_status = status;
+        }
+        web_state.wifi_started = false;
+    }
+    if (web_state.wifi_initialized)
+    {
+        const esp_err_t status = esp_wifi_deinit();
+        if (status != ESP_OK && cleanup_status == ESP_OK)
+        {
+            cleanup_status = status;
+        }
+        web_state.wifi_initialized = false;
+    }
+    if (web_state.wifi_ap_netif != NULL)
+    {
+        esp_netif_destroy_default_wifi(web_state.wifi_ap_netif);
+        web_state.wifi_ap_netif = NULL;
+    }
+    if (web_state.wifi_sta_netif != NULL)
+    {
+        esp_netif_destroy_default_wifi(web_state.wifi_sta_netif);
+        web_state.wifi_sta_netif = NULL;
+    }
+    if (web_state.event_loop_initialized)
+    {
+        const esp_err_t status = esp_event_loop_delete_default();
+        if (status != ESP_OK && cleanup_status == ESP_OK)
+        {
+            cleanup_status = status;
+        }
+        web_state.event_loop_initialized = false;
+    }
     SemaphoreHandle_t ws_io_lock = web_state.ws_io_lock;
+    SemaphoreHandle_t request_lock = web_state.request_lock;
     SemaphoreHandle_t lock = web_state.lock;
     web_state.ws_io_lock = NULL;
+    web_state.request_lock = NULL;
     web_state.lock = NULL;
     if (ws_io_lock != NULL)
     {
         vSemaphoreDelete(ws_io_lock);
     }
+    if (request_lock != NULL)
+    {
+        vSemaphoreDelete(request_lock);
+    }
     if (lock != NULL)
     {
         vSemaphoreDelete(lock);
     }
+    const bool dns_pending = web_state.dns_started;
     secure_zero(&web_state, sizeof(web_state));
     web_state.active_client_fd = -1;
+    web_state.dns_started = dns_pending;
+    return cleanup_status;
 }
 
 static bool origin_allowed(httpd_req_t *request, bool required)
@@ -546,14 +648,22 @@ static bool authenticated(httpd_req_t *request, canview_bridge_web_state_t *stat
 {
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool parsed = parse_bearer(request, token);
-    const canview_status_t status = parsed ? canview_bridge_auth_check_token(&state->auth, token)
-                                           : CANVIEW_AUTH_FAILED;
+    canview_status_t status = CANVIEW_AUTH_FAILED;
+    if (parsed && state_lock_take(state))
+    {
+        status = canview_bridge_auth_check_token(&state->auth, token);
+        state_lock_give(state);
+    }
     secure_zero(token, sizeof(token));
     return status == CANVIEW_OK;
 }
 
 static bool mutation_allowed(canview_bridge_web_state_t *state, uint64_t now_ms)
 {
+    if (!state_lock_take(state))
+    {
+        return false;
+    }
     if (state->mutation_count == 0U || now_ms < state->mutation_window_started_ms ||
         now_ms - state->mutation_window_started_ms > CANVIEW_BRIDGE_WEB_MUTATION_WINDOW_MS)
     {
@@ -562,9 +672,89 @@ static bool mutation_allowed(canview_bridge_web_state_t *state, uint64_t now_ms)
     }
     if (state->mutation_count >= CANVIEW_BRIDGE_WEB_MUTATION_LIMIT)
     {
+        state_lock_give(state);
         return false;
     }
     ++state->mutation_count;
+    state_lock_give(state);
+    return true;
+}
+
+static bool service_window_open(const canview_bridge_web_state_t *state)
+{
+    bool open = false;
+    if (state_lock_take((canview_bridge_web_state_t *)state))
+    {
+        open = state->service_window_open;
+        state_lock_give((canview_bridge_web_state_t *)state);
+    }
+    return open;
+}
+
+static canview_status_t issue_challenge(canview_bridge_web_state_t *state,
+                                        uint8_t challenge[CANVIEW_BRIDGE_AUTH_CHALLENGE_BYTES])
+{
+    if (!state_lock_take(state))
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    const canview_status_t status = canview_bridge_auth_issue_challenge(&state->auth, challenge);
+    state_lock_give(state);
+    return status;
+}
+
+static canview_status_t open_session(canview_bridge_web_state_t *state,
+                                     const uint8_t challenge[CANVIEW_BRIDGE_AUTH_CHALLENGE_BYTES],
+                                     const uint8_t client_nonce[CANVIEW_BRIDGE_AUTH_CLIENT_NONCE_BYTES],
+                                     const char *pin, size_t pin_length,
+                                     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES])
+{
+    if (!state_lock_take(state))
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    const canview_status_t status = canview_bridge_auth_open_session(
+        &state->auth, challenge, client_nonce, pin, pin_length, token);
+    state_lock_give(state);
+    return status;
+}
+
+static canview_status_t logout_session(canview_bridge_web_state_t *state)
+{
+    if (!state_lock_take(state))
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    const canview_status_t status = canview_bridge_auth_logout(&state->auth);
+    state_lock_give(state);
+    return status;
+}
+
+static bool snapshot_revision(const canview_bridge_web_state_t *state, uint32_t *revision)
+{
+    if (revision == NULL || !state_lock_take((canview_bridge_web_state_t *)state))
+    {
+        return false;
+    }
+    *revision = state->snapshot_revision;
+    state_lock_give((canview_bridge_web_state_t *)state);
+    return true;
+}
+
+static bool next_event_values(canview_bridge_web_state_t *state, uint32_t *sequence,
+                              uint32_t *revision)
+{
+    if (sequence == NULL || revision == NULL || !state_lock_take(state))
+    {
+        return false;
+    }
+    if (state->event_sequence < UINT32_MAX)
+    {
+        ++state->event_sequence;
+    }
+    *sequence = state->event_sequence;
+    *revision = state->snapshot_revision;
+    state_lock_give(state);
     return true;
 }
 
@@ -598,6 +788,58 @@ static esp_err_t receive_json_body(httpd_req_t *request, canview_bridge_web_stat
     }
     state->request_body[received_total] = '\0';
     return ESP_OK;
+}
+
+static bool json_nesting_bounded(const char *text, size_t length)
+{
+    if (text == NULL || length == 0U)
+    {
+        return false;
+    }
+    unsigned depth = 0U;
+    bool in_string = false;
+    bool escaped = false;
+    for (size_t index = 0U; index < length; ++index)
+    {
+        const char character = text[index];
+        if (in_string)
+        {
+            if (escaped)
+            {
+                escaped = false;
+            }
+            else if (character == '\\')
+            {
+                escaped = true;
+            }
+            else if (character == '"')
+            {
+                in_string = false;
+            }
+            continue;
+        }
+        if (character == '"')
+        {
+            in_string = true;
+        }
+        else if (character == '{' || character == '[')
+        {
+            if (depth >= CANVIEW_BRIDGE_WEB_MAX_JSON_DEPTH)
+            {
+                return false;
+            }
+            ++depth;
+        }
+        else if (character == '}' || character == ']')
+        {
+            if (depth == 0U)
+            {
+                return false;
+            }
+            --depth;
+        }
+    }
+    return !in_string && !escaped && depth == 0U;
 }
 
 static bool session_json_fields(const cJSON *root, const cJSON **challenge,
@@ -685,6 +927,7 @@ static esp_err_t handle_bootstrap(httpd_req_t *request)
     }
     uint8_t challenge[CANVIEW_BRIDGE_AUTH_CHALLENGE_BYTES] = {0};
     char challenge_text[CANVIEW_BRIDGE_WEB_WS_TOKEN_TEXT_BYTES + 1U] = {0};
+    uint32_t revision = 0U;
     uint64_t now_ms = 0U;
     if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK)
     {
@@ -692,7 +935,7 @@ static esp_err_t handle_bootstrap(httpd_req_t *request)
         leave_request(state);
         return result;
     }
-    if (!state->service_window_open)
+    if (!service_window_open(state))
     {
         result = httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "service window closed");
         leave_request(state);
@@ -704,8 +947,9 @@ static esp_err_t handle_bootstrap(httpd_req_t *request)
         leave_request(state);
         return result;
     }
-    if (canview_bridge_auth_issue_challenge(&state->auth, challenge) != CANVIEW_OK ||
-        !base64url_encode(challenge, sizeof(challenge), challenge_text, sizeof(challenge_text)))
+    if (issue_challenge(state, challenge) != CANVIEW_OK ||
+        !base64url_encode(challenge, sizeof(challenge), challenge_text, sizeof(challenge_text)) ||
+        !snapshot_revision(state, &revision))
     {
         result = httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "challenge unavailable");
         leave_request(state);
@@ -713,7 +957,7 @@ static esp_err_t handle_bootstrap(httpd_req_t *request)
     }
     cJSON *root = cJSON_CreateObject();
     if (root == NULL || !json_add_number(root, "schema_version", 1.0) ||
-        !json_add_number(root, "snapshot_revision", (double)state->snapshot_revision) ||
+        !json_add_number(root, "snapshot_revision", (double)revision) ||
         !json_add_number(root, "generated_at_ms", (double)now_ms) ||
         !json_add_string(root, "challenge", challenge_text) ||
         !json_add_string(root, "role", "DIAGNOSTIC_BRIDGE") ||
@@ -765,6 +1009,13 @@ static esp_err_t handle_session_post(httpd_req_t *request)
         leave_request(state);
         return result;
     }
+    if (!json_nesting_bounded(state->request_body, request->content_len))
+    {
+        secure_zero(state->request_body, sizeof(state->request_body));
+        result = httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "JSON nesting invalid");
+        leave_request(state);
+        return result;
+    }
     json_reset();
     cJSON *root = cJSON_ParseWithLengthOpts(state->request_body, request->content_len + 1U, NULL, true);
     const cJSON *challenge_item = NULL;
@@ -774,6 +1025,7 @@ static esp_err_t handle_session_post(httpd_req_t *request)
     uint8_t challenge[CANVIEW_BRIDGE_AUTH_CHALLENGE_BYTES] = {0};
     uint8_t client_nonce[CANVIEW_BRIDGE_AUTH_CLIENT_NONCE_BYTES] = {0};
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
+    uint32_t revision = 0U;
     const bool valid_strings = fields_valid && challenge_item != NULL && nonce_item != NULL &&
                                pin_item != NULL;
     const size_t challenge_length = valid_strings ? bounded_length(challenge_item->valuestring, 23U) : 0U;
@@ -785,9 +1037,9 @@ static esp_err_t handle_session_post(httpd_req_t *request)
                          base64url_decode(nonce_item->valuestring, nonce_length, client_nonce,
                                           sizeof(client_nonce), sizeof(client_nonce));
     const canview_status_t auth_status = decoded
-                                             ? canview_bridge_auth_open_session(
-                                                   &state->auth, challenge, client_nonce,
-                                                   pin_item->valuestring, pin_length, token)
+                                             ? open_session(state, challenge, client_nonce,
+                                                            pin_item->valuestring, pin_length,
+                                                            token)
                                              : CANVIEW_AUTH_FAILED;
     if (root != NULL)
     {
@@ -812,10 +1064,19 @@ static esp_err_t handle_session_post(httpd_req_t *request)
         leave_request(state);
         return result;
     }
+    if (!snapshot_revision(state, &revision))
+    {
+        secure_zero(token, sizeof(token));
+        secure_zero(token_text, sizeof(token_text));
+        result = httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                     "session unavailable");
+        leave_request(state);
+        return result;
+    }
     cJSON *response = cJSON_CreateObject();
     if (response == NULL || !json_add_string(response, "token", token_text) ||
         !json_add_number(response, "expires_in_ms", CANVIEW_BRIDGE_AUTH_TOKEN_TTL_MS) ||
-        !json_add_number(response, "snapshot_revision", (double)state->snapshot_revision) ||
+        !json_add_number(response, "snapshot_revision", (double)revision) ||
         !json_add_bool(response, "read_only", true) ||
         !json_add_number(response, "control_scope", 0.0) || !json_add_bool(response, "vehicle_tx", false))
     {
@@ -857,7 +1118,7 @@ static esp_err_t handle_session_delete(httpd_req_t *request)
     {
         result = httpd_resp_send_err(request, HTTPD_401_UNAUTHORIZED, "authentication required");
     }
-    else if (canview_bridge_auth_logout(&state->auth) != CANVIEW_OK)
+    else if (logout_session(state) != CANVIEW_OK)
     {
         result = httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "logout unavailable");
     }
@@ -897,11 +1158,19 @@ static esp_err_t handle_system(httpd_req_t *request)
         leave_request(state);
         return result;
     }
+    uint32_t revision = 0U;
+    if (!snapshot_revision(state, &revision))
+    {
+        result = httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                     "system unavailable");
+        leave_request(state);
+        return result;
+    }
     cJSON *root = cJSON_CreateObject();
     if (root == NULL || !json_add_string(root, "role", "DIAGNOSTIC_BRIDGE") ||
         !json_add_string(root, "observer_state", "NOT_IMPLEMENTED") ||
         !json_add_string(root, "vehicle_state", "UNKNOWN") ||
-        !json_add_number(root, "snapshot_revision", (double)state->snapshot_revision) ||
+        !json_add_number(root, "snapshot_revision", (double)revision) ||
         !json_add_number(root, "wifi_channel", CANVIEW_BRIDGE_WEB_WIFI_CHANNEL) ||
         !json_add_number(root, "client_limit", 1.0) || !json_add_bool(root, "read_only", true) ||
         !json_add_number(root, "control_scope", 0.0) || !json_add_bool(root, "vehicle_tx", false))
@@ -935,11 +1204,19 @@ static esp_err_t handle_collection(httpd_req_t *request)
         leave_request(state);
         return result;
     }
+    uint32_t revision = 0U;
+    if (!snapshot_revision(state, &revision))
+    {
+        result = httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                     "snapshot unavailable");
+        leave_request(state);
+        return result;
+    }
     cJSON *root = cJSON_CreateObject();
     cJSON *items = cJSON_CreateArray();
     if (root == NULL || items == NULL || !json_add_item(root, "items", items) ||
         !json_add_string(root, "state", "NOT_IMPLEMENTED") ||
-        !json_add_number(root, "snapshot_revision", (double)state->snapshot_revision) ||
+        !json_add_number(root, "snapshot_revision", (double)revision) ||
         !json_add_bool(root, "read_only", true) || !json_add_number(root, "control_scope", 0.0) ||
         !json_add_bool(root, "vehicle_tx", false))
     {
@@ -1053,6 +1330,18 @@ static bool parse_ws_token(httpd_req_t *request,
     return parsed;
 }
 
+static bool ws_token_authenticated(canview_bridge_web_state_t *state,
+                                   const uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES])
+{
+    if (token == NULL || !state_lock_take(state))
+    {
+        return false;
+    }
+    const bool valid = canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
+    state_lock_give(state);
+    return valid;
+}
+
 static esp_err_t ws_pre_handshake(httpd_req_t *request)
 {
     canview_bridge_web_state_t *state = NULL;
@@ -1062,20 +1351,20 @@ static esp_err_t ws_pre_handshake(httpd_req_t *request)
     }
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token) &&
-                         canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
+                         ws_token_authenticated(state, token);
     secure_zero(token, sizeof(token));
     leave_request(state);
     return allowed ? ESP_OK : ESP_FAIL;
 }
 
-static cJSON *make_live_event(canview_bridge_web_state_t *state, uint64_t now_ms)
+static cJSON *make_live_event(uint32_t sequence, uint32_t revision, uint64_t now_ms)
 {
     cJSON *root = cJSON_CreateObject();
     cJSON *payload = cJSON_CreateObject();
     if (root == NULL || payload == NULL || !json_add_string(root, "type", "system.summary") ||
-        !json_add_number(root, "seq", (double)state->event_sequence) ||
+        !json_add_number(root, "seq", (double)sequence) ||
         !json_add_number(root, "server_time_ms", (double)now_ms) ||
-        !json_add_number(root, "snapshot_revision", (double)state->snapshot_revision) ||
+        !json_add_number(root, "snapshot_revision", (double)revision) ||
         !json_add_bool(payload, "read_only", true) || !json_add_number(payload, "control_scope", 0.0) ||
         !json_add_bool(payload, "vehicle_tx", false) ||
         !json_add_string(payload, "observer_state", "NOT_IMPLEMENTED") ||
@@ -1104,9 +1393,11 @@ static esp_err_t ws_post_handshake(httpd_req_t *request)
         return result;
     }
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
+    uint32_t sequence = 0U;
+    uint32_t revision = 0U;
     secure_zero(state->ws_response, sizeof(state->ws_response));
     if (!origin_allowed(request, true) || !parse_ws_token(request, token) ||
-        canview_bridge_auth_check_token(&state->auth, token) != CANVIEW_OK)
+        !ws_token_authenticated(state, token))
     {
         secure_zero(token, sizeof(token));
         leave_request(state);
@@ -1119,11 +1410,12 @@ static esp_err_t ws_post_handshake(httpd_req_t *request)
         leave_request(state);
         return ESP_FAIL;
     }
-    if (state->event_sequence < UINT32_MAX)
+    if (!next_event_values(state, &sequence, &revision))
     {
-        ++state->event_sequence;
+        leave_request(state);
+        return ESP_FAIL;
     }
-    cJSON *event = make_live_event(state, now_ms);
+    cJSON *event = make_live_event(sequence, revision, now_ms);
     if (event == NULL)
     {
         secure_zero(state->response, sizeof(state->response));
@@ -1151,11 +1443,10 @@ static esp_err_t ws_post_handshake(httpd_req_t *request)
         return ESP_FAIL;
     }
     secure_zero(state->response, sizeof(state->response));
-    leave_request(state);
-
     if (!enter_ws_io(state))
     {
         secure_zero(state->ws_response, sizeof(state->ws_response));
+        leave_request(state);
         return ESP_FAIL;
     }
     httpd_ws_frame_t frame = {0};
@@ -1165,6 +1456,7 @@ static esp_err_t ws_post_handshake(httpd_req_t *request)
     result = httpd_ws_send_frame(request, &frame);
     leave_ws_io(state);
     secure_zero(state->ws_response, sizeof(state->ws_response));
+    leave_request(state);
     return result;
 }
 
@@ -1178,7 +1470,7 @@ static esp_err_t handle_live(httpd_req_t *request)
     }
     uint8_t token[CANVIEW_BRIDGE_AUTH_TOKEN_BYTES] = {0};
     const bool allowed = origin_allowed(request, true) && parse_ws_token(request, token) &&
-                         canview_bridge_auth_check_token(&state->auth, token) == CANVIEW_OK;
+                         ws_token_authenticated(state, token);
     secure_zero(token, sizeof(token));
     if (!allowed)
     {
@@ -1245,50 +1537,71 @@ static bool valid_ap_password(const char *password)
 
 static esp_err_t start_wifi(void)
 {
-    esp_err_t status = esp_netif_init();
+    esp_err_t status = ESP_OK;
+    wifi_config_t station_config = {0};
+    wifi_config_t ap_config = {0};
+    uint8_t mac[6] = {0};
+    status = esp_netif_init();
     if (status != ESP_OK && status != ESP_ERR_INVALID_STATE)
     {
-        return status;
+        goto cleanup;
     }
     status = esp_event_loop_create_default();
     if (status != ESP_OK && status != ESP_ERR_INVALID_STATE)
     {
-        return status;
+        goto cleanup;
     }
+    web_state.event_loop_initialized = status == ESP_OK;
     const wifi_init_config_t init_config = WIFI_INIT_CONFIG_DEFAULT();
     status = esp_wifi_init(&init_config);
-    if (status != ESP_OK && status != ESP_ERR_WIFI_INIT_STATE)
+    if (status != ESP_OK)
     {
-        return status;
+        goto cleanup;
     }
-    if (esp_netif_create_default_wifi_ap() == NULL || esp_netif_create_default_wifi_sta() == NULL)
+    web_state.wifi_initialized = status == ESP_OK;
+    web_state.wifi_ap_netif = esp_netif_create_default_wifi_ap();
+    if (web_state.wifi_ap_netif == NULL)
     {
-        return ESP_ERR_NO_MEM;
+        status = ESP_ERR_NO_MEM;
+        goto cleanup;
+    }
+    web_state.wifi_sta_netif = esp_netif_create_default_wifi_sta();
+    if (web_state.wifi_sta_netif == NULL)
+    {
+        status = ESP_ERR_NO_MEM;
+        goto cleanup;
     }
     status = esp_wifi_set_storage(WIFI_STORAGE_RAM);
-    if (status != ESP_OK || esp_wifi_set_mode(WIFI_MODE_APSTA) != ESP_OK ||
-        esp_wifi_set_country_code("KR", false) != ESP_OK)
+    if (status != ESP_OK)
     {
-        return status == ESP_OK ? ESP_FAIL : status;
+        goto cleanup;
     }
-    wifi_config_t station_config = {0};
+    status = esp_wifi_set_mode(WIFI_MODE_APSTA);
+    if (status != ESP_OK)
+    {
+        goto cleanup;
+    }
+    status = esp_wifi_set_country_code("KR", false);
+    if (status != ESP_OK)
+    {
+        goto cleanup;
+    }
     status = esp_wifi_set_config(WIFI_IF_STA, &station_config);
     if (status != ESP_OK)
     {
-        return status;
+        goto cleanup;
     }
-    wifi_config_t ap_config = {0};
-    uint8_t mac[6] = {0};
     status = esp_read_mac(mac, ESP_MAC_WIFI_SOFTAP);
     if (status != ESP_OK)
     {
-        return status;
+        goto cleanup;
     }
     const int ssid_length = snprintf((char *)ap_config.ap.ssid, sizeof(ap_config.ap.ssid),
                                      "CANView-DIAG-%02X%02X", mac[4], mac[5]);
     if (ssid_length <= 0 || (size_t)ssid_length >= sizeof(ap_config.ap.ssid))
     {
-        return ESP_ERR_INVALID_ARG;
+        status = ESP_ERR_INVALID_ARG;
+        goto cleanup;
     }
     const size_t password_length = bounded_length(web_state.ap_password,
                                                  sizeof(web_state.ap_password));
@@ -1302,16 +1615,24 @@ static esp_err_t start_wifi(void)
     ap_config.ap.pmf_cfg.required = false;
     status = esp_wifi_set_config(WIFI_IF_AP, &ap_config);
     secure_zero(&ap_config, sizeof(ap_config));
+    secure_zero(mac, sizeof(mac));
     if (status != ESP_OK)
     {
-        return status;
+        goto cleanup;
     }
     status = esp_wifi_start();
-    if (status != ESP_OK && status != ESP_ERR_WIFI_STATE)
+    if (status != ESP_OK)
     {
-        return status;
+        goto cleanup;
     }
-    return esp_wifi_set_channel(CANVIEW_BRIDGE_WEB_WIFI_CHANNEL, WIFI_SECOND_CHAN_NONE);
+    web_state.wifi_started = true;
+    status = esp_wifi_set_channel(CANVIEW_BRIDGE_WEB_WIFI_CHANNEL, WIFI_SECOND_CHAN_NONE);
+
+cleanup:
+    secure_zero(&station_config, sizeof(station_config));
+    secure_zero(&ap_config, sizeof(ap_config));
+    secure_zero(mac, sizeof(mac));
+    return status;
 }
 
 static bool web_service_window_expired(canview_bridge_web_state_t *state, uint64_t now_ms)
@@ -1324,7 +1645,7 @@ static bool web_service_window_expired(canview_bridge_web_state_t *state, uint64
 static void close_session(httpd_handle_t server, int client_fd)
 {
     (void)server;
-    if (web_state.lock == NULL || xSemaphoreTake(web_state.lock, portMAX_DELAY) != pdTRUE)
+    if (!state_lock_take(&web_state))
     {
         return;
     }
@@ -1333,7 +1654,7 @@ static void close_session(httpd_handle_t server, int client_fd)
         web_state.active_client_fd = -1;
         (void)canview_bridge_auth_logout(&web_state.auth);
     }
-    (void)xSemaphoreGive(web_state.lock);
+    state_lock_give(&web_state);
 }
 
 static const httpd_uri_t uri_root = {.uri = "/", .method = HTTP_GET, .handler = handle_root,
@@ -1414,6 +1735,11 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     {
         return ESP_ERR_INVALID_ARG;
     }
+    const esp_err_t stale_cleanup_status = discard_start_state();
+    if (stale_cleanup_status != ESP_OK)
+    {
+        return stale_cleanup_status;
+    }
     memset(&web_state, 0, sizeof(web_state));
     web_state.active_client_fd = -1;
     web_state.snapshot_revision = 1U;
@@ -1423,6 +1749,12 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
     memcpy(web_state.ap_password, config->ap_password, password_length + 1U);
     web_state.lock = xSemaphoreCreateMutex();
     if (web_state.lock == NULL)
+    {
+        discard_start_state();
+        return ESP_ERR_NO_MEM;
+    }
+    web_state.request_lock = xSemaphoreCreateMutex();
+    if (web_state.request_lock == NULL)
     {
         discard_start_state();
         return ESP_ERR_NO_MEM;
@@ -1494,36 +1826,49 @@ esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config)
         discard_start_state();
         return status;
     }
+    web_state.dns_started = true;
     web_state.initialized = true;
     ESP_LOGI(CANVIEW_BRIDGE_WEB_TAG, "read-only local shell ready channel=%u client-limit=1 tx=0",
              CANVIEW_BRIDGE_WEB_WIFI_CHANNEL);
     return ESP_OK;
 }
 
+esp_err_t canview_bridge_web_stop(void)
+{
+    return discard_start_state();
+}
+
 esp_err_t canview_bridge_web_poll(void)
 {
-    if (!web_state.initialized || web_state.lock == NULL ||
-        xSemaphoreTake(web_state.lock, portMAX_DELAY) != pdTRUE)
+    if (!web_state.initialized || web_state.lock == NULL || web_state.config.button_pressed == NULL)
     {
         return ESP_ERR_INVALID_STATE;
     }
     uint64_t now_ms = 0U;
     if (idf_now_ms(NULL, &now_ms) != CANVIEW_OK)
     {
-        (void)xSemaphoreGive(web_state.lock);
         return ESP_ERR_INVALID_STATE;
     }
     const bool pressed = web_state.config.button_pressed(web_state.config.button_context);
+    if (!state_lock_take(&web_state))
+    {
+        return ESP_ERR_TIMEOUT;
+    }
+    httpd_handle_t expired_server = NULL;
+    int expired_client_fd = -1;
     if (pressed)
     {
         if (!web_state.button_down)
         {
             web_state.button_down = true;
             web_state.button_started_ms = now_ms;
+            web_state.button_hold_consumed = false;
         }
-        if (!web_state.service_window_open && now_ms >= web_state.button_started_ms &&
+        if (!web_state.service_window_open && !web_state.button_hold_consumed &&
+            now_ms >= web_state.button_started_ms &&
             now_ms - web_state.button_started_ms >= CANVIEW_BRIDGE_WEB_SERVICE_HOLD_MS)
         {
+            web_state.button_hold_consumed = true;
             web_state.service_window_open = true;
             web_state.service_window_started_ms = now_ms;
             if (canview_bridge_auth_set_service_window(&web_state.auth, true) != CANVIEW_OK)
@@ -1535,24 +1880,36 @@ esp_err_t canview_bridge_web_poll(void)
     else
     {
         web_state.button_down = false;
+        web_state.button_hold_consumed = false;
     }
     if (web_service_window_expired(&web_state, now_ms))
     {
         web_state.service_window_open = false;
+        web_state.button_hold_consumed = true;
         (void)canview_bridge_auth_set_service_window(&web_state.auth, false);
+        if (web_state.active_client_fd >= 0 && web_state.server != NULL)
+        {
+            expired_server = web_state.server;
+            expired_client_fd = web_state.active_client_fd;
+            web_state.active_client_fd = -1;
+            (void)canview_bridge_auth_logout(&web_state.auth);
+        }
     }
-    (void)xSemaphoreGive(web_state.lock);
+    state_lock_give(&web_state);
+    if (expired_server != NULL && expired_client_fd >= 0)
+    {
+        (void)httpd_sess_trigger_close(expired_server, expired_client_fd);
+    }
     return ESP_OK;
 }
 
 bool canview_bridge_web_service_window_open(void)
 {
-    if (!web_state.initialized || web_state.lock == NULL ||
-        xSemaphoreTake(web_state.lock, portMAX_DELAY) != pdTRUE)
+    if (!web_state.initialized || !state_lock_take(&web_state))
     {
         return false;
     }
     const bool open = web_state.service_window_open;
-    (void)xSemaphoreGive(web_state.lock);
+    state_lock_give(&web_state);
     return open;
 }

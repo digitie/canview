@@ -4,6 +4,7 @@
  */
 #include "board_pins.h"
 #include "bridge_button.h"
+#include "bridge_bootstrap.h"
 #include "canview_board.h"
 #include "canview_bridge_auth.h"
 #include "canview_bridge_web.h"
@@ -136,29 +137,10 @@ void app_main(void)
     static canview_esp_runtime_t runtime;
     static uint8_t pin_digest[CANVIEW_BRIDGE_AUTH_PIN_DIGEST_BYTES];
     static char ap_password[CANVIEW_BRIDGE_WEB_AP_PASSWORD_BYTES];
+    bool web_started = false;
     canview_esp_runtime_port_t port = {0};
     const canview_platform_port_t board = canview_board_port();
-    canview_status_t status = canview_esp_board_preflight(&board);
-    if (status == CANVIEW_OK && (board.enter_safe_state == NULL || board.idle == NULL))
-    {
-        status = CANVIEW_INVALID_ARGUMENT;
-    }
-    else if (status == CANVIEW_OK)
-    {
-        status = board.enter_safe_state(board.context);
-    }
-    if (status == CANVIEW_OK)
-    {
-        status = canview_esp_board_runtime(&runtime, &port);
-    }
-    if (status == CANVIEW_OK)
-    {
-        status = canview_esp_core_boot(&core, &port.core);
-    }
-    if (status == CANVIEW_OK)
-    {
-        status = canview_esp_pool_init(&pool, CANVIEW_ESP_POOL_SLOTS, &port.pool);
-    }
+    canview_status_t status = canview_bridge_bootstrap(&core, &pool, &runtime, &port, &board);
     if (status == CANVIEW_OK)
     {
         const esp_err_t credential_status = load_credentials(pin_digest, ap_password);
@@ -178,6 +160,16 @@ void app_main(void)
             ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "read-only web shell start failed status=%d",
                      (int)web_status);
             status = web_poll_status(web_status);
+        }
+        else if (canview_esp_core_arm_watchdog(&core) != CANVIEW_OK)
+        {
+            ESP_LOGE(CANVIEW_BRIDGE_APP_TAG, "watchdog arm failed after web startup");
+            (void)canview_bridge_web_stop();
+            status = CANVIEW_NOT_IMPLEMENTED;
+        }
+        else
+        {
+            web_started = true;
         }
     }
     secure_zero(pin_digest, sizeof(pin_digest));
@@ -203,6 +195,11 @@ void app_main(void)
         {
             status = canview_esp_core_step(&core);
         }
+    }
+    if (web_started)
+    {
+        (void)canview_bridge_web_stop();
+        web_started = false;
     }
     if (port.report != NULL)
     {

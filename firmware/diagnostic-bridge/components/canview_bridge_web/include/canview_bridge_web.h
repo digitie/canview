@@ -41,6 +41,9 @@ typedef struct
  */
 esp_err_t canview_bridge_web_start(const canview_bridge_web_config_t *config);
 
+/** @brief HTTP/DNS/AP 자원을 idempotent하게 중지하고 인증 상태를 폐기한다. */
+esp_err_t canview_bridge_web_stop(void);
+
 /**
  * @brief app의 단일 owner loop에서 100 ms마다 service button을 갱신한다.
  *

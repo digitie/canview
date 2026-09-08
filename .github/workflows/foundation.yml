@@ -212,6 +212,7 @@ jobs:
               Invoke-TargetCommand "$name-fullclean" { idf.py -C $project fullclean }
               Invoke-TargetCommand "$name-set-target" { idf.py -C $project set-target esp32s3 }
               Invoke-TargetCommand "$name-build" { idf.py -C $project build }
+              Invoke-TargetCommand "$name-size-components" { idf.py -C $project size-components }
             }
             Invoke-TargetCommand "public-component-fullclean" { idf.py -C tests/fixtures/idf-public-component fullclean }
             Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }

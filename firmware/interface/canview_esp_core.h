@@ -101,6 +101,26 @@ canview_status_t canview_esp_core_boot(canview_esp_core_t *core,
                                        const canview_esp_core_port_t *port);
 
 /**
+ * @brief 긴 외부 초기화 구간을 위해 watchdog 등록을 보류한 boot를 수행한다.
+ * @param core zero-init된 caller 소유 context.
+ * @param port 복사할 필수 callback과 수명 보장된 context.
+ * @return safe GPIO·메모리·clock 검사 결과. 성공해도 watchdog_ready는 false다.
+ *
+ * 이 경로는 외부 초기화가 고정 TWDT window보다 길 수 있는 단일 장치에만 사용한다.
+ * 성공 직후 같은 owner가 canview_esp_core_arm_watchdog()를 호출해야 하며, 그 전에는
+ * service loop를 실행하지 않는다.
+ */
+canview_status_t canview_esp_core_boot_deferred(canview_esp_core_t *core,
+                                                const canview_esp_core_port_t *port);
+
+/**
+ * @brief deferred boot 뒤 현재 owner task의 watchdog subscription을 arm한다.
+ * @param core deferred boot가 성공한 core context.
+ * @return watchdog callback 실패는 terminal fault로 latch한다.
+ */
+canview_status_t canview_esp_core_arm_watchdog(canview_esp_core_t *core);
+
+/**
  * @brief health 진척과 시간 예산을 확인한 뒤 현재 owner의 TWDT를 갱신한다.
  * @param core boot 성공 context. 같은 owner가 100ms 고정 주기로 호출한다.
  * @return 이전 진척 deadline·실행 budget·메모리·clock 위반은 terminal failure다.

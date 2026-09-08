@@ -263,6 +263,35 @@ static void boot_tests(void)
     boot_healthy(&fixture, &core);
     CHECK(canview_esp_core_boot(&core, &fixture.port) == CANVIEW_RESOURCE_BUSY);
 }
+static void deferred_boot_tests(void)
+{
+    fixture_t fixture;
+    canview_esp_core_t core;
+    initialize(&fixture, &core);
+    CHECK(canview_esp_core_boot_deferred(NULL, &fixture.port) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_core_boot_deferred(&core, NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_core_boot_deferred(&core, &fixture.port) == CANVIEW_OK);
+    CHECK(strcmp(fixture.trace, "STMT") == 0);
+    CHECK(core.state == CANVIEW_ESP_CORE_SAFE_BENCH && !core.watchdog_ready &&
+          core.sample_valid && fixture.feeds == 0U);
+    CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_OK);
+    CHECK(strcmp(fixture.trace, "STMTW") == 0 && core.watchdog_ready);
+    CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(core.state == CANVIEW_ESP_CORE_SAFE_BENCH && core.watchdog_ready);
+
+    initialize(&fixture, &core);
+    CHECK(canview_esp_core_boot_deferred(&core, &fixture.port) == CANVIEW_OK);
+    fixture.fail_at = fixture.calls + 1U;
+    CHECK(canview_esp_core_arm_watchdog(&core) == CANVIEW_NOT_IMPLEMENTED);
+    CHECK(core.state == CANVIEW_ESP_CORE_FAULT && core.fault == CANVIEW_ESP_FAULT_WATCHDOG &&
+          !core.busy && !core.watchdog_ready);
+
+    initialize(&fixture, &core);
+    CHECK(canview_esp_core_boot_deferred(&core, &fixture.port) == CANVIEW_OK);
+    CHECK(canview_esp_core_step(&core) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(core.state == CANVIEW_ESP_CORE_FAULT && core.fault == CANVIEW_ESP_FAULT_WATCHDOG &&
+          !core.sample_valid);
+}
 static void health_tests(void)
 {
     fixture_t fixture;
@@ -567,6 +596,7 @@ int main(int argc, char **argv)
     if (strcmp(argv[1], "boot") == 0 || strcmp(argv[1], "all") == 0)
     {
         boot_tests();
+        deferred_boot_tests();
     }
     if (strcmp(argv[1], "health") == 0 || strcmp(argv[1], "all") == 0)
     {

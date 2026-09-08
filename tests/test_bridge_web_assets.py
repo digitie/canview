@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -39,6 +40,8 @@ class BridgeWebAssetTests(unittest.TestCase):
             generated = (first / "bridge_assets.c").read_text(encoding="utf-8")
             values = [int(value, 16) for value in generated.split("const uint8_t canview_bridge_index_html_gz[] = {")[1].split("};", 1)[0].replace(",", " ").split()]
             self.assertEqual(gzip.decompress(bytes(values)), HTML.read_bytes())
+            self.assertEqual(hashlib.sha256(bytes(values)).hexdigest(),
+                             "8bf58e72c167c8d59f2ed48b888ca775c3a309b03d89308dc7d7d40c10f73cce")
 
     def test_shell_does_not_persist_token_or_call_external_network(self) -> None:
         body = HTML.read_text(encoding="utf-8").lower()
@@ -62,6 +65,10 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES", source)
         self.assertIn("httpd_ws_recv_frame", source)
         self.assertIn("frame.len > CANVIEW_BRIDGE_WEB_MAX_WS_FRAME_BYTES", source)
+        self.assertIn("json_nesting_bounded", source)
+        self.assertIn("canview_bridge_web_stop", source)
+        self.assertIn("httpd_sess_trigger_close", source)
+        self.assertIn("button_hold_consumed", source)
         self.assertIn("vehicle_tx", source)
         self.assertIn("CONFIG_HTTPD_WS_SUPPORT=y", defaults)
         for forbidden in ("raw_replay", "canview_can_tx", "control_lease"):

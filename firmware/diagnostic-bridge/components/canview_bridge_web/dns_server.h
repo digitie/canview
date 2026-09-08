@@ -6,4 +6,7 @@
 
 esp_err_t canview_bridge_dns_start(void);
 
+/** @brief captive DNS task/socket을 중지한다. 여러 번 호출해도 안전하다. */
+esp_err_t canview_bridge_dns_stop(void);
+
 #endif

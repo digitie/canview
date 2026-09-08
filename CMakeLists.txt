@@ -72,19 +72,19 @@ if(BUILD_TESTING)
             target_compile_definitions(${esp_prefix}-${kind}-tests PRIVATE CANVIEW_TEST_BRIDGE=${bridge})
         endforeach()
     endforeach()
-    # Run the real Bridge app+BSP+SDK adapter composition against the SDK fixture.
-    # The fixture stops app_main at its terminal idle callback, so this is not a
-    # substitute for an ESP-IDF build or physical board/HIL test.
+    # Run the real Bridge bootstrap+BSP+SDK adapter composition against the SDK
+    # fixture. Network/NVS are intentionally outside this portable fixture; the
+    # target project builds the complete app composition separately.
     add_executable(canview-esp32-bridge-integration-tests
         tests/esp_core/test_bridge_integration.c
-        firmware/app/esp_core.c
+        firmware/diagnostic-bridge/main/bridge_bootstrap.c
         firmware/platform/esp32s3/core_runtime.c
         firmware/diagnostic-bridge/bsp/board.c
         firmware/diagnostic-bridge/bsp/runtime.c)
     target_compile_definitions(canview-esp32-bridge-integration-tests PRIVATE
         CANVIEW_ESP_SDK_TEST=1 CANVIEW_TEST_BRIDGE=1)
     target_include_directories(canview-esp32-bridge-integration-tests PRIVATE
-        tests/esp_core firmware/diagnostic-bridge/bsp)
+        tests/esp_core firmware/diagnostic-bridge/bsp firmware/diagnostic-bridge/main)
     target_link_libraries(canview-esp32-bridge-integration-tests PRIVATE
         canview_esp_core canview_warnings)
     add_test(NAME esp32-bridge-app-integration COMMAND canview-esp32-bridge-integration-tests)
