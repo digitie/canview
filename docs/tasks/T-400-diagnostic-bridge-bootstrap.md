@@ -37,7 +37,7 @@ T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가
 
 이전 service retry와 별도로 독립 thread reviewer A/B의 raw report를 수신했다. A는 embedded runtime 관점에서 P1 2건과 P2 3건, B는 integration/security/resource 관점에서 P1 4건과 P2 5건을 보고했다. 원문은 [A evidence](../reviews/adversarial/evidence/2026-09-08-T-400-reviewer-a-raw.md)와 [B evidence](../reviews/adversarial/evidence/2026-09-08-T-400-reviewer-b-raw.md)에 그대로 보존한다.
 
-현재 source candidate `19f6716`에는 deferred watchdog arm, host-testable Bridge bootstrap, state/request lock 분리, 만료 session 강제 close, JSON nesting bound, DNS query slice quota, Bridge routing Kconfig 금지와 WebSocket callback 필수 검사, canonical gzip OS header가 반영됐다. 작성자 재검증은 host 111/111(24시간 `uart-fault-stream` 제외), ESP32 core coverage, Python/config/generator gate, 실제 ESP-IDF 6.0.3 Bridge `idf.py build`·`size-components` 성공이다. P2인 target heap/PSRAM/flood stress와 physical/HIL은 아직 `NOT_RUN` 또는 후속 gate다. 원 reviewer A/B의 이 candidate post-fix 재검토와 CI success 전에는 T-400을 완료로 표시하지 않는다.
+현재 source candidate `2ecf5b9`에는 deferred watchdog arm, host-testable Bridge bootstrap, state/request lock 분리, 만료 session 강제 close, JSON nesting bound, DNS query slice quota, Bridge routing Kconfig 금지와 WebSocket callback 필수 검사, canonical gzip OS header가 반영됐다. 작성자 재검증은 host 111/111(24시간 `uart-fault-stream` 제외), ESP32 core coverage, Python/config/generator gate, 실제 ESP-IDF 6.0.3 Bridge `idf.py build`·`size-components` 성공이다. P2인 target heap/PSRAM/flood stress와 physical/HIL은 아직 `NOT_RUN` 또는 후속 gate다. 원 reviewer A/B의 이 candidate post-fix 재검토와 CI success 전에는 T-400을 완료로 표시하지 않는다.
 
 ## 고정 target
 
