@@ -39,6 +39,23 @@ T-400a의 P2 handoff를 이 task가 소유한다. SoftAP·HTTP·인증을 추가
 
 현재 source candidate `41fdc99`에는 deferred watchdog arm, host-testable Bridge bootstrap, state/request lock 분리, 인증과 activity 기록의 원자적 lock 경계, 만료 session 강제 close, JSON nesting bound, DNS query slice quota와 teardown 의존 순서 보존, startup cleanup retry와 cleanup 실패 재부팅, logout/expiry 이후 pre-auth 15초 deadline 재무장, custom socket close, 단일 owner LRU purge 비활성화, Bridge routing Kconfig 금지와 WebSocket callback 필수 검사, canonical gzip OS header가 반영됐다. 작성자 재검증은 focused host CTest 7/7, 이전 전체 host 112/113(24시간 `uart-fault-stream` 제외), ESP32 core coverage, Python/config/generator gate, 실제 ESP-IDF 6.0.3 Bridge `idf.py build` 성공이다. P2인 live HTTP/WS, target heap/PSRAM/flood stress와 physical/HIL은 아직 `NOT_RUN` 또는 후속 gate다. 새 원 reviewer A/B의 이 candidate 재검토와 CI success 전에는 T-400을 완료로 표시하지 않는다.
 
+### 2026-09-08 source/review/CI closure candidate `5861274`
+
+`7479cf1`에서 qualification job checkout을 immutable PR head로 고정하고, `5861274`에서 Diagnostic Bridge `CONFIG_HTTPD_QUEUE_WORK_BLOCKING=n`을 명시했다. 이 설정은 `tools/generate_boards.py`, `tools/check_sdkconfig.py`, `tests/foundation/test_sdkconfig.py`, `tests/test_bridge_web_assets.py`의 generator/validator/negative mutation 경계와 함께 검증된다. 현재 candidate `586127450d14b8ef5a59f90edd1c49947b866bb7`, base `9fe46c753be151e6aa23f0fdc95fd527f86cf82d`는 다음 source 및 target 근거를 갖는다.
+
+- `python -B tests/security/bridge_http.py`: 64 checks PASS
+- `python -B tests/test_bridge_web_assets.py -q`: 5/5 PASS
+- `python -B tests/foundation/test_sdkconfig.py -q`: 13/13 PASS
+- `python -B -m unittest discover -s tests -p 'test_*.py'`: 49/49 PASS
+- `python -B tools/generate_boards.py --check`, 문서 link/plan 검증 PASS
+- 실제 ESP-IDF 6.0.3 `idf.py -C firmware/diagnostic-bridge build` PASS
+- GitHub Actions `34196236147`: Windows C99, Linux GCC/Clang portability, sanitizer, browser, target firmware 여섯 job PASS
+- target artifact 18개 BIN/ELF/MAP bytes·SHA-256 `18/18`, source provenance 6/6, toolchain provenance before/after 일치, target warning/error regex 0건
+
+독립 reviewer raw evidence는 [Reviewer A](../reviews/adversarial/evidence/2026-09-08-T-400-reviewer-a-final-5861274-raw.md)와 [Reviewer B](../reviews/adversarial/evidence/2026-09-08-T-400-reviewer-b-final-5861274-raw.md)에 보존했다. A 실행 `CV-HOSTILE-20260908-POSTFIX-586`과 B 실행 `c3636fd3-5ab5-4637-8a9b-2cd813359631`은 같은 candidate/base를 독립적으로 검토했고 P0/P1은 없었다. A는 external TX gate/reset/brownout 및 HIL을 P2 physical gate로 남겼고, B는 source/config/build/evidence actionable finding을 보고하지 않았다. 통합 disposition은 [T-400-02](../reviews/adversarial/2026-09-08-T-400-02.md)이며 최종 verdict는 `CONDITIONAL`이다.
+
+물리 board flash/HIL, ST-LINK/serial, 전원 rail/reset/brownout, PSRAM/clock/watchdog soak, live ESP32 endpoint, ESP-NOW/capture, production provisioning과 vehicle integration은 `NOT_RUN`이다. 차량 CAN TX는 `NO-GO`이며 Diagnostic Bridge의 `control_scope=0`, `vehicle_tx=false`, control lease/raw replay 부재를 유지한다. 따라서 source/review/CI closure는 가능하지만 T-400 상태는 physical gate가 닫힐 때까지 `IN_PROGRESS`로 유지한다.
+
 ## 고정 target
 
 - ESP-IDF 6.0.3, 8 MB Flash, 2 MB PSRAM
