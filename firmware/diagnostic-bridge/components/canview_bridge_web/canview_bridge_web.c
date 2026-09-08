@@ -339,6 +339,8 @@ static bool reset_httpd_watchdog_user(canview_bridge_web_state_t *state)
     return true;
 }
 
+static bool acknowledge_httpd_heartbeat(canview_bridge_web_state_t *state);
+
 static int send_with_worker_deadline(httpd_handle_t server, int client_fd, const char *buffer,
                                     size_t buffer_length, int flags)
 {
@@ -354,6 +356,10 @@ static int send_with_worker_deadline(httpd_handle_t server, int client_fd, const
     const int sent = send(client_fd, buffer, buffer_length, flags);
     const int send_errno = errno;
     if (!reset_httpd_watchdog_user(&web_state))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    if (!acknowledge_httpd_heartbeat(&web_state))
     {
         return HTTPD_SOCK_ERR_FAIL;
     }
@@ -376,6 +382,20 @@ static int send_with_worker_deadline(httpd_handle_t server, int client_fd, const
     }
 }
 
+static bool acknowledge_httpd_heartbeat(canview_bridge_web_state_t *state)
+{
+    if (state == NULL || !state_lock_take(state))
+    {
+        return false;
+    }
+    if (state->httpd_heartbeat_pending)
+    {
+        state->httpd_heartbeat_acknowledged = state->httpd_heartbeat_sequence;
+    }
+    state_lock_give(state);
+    return true;
+}
+
 static void httpd_heartbeat_work(void *context)
 {
     canview_bridge_web_state_t *state = context;
@@ -383,14 +403,7 @@ static void httpd_heartbeat_work(void *context)
     {
         return;
     }
-    if (state_lock_take(state))
-    {
-        if (state->httpd_heartbeat_pending)
-        {
-            state->httpd_heartbeat_acknowledged = state->httpd_heartbeat_sequence;
-        }
-        state_lock_give(state);
-    }
+    (void)acknowledge_httpd_heartbeat(state);
 }
 
 /* Caller holds state_lock. A queued callback is the HTTPD task's liveness proof. */
@@ -1977,6 +1990,10 @@ static int receive_with_pre_auth_deadline(httpd_handle_t server, int client_fd, 
     }
     const int received = recv(client_fd, buffer, buffer_length, flags);
     if (!reset_httpd_watchdog_user(&web_state))
+    {
+        return HTTPD_SOCK_ERR_FAIL;
+    }
+    if (!acknowledge_httpd_heartbeat(&web_state))
     {
         return HTTPD_SOCK_ERR_FAIL;
     }

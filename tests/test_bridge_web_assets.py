@@ -111,6 +111,7 @@ class BridgeWebAssetTests(unittest.TestCase):
         self.assertIn("httpd_sess_set_recv_override", source)
         self.assertIn("httpd_sess_set_send_override", source)
         self.assertIn("send_with_worker_deadline", source)
+        self.assertIn("acknowledge_httpd_heartbeat", source)
         self.assertIn("receive_with_pre_auth_deadline", source)
         self.assertIn("CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS", source)
         self.assertIn("CANVIEW_BRIDGE_WEB_WORKER_HEARTBEAT_TIMEOUT_MS", source)

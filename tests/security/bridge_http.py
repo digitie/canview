@@ -71,6 +71,7 @@ def check_static_contract() -> int:
         "httpd_sess_set_recv_override",
         "httpd_sess_set_send_override",
         "send_with_worker_deadline",
+        "acknowledge_httpd_heartbeat",
         "receive_with_pre_auth_deadline",
         "CANVIEW_BRIDGE_WEB_PRE_AUTH_TIMEOUT_MS",
         "CANVIEW_BRIDGE_WEB_WORKER_HEARTBEAT_TIMEOUT_MS",

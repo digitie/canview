@@ -22,6 +22,8 @@ HTTP handler는 `request_lock`으로 singleton JSON arena, request body와 respo
 
 인증 전 socket은 `open_fn`에서 시작 시각을 기록하고 receive override가 매 수신 전에 deadline을 확인한다. 인증 성공과 activity 기록은 같은 `state_lock` critical section에서 수행하며, main poll과 request entry는 auth 상태를 reconcile한다. logout·token expiry·재인증 거부·credential parse 실패 뒤에는 같은 socket에 deadline을 다시 arm하고, 이미 진행 중인 deadline은 실패 요청마다 연장하지 않는다. 단일 client 정책에서는 HTTPD LRU purge를 끄고 두 번째 연결이 기존 owner를 축출하지 않게 한다. DNS descriptor는 DNS task만 닫고 `SO_RCVTIMEO`가 stop 대기를 제한하므로 descriptor 번호 재사용 중 외부 `shutdown()`을 수행하지 않는다. stop 경로에서 외부 자원 정리가 실패하면 이미 정리된 상태만 반영하고 나머지 handle·lock·auth 상태를 보존해 상위 retry가 다시 호출할 수 있게 한다. app이 bounded retry 뒤에도 cleanup에 실패하면 retained network service를 정상 idle로 두지 않고 `esp_restart()`로 재부팅한다.
 
+HTTPD worker liveness는 app poll이 `httpd_queue_work()`로 예약한 callback ACK와 실제 worker socket I/O progress를 함께 사용한다. HTTPD task가 bounded `recv()` 또는 `send()`를 수행할 때 1초 `SO_RCVTIMEO`/`SO_SNDTIMEO`와 전후 task-WDT user checkpoint를 적용하고, progress가 있으면 해당 heartbeat sequence도 ACK한다. 따라서 느린 client는 제한시간 안에 정리되고 정상적인 부분 I/O가 1.5초 worker-heartbeat timeout으로 잘못 승격되지 않는다. queue callback 자체가 실행되지 않고 I/O progress도 사라지는 경우에는 app poll이 timeout을 감지해 service를 중지한다. callback·I/O·DNS fault injection은 현재 host contract에 포함되지 않으며 후속 runtime/HIL gate에서 검증한다.
+
 `canview_bridge_web_config_t`의 credential 포인터는 start 호출 중에만 유효하면 된다. PIN digest는 auth state로 복사하고, AP password는 `esp_wifi_set_config()`에 복사한 직후 web state에서 zeroize한다. app도 start 반환 뒤 local credential buffer를 zeroize한다. callback은 `button_pressed` 하나만 남으며 web service가 정지할 때까지 caller가 수명을 보장해야 한다. ISR은 button callback이나 web API를 호출하지 않는다.
 
 ## 부팅과 service window
@@ -70,6 +72,10 @@ token은 128-bit memory-only value다. REST는 `Authorization: Bearer <base64url
 python -B tools/generate_boards.py --check
 python -B tools/validate_document_links.py
 python -B tools/check_sdkconfig.py firmware/diagnostic-bridge/sdkconfig --board bridge-r1-n8r2
+python -B tests/test_bridge_web_assets.py -v
+python -B tests/security/bridge_http.py
+& npm ci --ignore-scripts --fund=false --audit=false
+node tools/ui/check-browser.cjs
 Push-Location firmware/diagnostic-bridge
 idf.py build
 idf.py size-components
@@ -77,4 +83,5 @@ Pop-Location
 ```
 
 host auth CTest는 service window, null/bounds, malformed PIN, one-time challenge, token expiry, lockout과 clock rollback을 확인한다. 실제 ESP32 flash, ST-LINK/serial, AP association, Android/iOS captive browser, power rail/reset/brownout, PSRAM/clock/watchdog soak, ESP-NOW, 차량 CAN/capture와 production provisioning은 현재 실행하지 않았으며 `NOT_RUN`이다. CAN TX는 계속 `NO-GO`다.
+오프라인 Playwright 검사는 Edge에서 driver shell 74 checks와 Diagnostic Bridge shell 10 checks, 외부 요청 0건을 확인한다. 이 결과는 실제 ESP32 endpoint, AP association 또는 Android/iOS 실기기 시험을 대체하지 않는다.
 기본 CTest의 UART fault stream은 1초 bounded smoke로 실행하며, 24시간 virtual soak은 `CANVIEW_LONG_TESTS=ON`으로 별도 요청한 경우에만 `uart-fault-stream-24h`로 등록한다. 이는 실제 4 Mbps UART waveform, RTS/CTS, board soak을 대체하지 않는다.
