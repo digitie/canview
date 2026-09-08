@@ -81,9 +81,10 @@ def _validate_events(path: Path, expected_count: int) -> list[dict[str, Any]]:
         raw = path.read_bytes()
     except OSError as error:
         raise EvidenceError(f"unable to read event bytes for {path}: {error}") from error
-    raw_lines = raw.splitlines(keepends=True)
     if raw and not raw.endswith(b"\n"):
         raise EvidenceError(f"event log has no final newline: {path}")
+    raw_parts = raw.split(b"\n")
+    raw_lines = [part + b"\n" for part in raw_parts[:-1]]
     if len(raw_lines) != len(records):
         raise EvidenceError(f"event line count mismatch for {path}")
     if len(records) != expected_count:

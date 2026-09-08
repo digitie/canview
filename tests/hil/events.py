@@ -159,7 +159,13 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     try:
         if path.stat().st_size > MAX_EVENT_LOG_BYTES:
             raise EventLogError(f"event log is too large: {path}")
-        lines = path.read_text(encoding="utf-8").splitlines()
+        # JSONL records are delimited only by ASCII LF.  str.splitlines()
+        # would incorrectly split valid U+0085/U+2028/U+2029 characters
+        # inside a JSON string when ensure_ascii=False is used by the writer.
+        text = path.read_text(encoding="utf-8")
+        lines = text.split("\n")
+        if lines and lines[-1] == "":
+            lines.pop()
     except OSError as error:
         raise EventLogError(f"unable to read event log {path}: {error}") from error
     except EventLogError:

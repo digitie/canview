@@ -107,6 +107,15 @@ class HilRunnerTests(unittest.TestCase):
         with self.assertRaises(EventLogError):
             EventLog().append(1_000, "fixture", "EVENT", text="\ud800")
 
+    def test_event_log_round_trips_unicode_line_separators(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            event_log = EventLog()
+            event_log.append(1_000, "fixture", "EVENT",
+                             text="a\u0085b\u2028c\u2029d")
+            path = Path(directory) / "events.jsonl"
+            event_log.write_jsonl(path)
+            self.assertEqual(event_log.records, read_jsonl(path))
+
     def test_event_log_supports_reserved_field_names(self) -> None:
         record = EventLog().append_fields(
             1_000, "fixture", "EVENT", {"kind": "nested-kind"})

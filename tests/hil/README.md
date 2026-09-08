@@ -47,6 +47,10 @@ harness source digest, scenario digest, adapter, metrics, physical/HIL 상태가
 각 JSONL event에는 monotonic timestamp, 연속 sequence와 byte `log_offset`이
 있다. analyzer는 다음 순서로 첫 위반을 보존한다.
 
+JSONL record delimiter는 ASCII LF(`\n`) 하나로 고정한다. JSON 문자열 안의
+U+0085/U+2028/U+2029 같은 Unicode line separator는 record를 나누지 않으며,
+writer·reader·byte offset 검증이 같은 delimiter 규칙을 사용한다.
+
 1. event 존재·sequence·monotonic timeline
 2. `CAPTURE_ONLY` CAN TX 0 및 command allow-list
 3. expected event/field
