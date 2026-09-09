@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-09 | T-104 누락 응답 복구·B 후속 closure | `14ea3c9`/`6b33a59`, 기록 전용 | A-10 runtime / B-11·12·13 원 reviewer | [기록](adversarial/2026-09-09-T-104-04.md), B 후속 PASS; A-08 사용자 한정 면제·P1 확인 debt, A-10 P2 defer·NOT_RUN 유지 |
 | 2026-09-09 | T-104 A 중단·사용자 PR #33 한정 면제/B-09 결과 | `14ea3c9`, DMAMUX mock·watchdog 문서 후속 수정 | A embedded runtime / B SDK·build·evidence | [기록](adversarial/2026-09-09-T-104-03.md), A `INCOMPLETE/BLOCK`·P1 closure 미완료를 이슈 #34로 추적; B `CONDITIONAL`; physical/HIL `NOT_RUN` |
 | 2026-09-09 | T-104 UART DMA/link 최초·post-fix hostile review | `9066379`→`bdc6798`, 수정 candidate `14ea3c9` | embedded runtime·안전 / SDK·build·security·evidence | [최초](adversarial/2026-09-09-T-104.md)·[post-fix](adversarial/2026-09-09-T-104-02.md), 원문 `BLOCK` 보존·원 reviewer 재확인 대기, physical/HIL `NOT_RUN` |
 | 2026-09-09 | T-103 STM32 FDCAN capture-only source/target-evidence closure | `6db3998` → `365a921`, 3-channel monitor/RX FIFO·raw ring·timestamp/drop·no-TX provenance·target artifact | embedded runtime·ISR·안전 / SDK·build·security·evidence | [report](adversarial/2026-09-09-T-103.md), 최종 A `PASS`·B `CONDITIONAL`, unresolved P0/P1 0; P2 2건 T-500 defer, physical/HIL `NOT_RUN`, CAN TX `NO-GO` |

@@ -1,5 +1,15 @@
 # CANView 작업 일지
 
+## 2026-09-09 (codex, T-104 완료 응답 복구와 B closure)
+
+앱 조회에서 비었던 A-10/B-11의 기존 final 응답/작성 원문을 로컬 기록에서 복구했다.
+실제 서비스 차단 A-08과 조회 누락을 구분하고 원문을 변경 없이 보존했다. B-11의
+과거 타 review 발췌 노출도 숨기지 않았다. B-12는 SDK/mock·문서 P3 두 건 PASS,
+B-13은 원 B P1/P2 여섯 건 PASS를 반환했다. A-10 P2 회귀 공백은 owner digitie,
+이슈 #34/T-104, 다음 admission 변경·software qualification 전 gate로 defer했다.
+PR #33 한정 A 면제만 적용하며 최신 CI/artifact와 merge 확인은 아직 남아 있다.
+다음 공용 core 선행 T-007은 merge 확인 뒤 시작하고 물리·차량 gate는 열지 않는다.
+
 ## 2026-09-09 (codex, T-104 A 중단 이슈와 사용자 한정 면제)
 
 사용자가 A 중단의 상세 이슈화·skip·merge·다음 단계 진행을 명시했다. GitHub

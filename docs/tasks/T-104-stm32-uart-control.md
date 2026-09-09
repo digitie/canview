@@ -6,6 +6,12 @@
 - 선행: `T-004`, `T-102`
 - 병렬 가능: `T-103`
 
+최신 [복구·B closure 기록](../reviews/adversarial/2026-09-09-T-104-04.md)에서
+B-12/B-13 PASS와 A-10의 P2 safety-inhibit 시험 공백을 구분한다. 후자는 owner
+`digitie`, 이슈 #34/T-104 검증 보강으로 defer하며 다음 UART/admission 변경 전,
+늦어도 software qualification·control authorizer 활성화·G2 승인 전에 해결한다.
+A-08 원 P1 확인 debt는 사용자 한정 면제일 뿐 CLOSED가 아니다.
+
 2026-09-09 사용자 명시 지시로 PR #33의 A 재검토 gate만 면제해 source merge와
 다음 software Task 진행을 허용한다. [이슈 #34](https://github.com/digitie/canview/issues/34)와
 [review 기록](../reviews/adversarial/2026-09-09-T-104-03.md)에 원 A의 `INCOMPLETE/BLOCK`,

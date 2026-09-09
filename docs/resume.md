@@ -2,6 +2,16 @@
 
 ## 현재 진척도
 
+2026-09-09 T-104 [최신 review 정정·closure](reviews/adversarial/2026-09-09-T-104-04.md):
+조회 누락이었던 A-10/B-11 완료 보고서를 복구했고 원문을 보존했다. B-12/B-13은
+`6b33a59`의 각 원 finding을 PASS로 확인했다. A-08 서비스 차단과 원 P1 확인 debt는
+별개이며 PR #33 한정 사용자 면제만 적용한다. A-10 안전 억제 회귀 공백 P2는
+이슈 #34/T-104에 owner·시점·gate를 지정해 defer했다. 이 기록 commit의 최신 CI와
+artifact 확인 후 merge하며, merge 확인 다음에는 T-007 OTA container를 시작한다.
+T-104는 DONE이 아니며 issue #34 OPEN·physical NOT_RUN·차량 TX NO-GO 유지다.
+
+아래는 이전 상태 기록이다.
+
 2026-09-09 사용자 지시로 T-104 **PR #33 한 건의 A 재검토 gate를 면제**하고,
 CI·B 후속 확인 후 source merge와 다음 software Task 진행을 허용했다.
 [이슈 #34](https://github.com/digitie/canview/issues/34)에 A-08 service 중단 원문,
