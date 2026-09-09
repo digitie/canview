@@ -14,6 +14,8 @@ extern uint32_t fake_output_fail_call_2;
 extern uint32_t fake_wait_calls;
 extern uint32_t fake_wait_fail_call;
 extern uint32_t fake_wait_poll_mismatch_call;
+extern uint64_t fake_now_us64;
+extern volatile uint32_t canview_test_stm_uid[3];
 extern bool fake_outputs[2][16];
 
 void fake_hardware_reset(void);

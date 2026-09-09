@@ -282,6 +282,7 @@ static void timer_extension_tests(void)
     TIM2->CNT = 1U;
     const uint64_t after_wrap = canview_stm_now_us64(NULL);
     CHECK(after_wrap == UINT64_C(0x100000001) && after_wrap > before_wrap);
+    CHECK(canview_stm_now_ms64(NULL) == after_wrap / UINT64_C(1000));
     TIM2->CNT = UINT32_MAX;
     CHECK(canview_stm_now_us64(NULL) == UINT64_C(0x1ffffffff));
     canview_stm_test_set_timer2_extension(2U, UINT64_MAX, true);

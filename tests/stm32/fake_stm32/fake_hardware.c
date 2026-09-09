@@ -13,6 +13,13 @@ TIM_TypeDef fake_tim2;
 FDCAN_GlobalTypeDef fake_fdcan1;
 FDCAN_GlobalTypeDef fake_fdcan2;
 FDCAN_GlobalTypeDef fake_fdcan3;
+USART_TypeDef fake_usart2;
+DMA_TypeDef fake_dma1;
+DMA_Channel_TypeDef fake_dma1_channel1;
+DMA_Channel_TypeDef fake_dma1_channel2;
+DMAMUX_Channel_TypeDef fake_dmamux1_channel0;
+DMAMUX_Channel_TypeDef fake_dmamux1_channel1;
+RNG_TypeDef fake_rng;
 uint8_t fake_sramcan[4096];
 uint32_t fake_now_us;
 uint32_t fake_output_calls;
@@ -21,6 +28,8 @@ uint32_t fake_output_fail_call_2;
 uint32_t fake_wait_calls;
 uint32_t fake_wait_fail_call;
 uint32_t fake_wait_poll_mismatch_call;
+uint64_t fake_now_us64;
+volatile uint32_t canview_test_stm_uid[3];
 bool fake_outputs[2][16];
 
 void fake_hardware_reset(void)
@@ -32,9 +41,18 @@ void fake_hardware_reset(void)
     memset(&fake_fdcan1, 0, sizeof(fake_fdcan1));
     memset(&fake_fdcan2, 0, sizeof(fake_fdcan2));
     memset(&fake_fdcan3, 0, sizeof(fake_fdcan3));
+    memset(&fake_usart2, 0, sizeof(fake_usart2));
+    memset(&fake_dma1, 0, sizeof(fake_dma1));
+    memset(&fake_dma1_channel1, 0, sizeof(fake_dma1_channel1));
+    memset(&fake_dma1_channel2, 0, sizeof(fake_dma1_channel2));
+    memset(&fake_dmamux1_channel0, 0, sizeof(fake_dmamux1_channel0));
+    memset(&fake_dmamux1_channel1, 0, sizeof(fake_dmamux1_channel1));
+    memset(&fake_rng, 0, sizeof(fake_rng));
     memset(fake_sramcan, 0, sizeof(fake_sramcan));
     memset(fake_outputs, 0, sizeof(fake_outputs));
     fake_now_us = 1U;
+    fake_now_us64 = 1000U;
+    memset((void *)canview_test_stm_uid, 0, sizeof(canview_test_stm_uid));
     fake_output_calls = 0U;
     fake_output_fail_call = 0U;
     fake_output_fail_call_2 = 0U;
@@ -70,6 +88,17 @@ uint32_t canview_stm_now_us(void *context)
 {
     (void)context;
     return fake_now_us++;
+}
+
+uint64_t canview_stm_now_us64(void *context)
+{
+    (void)context;
+    return fake_now_us64;
+}
+
+uint64_t canview_stm_now_ms64(void *context)
+{
+    return canview_stm_now_us64(context) / UINT64_C(1000);
 }
 
 uint32_t canview_stm_critical_enter(void *context)

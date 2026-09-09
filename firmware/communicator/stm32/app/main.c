@@ -17,7 +17,7 @@ static uint8_t uart_rx_buffer[CANVIEW_STM_UART_PLATFORM_RX_CAPACITY]
 static canview_status_t uart_worker(void *context)
 {
     return canview_stm_uart_platform_service(
-        (canview_stm_uart_platform_t *)context, (uint64_t)canview_stm_board_now_ms(),
+        (canview_stm_uart_platform_t *)context, canview_stm_now_ms64(NULL),
         canview_stm_now_us64(NULL), 512U);
 }
 
@@ -59,7 +59,7 @@ int main(void)
         NULL,
         NULL};
     if (canview_stm_uart_init(&uart_runtime, &uart_config,
-                              (uint64_t)canview_stm_board_now_ms(),
+                              canview_stm_now_ms64(NULL),
                               canview_stm_now_us64(NULL)) != CANVIEW_OK)
     {
         boot_port.fault(boot_port.context, CANVIEW_STM_FAULT_BOOT);

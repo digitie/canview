@@ -50,6 +50,12 @@ typedef struct
     canview_status_t nested_status;
 } test_authorizer_t;
 
+typedef struct
+{
+    uint32_t calls;
+    canview_status_t status;
+} test_reset_hook_t;
+
 static void put_le(uint8_t *bytes, size_t width, uint64_t value)
 {
     for (size_t index = 0U; index < width; ++index)
@@ -97,6 +103,17 @@ static bool allow_any_message(const canview_uart_message_view_t *view, uint64_t 
     }
     ++authorizer->calls;
     return authorizer->allow;
+}
+
+static canview_status_t test_reset_hook(void *opaque)
+{
+    test_reset_hook_t *hook = (test_reset_hook_t *)opaque;
+    if (hook == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    ++hook->calls;
+    return hook->status;
 }
 
 static int init_runtime(canview_stm_uart_context_t *runtime, test_authorizer_t *authorizer)
@@ -436,6 +453,99 @@ static int test_handshake_and_time_sync(void)
     CHECK(establish_link(&runtime, NULL) == 0);
     CHECK(establish_time_mapping(&runtime, 4U) == 0);
     CHECK(drain_outbound(&runtime) == 0);
+    return 0;
+}
+
+static int test_time_sync_cross_clock_and_pending_timeout(void)
+{
+    static canview_stm_uart_context_t runtime;
+    CHECK(establish_link(&runtime, NULL) == 0);
+
+    uint8_t request[80U];
+    build_time_sync(request, CANVIEW_UART_TIME_SYNC_REQUEST, UINT64_C(0x2201),
+                    TEST_CONTROLLER_BOOT_ID, 0U, TEST_SYNC_GENERATION, 1000000U, 0U, 0U, 0U);
+    CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
+                       (uint8_t)(CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY),
+                       4U, 0x220U, 1000000U, request, sizeof(request), 40U, 990100U) ==
+          CANVIEW_OK);
+    test_message_t message;
+    CHECK(expect_outbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC, &message) == 0);
+    CHECK(get_le(message.payload + 40U, 8U) == 990100U &&
+          get_le(message.payload + 48U, 8U) == 990100U);
+
+    uint8_t commit[80U];
+    build_time_sync(commit, CANVIEW_UART_TIME_SYNC_COMMIT, UINT64_C(0x2201),
+                    TEST_CONTROLLER_BOOT_ID, TEST_STM_BOOT_ID, TEST_SYNC_GENERATION, 1000000U,
+                    990100U, 990100U, 1000210U);
+    CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
+                       (uint8_t)(CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY),
+                       5U, 0x221U, 1000210U, commit, sizeof(commit), 50U, 1000210U) ==
+          CANVIEW_OK);
+    canview_stm_uart_time_mapping_t mapping;
+    CHECK(canview_stm_uart_get_time_mapping(&runtime, &mapping) == CANVIEW_OK);
+    CHECK(mapping.valid && mapping.offset_stm_minus_controller_us < 0);
+
+    static canview_stm_uart_context_t pending_runtime;
+    CHECK(establish_link(&pending_runtime, NULL) == 0);
+    build_time_sync(request, CANVIEW_UART_TIME_SYNC_REQUEST, UINT64_C(0x2202),
+                    TEST_CONTROLLER_BOOT_ID, 0U, TEST_SYNC_GENERATION, 2000000U, 0U, 0U, 0U);
+    CHECK(feed_inbound(&pending_runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
+                       (uint8_t)(CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY),
+                       4U, 0x222U, 2000000U, request, sizeof(request), 40U, 2000000U) ==
+          CANVIEW_OK);
+    CHECK(expect_outbound(&pending_runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC, &message) == 0);
+    CHECK(pending_runtime.pending_sync_valid);
+    uint8_t heartbeat[48U];
+    build_heartbeat(heartbeat, TEST_ESP_BOOT_ID,
+                    CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION);
+    CHECK(feed_inbound(&pending_runtime, CANVIEW_UART_MSG_HEARTBEAT, 0U, 5U, 0U, 900000U,
+                       heartbeat, sizeof(heartbeat), 900U, 900000U) == CANVIEW_OK);
+    CHECK(expect_outbound(&pending_runtime, CANVIEW_UART_MSG_SAFETY_SNAPSHOT, &message) == 0);
+    CHECK(canview_stm_uart_tick(
+              &pending_runtime, 40U + CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS + 1U,
+              2001000U) == CANVIEW_OK);
+    CHECK(!pending_runtime.pending_sync_valid);
+    build_time_sync(commit, CANVIEW_UART_TIME_SYNC_COMMIT, UINT64_C(0x2202),
+                    TEST_CONTROLLER_BOOT_ID, TEST_STM_BOOT_ID, TEST_SYNC_GENERATION, 2000000U,
+                    2000000U, 2000000U, 2000100U);
+    const canview_status_t stale_status = feed_inbound(
+        &pending_runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
+        (uint8_t)(CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY), 6U, 0x223U,
+        2000100U, commit, sizeof(commit), 1042U, 2000100U);
+    CHECK(stale_status == CANVIEW_STALE);
+    return 0;
+}
+
+static int test_reset_hook_and_safety_inhibit(void)
+{
+    static canview_stm_uart_context_t runtime;
+    test_authorizer_t authorizer = {.allow = true};
+    CHECK(establish_link(&runtime, &authorizer) == 0);
+    test_reset_hook_t hook = {.status = CANVIEW_OK};
+    CHECK(canview_stm_uart_set_reset_hook(&runtime, test_reset_hook, &hook) == CANVIEW_OK);
+
+    runtime.safety_inhibited = true;
+    uint8_t command[104U];
+    build_command(command, UINT64_C(0x2301), 0xA1U, TEST_SYNC_GENERATION, 1U);
+    CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_COMMAND_REQUEST,
+                       (uint8_t)(CANVIEW_UART_FLAG_ACK_REQUIRED | CANVIEW_UART_FLAG_HIGH_PRIORITY),
+                       4U, 0x230U, 3000U, command, sizeof(command), 40U, 3000U) ==
+          CANVIEW_AUTH_FAILED);
+    CHECK(authorizer.calls == 0U);
+    test_message_t message;
+    CHECK(expect_outbound(&runtime, CANVIEW_UART_MSG_ERROR, &message) == 0);
+
+    uint8_t hello[72U];
+    build_hello(hello, TEST_ESP_BOOT_ID + 1U, TEST_ESP_DEVICE_ID);
+    CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_LINK_HELLO, 0U, 5U, 0U, 4000U, hello,
+                       sizeof(hello), 50U, 4000U) == CANVIEW_OK);
+    CHECK(hook.calls == 1U);
+    hook.status = CANVIEW_TIMEOUT;
+    CHECK(canview_stm_uart_reset(&runtime, 60U, 5000U) == CANVIEW_TIMEOUT);
+    CHECK(hook.calls == 2U);
+    hook.status = CANVIEW_OK;
+    CHECK(canview_stm_uart_reset(&runtime, 61U, 6000U) == CANVIEW_OK);
+    CHECK(hook.calls == 3U);
     return 0;
 }
 
@@ -985,11 +1095,17 @@ static int test_public_reentry_guards(void)
     static canview_stm_uart_context_t runtime;
     CHECK(init_runtime(&runtime, NULL) == 0);
     CHECK(drain_outbound(&runtime) == 0);
+    CHECK(canview_stm_uart_set_reset_hook(NULL, NULL, NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_stm_uart_set_reset_hook(&runtime, NULL, &runtime) ==
+          CANVIEW_INVALID_ARGUMENT);
     uint8_t payload[12U] = {0};
     const uint8_t *data = NULL;
     size_t size = 0U;
     uint32_t sequence = 0U;
     runtime.servicing = true;
+    test_reset_hook_t hook = {.status = CANVIEW_OK};
+    CHECK(canview_stm_uart_set_reset_hook(&runtime, test_reset_hook, &hook) ==
+          CANVIEW_RESOURCE_BUSY);
     CHECK(canview_stm_uart_reset(&runtime, 1U, 1000U) == CANVIEW_RESOURCE_BUSY);
     CHECK(canview_stm_uart_set_cts_blocked(&runtime, false, 1U) == CANVIEW_RESOURCE_BUSY);
     CHECK(canview_stm_uart_enqueue(&runtime, CANVIEW_STM_UART_TX_RAW,
@@ -1003,7 +1119,7 @@ static int test_public_reentry_guards(void)
     runtime.servicing = false;
     canview_stm_uart_stats_t stats;
     CHECK(canview_stm_uart_get_stats(&runtime, &stats) == CANVIEW_OK);
-    CHECK(stats.callback_reentry >= 5U);
+    CHECK(stats.callback_reentry >= 6U);
     return 0;
 }
 
@@ -1127,7 +1243,7 @@ static int test_time_sync_rejection_and_argument_guards(void)
 
     build_time_sync(commit, CANVIEW_UART_TIME_SYNC_COMMIT, UINT64_C(0x8103),
                     TEST_CONTROLLER_BOOT_ID, TEST_STM_BOOT_ID, TEST_SYNC_GENERATION, 5000U,
-                    6000U, 6000U, 200000U);
+                    5000U, 5000U, 200000U);
     CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
                        (uint8_t)(CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY),
                        8U, 0x815U, 200000U, commit, sizeof(commit), 53U, 200000U) ==
@@ -1135,7 +1251,7 @@ static int test_time_sync_rejection_and_argument_guards(void)
 
     build_time_sync(commit, CANVIEW_UART_TIME_SYNC_COMMIT, UINT64_C(0x8103),
                     TEST_CONTROLLER_BOOT_ID, TEST_STM_BOOT_ID, TEST_SYNC_GENERATION, 5000U,
-                    6000U, 6000U, 7000U);
+                    5000U, 5000U, 7000U);
     CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
                        (uint8_t)(CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY),
                        9U, 0x816U, 7000U, commit, sizeof(commit), 54U, 7000U) == CANVIEW_OK);
@@ -1165,6 +1281,8 @@ static int test_time_sync_rejection_and_argument_guards(void)
 int main(void)
 {
     CHECK(test_handshake_and_time_sync() == 0);
+    CHECK(test_time_sync_cross_clock_and_pending_timeout() == 0);
+    CHECK(test_reset_hook_and_safety_inhibit() == 0);
     CHECK(test_command_idempotency_and_reentry() == 0);
     CHECK(test_capture_only_denies_control() == 0);
     CHECK(test_lease_plan_and_observer_dispatch() == 0);

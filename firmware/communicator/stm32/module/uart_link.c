@@ -558,6 +558,7 @@ static bool runtime_authorize(const canview_uart_message_view_t *view, uint64_t 
     if (!context_ready(context) || view == NULL || view->policy == NULL ||
         !canview_uart_link_command_admission_allowed(&context->link, now_ms) ||
         context->link.safety_revision != context->local_safety_revision ||
+        context->safety_inhibited ||
         context->authorize == NULL)
     {
         return false;
@@ -598,6 +599,22 @@ static void clear_pending_slots(canview_stm_uart_context_t *context)
     context->pending_count = 0U;
 }
 
+static void clear_pending_time_sync(canview_stm_uart_context_t *context)
+{
+    if (context == NULL)
+    {
+        return;
+    }
+    context->pending_sync_token = 0U;
+    context->pending_sync_controller_boot_id = 0U;
+    context->pending_sync_generation = 0U;
+    context->pending_sync_t1_controller_us = 0U;
+    context->pending_sync_t2_stm_us = 0U;
+    context->pending_sync_t3_stm_us = 0U;
+    context->pending_sync_started_ms = 0U;
+    context->pending_sync_valid = false;
+}
+
 static canview_status_t clear_local_session(canview_stm_uart_context_t *context, uint64_t now_ms,
                                             bool reset_codec)
 {
@@ -615,11 +632,7 @@ static canview_status_t clear_local_session(canview_stm_uart_context_t *context,
     context->tx_current_class = CANVIEW_STM_UART_TX_P0;
     memset(&context->time_mapping, 0, sizeof(context->time_mapping));
     memset(&context->lease, 0, sizeof(context->lease));
-    context->pending_sync_token = 0U;
-    context->pending_sync_controller_boot_id = 0U;
-    context->pending_sync_generation = 0U;
-    context->pending_sync_t1_controller_us = 0U;
-    context->pending_sync_valid = false;
+    clear_pending_time_sync(context);
     memset(context->tx_serial, 0, sizeof(context->tx_serial));
     memset(context->tx_scratch, 0, sizeof(context->tx_scratch));
     context->tx_serial_size = 0U;
@@ -637,6 +650,15 @@ static canview_status_t clear_local_session(canview_stm_uart_context_t *context,
 static canview_status_t begin_session_recovery(canview_stm_uart_context_t *context,
                                                uint64_t now_ms, bool reset_codec)
 {
+    if (context->reset_hook != NULL)
+    {
+        const canview_status_t hook_status =
+            context->reset_hook(context->reset_hook_context);
+        if (hook_status != CANVIEW_OK)
+        {
+            return hook_status;
+        }
+    }
     increment_saturating(&context->stats.session_invalidations);
     increment_saturating(&context->stats.link_resets);
     const canview_status_t clear_status = clear_local_session(context, now_ms, reset_codec);
@@ -1020,6 +1042,9 @@ static canview_status_t handle_time_sync(canview_stm_uart_context_t *context,
         context->pending_sync_controller_boot_id = controller_boot_id;
         context->pending_sync_generation = generation;
         context->pending_sync_t1_controller_us = read_le(payload + 32U, 8U);
+        context->pending_sync_t2_stm_us = now_us;
+        context->pending_sync_t3_stm_us = now_us;
+        context->pending_sync_started_ms = now_ms;
         context->replay = candidate;
         increment_saturating(&context->stats.time_sync_requests);
         increment_saturating(&context->stats.time_sync_responses);
@@ -1035,7 +1060,8 @@ static canview_status_t handle_time_sync(canview_stm_uart_context_t *context,
             context->pending_sync_controller_boot_id != controller_boot_id ||
             context->pending_sync_generation != generation ||
             context->pending_sync_t1_controller_us != t1 ||
-            t1 == 0U || t2 == 0U || t3 == 0U || t4 == 0U || t2 < t1 || t3 < t2 || t4 < t3)
+            context->pending_sync_t2_stm_us != t2 || context->pending_sync_t3_stm_us != t3 ||
+            t1 == 0U || t2 == 0U || t3 == 0U || t4 == 0U || t3 < t2 || t4 < t1)
         {
             increment_saturating(&context->stats.time_sync_rejected);
             return CANVIEW_STALE;
@@ -1071,11 +1097,7 @@ static canview_status_t handle_time_sync(canview_stm_uart_context_t *context,
         context->time_mapping.updated_ms = now_ms;
         context->time_mapping.controller_boot_id = controller_boot_id;
         context->time_mapping.stm_boot_id = context->local_boot_id;
-        context->pending_sync_valid = false;
-        context->pending_sync_token = 0U;
-        context->pending_sync_controller_boot_id = 0U;
-        context->pending_sync_generation = 0U;
-        context->pending_sync_t1_controller_us = 0U;
+        clear_pending_time_sync(context);
         context->replay = candidate;
         increment_saturating(&context->stats.time_sync_commits);
         return CANVIEW_OK;
@@ -1678,6 +1700,15 @@ canview_status_t canview_stm_uart_reset(canview_stm_uart_context_t *context,
     {
         return CANVIEW_RESOURCE_BUSY;
     }
+    if (context->reset_hook != NULL)
+    {
+        const canview_status_t hook_status =
+            context->reset_hook(context->reset_hook_context);
+        if (hook_status != CANVIEW_OK)
+        {
+            return hook_status;
+        }
+    }
     const uint64_t local_boot_id = context->local_boot_id;
     const uint64_t local_device_id = context->local_device_id;
     const uint32_t local_safety_revision = context->local_safety_revision;
@@ -1703,11 +1734,7 @@ canview_status_t canview_stm_uart_reset(canview_stm_uart_context_t *context,
     memset(context->tx_scratch, 0, sizeof(context->tx_scratch));
     context->tx_current_class = CANVIEW_STM_UART_TX_P0;
     context->tx_serial_size = 0U;
-    context->pending_sync_valid = false;
-    context->pending_sync_token = 0U;
-    context->pending_sync_controller_boot_id = 0U;
-    context->pending_sync_generation = 0U;
-    context->pending_sync_t1_controller_us = 0U;
+    clear_pending_time_sync(context);
     context->local_boot_id = local_boot_id;
     context->local_device_id = local_device_id;
     context->local_safety_revision = local_safety_revision;
@@ -1730,6 +1757,24 @@ canview_status_t canview_stm_uart_reset(canview_stm_uart_context_t *context,
         return codec_status;
     }
     return enqueue_hello(context);
+}
+
+canview_status_t canview_stm_uart_set_reset_hook(canview_stm_uart_context_t *context,
+                                                 canview_stm_uart_reset_hook_fn *hook,
+                                                 void *hook_context)
+{
+    if (!context_ready(context) || (hook == NULL && hook_context != NULL) ||
+        (hook != NULL && hook_context == NULL))
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (reject_reentry(context))
+    {
+        return CANVIEW_RESOURCE_BUSY;
+    }
+    context->reset_hook = hook;
+    context->reset_hook_context = hook_context;
+    return CANVIEW_OK;
 }
 
 canview_status_t canview_stm_uart_ingest_byte(canview_stm_uart_context_t *context, uint8_t byte,
@@ -2048,6 +2093,13 @@ canview_status_t canview_stm_uart_tick(canview_stm_uart_context_t *context, uint
     if (context->link.state != CANVIEW_UART_LINK_ONLINE && context->lease.valid)
     {
         memset(&context->lease, 0, sizeof(context->lease));
+    }
+    if (context->pending_sync_valid &&
+        elapsed_ms(now_ms, context->pending_sync_started_ms) >=
+            CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS)
+    {
+        clear_pending_time_sync(context);
+        increment_saturating(&context->stats.time_sync_rejected);
     }
     if (context->time_mapping.valid &&
         elapsed_ms(now_ms, context->time_mapping.updated_ms) >=

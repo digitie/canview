@@ -46,7 +46,7 @@ module은 CMSIS, HAL, DMA, FreeRTOS를 include하지 않는다. 모든 payload�
 
 | STM32 signal | pin | ESP32 signal | 의미 |
 |---|---|---|---|
-| USART2_CTS | PA0 | GPIO15 RTS | active-low 입력, 외부 10 kΩ pull-up |
+| USART2_CTS | PA0 | GPIO15 RTS | active-low 입력, high/pull-up이면 flow stop, low이면 peer ready |
 | USART2_RTS | PA1 | GPIO16 CTS | active-low 출력, 외부 10 kΩ pull-up |
 | USART2_TX | PA2 | GPIO18 RX | 4 Mbps 8N1 |
 | USART2_RX | PA3 | GPIO17 TX | 4 Mbps 8N1 |
@@ -56,11 +56,16 @@ compile-time 검사로 묶인다. RX circular DMA의 CNDTR는 2048이며 4-byte 
 caller buffer만 허용한다. IDLE interrupt는 byte parsing을 하지 않고 worker가
 CNDTR와 wrap counter를 읽게 한다. 32-bit DMA 위치와 별도로 software byte
 cursor는 64-bit라서 4 Mbps 24시간 window에서 누적 cursor가 wrap하지 않는다.
-UART envelope의 `sender_time_us`와 deadline은 `canview_stm_now_us64()`를 사용한다.
+UART envelope의 `sender_time_us`와 deadline은 `canview_stm_now_us64()`를 사용하고,
+worker의 millisecond 값도 `canview_stm_now_ms64()`에서 같은 확장 TIM2 epoch로 만든다.
 이 API는 TIM2 low-word를 PRIMASK critical section에서 읽고 wrap epoch를 확장하며,
 1 ms UART worker가 counter wrap보다 자주 호출하므로 24시간 software window에서
 timestamp가 역행하지 않는다. 기존 `canview_stm_now_us()` 32-bit API는 FDCAN
 capture compatibility 용도로만 남긴다.
+
+STM32 RNG를 boot identity에 사용할 때는 RNG enable 전에 HSI48을 켜고 ready bit를
+bounded poll한 뒤 `CLK48SEL=HSI48`을 명시한다. kernel clock이 준비되지 않거나 RNG가
+error/timeout이면 identity를 0으로 반환하고 boot을 중단한다.
 
 ## IRQ와 worker 경계
 
@@ -82,6 +87,12 @@ coalesce하고 RAW는 가장 오래된 항목부터 drop한다. CTS가 100 ms �
 command admission을 멈추며 1초 이상이면 session과 pending/lease를 폐기하고
 HELLO부터 다시 시작한다.
 
+runtime의 `reset_hook`는 session buffer와 `tx_serial`을 지우기 직전에 platform이
+DMA channel을 disable하고 bounded read-back/DSB를 수행하게 한다. quiesce가
+timeout이면 runtime은 buffer를 지우지 않고 fail-closed로 반환한다. RX DMA가
+`CNDTR` 모순, DMA/USART 오류 또는 ring overrun으로 재시작되면 platform context에
+마지막 원인, recovery 횟수와 폐기 byte 누적량을 남긴다.
+
 ## session·idempotency·시간
 
 양방향 `LINK_HELLO`/`LINK_HELLO_ACK`와 최근 heartbeat, CTS sample, local safety
@@ -92,7 +103,10 @@ STM local `SAFETY_SNAPSHOT`을 state queue에 coalesce한다. snapshot은 현재
 
 `CONTROL_TIME_SYNC`는 `(controller_boot_id, stm_boot_id, generation)`에 묶인
 4-timestamp mapping을 만들고 uncertainty가 50 ms를 넘거나 30초가 지나면
-무효화한다. command의 origin·session·generation·token·digest·control tag는
+무효화한다. controller clock과 STM32 clock 사이의 timestamp 대소관계를 직접
+비교하지 않으며, STM32가 response에서 기록한 `t2/t3`를 COMMIT에서 exact match로
+확인한다. 미완료 sync는 1초 뒤 폐기되어 오래된 COMMIT을 재사용할 수 없다.
+command의 origin·session·generation·token·digest·control tag는
 ESP32에서 재작성하지 않고 pending/cache에 copy한다.
 
 동일한 cache key와 digest는 terminal result를 재전송하고 executor를 다시 호출하지
@@ -104,8 +118,11 @@ heartbeat/CTS offline, runtime reset은 pending·mapping·lease를 모두 폐기
 
 host에서는 `stm32-uart-link`와 `uart-*` protocol test가 handshake, malformed
 resync, cache full, duplicate/conflict, queue 포화, callback reentry, boot 변경,
-CTS offline을 검증한다. target은 실제 STM32CubeG4 CMSIS와 Arm GCC로 USART2/DMA/
-DMAMUX object 및 최종 ELF/HEX/BIN/MAP을 빌드한다.
+CTS offline, cross-clock time-sync와 pending timeout을 검증한다. STM32 portable
+UART owner coverage는 별도 profile로 function 100%/line 70%/branch 50% 이상을
+요구하며, platform adapter는 실제 STM32CubeG4 CMSIS와 Arm GCC target object/
+ELF/HEX/BIN/MAP compile gate로 검증한다. host register model은 UART 전기 동작이나
+DMA timing을 증명하지 않는다.
 
 아래는 장비가 없는 현재 software gate에서 `NOT_RUN`이다.
 

@@ -378,6 +378,11 @@ uint64_t canview_stm_now_us64(void *context)
     return timestamp;
 }
 
+uint64_t canview_stm_now_ms64(void *context)
+{
+    return canview_stm_now_us64(context) / UINT64_C(1000);
+}
+
 #if defined(CANVIEW_STM_REGISTER_TEST)
 void canview_stm_test_set_timer2_extension(uint32_t last_count, uint64_t epoch, bool valid)
 {

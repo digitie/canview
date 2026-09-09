@@ -47,11 +47,34 @@
 #define CANVIEW_STM_UART_TX_DMA_CLEAR \
     (DMA_IFCR_CTCIF2 | DMA_IFCR_CTEIF2 | DMA_IFCR_CGIF2)
 
+#if defined(CANVIEW_STM_UART_PLATFORM_TEST)
+extern volatile uint32_t canview_test_stm_uid[3];
+#define CANVIEW_STM_UART_ID_UID_BASE ((uintptr_t)canview_test_stm_uid)
+#else
 #define CANVIEW_STM_UART_ID_UID_BASE (0x1fff7590UL)
+#endif
 #define CANVIEW_STM_UART_POLL_LIMIT (UINT32_C(100000))
 
 /* This adapter is a hardware singleton: there is one USART2 and one DMA pair. */
 static canview_stm_uart_platform_t *volatile active_platform;
+
+static bool wait_register(volatile const uint32_t *address, uint32_t mask,
+                          uint32_t expected)
+{
+    if (address == NULL)
+    {
+        return false;
+    }
+    for (uint32_t attempt = 0U; attempt < CANVIEW_STM_UART_POLL_LIMIT; ++attempt)
+    {
+        __DMB();
+        if ((*address & mask) == expected)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 static void post_event(canview_stm_uart_platform_t *platform, uint32_t event)
 {
@@ -187,7 +210,7 @@ static void disable_interrupts(void)
 static bool cts_is_blocked(void)
 {
     /* The external ESP32 RTS output is active-low and pulled high at reset. */
-    return (GPIOA->IDR & (UINT32_C(1) << CANVIEW_BOARD_ESP_RTS_PIN)) == 0U;
+    return (GPIOA->IDR & (UINT32_C(1) << CANVIEW_BOARD_ESP_RTS_PIN)) != 0U;
 }
 
 static bool sample_rx_total(const canview_stm_uart_platform_t *platform,
@@ -252,31 +275,92 @@ static uint32_t take_events(canview_stm_uart_platform_t *platform, bool *rx_erro
     return events;
 }
 
-static void abort_tx_dma(canview_stm_uart_platform_t *platform)
+static canview_status_t abort_tx_dma(canview_stm_uart_platform_t *platform)
 {
+    if (platform == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
     DMA1_Channel2->CCR &= ~DMA_CCR_EN;
     USART2->CR3 &= ~USART_CR3_DMAT;
+    __DSB();
+    if (!wait_register(&DMA1_Channel2->CCR, DMA_CCR_EN, 0U))
+    {
+        return CANVIEW_TIMEOUT;
+    }
     DMA1->IFCR = CANVIEW_STM_UART_TX_DMA_CLEAR;
+    __DSB();
     platform->tx_in_flight = false;
+    return CANVIEW_OK;
+}
+
+static canview_status_t runtime_reset_hook(void *opaque)
+{
+    canview_stm_uart_platform_t *const platform =
+        (canview_stm_uart_platform_t *)opaque;
+    return abort_tx_dma(platform);
+}
+
+static void record_rx_recovery(canview_stm_uart_platform_t *platform,
+                               canview_stm_uart_rx_recovery_reason_t reason,
+                               uint64_t discarded_bytes)
+{
+    if (platform == NULL)
+    {
+        return;
+    }
+    if (platform->rx_recovery_count != UINT32_MAX)
+    {
+        ++platform->rx_recovery_count;
+    }
+    if (reason == CANVIEW_STM_UART_RX_RECOVERY_DMA_OR_USART_ERROR &&
+        platform->rx_error_recovery_count != UINT32_MAX)
+    {
+        ++platform->rx_error_recovery_count;
+    }
+    if (reason == CANVIEW_STM_UART_RX_RECOVERY_RING_OVERRUN &&
+        platform->rx_overrun_recovery_count != UINT32_MAX)
+    {
+        ++platform->rx_overrun_recovery_count;
+    }
+    if (discarded_bytes > UINT64_MAX - platform->rx_discarded_bytes)
+    {
+        platform->rx_discarded_bytes = UINT64_MAX;
+    }
+    else
+    {
+        platform->rx_discarded_bytes += discarded_bytes;
+    }
+    platform->last_rx_recovery_reason = reason;
 }
 
 static canview_status_t reset_rx_dma(canview_stm_uart_platform_t *platform,
-                                     uint64_t now_ms, uint64_t now_us)
+                                     uint64_t now_ms, uint64_t now_us,
+                                     canview_stm_uart_rx_recovery_reason_t reason,
+                                     uint64_t discarded_bytes)
 {
     canview_status_t result = CANVIEW_OK;
+    record_rx_recovery(platform, reason, discarded_bytes);
     NVIC_DisableIRQ(DMA1_Channel1_IRQn);
     NVIC_DisableIRQ(DMA1_Channel2_IRQn);
     NVIC_DisableIRQ(USART2_IRQn);
     NVIC_ClearPendingIRQ(DMA1_Channel1_IRQn);
     NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
     NVIC_ClearPendingIRQ(USART2_IRQn);
-    abort_tx_dma(platform);
+    const canview_status_t tx_abort_status = abort_tx_dma(platform);
     DMA1_Channel1->CCR &= ~DMA_CCR_EN;
     USART2->CR3 &= ~USART_CR3_DMAR;
     DMA1->IFCR = CANVIEW_STM_UART_RX_DMA_CLEAR;
     USART2->ICR = CANVIEW_STM_UART_USART_ERROR_CLEAR | USART_ICR_IDLECF | USART_ICR_CTSCF;
     USART2->RQR = USART_RQR_RXFRQ;
-    result = canview_stm_uart_reset(platform->config.runtime, now_ms, now_us);
+    if (tx_abort_status != CANVIEW_OK)
+    {
+        result = tx_abort_status;
+    }
+    else
+    {
+        result = canview_stm_uart_reset(platform->config.runtime, now_ms, now_us);
+    }
     if (result == CANVIEW_OK)
     {
         memset(platform->config.rx_buffer, 0, platform->config.rx_capacity);
@@ -370,8 +454,11 @@ static canview_status_t start_tx_dma(canview_stm_uart_platform_t *platform)
     {
         return begin_status == CANVIEW_OK ? CANVIEW_MALFORMED : begin_status;
     }
-    DMA1_Channel2->CCR &= ~DMA_CCR_EN;
-    DMA1->IFCR = CANVIEW_STM_UART_TX_DMA_CLEAR;
+    const canview_status_t quiesce_status = abort_tx_dma(platform);
+    if (quiesce_status != CANVIEW_OK)
+    {
+        return quiesce_status;
+    }
     DMA1_Channel2->CMAR = (uint32_t)(uintptr_t)data;
     DMA1_Channel2->CNDTR = (uint32_t)size;
     DMA1_Channel2->CCR = DMA_CCR_DIR | DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_TEIE |
@@ -418,11 +505,17 @@ canview_status_t canview_stm_uart_platform_start(canview_stm_uart_platform_t *pl
                    : CANVIEW_INVALID_ARGUMENT;
     }
     const canview_status_t reset_status = canview_stm_uart_reset(
-        platform->config.runtime, (uint64_t)canview_stm_board_now_ms(),
+        platform->config.runtime, canview_stm_now_ms64(NULL),
         canview_stm_now_us64(NULL));
     if (reset_status != CANVIEW_OK)
     {
         return reset_status;
+    }
+    const canview_status_t hook_status = canview_stm_uart_set_reset_hook(
+        platform->config.runtime, runtime_reset_hook, platform);
+    if (hook_status != CANVIEW_OK)
+    {
+        return hook_status;
     }
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN | RCC_AHB1ENR_DMAMUX1EN;
     RCC->APB1ENR1 |= RCC_APB1ENR1_USART2EN;
@@ -462,13 +555,20 @@ canview_status_t canview_stm_uart_platform_stop(canview_stm_uart_platform_t *pla
     {
         active_platform = NULL;
     }
+    const canview_status_t abort_status = abort_tx_dma(platform);
     disable_interrupts();
     disable_dma();
     disable_usart();
     configure_uart_gpio_input();
     platform->started = false;
     reset_adapter_counters(platform);
-    return CANVIEW_OK;
+    const canview_status_t hook_status = canview_stm_uart_set_reset_hook(
+        platform->config.runtime, NULL, NULL);
+    if (abort_status != CANVIEW_OK)
+    {
+        return abort_status;
+    }
+    return hook_status;
 }
 
 canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *platform,
@@ -503,7 +603,10 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
             producer_total = platform->rx_read_total;
         }
         const canview_status_t recovery_status =
-            reset_rx_dma(platform, now_ms, now_us);
+            reset_rx_dma(platform, now_ms, now_us,
+                         rx_error ? CANVIEW_STM_UART_RX_RECOVERY_DMA_OR_USART_ERROR
+                                  : CANVIEW_STM_UART_RX_RECOVERY_CNDTR_INVALID,
+                         0U);
         reset_happened = true;
         if (recovery_status != CANVIEW_OK)
         {
@@ -516,7 +619,9 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
              (uint64_t)CANVIEW_STM_UART_PLATFORM_RX_CAPACITY)
     {
         const canview_status_t recovery_status =
-            reset_rx_dma(platform, now_ms, now_us);
+            reset_rx_dma(platform, now_ms, now_us,
+                         CANVIEW_STM_UART_RX_RECOVERY_RING_OVERRUN,
+                         producer_total - platform->rx_read_total);
         reset_happened = true;
         if (recovery_status != CANVIEW_OK)
         {
@@ -530,7 +635,12 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
     {
         if (platform->tx_in_flight)
         {
-            abort_tx_dma(platform);
+            const canview_status_t abort_status = abort_tx_dma(platform);
+            if (abort_status != CANVIEW_OK)
+            {
+                result = abort_status;
+                goto service_done;
+            }
             const canview_status_t finish_status = canview_stm_uart_tx_finish(
                 platform->config.runtime, CANVIEW_TIMEOUT, now_ms);
             if (finish_status != CANVIEW_TIMEOUT)
@@ -552,6 +662,7 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
     {
         platform->tx_in_flight = false;
         USART2->CR3 &= ~USART_CR3_DMAT;
+        __DSB();
         const canview_status_t finish_status =
             canview_stm_uart_tx_finish(platform->config.runtime, CANVIEW_OK, now_ms);
         if (finish_status != CANVIEW_OK)
@@ -626,6 +737,13 @@ uint64_t canview_stm_uart_platform_device_id(void)
 
 uint64_t canview_stm_uart_platform_boot_id(void)
 {
+    RCC->CRRCR |= RCC_CRRCR_HSI48ON;
+    if (!wait_register(&RCC->CRRCR, RCC_CRRCR_HSI48RDY, RCC_CRRCR_HSI48RDY))
+    {
+        return UINT64_C(0);
+    }
+    RCC->CCIPR = (RCC->CCIPR & ~RCC_CCIPR_CLK48SEL);
+    (void)RCC->CCIPR;
     RCC->AHB2ENR |= RCC_AHB2ENR_RNGEN;
     (void)RCC->AHB2ENR;
     RNG->CR |= RNG_CR_RNGEN;

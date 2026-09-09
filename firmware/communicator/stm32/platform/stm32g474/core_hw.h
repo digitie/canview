@@ -37,6 +37,8 @@ uint32_t canview_stm_now_us(void *context);
  * The owner must call this at least once per 32-bit TIM2 wrap while the timer runs.
  */
 uint64_t canview_stm_now_us64(void *context);
+/** @brief Monotonic millisecond view derived from the extended TIM2 clock. */
+uint64_t canview_stm_now_ms64(void *context);
 /** @brief scheduler 전용 IWDG feed. fault/clock loss 뒤에는 거부. */
 canview_status_t canview_stm_watchdog_feed(void *context);
 /** @brief ISR에서 호출 가능한 fail-stop latch. GPIO reset은 BSP 책임. */

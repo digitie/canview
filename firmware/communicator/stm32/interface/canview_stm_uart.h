@@ -30,6 +30,7 @@ extern "C"
 #define CANVIEW_STM_UART_HEARTBEAT_PERIOD_MS (100U)
 #define CANVIEW_STM_UART_TIME_SYNC_REPLY_UNCERTAINTY_US (0U)
 #define CANVIEW_STM_UART_TIME_SYNC_MAX_DELAY_US (100000U)
+#define CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS (1000U)
 #define CANVIEW_STM_UART_ERROR_RATE_LIMIT (10U)
 #define CANVIEW_STM_UART_ERROR_RATE_WINDOW_MS (1000U)
 #define CANVIEW_STM_UART_CONTEXT_BUDGET_BYTES (88000U)
@@ -171,6 +172,9 @@ typedef struct
 typedef bool canview_stm_uart_authorize_fn(const canview_uart_message_view_t *view,
                                            uint64_t now_ms, void *context);
 
+/** @brief DMA owner가 runtime session buffer를 지우기 전에 전송을 quiesce한다. */
+typedef canview_status_t canview_stm_uart_reset_hook_fn(void *context);
+
 /** @brief Static configuration copied during init. All callback state is caller-owned. */
 typedef struct
 {
@@ -209,6 +213,8 @@ typedef struct
     uint32_t local_safety_revision;
     canview_stm_uart_authorize_fn *authorize;
     void *authorize_context;
+    canview_stm_uart_reset_hook_fn *reset_hook;
+    void *reset_hook_context;
     canview_stm_uart_stats_t stats;
     uint64_t last_now_ms;
     uint64_t last_now_us;
@@ -216,6 +222,9 @@ typedef struct
     uint64_t pending_sync_controller_boot_id;
     uint32_t pending_sync_generation;
     uint64_t pending_sync_t1_controller_us;
+    uint64_t pending_sync_t2_stm_us;
+    uint64_t pending_sync_t3_stm_us;
+    uint64_t pending_sync_started_ms;
     bool pending_sync_valid;
     bool cts_blocked;
     bool cts_known;
@@ -248,6 +257,16 @@ canview_status_t canview_stm_uart_init(canview_stm_uart_context_t *context,
  */
 canview_status_t canview_stm_uart_reset(canview_stm_uart_context_t *context,
                                         uint64_t now_ms, uint64_t now_us);
+
+/** @brief Register the platform hook used before runtime buffers are reset.
+ * @param context initialized runtime context.
+ * @param hook platform-owned DMA quiesce callback; NULL removes it.
+ * @param hook_context opaque platform context passed to hook.
+ * @return `CANVIEW_OK`, or busy while the worker is servicing a callback.
+ */
+canview_status_t canview_stm_uart_set_reset_hook(canview_stm_uart_context_t *context,
+                                                 canview_stm_uart_reset_hook_fn *hook,
+                                                 void *hook_context);
 
 /** @brief Feed one DMA-owned byte in the single worker context.
  * @param context initialized runtime context owned by the UART worker.

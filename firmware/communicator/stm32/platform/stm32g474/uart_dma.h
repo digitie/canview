@@ -32,6 +32,15 @@ typedef struct
     size_t rx_capacity;
 } canview_stm_uart_platform_config_t;
 
+/** @brief RX recovery cause retained for diagnostics and post-mortem evidence. */
+typedef enum
+{
+    CANVIEW_STM_UART_RX_RECOVERY_NONE = 0,
+    CANVIEW_STM_UART_RX_RECOVERY_DMA_OR_USART_ERROR = 1,
+    CANVIEW_STM_UART_RX_RECOVERY_CNDTR_INVALID = 2,
+    CANVIEW_STM_UART_RX_RECOVERY_RING_OVERRUN = 3
+} canview_stm_uart_rx_recovery_reason_t;
+
 /** @brief ISR event bits.  They are internal to the adapter and not wire data. */
 enum
 {
@@ -58,6 +67,11 @@ typedef struct
     bool servicing;
     volatile bool started;
     bool initialized;
+    uint32_t rx_recovery_count;
+    uint32_t rx_error_recovery_count;
+    uint32_t rx_overrun_recovery_count;
+    uint64_t rx_discarded_bytes;
+    canview_stm_uart_rx_recovery_reason_t last_rx_recovery_reason;
 } canview_stm_uart_platform_t;
 
 /** @cond INTERNAL */
