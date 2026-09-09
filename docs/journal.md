@@ -1,5 +1,25 @@
 # CANView 작업 일지
 
+## 2026-09-09 (codex, T-104 A 중단 이슈와 사용자 한정 면제)
+
+사용자가 A 중단의 상세 이슈화·skip·merge·다음 단계 진행을 명시했다. GitHub
+이슈 #34를 만들고 A-08의 service JSON·22640 ms 실패·원 P1/P2 재확인 미완료,
+수정 evidence와 후속 owner/gate를 기록했다. A의 verdict나 원 finding 심각도는
+변경하지 않았고 PR #33 한정 예외와 일반 runbook의 충돌을 명시했다. 코드/SDK/
+하드웨어 오류나 사용량 초과라고 추측하지 않았으며 서비스 차단을 우회하지 않았다.
+
+B-09 원문을 보존하고 P3 DMAMUX fake 7/8→26/27, vendor LL 독립 C99 assertion,
+model 추출 malformed/missing/duplicate unit, 두 worker의 watchdog 문서를 수정했다.
+실제 Arm compiler의 RX=7/TX=8 negative probe는 각각 exit 1로 거부됐고 정상은
+exit 0이다. host fixture digest는 firmware 문서 변경까지 포함하여 갱신했다.
+초기 host 119/120은 raw report의 detached 경로 link 3건 때문이었으며 원문을
+fence로 보존해 navigation에서 분리했다. validator 오류 0을 확인했다.
+
+STM32 Debug/Release clean target binary와 54+2 SDK/model 상수, warning/error 0을
+재확인했다. 이전 CI 34329023006도 6/6 success, manifest/artifact 18/18·source6/6,
+target log21개 diagnostic0을 독립 대조했다. 새 candidate CI와 B 후속 확인은
+merge 전에 별도로 완료한다. 물리/HIL은 NOT_RUN, 차량 CAN TX는 NO-GO다.
+
 ## 2026-09-09 (codex, T-104 UART review 재수정)
 
 수정 commit `14ea3c9`를 push하고 A-08/B-09 및 최초 P1 reviewer A-10/B-11에

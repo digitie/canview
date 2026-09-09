@@ -35,8 +35,9 @@ safe GPIO는 generated pin header를 사용해 latch를 먼저 쓴다. 표준 ve
 | 항목 | 계약 | 현재 연결 |
 |---|---|---|
 | 실행 owner | 단일 main, 재진입 금지 | cooperative super-loop |
-| worker | 최대8개, descriptor 순서, due당 최대1회 | clock/timer register health 1개 |
-| bench health | period1ms·deadline10ms·budget100us | 실제 CAN/UART/safety worker의 대체 아님 |
+| worker | 최대8개, descriptor 순서, due당 최대1회 | UART → clock/timer health 두 필수 worker |
+| UART | period1ms·deadline10ms·budget1000us | DMA/ring·parser·queue·link의 bounded service |
+| bench health | period1ms·deadline10ms·budget100us | clock/timer·stack 검사, CAN/safety worker의 대체 아님 |
 | 필수 worker | period≤deadline≤20ms | 전체 fresh progress vote 필요 |
 | 선택 worker | period/deadline≤1000ms | 현재 없음 |
 | IWDG feed | 모든 필수 신규 vote + 최소10ms cadence | 무조건 loop/ISR feed 없음 |
@@ -44,7 +45,7 @@ safe GPIO는 generated pin header를 사용해 latch를 먼저 쓴다. 표준 ve
 | 실행 budget | 각 callback≤1000us·전체≤20ms | TIM2로 검사, 실물 WCET 미계측 |
 | BUSY/error | BUSY는 progress 없음, deadline 초과/error/WCET는 fault | latched, 자동 복구 없음 |
 
-호출 자체는 진척이 아니다. worker는 bounded service/check를 완료했을 때만 OK를 반환한다. deadline은 init 시점부터 연속인 microsecond clock으로 이전 완료→현재 시작·완료 간격을 검사하며, 검사 성공 뒤에만 새 완료 timestamp/vote를 기록한다. ms tick은 dispatch/cadence용이고 `last_progress_ms`는 step 시작 시점 진단값일 뿐 freshness 판정에 쓰지 않는다. watchdog 갱신 직전에도 모든 필수 worker의 freshness를 재검사한다. 한 번 갱신에 쓴 vote는 소모한다. 미래 CAN/UART/safety worker를 연결할 때 required mask와 WCET·queue budget을 새로 검증해야 한다. 현재는 PHY standby·ARM LOW·WDI LOW를 계속 유지하므로 외부 watchdog을 건강하다고 허위 pulse하지 않는다.
+호출 자체는 진척이 아니다. worker는 bounded service/check를 완료했을 때만 OK를 반환한다. deadline은 init 시점부터 연속인 microsecond clock으로 이전 완료→현재 시작·완료 간격을 검사하며, 검사 성공 뒤에만 새 완료 timestamp/vote를 기록한다. ms tick은 dispatch/cadence용이고 `last_progress_ms`는 step 시작 시점 진단값일 뿐 freshness 판정에 쓰지 않는다. watchdog 갱신 직전에도 모든 필수 worker의 freshness를 재검사한다. 한 번 갱신에 쓴 vote는 소모한다. 현재 UART와 health 모두 새 진척 vote를 제공해야 하며 미래 CAN/safety worker를 연결할 때 required mask와 WCET·queue budget을 새로 검증해야 한다. 현재는 PHY standby·ARM LOW·WDI LOW를 계속 유지하므로 외부 watchdog을 건강하다고 허위 pulse하지 않는다.
 
 IWDG PR32·reload374는 nominal32kHz에서375ms다. DS12288 Rev6의 LSI29.5–34kHz 범위로 계산하면 약353–407ms이며 목표250–500ms 안이다. 실제 oscillator·reset·PHY 전환은 미계측이다. 초기 register 반영 feed와 런타임 health feed를 구분한다.
 

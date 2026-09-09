@@ -6,6 +6,12 @@
 - 선행: `T-004`, `T-102`
 - 병렬 가능: `T-103`
 
+2026-09-09 사용자 명시 지시로 PR #33의 A 재검토 gate만 면제해 source merge와
+다음 software Task 진행을 허용한다. [이슈 #34](https://github.com/digitie/canview/issues/34)와
+[review 기록](../reviews/adversarial/2026-09-09-T-104-03.md)에 원 A의 `INCOMPLETE/BLOCK`,
+P1 closure 미완료와 후속 owner·gate를 남긴다. 이는 `DONE`·release·차량 승인이나
+서비스 제한 해소가 아니다. CI·B 후속 확인·GitHub 보호 규칙은 그대로 적용한다.
+
 2026-09-09부터 software 구현을 시작했다. `codex/t104-stm32-uart-control`에서
 T-004/T-102의 generated UART ABI와 STM32 cooperative scheduler를 연결한다.
 현재 build mode는 `CAPTURE_ONLY`이며 이 task에서도 raw CAN TX, vehicle replay,
@@ -86,7 +92,8 @@ Arm GCC와 STM32CubeG4로 ELF/HEX/BIN/MAP을 각각 생성하고 warning/error s
 | UART reset stale TX event·COMMIT 999/1000/1001 ms·RX unread loss 회귀 | `PASS` |
 | GNU linker build ID ↔ BSP symbol ↔ BIN 일치·negative mutation | `PASS` |
 | Doxygen/Sphinx strict·TSan pool | `PASS` |
-| 독립 reviewer 재확인·최종 candidate CI/artifact | `PENDING`, PR #33 Draft 유지 |
+| 독립 reviewer A 재확인 | `INCOMPLETE/BLOCK`, 사용자 PR #33 한정 면제, 이슈 #34 OPEN |
+| B 후속 확인·최종 candidate CI/artifact | `PENDING`, PR #33 Draft 유지 |
 | 실제 board flash, DMA/IRQ/CTS·RTS 전기 측정, physical 24시간 PRBS | `NOT_RUN` |
 | reset/brownout rail, ST-LINK/USB, 차량 CAN·vehicle evidence | `NOT_RUN` |
 

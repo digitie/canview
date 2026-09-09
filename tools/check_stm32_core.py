@@ -259,6 +259,17 @@ def run(arguments, **kwargs):
     return subprocess.check_output(arguments, text=True, encoding="utf-8", **kwargs)
 
 
+def dmamux_model_assertions(model):
+    """호스트 DMAMUX 상수를 vendor LL 이름과 비교하는 독립 C99 assertion을 만든다."""
+    constants = re.findall(r"^#define (LL_DMAMUX_REQ_USART2_\w+) (\([0-9]+U\))$",
+                           model, flags=re.MULTILINE)
+    if (len(constants) != 2 or {name for name, _ in constants} !=
+            {"LL_DMAMUX_REQ_USART2_RX", "LL_DMAMUX_REQ_USART2_TX"}):
+        raise RuntimeError("USART2 DMAMUX model 상수 누락/중복/형식 오류")
+    return "\n".join(f"typedef char check_{name}[({name} == {value}) ? 1 : -1];"
+                     for name, value in constants)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elf", required=True, type=Path)
@@ -293,17 +304,20 @@ def main():
                            model.read_text(encoding="utf-8"), flags=re.MULTILINE)
     if len(constants) < 40:
         raise RuntimeError("register model 상수 목록 추출 실패")
-    source = '#include "stm32g474xx.h"\n'
+    source = '#include "stm32g474xx.h"\n#include "stm32g4xx_ll_dmamux.h"\n'
     source += "\n".join(f"typedef char check_{name}[({name} == {value}) ? 1 : -1];"
                         for name, value in constants)
+    source += "\n" + dmamux_model_assertions(
+        (ROOT / "tests/stm32/fake_stm32/stm32g4xx_ll_dmamux.h").read_text(encoding="utf-8"))
     device = args.sdk / "Drivers/CMSIS/Device/ST/STM32G4xx/Include"
     core = args.sdk / "Drivers/CMSIS/Core/Include"
+    ll = args.sdk / "Drivers/STM32G4xx_HAL_Driver/Inc"
     subprocess.run([str(args.compiler), "-x", "c", "-std=c99", "-fsyntax-only", "-Werror",
-                    "-mcpu=cortex-m4", "-mthumb", "-DSTM32G474xx", f"-I{device}", f"-I{core}", "-"],
+                    "-mcpu=cortex-m4", "-mthumb", "-DSTM32G474xx", f"-I{device}", f"-I{core}", f"-I{ll}", "-"],
                    input=source, text=True, encoding="utf-8", check=True)
     print(f"PASS: STM32 core text={text} data={data} bss+reserved-stack={bss}; "
           f"max individual stack frame={max_frame}; {len(stacks)} C object stack files; "
-          f"{len(constants)} CMSIS/model constants; ELF/BIN build ID={build_id}")
+          f"{len(constants)} CMSIS/model + 2 DMAMUX/LL constants; ELF/BIN build ID={build_id}")
     return 0
 
 

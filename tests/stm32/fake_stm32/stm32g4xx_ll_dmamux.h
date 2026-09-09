@@ -2,7 +2,8 @@
 #ifndef CANVIEW_TEST_STM32G4XX_LL_DMAMUX_H
 #define CANVIEW_TEST_STM32G4XX_LL_DMAMUX_H
 
-#define LL_DMAMUX_REQ_USART2_RX (7U)
-#define LL_DMAMUX_REQ_USART2_TX (8U)
+/* STM32CubeG4 1.6.3: target gate compares these values with the vendor LL header. */
+#define LL_DMAMUX_REQ_USART2_RX (26U)
+#define LL_DMAMUX_REQ_USART2_TX (27U)
 
 #endif

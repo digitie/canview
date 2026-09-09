@@ -2,6 +2,18 @@
 
 ## 현재 진척도
 
+2026-09-09 사용자 지시로 T-104 **PR #33 한 건의 A 재검토 gate를 면제**하고,
+CI·B 후속 확인 후 source merge와 다음 software Task 진행을 허용했다.
+[이슈 #34](https://github.com/digitie/canview/issues/34)에 A-08 service 중단 원문,
+P1/P2 미완료 확인 범위·수정 근거·owner·후속 gate를 상세 기록했다.
+[최신 기록](reviews/adversarial/2026-09-09-T-104-03.md)의 A는 `INCOMPLETE/BLOCK`이며
+면제는 PASS나 P1 closure가 아니다. B-09는 기존 RB-01~04 CLOSED, P3 두 건의
+수정을 조건으로 `CONDITIONAL`이다. DMAMUX fake/SDK 독립 대조와 watchdog
+문서를 수정했다. 최종 CI/B 확인·merge는 아직 대기하며 T-104는 `DONE`이 아니다.
+후속 PR의 일반 2인 리뷰 규칙과 물리/HIL `NOT_RUN`, 차량 CAN TX `NO-GO`는 유지한다.
+
+아래는 위 사용자 지시 이전의 실행 이력이다.
+
 2026-09-09 T-104 PR #33은 Draft이며 수정 candidate `14ea3c9`를 push했다. 기존 candidate
 `bdc6798`의 A-05/B-07 원본 verdict는 모두 `BLOCK`이다. stale TX completion의
 reset 후 재사용, tick 전 만료 COMMIT, RX 오류의 unread byte 누락, zero HELLO

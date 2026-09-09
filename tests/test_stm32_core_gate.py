@@ -8,10 +8,24 @@ from copy import deepcopy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.check_stm32_core import (check_build_id, check_compile_contract, check_memory, check_source_safety,
-                                    check_stack, check_symbols, stack_evidence)
+                                    check_stack, check_symbols, dmamux_model_assertions, stack_evidence)
 
 
 class Stm32CoreGateTests(unittest.TestCase):
+    def test_dmamux_model_assertions_fail_closed(self):
+        model = "#define LL_DMAMUX_REQ_USART2_RX (26U)\n#define LL_DMAMUX_REQ_USART2_TX (27U)\n"
+        source = dmamux_model_assertions(model)
+        self.assertIn("LL_DMAMUX_REQ_USART2_RX == (26U)", source)
+        self.assertIn("LL_DMAMUX_REQ_USART2_TX == (27U)", source)
+        self.assertEqual(source.count("? 1 : -1"), 2)
+        # 변이 값도 상수 대조에서 삭제하지 않고 실제 SDK compiler 검사로 전달한다.
+        self.assertIn("== (7U)", dmamux_model_assertions(model.replace("26U", "7U")))
+        for invalid in ("", model.splitlines()[0], model + model,
+                        model.replace("_TX", "_RX"), model.replace("_TX", "_OTHER"),
+                        model.replace("27U", "invalid")):
+            with self.subTest(model=invalid), self.assertRaises(RuntimeError):
+                dmamux_model_assertions(invalid)
+
     def test_linked_build_id_binary_binding(self):
         digest = bytes(range(1, 21))
         note = struct.pack("<III4s", 4, 20, 3, b"GNU\0") + digest
