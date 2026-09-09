@@ -117,7 +117,7 @@ scan은 0건이다. 상세 disposition은 [T-103 통합 hostile review](../revie
 최종 A는 `PASS`, B는 physical gate를 반영한 `CONDITIONAL`이며 active P0/P1은 없다.
 소프트웨어 source/target-evidence closure는 끝났지만, plan DAG상 선행 T-102가 아직
 `IN_PROGRESS`이고 physical G2도 열려 있으므로 이 상세 task 상태는 `IN_PROGRESS`로
-유지한다. PR #32 head `9d7edfd`의 remote CI run `34297736647`은 6개 job 모두 success다. physical board flash·
+유지한다. PR #32 head `2accb60`의 remote CI run `34299174058`은 6개 job 모두 success다. physical board flash·
 전원·CAN analyzer·차량 evidence는 장비가 없어 `NOT_RUN`이며, 차량 CAN TX release는
 `NO-GO`다.
 
