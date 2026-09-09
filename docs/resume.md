@@ -2,6 +2,48 @@
 
 ## 현재 진척도
 
+2026-09-09 T-104 [최신 review 정정·closure](reviews/adversarial/2026-09-09-T-104-04.md):
+조회 누락이었던 A-10/B-11 완료 보고서를 복구했고 원문을 보존했다. B-12/B-13은
+`6b33a59`의 각 원 finding을 PASS로 확인했다. A-08 서비스 차단과 원 P1 확인 debt는
+별개이며 PR #33 한정 사용자 면제만 적용한다. A-10 안전 억제 회귀 공백 P2는
+이슈 #34/T-104에 owner·시점·gate를 지정해 defer했다. 이 기록 commit의 최신 CI와
+artifact 확인 후 merge하며, merge 확인 다음에는 T-007 OTA container를 시작한다.
+T-104는 DONE이 아니며 issue #34 OPEN·physical NOT_RUN·차량 TX NO-GO 유지다.
+
+아래는 이전 상태 기록이다.
+
+2026-09-09 사용자 지시로 T-104 **PR #33 한 건의 A 재검토 gate를 면제**하고,
+CI·B 후속 확인 후 source merge와 다음 software Task 진행을 허용했다.
+[이슈 #34](https://github.com/digitie/canview/issues/34)에 A-08 service 중단 원문,
+P1/P2 미완료 확인 범위·수정 근거·owner·후속 gate를 상세 기록했다.
+[최신 기록](reviews/adversarial/2026-09-09-T-104-03.md)의 A는 `INCOMPLETE/BLOCK`이며
+면제는 PASS나 P1 closure가 아니다. B-09는 기존 RB-01~04 CLOSED, P3 두 건의
+수정을 조건으로 `CONDITIONAL`이다. DMAMUX fake/SDK 독립 대조와 watchdog
+문서를 수정했다. 최종 CI/B 확인·merge는 아직 대기하며 T-104는 `DONE`이 아니다.
+후속 PR의 일반 2인 리뷰 규칙과 물리/HIL `NOT_RUN`, 차량 CAN TX `NO-GO`는 유지한다.
+
+아래는 위 사용자 지시 이전의 실행 이력이다.
+
+2026-09-09 T-104 PR #33은 Draft이며 수정 candidate `14ea3c9`를 push했다. 기존 candidate
+`bdc6798`의 A-05/B-07 원본 verdict는 모두 `BLOCK`이다. stale TX completion의
+reset 후 재사용, tick 전 만료 COMMIT, RX 오류의 unread byte 누락, zero HELLO
+build ID와 SDK mutation oracle·coverage 설명을 수정했다. Windows Debug/Release
+각각 120/120, STM32 Debug/Release clean target·warning/error 0, ELF/BIN build ID
+대조, STM32/ESP32/shared coverage와 strict API 문서가 통과했다. WSL GCC와
+ASan/UBSan도 각각 120/120이다. A-08 재검토는 reviewer 서비스의 보안 제한으로
+중단되어 `INCOMPLETE/BLOCK`이며 [service 원문](reviews/adversarial/evidence/2026-09-09-T-104-reviewer-a-08-service-block.md)에
+보존했다. 제한을 우회하거나 P1 closure를 대신하지 않는다. 다음 작업은 reviewer
+서비스 접근 문제 해결 후 원 A의 재확인과 최신 CI/artifact gate closure다.
+physical/HIL·실제 24시간 UART·차량 gate는 `NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
+
+2026-09-09 T-103 PR #32가 merge commit `b17bdfc0bb2a1bfa9d300c1e7662cac05c96df40`으로
+`origin/main`에 통합됐다. 3채널 FDCAN capture-only software/target/review/CI
+closure는 끝났지만 실제 board·전원·FDCAN·차량 gate는 여전히 `NOT_RUN`이다.
+T-104 STM32 UART DMA/link/idempotency C 구현을 `codex/t104-stm32-uart-control`
+에서 시작했다. T-004와 T-102의 protocol/platform 선행은 main에 있으며, 현재
+`CAPTURE_ONLY` 경계에서는 UART가 명령을 운반해도 lease 발급·raw CAN TX·vehicle
+replay를 수행하지 않는다.
+
 2026-09-09 T-103 STM32 3채널 FDCAN capture-only C source와 초기 적대적 리뷰 finding
 수정을 진행 중이다. module batch는 callback 이후 transactional commit과 channel별
 timestamp epoch를 사용하고, PSR/ECR snapshot은 frame timestamp를 덮어쓰지 않는다.
@@ -53,14 +95,14 @@ physical/HIL·flash·전원/reset/brownout·CAN analyzer·차량 bus·provisioni
 
 ## 다음 한 작업
 
-현재 다음 구현은 [T-103](tasks/T-103-stm32-fdcan-capture.md) STM32 3채널
-FDCAN capture-only C firmware다. 선행 T-004, T-102, T-500은 main에 통합됐다.
-세 CAN channel의 listen-only 수신·bounded ring·timestamp·bus 상태를 구현하며
-임의 CAN TX, ACK와 차량 송신은 만들지 않는다. 실제 board flash/HIL·clock/reset/
-rail/brownout·FDCAN 계측은 장비가 없으면 `NOT_RUN`으로 남긴다.
+현재 구현은 [T-104](tasks/T-104-stm32-uart-control.md) STM32 4 Mbps UART DMA,
+link state, priority queue, `CONTROL_TIME_SYNC` mapping과 256-entry idempotency
+cache다. 선행 T-004, T-102와 병렬 T-103은 main에 통합됐다. raw CAN TX,
+vehicle replay와 lease 발급은 만들지 않으며 실제 board flash/HIL·clock/reset/
+rail/brownout·UART DMA/CTS 계측은 장비가 없으면 `NOT_RUN`으로 남긴다.
 
-- 현재 문서: docs/tasks/T-103-stm32-fdcan-capture.md, docs/architecture/README.md, docs/development/windows.md, docs/runbooks/agent-workflow.md
-- 다음 검증 순서: T-103 C source → host unit/malformed/concurrency/sanitizer → STM32 target ELF/MAP/BIN/HEX warning 0 → 독립 reviewer 2명 → Draft PR/CI/merge. 장비가 없으면 G1/G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
+- 현재 문서: docs/tasks/T-104-stm32-uart-control.md, docs/architecture/protocols/communicator-uart.md, docs/development/windows.md, docs/runbooks/agent-workflow.md
+- 다음 검증 순서: T-104 C source/generated ABI → host malformed/duplicate/queue/time-sync/concurrency/sanitizer → STM32 target ELF/MAP/BIN/HEX warning 0 → 독립 reviewer 2명 → Draft PR/CI/merge. 장비가 없으면 G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
 - Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.

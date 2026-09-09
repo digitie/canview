@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#define CANVIEW_UART_PROTOCOL_SCHEMA_SHA256 "0d6b161fa31b3372ab63a054d60b4b2321387eac205d39e1d1641e7c8a553b02"
+#define CANVIEW_UART_PROTOCOL_SCHEMA_SHA256 "5436452d8be48213265f52110c7e60fc2b53fefc38f064a642c5c005d997bb7e"
 #define CANVIEW_UART_PROTOCOL_NAME "Communicator UART v1.0"
 #define CANVIEW_UART_PROTOCOL_MAJOR UINT8_C(1)
 #define CANVIEW_UART_PROTOCOL_MINOR UINT8_C(0)
@@ -74,13 +74,14 @@ typedef enum {
     CANVIEW_UART_MSG_COMMAND_REQUEST = UINT8_C(0x20),
     CANVIEW_UART_MSG_COMMAND_RESULT = UINT8_C(0x21),
     CANVIEW_UART_MSG_CONTROL_LEASE = UINT8_C(0x22),
+    CANVIEW_UART_MSG_CONTROL_TIME_SYNC = UINT8_C(0x23),
     CANVIEW_UART_MSG_CONFIG_GET = UINT8_C(0x30),
     CANVIEW_UART_MSG_CONFIG_SET = UINT8_C(0x31),
     CANVIEW_UART_MSG_CONFIG_RESULT = UINT8_C(0x32),
     CANVIEW_UART_MSG_DIAGNOSTIC_COUNTERS = UINT8_C(0x40),
     CANVIEW_UART_MSG_FIRMWARE_PREPARE = UINT8_C(0x50),
 } canview_uart_message_type_t;
-#define CANVIEW_UART_MESSAGE_COUNT UINT8_C(22)
+#define CANVIEW_UART_MESSAGE_COUNT UINT8_C(23)
 
 typedef enum {
     CANVIEW_UART_PLAN_OP_BEGIN = UINT8_C(1),
@@ -95,6 +96,12 @@ typedef enum {
     CANVIEW_UART_CAPTURE_STOP = UINT8_C(3),
     CANVIEW_UART_CAPTURE_CANCEL = UINT8_C(4),
 } canview_uart_capture_action_t;
+
+typedef enum {
+    CANVIEW_UART_TIME_SYNC_REQUEST = UINT8_C(1),
+    CANVIEW_UART_TIME_SYNC_RESPONSE = UINT8_C(2),
+    CANVIEW_UART_TIME_SYNC_COMMIT = UINT8_C(3),
+} canview_uart_time_sync_phase_t;
 
 typedef enum {
     CANVIEW_UART_PAYLOAD_FIXED = UINT8_C(0),
@@ -611,6 +618,36 @@ typedef char canview_uart_assert_canview_uart_control_lease_payload_t_control_ta
 
 typedef struct CANVIEW_UART_PACKED {
     uint64_t request_token_le;
+    uint64_t controller_boot_id_le;
+    uint64_t stm_boot_id_le;
+    uint32_t sync_generation_le;
+    uint8_t phase;
+    uint8_t reserved0[3U];
+    uint64_t t1_controller_us_le;
+    uint64_t t2_stm_us_le;
+    uint64_t t3_stm_us_le;
+    uint64_t t4_controller_us_le;
+    int64_t offset_us_le;
+    uint32_t uncertainty_us_le;
+    uint32_t reserved1_le;
+} canview_uart_control_time_sync_payload_t;
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_size[(sizeof(canview_uart_control_time_sync_payload_t) == 80U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_request_token_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, request_token_le) == 0U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_controller_boot_id_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, controller_boot_id_le) == 8U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_stm_boot_id_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, stm_boot_id_le) == 16U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_sync_generation_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, sync_generation_le) == 24U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_phase_offset[(offsetof(canview_uart_control_time_sync_payload_t, phase) == 28U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_reserved0_offset[(offsetof(canview_uart_control_time_sync_payload_t, reserved0) == 29U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_t1_controller_us_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, t1_controller_us_le) == 32U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_t2_stm_us_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, t2_stm_us_le) == 40U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_t3_stm_us_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, t3_stm_us_le) == 48U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_t4_controller_us_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, t4_controller_us_le) == 56U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_offset_us_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, offset_us_le) == 64U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_uncertainty_us_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, uncertainty_us_le) == 72U) ? 1 : -1];
+typedef char canview_uart_assert_canview_uart_control_time_sync_payload_t_reserved1_le_offset[(offsetof(canview_uart_control_time_sync_payload_t, reserved1_le) == 76U) ? 1 : -1];
+
+typedef struct CANVIEW_UART_PACKED {
+    uint64_t request_token_le;
     uint32_t expected_state_revision_le;
     uint16_t schema_version_le;
     uint16_t reserved0_le;
@@ -743,6 +780,7 @@ static const canview_uart_message_policy_t CANVIEW_UART_MESSAGE_POLICIES[] = {
     {CANVIEW_UART_MSG_COMMAND_REQUEST, 104U, 240U, UINT8_C(1), UINT8_C(9), CANVIEW_UART_PAYLOAD_SUFFIX, CANVIEW_UART_DIRECTION_ESP_TO_STM, UINT8_C(1)},
     {CANVIEW_UART_MSG_COMMAND_RESULT, 82U, 82U, UINT8_C(2), UINT8_C(18), CANVIEW_UART_PAYLOAD_FIXED, CANVIEW_UART_DIRECTION_STM_TO_ESP, UINT8_C(1)},
     {CANVIEW_UART_MSG_CONTROL_LEASE, 52U, 52U, UINT8_C(1), UINT8_C(9), CANVIEW_UART_PAYLOAD_FIXED, CANVIEW_UART_DIRECTION_ESP_TO_STM, UINT8_C(1)},
+    {CANVIEW_UART_MSG_CONTROL_TIME_SYNC, 80U, 80U, UINT8_C(0), UINT8_C(10), CANVIEW_UART_PAYLOAD_FIXED, CANVIEW_UART_DIRECTION_BOTH, UINT8_C(1)},
     {CANVIEW_UART_MSG_CONFIG_GET, 24U, 24U, UINT8_C(1), UINT8_C(9), CANVIEW_UART_PAYLOAD_FIXED, CANVIEW_UART_DIRECTION_ESP_TO_STM, UINT8_C(1)},
     {CANVIEW_UART_MSG_CONFIG_SET, 4U, 204U, UINT8_C(1), UINT8_C(9), CANVIEW_UART_PAYLOAD_BOUNDED, CANVIEW_UART_DIRECTION_ESP_TO_STM, UINT8_C(1)},
     {CANVIEW_UART_MSG_CONFIG_RESULT, 28U, 28U, UINT8_C(2), UINT8_C(18), CANVIEW_UART_PAYLOAD_FIXED, CANVIEW_UART_DIRECTION_STM_TO_ESP, UINT8_C(1)},

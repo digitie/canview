@@ -18,6 +18,9 @@
 #define UART_PLAN_DIGEST_DOMAIN_SIZE (20U)
 #define UART_PLAN_CANONICAL_SIZE \
     (UART_PLAN_DIGEST_DOMAIN_SIZE + CANVIEW_UART_PLAN_MAX_FILTERS * UART_PLAN_FILTER_SIZE)
+#define UART_CONTROL_TIME_SYNC_SIZE (80U)
+#define UART_CONTROL_TIME_SYNC_REQUEST_TAIL_OFFSET (40U)
+#define UART_CONTROL_TIME_SYNC_RESPONSE_TAIL_OFFSET (56U)
 
 static uint64_t read_le(const uint8_t *bytes, size_t width)
 {
@@ -235,6 +238,45 @@ static canview_status_t validate_config_set(const uint8_t *payload, size_t size)
     return CANVIEW_OK;
 }
 
+static canview_status_t validate_control_time_sync(const uint8_t *payload, size_t size)
+{
+    if (payload == NULL || size != UART_CONTROL_TIME_SYNC_SIZE ||
+        read_le(payload, 8U) == 0U || read_le(payload + 8U, 8U) == 0U ||
+        read_le(payload + 24U, 4U) == 0U || !zero_range(payload, size, 29U, 3U) ||
+        !zero_range(payload, size, 76U, 4U) ||
+        read_le(payload + 72U, 4U) > CANVIEW_UART_CONTROL_TIME_MAX_UNCERTAINTY_US)
+    {
+        return CANVIEW_MALFORMED;
+    }
+    const uint8_t phase = payload[28U];
+    if (phase == CANVIEW_UART_TIME_SYNC_REQUEST)
+    {
+        return read_le(payload + 16U, 8U) == 0U && read_le(payload + 32U, 8U) != 0U &&
+                       zero_range(payload, size, UART_CONTROL_TIME_SYNC_REQUEST_TAIL_OFFSET,
+                                  40U)
+                   ? CANVIEW_OK
+                   : CANVIEW_MALFORMED;
+    }
+    if (phase == CANVIEW_UART_TIME_SYNC_RESPONSE)
+    {
+        return read_le(payload + 16U, 8U) != 0U && read_le(payload + 32U, 8U) != 0U &&
+                       read_le(payload + 40U, 8U) != 0U && read_le(payload + 48U, 8U) != 0U &&
+                       zero_range(payload, size, UART_CONTROL_TIME_SYNC_RESPONSE_TAIL_OFFSET,
+                                  24U)
+                   ? CANVIEW_OK
+                   : CANVIEW_MALFORMED;
+    }
+    if (phase == CANVIEW_UART_TIME_SYNC_COMMIT)
+    {
+        return read_le(payload + 16U, 8U) != 0U && read_le(payload + 32U, 8U) != 0U &&
+                       read_le(payload + 40U, 8U) != 0U && read_le(payload + 48U, 8U) != 0U &&
+                       read_le(payload + 56U, 8U) != 0U
+                   ? CANVIEW_OK
+                   : CANVIEW_MALFORMED;
+    }
+    return CANVIEW_MALFORMED;
+}
+
 static canview_status_t validate_diagnostic_counters(const uint8_t *payload, size_t size)
 {
     if (size < 16U || payload[12] > CANVIEW_UART_DIAGNOSTIC_COUNTER_MAX_RECORDS ||
@@ -356,6 +398,10 @@ static canview_status_t validate_fixed_payload(uint8_t message_type, const uint8
         (!zero_range(payload, size, 11U, 1U) || !zero_range(payload, size, 14U, 2U)))
     {
         return CANVIEW_MALFORMED;
+    }
+    if (message_type == CANVIEW_UART_MSG_CONTROL_TIME_SYNC)
+    {
+        return validate_control_time_sync(payload, size);
     }
     return CANVIEW_OK;
 }

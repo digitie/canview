@@ -49,6 +49,11 @@
       "CHUNK": 2,
       "COMMIT": 3,
       "ABORT": 4
+    },
+    "control_time_sync_phase": {
+      "REQUEST": 1,
+      "RESPONSE": 2,
+      "COMMIT": 3
     }
   },
   "messages": [
@@ -571,6 +576,35 @@
           {"name": "expected_state_revision", "c_name": "expected_state_revision_le", "type": "u32", "offset": 28},
           {"name": "control_generation", "c_name": "control_generation_le", "type": "u32", "offset": 32},
           {"name": "control_tag", "type": "bytes", "length": 16, "offset": 36}
+        ]
+      }
+    },
+    {
+      "id": 35,
+      "name": "CONTROL_TIME_SYNC",
+      "direction": "BOTH",
+      "qos": "Q1",
+      "supported": true,
+      "allowed_flags": 10,
+      "required_flags": 0,
+      "payload": {
+        "kind": "fixed",
+        "c_type": "canview_uart_control_time_sync_payload_t",
+        "size": 80,
+        "fields": [
+          {"name": "request_token", "c_name": "request_token_le", "type": "u64", "offset": 0},
+          {"name": "controller_boot_id", "c_name": "controller_boot_id_le", "type": "u64", "offset": 8},
+          {"name": "stm_boot_id", "c_name": "stm_boot_id_le", "type": "u64", "offset": 16},
+          {"name": "sync_generation", "c_name": "sync_generation_le", "type": "u32", "offset": 24},
+          {"name": "phase", "type": "u8", "offset": 28},
+          {"name": "reserved0", "type": "bytes", "length": 3, "offset": 29, "reserved": true},
+          {"name": "t1_controller_us", "c_name": "t1_controller_us_le", "type": "u64", "offset": 32},
+          {"name": "t2_stm_us", "c_name": "t2_stm_us_le", "type": "u64", "offset": 40},
+          {"name": "t3_stm_us", "c_name": "t3_stm_us_le", "type": "u64", "offset": 48},
+          {"name": "t4_controller_us", "c_name": "t4_controller_us_le", "type": "u64", "offset": 56},
+          {"name": "offset_us", "c_name": "offset_us_le", "type": "i64", "offset": 64},
+          {"name": "uncertainty_us", "c_name": "uncertainty_us_le", "type": "u32", "offset": 72},
+          {"name": "reserved1", "c_name": "reserved1_le", "type": "u32", "offset": 76, "reserved": true}
         ]
       }
     },

@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #define CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE UINT32_C(0x43415030)
+#define CANVIEW_STM_BUILD_ID_DIGEST_SIZE (16U)
 
 /** @brief target link가 CAPTURE_ONLY BSP provider를 실제로 포함했음을 나타내는 sentinel. */
 extern const uint32_t canview_stm_capture_only_contract_anchor;
@@ -36,5 +37,16 @@ typedef struct
 
 /** @brief BSP metadata provider가 조립한 schema/profile와 CAPTURE_ONLY metadata를 복사한다. */
 canview_status_t canview_stm_build_metadata_get(canview_stm_build_metadata_t *metadata);
+
+/**
+ * @brief UART HELLO에 넣을 최종 링크 build ID의 앞 16 byte를 복사한다.
+ * @param digest caller-owned output buffer, exactly 16 bytes.
+ * @return `CANVIEW_OK` 또는 null output.
+ *
+ * GNU linker SHA-1 build ID를 식별 용도로만 사용한다. 서명·인증이나 최종 BIN의
+ * SHA-256을 대체하지 않는다. boot/device identity와는 독립적이다.
+ */
+canview_status_t canview_stm_build_id_digest(
+    uint8_t digest[CANVIEW_STM_BUILD_ID_DIGEST_SIZE]);
 
 #endif

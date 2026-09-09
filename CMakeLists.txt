@@ -26,6 +26,7 @@ find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_library(canview_stm_build_provider STATIC
+    firmware/communicator/stm32/tests/build_id_fixture.c
     firmware/communicator/stm32/bsp/build_metadata.c)
 target_include_directories(canview_stm_build_provider PUBLIC
     firmware/communicator/stm32/interface
@@ -151,6 +152,27 @@ if(BUILD_TESTING)
     target_link_libraries(canview-stm32-fdcan-tests PRIVATE canview_stm_core canview_wire canview_warnings)
     add_test(NAME stm32-fdcan-capture COMMAND canview-stm32-fdcan-tests)
     set_tests_properties(stm32-fdcan-capture PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm32-uart-link-tests tests/stm32/test_uart_link.c)
+    target_link_libraries(canview-stm32-uart-link-tests PRIVATE canview_stm_core canview_wire canview_warnings)
+    add_test(NAME stm32-uart-link COMMAND canview-stm32-uart-link-tests)
+    set_tests_properties(stm32-uart-link PROPERTIES TIMEOUT 60)
+    add_executable(canview-stm32-uart-platform-tests
+        tests/stm32/test_uart_dma_platform.c
+        tests/stm32/fake_stm32/fake_hardware.c
+        firmware/communicator/stm32/platform/stm32g474/uart_dma.c)
+    target_include_directories(canview-stm32-uart-platform-tests BEFORE PRIVATE
+        tests/stm32/fake_stm32
+        firmware/communicator/stm32/platform/stm32g474)
+    target_compile_options(canview-stm32-uart-platform-tests PRIVATE
+        "SHELL:-include \"${PROJECT_SOURCE_DIR}/tests/stm32/fake_stm32/core_hw.h\""
+        "SHELL:-include \"${PROJECT_SOURCE_DIR}/tests/stm32/fake_stm32/safe_gpio.h\""
+        "SHELL:-include \"${PROJECT_SOURCE_DIR}/tests/stm32/fake_stm32/board_pins.h\"")
+    target_compile_definitions(canview-stm32-uart-platform-tests PRIVATE
+        CANVIEW_STM_UART_PLATFORM_TEST=1)
+    target_link_libraries(canview-stm32-uart-platform-tests PRIVATE
+        canview_stm_core canview_wire canview_warnings)
+    add_test(NAME stm32-uart-platform COMMAND canview-stm32-uart-platform-tests)
+    set_tests_properties(stm32-uart-platform PROPERTIES TIMEOUT 30)
     add_executable(canview-stm32-fdcan-platform-tests
         tests/stm32/test_fdcan_platform.c
         tests/stm32/fake_stm32/fake_hardware.c

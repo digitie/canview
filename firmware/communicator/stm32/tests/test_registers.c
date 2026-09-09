@@ -273,6 +273,23 @@ static void reset_reason_tests(void)
     }
 }
 
+static void timer_extension_tests(void)
+{
+    healthy_boot();
+    TIM2->CNT = UINT32_MAX - UINT32_C(2);
+    const uint64_t before_wrap = canview_stm_now_us64(NULL);
+    CHECK(before_wrap == (uint64_t)(UINT32_MAX - UINT32_C(2)));
+    TIM2->CNT = 1U;
+    const uint64_t after_wrap = canview_stm_now_us64(NULL);
+    CHECK(after_wrap == UINT64_C(0x100000001) && after_wrap > before_wrap);
+    CHECK(canview_stm_now_ms64(NULL) == after_wrap / UINT64_C(1000));
+    TIM2->CNT = UINT32_MAX;
+    CHECK(canview_stm_now_us64(NULL) == UINT64_C(0x1ffffffff));
+    canview_stm_test_set_timer2_extension(2U, UINT64_MAX, true);
+    TIM2->CNT = 1U;
+    CHECK(canview_stm_now_us64(NULL) == UINT64_MAX);
+}
+
 static void stack_boundary_tests(void)
 {
     const uintptr_t stack_low = canview_stm_test_stack_low();
@@ -456,6 +473,7 @@ int main(void)
     timeout_tests();
     healthy_boot();
     reset_reason_tests();
+    timer_extension_tests();
     stack_boundary_tests();
     stack_health_failure_test();
     fault_tests();

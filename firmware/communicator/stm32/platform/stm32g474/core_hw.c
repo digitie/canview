@@ -65,6 +65,9 @@ extern uint8_t _estack;
 typedef struct
 {
     volatile uint32_t milliseconds;
+    uint32_t timer2_last_count;
+    uint64_t timer2_epoch;
+    bool timer2_epoch_valid;
     volatile bool fault;
     uint32_t reset_flags;
     canview_stm_reset_reason_t reset_reason;
@@ -309,6 +312,9 @@ canview_status_t canview_stm_time_start(void *context)
     TIM2->CNT = 0U;
     TIM2->CR1 = TIM_CR1_CEN;
     hardware.milliseconds = 0U;
+    hardware.timer2_last_count = 0U;
+    hardware.timer2_epoch = 0U;
+    hardware.timer2_epoch_valid = false;
     if (SysTick_Config(CANVIEW_STM_SYSCLK_HZ / MILLISECOND_HZ) != 0U)
     {
         return CANVIEW_INVALID_ARGUMENT;
@@ -338,6 +344,53 @@ uint32_t canview_stm_now_us(void *context)
     (void)context;
     return TIM2->CNT;
 }
+
+uint64_t canview_stm_now_us64(void *context)
+{
+    (void)context;
+    const uint32_t saved_mask = canview_stm_critical_enter(NULL);
+    const uint32_t current = TIM2->CNT;
+    if (!hardware.timer2_epoch_valid)
+    {
+        hardware.timer2_last_count = current;
+        hardware.timer2_epoch_valid = true;
+    }
+    else if (current < hardware.timer2_last_count &&
+             hardware.timer2_epoch <= UINT64_MAX - UINT64_C(0x100000000))
+    {
+        hardware.timer2_epoch += UINT64_C(0x100000000);
+        hardware.timer2_last_count = current;
+    }
+    else if (current >= hardware.timer2_last_count)
+    {
+        hardware.timer2_last_count = current;
+    }
+    uint64_t timestamp = hardware.timer2_epoch;
+    if (timestamp > UINT64_MAX - (uint64_t)current)
+    {
+        timestamp = UINT64_MAX;
+    }
+    else
+    {
+        timestamp += (uint64_t)current;
+    }
+    canview_stm_critical_leave(NULL, saved_mask);
+    return timestamp;
+}
+
+uint64_t canview_stm_now_ms64(void *context)
+{
+    return canview_stm_now_us64(context) / UINT64_C(1000);
+}
+
+#if defined(CANVIEW_STM_REGISTER_TEST)
+void canview_stm_test_set_timer2_extension(uint32_t last_count, uint64_t epoch, bool valid)
+{
+    hardware.timer2_last_count = last_count;
+    hardware.timer2_epoch = epoch;
+    hardware.timer2_epoch_valid = valid;
+}
+#endif
 
 canview_status_t canview_stm_board_health(void *context)
 {

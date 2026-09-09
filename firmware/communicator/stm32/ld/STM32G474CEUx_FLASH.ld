@@ -23,6 +23,13 @@ SECTIONS
     . = ALIGN(4);
   } > FLASH
 
+  .note.gnu.build-id :
+  {
+    /* GNU ELF note: 12-byte header + 4-byte owner + 20-byte SHA-1. */
+    KEEP(*(.note.gnu.build-id))
+  } > FLASH
+  canview_stm_link_build_id = ADDR(.note.gnu.build-id) + 16;
+
   .text :
   {
     . = ALIGN(4);
@@ -133,5 +140,6 @@ __stack_limit = _estack - _Min_Stack_Size;
 }
 
 ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.ccmram) <= 80K, "STM32 static RAM budget exceeded")
+ASSERT(SIZEOF(.note.gnu.build-id) == 36, "STM32 SHA-1 build ID note missing or invalid")
 ASSERT(_Min_Stack_Size <= 24K, "STM32 reserved stack budget exceeded")
 ASSERT(128K - SIZEOF(.data) - SIZEOF(.bss) - SIZEOF(.ccmram) - _Min_Stack_Size >= 24K, "STM32 RAM margin below 24 KiB")

@@ -46,6 +46,15 @@ static void metadata_tests(void)
     CHECK(canview_stm_capture_only_contract_anchor ==
           CANVIEW_STM_CAPTURE_ONLY_CONTRACT_ANCHOR_VALUE);
     CHECK(CANVIEW_STM_BUILD_MODE == CANVIEW_STM_BUILD_MODE_CAPTURE_ONLY);
+    static const uint8_t expected_build_id[CANVIEW_STM_BUILD_ID_DIGEST_SIZE] = {
+        0x12U, 0x34U, 0x56U, 0x78U, 0x9aU, 0xbcU, 0xdeU, 0xf0U,
+        0x01U, 0x23U, 0x45U, 0x67U, 0x89U, 0xabU, 0xcdU, 0xefU};
+    uint8_t build_id[CANVIEW_STM_BUILD_ID_DIGEST_SIZE + 1U] = {0};
+    build_id[CANVIEW_STM_BUILD_ID_DIGEST_SIZE] = 0xa5U;
+    CHECK(canview_stm_build_id_digest(NULL) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_stm_build_id_digest(build_id) == CANVIEW_OK);
+    CHECK(memcmp(build_id, expected_build_id, sizeof(expected_build_id)) == 0);
+    CHECK(build_id[CANVIEW_STM_BUILD_ID_DIGEST_SIZE] == 0xa5U);
 }
 
 static void stack_tests(void)

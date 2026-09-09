@@ -54,7 +54,7 @@ py -3 tools/validate_document_links.py
 | [T-101](tasks/T-101-hardware-bringup.md) | BLOCKED | P0 | Communicator PCB bring-up과 전원/reset fault 검증 | T-100a, T-500 |
 | [T-102](tasks/T-102-stm32-platform.md) | IN_PROGRESS | P0 | STM32 platform, clock, watchdog와 cooperative scheduler | T-001, T-102a |
 | [T-103](tasks/T-103-stm32-fdcan-capture.md) | IN_PROGRESS | P0 | STM32 3채널 FDCAN capture-only 경로 | T-004, T-102, T-500 |
-| [T-104](tasks/T-104-stm32-uart-control.md) | BLOCKED | P0 | STM32 UART DMA, link state와 idempotency | T-004, T-102 |
+| [T-104](tasks/T-104-stm32-uart-control.md) | IN_PROGRESS | P0 | STM32 UART DMA, link state와 idempotency | T-004, T-102 |
 | [T-105](tasks/T-105-stm32-safety-profile.md) | BLOCKED | P0 | STM32 generated safety profile runtime | T-006, T-103, T-104 |
 | [T-106](tasks/T-106-stm32-command-executor.md) | BLOCKED | P0 | STM32 command executor와 송신 build gate | T-101, T-105, T-503, T-505a, T-500 |
 | [T-107](tasks/T-107-stm32-mcuboot.md) | BLOCKED | P0 | OTA-03 G474 MCUboot와 보호 Flash map | T-007, T-102 |

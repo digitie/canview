@@ -34,7 +34,10 @@ foreach(board controller communicator/esp32 diagnostic-bridge communicator/stm32
         add_library(${startup_target} OBJECT ${PROJECT_SOURCE_DIR}/firmware/app/startup.c)
     endif()
     target_include_directories(${startup_target} PRIVATE ${PROJECT_SOURCE_DIR}/firmware/interface
-        ${PROJECT_SOURCE_DIR}/shared/interface ${PROJECT_SOURCE_DIR}/shared/app/include)
+        ${PROJECT_SOURCE_DIR}/shared/interface ${PROJECT_SOURCE_DIR}/shared/app/include
+        ${PROJECT_SOURCE_DIR}/shared/protocol/include ${PROJECT_SOURCE_DIR}/protocol
+        ${PROJECT_SOURCE_DIR}/firmware/communicator/stm32/platform/stm32g474
+        ${PROJECT_SOURCE_DIR}/firmware/communicator/stm32/bsp)
     list(GET board_roles ${board_index} role)
     target_compile_definitions(${startup_target} PRIVATE CANVIEW_TARGET_ROLE=${role})
     if(board_index EQUAL 3)

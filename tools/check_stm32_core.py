@@ -6,8 +6,25 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
+import struct
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def check_build_id(note, symbols, image):
+    """GNU SHA-1 note와 BSP symbol이 실제 flash BIN의 같은 16 byte를 가리키는지 검사한다."""
+    if (len(note) != 36 or note[:16] != struct.pack("<III4s", 4, 20, 3, b"GNU\0")
+            or not any(note[16:32])):
+        raise RuntimeError("STM32 GNU SHA-1 build ID note 누락/손상")
+    matches = [line.split() for line in symbols.splitlines()
+               if line.split() and line.split()[-1] == "canview_stm_link_build_id"]
+    if len(matches) != 1 or len(matches[0]) != 3:
+        raise RuntimeError("STM32 build ID BSP symbol 누락/중복")
+    offset = int(matches[0][0], 16) - 0x08000000 - 16
+    if offset < 0 or image[offset:offset + len(note)] != note:
+        raise RuntimeError("STM32 build ID ELF/symbol/BIN 불일치")
+    return note[16:32].hex()
 
 FORBIDDEN_TX_SOURCE_PATTERNS = (
     re.compile(r"\b(?:HAL|LL)_FDCAN_[A-Za-z0-9_]*(?:TX|Tx|Transmit|transmit)[A-Za-z0-9_]*\b"),
@@ -242,6 +259,17 @@ def run(arguments, **kwargs):
     return subprocess.check_output(arguments, text=True, encoding="utf-8", **kwargs)
 
 
+def dmamux_model_assertions(model):
+    """호스트 DMAMUX 상수를 vendor LL 이름과 비교하는 독립 C99 assertion을 만든다."""
+    constants = re.findall(r"^#define (LL_DMAMUX_REQ_USART2_\w+) (\([0-9]+U\))$",
+                           model, flags=re.MULTILINE)
+    if (len(constants) != 2 or {name for name, _ in constants} !=
+            {"LL_DMAMUX_REQ_USART2_RX", "LL_DMAMUX_REQ_USART2_TX"}):
+        raise RuntimeError("USART2 DMAMUX model 상수 누락/중복/형식 오류")
+    return "\n".join(f"typedef char check_{name}[({name} == {value}) ? 1 : -1];"
+                     for name, value in constants)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elf", required=True, type=Path)
@@ -254,6 +282,13 @@ def main():
     text, data, bss = check_memory(size)
     symbols = run([str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", str(args.elf)])
     check_symbols(symbols)
+    with tempfile.TemporaryDirectory(prefix="canview-build-id-") as temporary:
+        note_path = Path(temporary) / "build-id.bin"
+        subprocess.run([str(tool_dir / f"arm-none-eabi-objcopy{suffix}"),
+                        "--dump-section", f".note.gnu.build-id={note_path}", str(args.elf),
+                        str(Path(temporary) / "copy.elf")], check=True)
+        build_id = check_build_id(note_path.read_bytes(), symbols,
+                                  args.elf.with_suffix(".bin").read_bytes())
     commands = json.loads((args.elf.parent / "compile_commands.json").read_text(encoding="utf-8"))
     check_compile_contract(commands, ROOT / "firmware/communicator/stm32/interface/canview_build_mode.h")
     stacks = stack_evidence(args.elf.parent, commands, lambda output: run(
@@ -269,17 +304,20 @@ def main():
                            model.read_text(encoding="utf-8"), flags=re.MULTILINE)
     if len(constants) < 40:
         raise RuntimeError("register model 상수 목록 추출 실패")
-    source = '#include "stm32g474xx.h"\n'
+    source = '#include "stm32g474xx.h"\n#include "stm32g4xx_ll_dmamux.h"\n'
     source += "\n".join(f"typedef char check_{name}[({name} == {value}) ? 1 : -1];"
                         for name, value in constants)
+    source += "\n" + dmamux_model_assertions(
+        (ROOT / "tests/stm32/fake_stm32/stm32g4xx_ll_dmamux.h").read_text(encoding="utf-8"))
     device = args.sdk / "Drivers/CMSIS/Device/ST/STM32G4xx/Include"
     core = args.sdk / "Drivers/CMSIS/Core/Include"
+    ll = args.sdk / "Drivers/STM32G4xx_HAL_Driver/Inc"
     subprocess.run([str(args.compiler), "-x", "c", "-std=c99", "-fsyntax-only", "-Werror",
-                    "-mcpu=cortex-m4", "-mthumb", "-DSTM32G474xx", f"-I{device}", f"-I{core}", "-"],
+                    "-mcpu=cortex-m4", "-mthumb", "-DSTM32G474xx", f"-I{device}", f"-I{core}", f"-I{ll}", "-"],
                    input=source, text=True, encoding="utf-8", check=True)
     print(f"PASS: STM32 core text={text} data={data} bss+reserved-stack={bss}; "
           f"max individual stack frame={max_frame}; {len(stacks)} C object stack files; "
-          f"{len(constants)} CMSIS/model constants")
+          f"{len(constants)} CMSIS/model + 2 DMAMUX/LL constants; ELF/BIN build ID={build_id}")
     return 0
 
 

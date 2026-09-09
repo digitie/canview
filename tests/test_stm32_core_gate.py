@@ -3,14 +3,48 @@ import unittest
 from pathlib import Path
 import sys
 import tempfile
+import struct
 from copy import deepcopy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from tools.check_stm32_core import (check_compile_contract, check_memory, check_source_safety,
-                                    check_stack, check_symbols, stack_evidence)
+from tools.check_stm32_core import (check_build_id, check_compile_contract, check_memory, check_source_safety,
+                                    check_stack, check_symbols, dmamux_model_assertions, stack_evidence)
 
 
 class Stm32CoreGateTests(unittest.TestCase):
+    def test_dmamux_model_assertions_fail_closed(self):
+        model = "#define LL_DMAMUX_REQ_USART2_RX (26U)\n#define LL_DMAMUX_REQ_USART2_TX (27U)\n"
+        source = dmamux_model_assertions(model)
+        self.assertIn("LL_DMAMUX_REQ_USART2_RX == (26U)", source)
+        self.assertIn("LL_DMAMUX_REQ_USART2_TX == (27U)", source)
+        self.assertEqual(source.count("? 1 : -1"), 2)
+        # 변이 값도 상수 대조에서 삭제하지 않고 실제 SDK compiler 검사로 전달한다.
+        self.assertIn("== (7U)", dmamux_model_assertions(model.replace("26U", "7U")))
+        for invalid in ("", model.splitlines()[0], model + model,
+                        model.replace("_TX", "_RX"), model.replace("_TX", "_OTHER"),
+                        model.replace("27U", "invalid")):
+            with self.subTest(model=invalid), self.assertRaises(RuntimeError):
+                dmamux_model_assertions(invalid)
+
+    def test_linked_build_id_binary_binding(self):
+        digest = bytes(range(1, 21))
+        note = struct.pack("<III4s", 4, 20, 3, b"GNU\0") + digest
+        symbols = "08000210 R canview_stm_link_build_id"
+        image = bytes(512) + note
+        self.assertEqual(check_build_id(note, symbols, image), digest[:16].hex())
+        for invalid_note in (b"", note[:-1], note + b"\0", bytes(36),
+                             b"\x08" + note[1:], note[:16] + bytes(20)):
+            with self.subTest(note=invalid_note), self.assertRaises(RuntimeError):
+                check_build_id(invalid_note, symbols, image)
+        for invalid_symbols in ("", symbols + "\n" + symbols,
+                                symbols.replace("08000210", "08000211"),
+                                symbols.replace("08000210", "00000000")):
+            with self.subTest(symbols=invalid_symbols), self.assertRaises(RuntimeError):
+                check_build_id(note, invalid_symbols, image)
+        for invalid_image in (b"", image[:-1], image[:-1] + b"\0"):
+            with self.subTest(image=invalid_image), self.assertRaises(RuntimeError):
+                check_build_id(note, symbols, invalid_image)
+
     def test_memory_limits(self):
         self.assertEqual(check_memory("text data bss\n262140 4 98300"), (262140, 4, 98300))
         for text in ("262141 4 0", "0 4 98301", "-1 0 0", "0 -1 0", "0 0 -1"):

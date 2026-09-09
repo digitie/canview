@@ -1,10 +1,28 @@
 # T-104 STM32 UART DMA, link state와 idempotency
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G2`
 - 선행: `T-004`, `T-102`
 - 병렬 가능: `T-103`
+
+최신 [복구·B closure 기록](../reviews/adversarial/2026-09-09-T-104-04.md)에서
+B-12/B-13 PASS와 A-10의 P2 safety-inhibit 시험 공백을 구분한다. 후자는 owner
+`digitie`, 이슈 #34/T-104 검증 보강으로 defer하며 다음 UART/admission 변경 전,
+늦어도 software qualification·control authorizer 활성화·G2 승인 전에 해결한다.
+A-08 원 P1 확인 debt는 사용자 한정 면제일 뿐 CLOSED가 아니다.
+
+2026-09-09 사용자 명시 지시로 PR #33의 A 재검토 gate만 면제해 source merge와
+다음 software Task 진행을 허용한다. [이슈 #34](https://github.com/digitie/canview/issues/34)와
+[review 기록](../reviews/adversarial/2026-09-09-T-104-03.md)에 원 A의 `INCOMPLETE/BLOCK`,
+P1 closure 미완료와 후속 owner·gate를 남긴다. 이는 `DONE`·release·차량 승인이나
+서비스 제한 해소가 아니다. CI·B 후속 확인·GitHub 보호 규칙은 그대로 적용한다.
+
+2026-09-09부터 software 구현을 시작했다. `codex/t104-stm32-uart-control`에서
+T-004/T-102의 generated UART ABI와 STM32 cooperative scheduler를 연결한다.
+현재 build mode는 `CAPTURE_ONLY`이며 이 task에서도 raw CAN TX, vehicle replay,
+control lease 발급 권한을 열지 않는다. 실제 G2 UART 전기·DMA 계측, 보드 flash,
+CTS/RTS eye, 24시간 PRBS와 차량 연결은 장비가 없어 `NOT_RUN`으로 남긴다.
 
 ## 목표
 
@@ -46,11 +64,44 @@
 
 ## 검증
 
-```bash
-ctest --preset host-sanitize -R 'uart|idempotency|lease' --output-on-failure
-python tests/hil/run_uart_soak.py --baud 4000000 --hours 24
-python tests/hil/inject_uart_faults.py --seed 1
+현재 checkout에서 실행 가능한 software 검증은 다음과 같다.
+
+```powershell
+cmake --build build-t104-host -j 4
+ctest --test-dir build-t104-host --output-on-failure
+build-t104-host/canview-uart-tests.exe soak-smoke
+build-t104-host/canview-uart-tests.exe soak-24h
+python -B tools/generate_uart_protocol.py --check
+python -B tools/generate_boards.py --check
+python -B tools/validate_plan.py
+python -B tools/validate_document_links.py
+python -B tests/foundation/test_sdkconfig.py -v
 ```
+
+`soak-smoke`는 4 Mbps 양방향 1초 생산 C codec 시험이고, `soak-24h`는
+동일 codec에 86,400초 분량의 byte budget을 공급하는 host 가속 시험이다. 둘 다
+실제 UART 전기선·DMA·RTS/CTS의 24시간 운용을 뜻하지 않는다. host CTest에는
+malformed/truncated/CRC/resync, duplicate/conflict, queue·pool 경계, callback
+reentry와 config/generator negative case가 포함된다. target Debug/Release는 pinned
+Arm GCC와 STM32CubeG4로 ELF/HEX/BIN/MAP을 각각 생성하고 warning/error scan을
+수행한다.
+
+현재 결과와 남은 gate는 다음과 같다.
+
+| 범위 | 결과 |
+|---|---|
+| Windows host Debug/Release CTest 각각 120/120 | `PASS` |
+| 4 Mbps C `soak-smoke` 양방향 | `PASS` |
+| 4 Mbps C `soak-24h` 양방향 byte budget | `PASS` |
+| UART schema/generator/board/plan/link/sdkconfig | `PASS` |
+| STM32 Debug/Release target binary·warning scan | `PASS` |
+| UART reset stale TX event·COMMIT 999/1000/1001 ms·RX unread loss 회귀 | `PASS` |
+| GNU linker build ID ↔ BSP symbol ↔ BIN 일치·negative mutation | `PASS` |
+| Doxygen/Sphinx strict·TSan pool | `PASS` |
+| 독립 reviewer A 재확인 | `INCOMPLETE/BLOCK`, 사용자 PR #33 한정 면제, 이슈 #34 OPEN |
+| B 후속 확인·최종 candidate CI/artifact | `PENDING`, PR #33 Draft 유지 |
+| 실제 board flash, DMA/IRQ/CTS·RTS 전기 측정, physical 24시간 PRBS | `NOT_RUN` |
+| reset/brownout rail, ST-LINK/USB, 차량 CAN·vehicle evidence | `NOT_RUN` |
 
 ## 주의
 
