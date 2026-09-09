@@ -1,9 +1,14 @@
 # T-007 OTA-01 서명 컨테이너와 packager
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G0 / OTA-01`
 - 선행: `T-001`
+
+2026-09-09 T-104 PR #33 merge `d229772`/origin/main 확인 뒤 이 task를 시작했다.
+T-001 선행이 완료돼 STM32 boot/core 공용 선행을 구현할 수 있다. 먼저 C99
+bounded CBOR primitive부터 추가하며, 전체 manifest/서명·writer 연결과 실제 target
+gate는 후속 구현이다. 초기 host test를 OTA 완료나 배포 승인으로 표시하지 않는다.
 
 ## 목표
 

@@ -1,5 +1,21 @@
 # CANView 작업 일지
 
+## 2026-09-09 (codex, PR #33 merge와 T-007 시작)
+
+최종 evidence-only `3ff04b7` CI 34335812873의 6개 job이 모두 성공했다. 다운로드한
+manifest의 head/base/run identity, 이미지18/18 bytes·SHA-256, source provenance6/6,
+target log21 compiler/linker/CMake warning/error0을 확인했다. Manifest SHA-256은
+`1dd10972ccc9ec565f726ac21a58862ea10db704a576b67f9188cf1a421a0514`다. Node20→24
+runner 안내는 별도 후속 항목으로 PR에 공개했다. A 면제는 사용자 PR #33 한정이며
+원문·P1 확인 debt·P2 defer를 닫지 않았다. 18:55:58 KST `gh pr merge --merge
+--match-head-commit`으로 merge했고 `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`가
+fetch한 origin/main과 일치하며 candidate가 ancestor임을 확인했다. 이슈 #34 OPEN.
+
+dirty 기본 checkout을 보존하고 `codex/t007-ota-container` 별도 worktree를 만들었다.
+선행 T-001 완료와 STM32 boot/core 순서를 근거로 T-007을 선택했다. CBOR primitive
+구현부터 시작하며 정식 container/서명/target/review/CI gate는 아직 남아 있다.
+physical/HIL·provisioning NOT_RUN, 차량 CAN TX NO-GO를 계속 유지한다.
+
 ## 2026-09-09 (codex, T-104 완료 응답 복구와 B closure)
 
 앱 조회에서 비었던 A-10/B-11의 기존 final 응답/작성 원문을 로컬 기록에서 복구했다.

@@ -2,6 +2,21 @@
 
 ## 현재 진척도
 
+2026-09-09 T-104 PR #33이 `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`로 merge됐고
+`origin/main` 및 candidate `3ff04b7`의 ancestry를 확인했다. 최종 CI `34335812873`
+6/6, target 이미지 18/18 bytes/SHA-256·source6/6·target log21 compiler/linker/CMake
+warning/error0이다. manifest SHA-256은
+`1dd10972ccc9ec565f726ac21a58862ea10db704a576b67f9188cf1a421a0514`다.
+A 재검토는 PR #33 한정 사용자 면제이며 이슈 #34 OPEN·원 P1 확인 debt·A-10 P2
+DEFERRED를 유지한다. T-104 전체 DONE/physical gate 승인으로 해석하지 않는다.
+GitHub Actions Node20→24 전환 안내는 build warning과 별개로 남아 있으며 owner
+digitie/T-001의 다음 workflow 변경 전 action pin 검증 후속 항목이다.
+
+다음 [T-007](tasks/T-007-ota-container.md)을 `codex/t007-ota-container`에서 시작했다.
+STM32 boot의 공용 선행인 C99 bounded parser·서명 container/packager 범위다.
+eFuse/option-byte·Flash erase/install·vehicle TX는 열지 않는다. 일반 2인 리뷰 규칙은
+유지하며 target/서명/전체 container 검증 전 이 task를 DONE으로 표시하지 않는다.
+
 2026-09-09 T-104 [최신 review 정정·closure](reviews/adversarial/2026-09-09-T-104-04.md):
 조회 누락이었던 A-10/B-11 완료 보고서를 복구했고 원문을 보존했다. B-12/B-13은
 `6b33a59`의 각 원 finding을 PASS로 확인했다. A-08 서비스 차단과 원 P1 확인 debt는
@@ -95,14 +110,13 @@ physical/HIL·flash·전원/reset/brownout·CAN analyzer·차량 bus·provisioni
 
 ## 다음 한 작업
 
-현재 구현은 [T-104](tasks/T-104-stm32-uart-control.md) STM32 4 Mbps UART DMA,
-link state, priority queue, `CONTROL_TIME_SYNC` mapping과 256-entry idempotency
-cache다. 선행 T-004, T-102와 병렬 T-103은 main에 통합됐다. raw CAN TX,
-vehicle replay와 lease 발급은 만들지 않으며 실제 board flash/HIL·clock/reset/
-rail/brownout·UART DMA/CTS 계측은 장비가 없으면 `NOT_RUN`으로 남긴다.
+현재 구현은 [T-007](tasks/T-007-ota-container.md) OTA-01이다. T-001 선행은 main에
+있다. 처음에는 CBOR bounded primitive와 schema를 구현하고 C/Python differential,
+signed synthetic fixture와 실제 target build까지 순서대로 연결한다. parser 결과는
+writer/erase/install/boot selector 권한이 아니다. T-104 이슈 #34 debt는 별도 유지한다.
 
-- 현재 문서: docs/tasks/T-104-stm32-uart-control.md, docs/architecture/protocols/communicator-uart.md, docs/development/windows.md, docs/runbooks/agent-workflow.md
-- 다음 검증 순서: T-104 C source/generated ABI → host malformed/duplicate/queue/time-sync/concurrency/sanitizer → STM32 target ELF/MAP/BIN/HEX warning 0 → 독립 reviewer 2명 → Draft PR/CI/merge. 장비가 없으면 G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
+- 현재 문서: docs/tasks/T-007-ota-container.md, docs/architecture/ota.md §7–8, docs/development/windows.md, docs/runbooks/agent-workflow.md
+- 다음 검증 순서: C/Python bounded parser·schema/golden → 서명·negative/differential·sanitizer/coverage → 실제 target warning0 → 독립 reviewer 2명 → CI/merge. physical/HIL은 NOT_RUN이다.
 - Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
