@@ -19,7 +19,7 @@ if str(TESTS_ROOT) not in sys.path:
 from hil.adapter import HostAdapter, SimulationResult
 from hil.analyze import analyze
 from hil.events import EventLog, EventLogError, read_jsonl
-from hil.run import load_budget, main as run_main
+from hil.run import (_canonical_source_bytes, load_budget, main as run_main)
 from hil.scenario import ScenarioError, load_scenarios
 from hil.validate_evidence import EvidenceError, validate
 
@@ -130,6 +130,9 @@ class HilRunnerTests(unittest.TestCase):
             event_log.append(2_000, "fixture", "EVENT", execution_id="other")
         with self.assertRaises(EventLogError):
             EventLog(execution_id="run-only")
+
+    def test_source_identity_normalizes_checkout_newlines(self) -> None:
+        self.assertEqual(b"a\nb\nc\n", _canonical_source_bytes(b"a\r\nb\rc\n"))
 
     def test_scenario_parser_rejects_unbounded_action_fields(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

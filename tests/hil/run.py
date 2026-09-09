@@ -47,8 +47,13 @@ def _git_commit() -> str:
     return value if len(value) == 40 else "unknown"
 
 
+def _canonical_source_bytes(content: bytes) -> bytes:
+    """Git checkout 방식과 무관하게 text source의 줄바꿈을 canonicalize한다."""
+    return content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def _source_digest(roots: tuple[Path, ...]) -> str:
-    """지정한 source tree를 경로와 내용까지 포함해 deterministic하게 식별한다."""
+    """지정한 source tree를 canonical path와 LF 내용까지 포함해 식별한다."""
     digest = hashlib.sha256()
     files: list[Path] = []
     ignored_parts = {"build", "managed_components", ".idf_tools", "__pycache__"}
@@ -64,7 +69,7 @@ def _source_digest(roots: tuple[Path, ...]) -> str:
             files.append(path)
     for path in sorted(files, key=lambda item: item.relative_to(ROOT).as_posix()):
         relative = path.relative_to(ROOT).as_posix().encode("utf-8")
-        content = path.read_bytes()
+        content = _canonical_source_bytes(path.read_bytes())
         digest.update(len(relative).to_bytes(4, "big"))
         digest.update(relative)
         digest.update(len(content).to_bytes(8, "big"))

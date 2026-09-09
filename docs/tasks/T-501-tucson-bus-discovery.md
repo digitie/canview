@@ -41,8 +41,11 @@ ignition off, accessory, ignition on engine off, idle, 정차 switch 동작을 �
 ## 검증
 
 ```bash
-python tests/hil/run_can_capture.py --mode capture-only --channels 3 --vehicle-profile tucson-tl-2017
+python tests/hil/run_can_capture.py --mode capture-only --channels 3 `
+  --expected-commit <manifest-candidate-commit> `
+  --expected-firmware-source-sha256 <manifest-firmware-source-sha256>
 # 세 값은 같은 실행의 trusted evidence manifest에서 주입한다.
+# 차량 profile은 physical harness manifest와 private evidence에서 별도로 고정한다.
 python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log `
   --expected-source <manifest-source> `
   --expected-execution-id <manifest-execution-id> `

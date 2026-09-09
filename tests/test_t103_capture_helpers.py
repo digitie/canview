@@ -23,7 +23,7 @@ FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
 EXPECTED_SOURCE = "t103-fixture"
 EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
 EXPECTED_COMMIT = _git_commit()
-EXPECTED_FIRMWARE_IDENTITY = "f321910ee51e02920b19da0ccb5f7823e9cac3b54bab7232f77b2a791ec1107d"
+EXPECTED_FIRMWARE_IDENTITY = "dd81fb27da6898600e1a03d2264693adfe11f24962857129ddf66eaf076761b1"
 
 
 class T103CaptureHelperTests(unittest.TestCase):
