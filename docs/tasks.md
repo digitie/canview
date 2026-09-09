@@ -53,7 +53,7 @@ py -3 tools/validate_document_links.py
 | [T-100b](tasks/T-100b-navigation-audio-bringup.md) | BLOCKED | P1 | R1 센서·원격 수음·전원 상태 firmware와 bring-up | T-002, T-004, T-101, T-200, T-201, T-202, T-203, T-300, T-303, T-304 |
 | [T-101](tasks/T-101-hardware-bringup.md) | BLOCKED | P0 | Communicator PCB bring-up과 전원/reset fault 검증 | T-100a, T-500 |
 | [T-102](tasks/T-102-stm32-platform.md) | IN_PROGRESS | P0 | STM32 platform, clock, watchdog와 cooperative scheduler | T-001, T-102a |
-| [T-103](tasks/T-103-stm32-fdcan-capture.md) | BLOCKED | P0 | STM32 3채널 FDCAN capture-only 경로 | T-004, T-102, T-500 |
+| [T-103](tasks/T-103-stm32-fdcan-capture.md) | IN_PROGRESS | P0 | STM32 3채널 FDCAN capture-only 경로 | T-004, T-102, T-500 |
 | [T-104](tasks/T-104-stm32-uart-control.md) | BLOCKED | P0 | STM32 UART DMA, link state와 idempotency | T-004, T-102 |
 | [T-105](tasks/T-105-stm32-safety-profile.md) | BLOCKED | P0 | STM32 generated safety profile runtime | T-006, T-103, T-104 |
 | [T-106](tasks/T-106-stm32-command-executor.md) | BLOCKED | P0 | STM32 command executor와 송신 build gate | T-101, T-105, T-503, T-505a, T-500 |

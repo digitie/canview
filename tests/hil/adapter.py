@@ -13,6 +13,7 @@ from .scenario import Scenario
 
 HOST_ADAPTER_VERSION = "host-sim-v1"
 LAB_ADAPTER_VERSION = "lab-contract-v1"
+HOST_EVENT_SOURCE = "host-simulator"
 
 
 @dataclass
@@ -48,12 +49,12 @@ class HostAdapter:
 
         def emit(kind: str, **fields: Any) -> None:
             nonlocal monotonic_ns
-            log.append(monotonic_ns, "host-simulator", kind, **fields)
+            log.append(monotonic_ns, HOST_EVENT_SOURCE, kind, **fields)
             monotonic_ns += 1_000
 
         def emit_map(kind: str, fields: dict[str, Any]) -> None:
             nonlocal monotonic_ns
-            log.append_fields(monotonic_ns, "host-simulator", kind, fields)
+            log.append_fields(monotonic_ns, HOST_EVENT_SOURCE, kind, fields)
             monotonic_ns += 1_000
 
         seen_tokens: set[str] = set()
@@ -84,7 +85,7 @@ class HostAdapter:
                     channel_id = int(channel["channel"])
                     rx_frames = int(channel.get("rx_frames", 128))
                     emit("CAN_CHANNEL_SUMMARY", channel=channel_id,
-                         rx_frames=rx_frames, tx_frames=0,
+                         rx_frames=rx_frames, tx_frames=0, ack_frames=0,
                          bus_state=str(channel.get("bus_state", "ERROR_PASSIVE")),
                          error_counter=int(channel.get("error_counter", 0)))
             elif action_type == "resource":

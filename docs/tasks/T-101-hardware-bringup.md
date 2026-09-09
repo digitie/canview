@@ -57,7 +57,11 @@
 
 ```bash
 python tests/hil/run_power_faults.py --rig-config private/rig.yaml --board-rev REV
-python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log
+# 세 값은 같은 실행의 trusted evidence manifest에서 주입한다.
+python tests/hil/assert_no_tx.py evidence/latest/can-analyzer.log `
+  --expected-source <manifest-source> `
+  --expected-execution-id <manifest-execution-id> `
+  --expected-firmware-identity <manifest-firmware-identity>
 python tests/hil/validate_hardware_evidence.py evidence/hardware/REV/SERIAL
 ```
 

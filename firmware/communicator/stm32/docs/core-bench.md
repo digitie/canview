@@ -1,6 +1,6 @@
 # STM32 최소 core bench 계약
 
-이 구현은 [T-102a](../../../../docs/tasks/T-102a-stm32-core-bench.md)의 최소 boot/fault image를 [T-102](../../../../docs/tasks/T-102-stm32-platform.md)의 platform diagnostic 계약으로 확장한 것이다. CAN·UART transport·OTA·Flash 쓰기·보호 설정 변경은 없다. CAPTURE_ONLY만 configure 가능하며 control capability/TX permit은 항상 0이다.
+이 구현은 [T-102a](../../../../docs/tasks/T-102a-stm32-core-bench.md)의 최소 boot/fault image를 [T-102](../../../../docs/tasks/T-102-stm32-platform.md)의 platform diagnostic 계약으로 확장한 것이다. T-103 [FDCAN capture-only module](fdcan-capture.md)은 별도 source/target adapter로 포함되지만 기본 composition root의 실제 CAN/UART worker wiring은 T-104 전까지 시작하지 않는다. CAN TX·OTA·Flash 쓰기·보호 설정 변경은 없다. CAPTURE_ONLY만 configure 가능하며 control capability/TX permit은 항상 0이다.
 
 ## 구조·소유권
 
@@ -12,6 +12,10 @@ app/main.c + app/boot.c
   → bsp/core.c + bsp/board.c
   → platform/stm32g474/core_hw.c + safe_gpio.c
 ```
+
+T-103의 별도 경로는 `platform/stm32g474/fdcan_capture.c`의 IRQ raw snapshot과
+`module/fdcan_capture.c`의 worker capture를 [FDCAN capture 문서](fdcan-capture.md)에
+기록한다. 이를 기본 `main()`의 실행 경로와 혼동하지 않는다.
 
 app/module에는 MCU register나 vendor API를 두지 않는다. boot·scheduler·queue context는 caller가 zero-init하고 소유한다. callback context 수명을 caller가 보장한다. descriptor는 init 시 복사한다. queue는 header와 payload를 포함한 최대64byte record 전체를 동기 복사하며 caller view/pointer의 수명을 연장하지 않는다. UART message queue의 크기·수명은 T-104에서 별도 설계하며 이64byte queue에 포인터만 넣어 대체하지 않는다.
 
@@ -45,7 +49,7 @@ IWDG PR32·reload374는 nominal32kHz에서375ms다. DS12288 Rev6의 LSI29.5–34
 
 ## Clock·ISR
 
-HSE16MHz crystal(non-bypass), M4/N80/R2/Q4로 SYSCLK160MHz·APB1/2=80MHz·FDCAN PLLQ80MHz, USART2=PCLK1·BRR20을 compile-time 검사한다. USART2/FDCAN peripheral 자체는 시작하지 않는다. range1 boost 전 HCLK/2, Flash4WS, PLL 선택 뒤 DWT160cycles 이상 대기 후 HCLK/1로 전환한다. 모든 readiness/settle loop는 최대1,000,000회이며 실패 시 watchdog 경로로 닫힌다. 이 횟수를 실측 시간으로 주장하지 않는다.
+HSE16MHz crystal(non-bypass), M4/N80/R2/Q4로 SYSCLK160MHz·APB1/2=80MHz·FDCAN PLLQ80MHz, USART2=PCLK1·BRR20을 compile-time 검사한다. T-102 기본 app은 USART2/FDCAN peripheral을 시작하지 않으며, T-103 adapter의 start API는 validated profile·clock·TIM2 readiness가 확인된 별도 composition에서만 호출할 수 있다. range1 boost 전 HCLK/2, Flash4WS, PLL 선택 뒤 DWT160cycles 이상 대기 후 HCLK/1로 전환한다. 모든 readiness/settle loop는 최대1,000,000회이며 실패 시 watchdog 경로로 닫힌다. 이 횟수를 실측 시간으로 주장하지 않는다.
 
 | ISR | 책임 | 공유 데이터·처리 |
 |---|---|---|
@@ -71,7 +75,7 @@ target linker는 static RAM80KiB·reserved stack24KiB·총 RAM margin24KiB를 �
 
 `tests/test_platform.c`는 metadata null/length/digest, checkerboard watermark arm/sample/reentry/overwrite/혼합 pattern/scan budget, malformed root/version/size, service reset pending, diagnostic short buffer/invalid enum/size overflow/encoding과 reset-reason byte를 실행한다. `tests/test_registers.c`는 named register model에서 HSE/PLL/IWDG/SysTick/TIM2 failure와 느린/변조된 TIM2, brownout/software/pin/low-power/option-byte/ambiguous reset flag 분류, target diagnostic record, 초기화 전 HardFault system-reset 요청을 확인한다. `check_stm32_build_mode.py`는 실제 compiler로 forced include와 mode/TX override negative fixture를 실행하고, `check_stm32_core.py`는 모든 target C unit의 compile contract와 STM32/shared C/H source의 FDCAN TX API/member 사용을 검사한다. generated board header에는 board+pin input SHA-256를 `CANVIEW_BOARD_HARDWARE_DIGEST` macro로 함께 전개하고 generator test가 exact digest를 확인한다.
 
-현재 source/host/target compile은 실제 board에 권한을 부여하지 않는다. UART/FDCAN peripheral, Flash root, external TX gate, reset/brownout rail, MSP/stack physical watermark, ST-LINK flash와 차량 CAN은 `NOT_RUN`이며 CAN TX는 `NO-GO`다.
+현재 source/host/target compile은 실제 board에 권한을 부여하지 않는다. 기본 app의 UART/FDCAN runtime wiring, Flash root, external TX gate, reset/brownout rail, MSP/stack physical watermark, ST-LINK flash와 차량 CAN은 `NOT_RUN`이며 CAN TX는 `NO-GO`다. T-103 module/adapter의 상세 경계와 target compile 결과는 [FDCAN capture 문서](fdcan-capture.md)에 둔다.
 
 ## 근거와 미실행
 

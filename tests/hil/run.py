@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 from typing import Any
+from uuid import uuid4
 
 
 if __package__ in {None, ""}:
@@ -46,8 +47,13 @@ def _git_commit() -> str:
     return value if len(value) == 40 else "unknown"
 
 
+def _canonical_source_bytes(content: bytes) -> bytes:
+    """Git checkout 방식과 무관하게 text source의 줄바꿈을 canonicalize한다."""
+    return content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def _source_digest(roots: tuple[Path, ...]) -> str:
-    """지정한 source tree를 경로와 내용까지 포함해 deterministic하게 식별한다."""
+    """지정한 source tree를 canonical path와 LF 내용까지 포함해 식별한다."""
     digest = hashlib.sha256()
     files: list[Path] = []
     ignored_parts = {"build", "managed_components", ".idf_tools", "__pycache__"}
@@ -63,7 +69,7 @@ def _source_digest(roots: tuple[Path, ...]) -> str:
             files.append(path)
     for path in sorted(files, key=lambda item: item.relative_to(ROOT).as_posix()):
         relative = path.relative_to(ROOT).as_posix().encode("utf-8")
-        content = path.read_bytes()
+        content = _canonical_source_bytes(path.read_bytes())
         digest.update(len(relative).to_bytes(4, "big"))
         digest.update(relative)
         digest.update(len(content).to_bytes(8, "big"))
@@ -85,6 +91,14 @@ def harness_identity() -> dict[str, str]:
     return {
         "version": RUNNER_VERSION,
         "source_sha256": _source_digest((ROOT / "tests" / "hil",)),
+    }
+
+
+def _new_event_identity(firmware: dict[str, str]) -> dict[str, str]:
+    """event마다 반복하는 bounded execution/source provenance를 만든다."""
+    return {
+        "execution_id": f"{RUNNER_VERSION}-{uuid4().hex}",
+        "firmware_identity": firmware["source_sha256"],
     }
 
 
@@ -201,13 +215,16 @@ def _blocked_report(output: Path, args: argparse.Namespace, status: str,
                     reason: str, rig: dict[str, Any] | None = None) -> int:
     report_seed = (args.seed if isinstance(args.seed, int)
                    and 0 <= args.seed <= (1 << 64) - 1 else 0)
+    firmware = firmware_identity()
+    event_identity = _new_event_identity(firmware)
     report = {
         "schema_version": 1,
         "runner_version": RUNNER_VERSION,
         "suite": args.suite,
         "status": status,
         "seed": report_seed,
-        "firmware": firmware_identity(),
+        "firmware": firmware,
+        "event_identity": event_identity,
         "harness": harness_identity(),
         "scenario_results": [],
         "physical_hil": {"status": status, "reason": reason},
@@ -232,6 +249,8 @@ def _blocked_report(output: Path, args: argparse.Namespace, status: str,
 def run_host(args: argparse.Namespace, scenarios: list[Any],
              budget: dict[str, dict[str, int]], output: Path) -> int:
     adapter = HostAdapter()
+    firmware = firmware_identity()
+    event_identity = _new_event_identity(firmware)
     scenario_results: list[dict[str, Any]] = []
     events_directory = output / "events"
     scenario_directory = args.scenario_dir.resolve()
@@ -242,7 +261,9 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
               file=sys.stderr)
         return 2
     for scenario in scenarios:
-        event_log = EventLog()
+        event_log = EventLog(
+            execution_id=event_identity["execution_id"],
+            firmware_identity=event_identity["firmware_identity"])
         scenario_seed = _seed_for_scenario(args.seed, scenario.scenario_id)
         try:
             simulation = adapter.execute(scenario, scenario_seed, event_log)
@@ -294,7 +315,8 @@ def run_host(args: argparse.Namespace, scenarios: list[Any],
         "suite": args.suite,
         "status": status,
         "seed": args.seed,
-        "firmware": firmware_identity(),
+        "firmware": firmware,
+        "event_identity": event_identity,
         "harness": harness_identity(),
         "scenario_inventory": {
             "directory": _path_label(scenario_directory),

@@ -62,6 +62,8 @@ CANView는 2017 Tucson TL 2.0 디젤 4WD BlueLink를 1차 대상으로 하는 �
 
 Controller와 Communicator 사이에는 ESP-NOW 양방향 링크를 사용한다. Diagnostic Bridge는 별도 peer로 관찰 stream을 받으며, 차량 CAN 송신 경로에는 연결하지 않는다. broadcast raw telemetry와 무제한 multi-hop mesh는 사용하지 않는다.
 
+현재 STM32의 capture-only C source 계약은 [T-103 FDCAN capture 문서](../../firmware/communicator/stm32/docs/fdcan-capture.md)에 있다. IRQ raw snapshot, bounded ring, timestamp 확장과 generic inventory는 관찰 데이터만 만들며, 기본 app wiring이 시작되기 전까지 실제 bus 연결 권한을 부여하지 않는다.
+
 ## 3. 책임과 신뢰 경계
 
 | 계층 | 허용 책임 | 금지 책임 |

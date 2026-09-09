@@ -2,6 +2,21 @@
 
 ## 현재 진척도
 
+2026-09-09 T-103 STM32 3채널 FDCAN capture-only C source와 초기 적대적 리뷰 finding
+수정을 진행 중이다. module batch는 callback 이후 transactional commit과 channel별
+timestamp epoch를 사용하고, PSR/ECR snapshot은 frame timestamp를 덮어쓰지 않는다.
+G474 CMSIS adapter는 RX flag 선행 acknowledge, FIFO/raw-ring loss latch, singleton
+owner와 stop/start session reset을 갖는다. no-TX JSONL analyzer도 bounded schema/
+duplicate/sequence/complete/TX-gate 검증으로 fail-closed하게 보강했다.
+
+source fix candidate `3e13b2ca6e72a3aec5a32a6357285c614bc191f9`에서 T103 focused CTest
+2/2, 전체 Windows CTest 118/118, no-TX helper 6/6, WSL 일반 clone ASan/UBSan 전체
+CTest 118/118, STM32 module 및 fake-register adapter coverage function 100%/line≥95%/
+branch≥90%, STM32 Debug/Release clean target build와 warning/error scan 0건을
+확인했다. immutable post-fix reviewer 2명과 CI closure가 남아 있다. 실제 board
+flash·ST-LINK·GPIO/PHY·bitrate·IRQ latency·reset/brownout·CAN analyzer·차량 capture는
+`NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
+
 2026-09-08 T-500 protocol/CAN fault bench와 HIL harness는 최종 candidate
 `ff3121ce04328ff61a73f13492f8be9927f0dc98`에서 A-10/B-10 독립 reviewer
 `PASS`, unresolved P0/P1/P2/P3 0건, CI `34235313714` 6/6 success 후 PR #30

@@ -147,6 +147,27 @@ if(BUILD_TESTING)
     target_link_libraries(canview-stm32-platform-tests PRIVATE canview_stm_core canview_warnings)
     add_test(NAME stm32-platform-contracts COMMAND canview-stm32-platform-tests)
     set_tests_properties(stm32-platform-contracts PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm32-fdcan-tests tests/stm32/test_fdcan_capture.c)
+    target_link_libraries(canview-stm32-fdcan-tests PRIVATE canview_stm_core canview_wire canview_warnings)
+    add_test(NAME stm32-fdcan-capture COMMAND canview-stm32-fdcan-tests)
+    set_tests_properties(stm32-fdcan-capture PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm32-fdcan-platform-tests
+        tests/stm32/test_fdcan_platform.c
+        tests/stm32/fake_stm32/fake_hardware.c
+        firmware/communicator/stm32/platform/stm32g474/fdcan_capture.c)
+    target_include_directories(canview-stm32-fdcan-platform-tests BEFORE PRIVATE
+        tests/stm32/fake_stm32
+        firmware/communicator/stm32/platform/stm32g474)
+    target_compile_options(canview-stm32-fdcan-platform-tests PRIVATE
+        "SHELL:-include \"${PROJECT_SOURCE_DIR}/tests/stm32/fake_stm32/core_hw.h\""
+        "SHELL:-include \"${PROJECT_SOURCE_DIR}/tests/stm32/fake_stm32/safe_gpio.h\""
+        "SHELL:-include \"${PROJECT_SOURCE_DIR}/tests/stm32/fake_stm32/board_pins.h\"")
+    target_compile_definitions(canview-stm32-fdcan-platform-tests PRIVATE
+        CANVIEW_STM_FDCAN_TEST=1)
+    target_link_libraries(canview-stm32-fdcan-platform-tests PRIVATE
+        canview_stm_core canview_wire canview_warnings)
+    add_test(NAME stm32-fdcan-platform COMMAND canview-stm32-fdcan-platform-tests)
+    set_tests_properties(stm32-fdcan-platform PROPERTIES TIMEOUT 30)
     target_compile_definitions(canview-stm32-register-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
     target_compile_definitions(canview-stm32-register-tests PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
     target_include_directories(canview-stm32-register-tests PRIVATE
@@ -236,6 +257,9 @@ if(BUILD_TESTING)
     add_test(NAME foundation-python COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_generators.py -v)
     add_test(NAME esp32-sdkconfig-negative COMMAND ${Python3_EXECUTABLE} -X utf8 -B ${PROJECT_SOURCE_DIR}/tests/foundation/test_sdkconfig.py -v)
     add_test(NAME python-unit COMMAND ${Python3_EXECUTABLE} -X utf8 -B -m unittest discover -s ${PROJECT_SOURCE_DIR}/tests -p "test_*.py")
+    # The repository-mounted Windows/WSL path can make the complete Python
+    # unit suite exceed one minute even though individual tests remain bounded.
+    set_tests_properties(python-unit PROPERTIES TIMEOUT 180)
     add_test(NAME bridge-http-contract COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/security/bridge_http.py)
     set_tests_properties(bridge-http-contract PROPERTIES TIMEOUT 15)
