@@ -10,6 +10,14 @@ T-001 선행이 완료돼 STM32 boot/core 공용 선행을 구현할 수 있다.
 bounded CBOR primitive부터 추가하며, 전체 manifest/서명·writer 연결과 실제 target
 gate는 후속 구현이다. 초기 host test를 OTA 완료나 배포 승인으로 표시하지 않는다.
 
+초기 구현은 [OTA 내부 모듈](../../shared/ota/README.md)의 CBOR head decoder다.
+unsigned 64-bit 경계, 잘린 prefix, 최소 길이, major type·reserve/indefinite 거부를
+검사한다. Windows Debug/Release 전체 CTest 각각 121/121, focused Clang ASan/UBSan,
+Arm GCC 15.3.rel1의 Cortex-M4 freestanding C99 object compile이 통과했다.
+CBOR source의 focused coverage는 함수/행/분기 100%다. Object의 단일 frame 72 B는
+전체 target binary·call-chain·실행 timing 검증이 아니다.
+현재 app/bootloader에는 연결하지 않았다. 전체 manifest/서명/target/2인 리뷰는 남아 있다.
+
 ## 목표
 
 OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 한다. 현재 parser·packager가 없으므로 이 task는 설계 기록의 구현 전환이며 배포 승인이 아니다.

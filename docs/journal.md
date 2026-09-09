@@ -1,5 +1,28 @@
 # CANView 작업 일지
 
+## 2026-09-09 (codex, T-007 CBOR head 첫 C99 구현)
+
+Draft PR #35에서 heap·SDK·writer 권한 없는 최대 9-byte CBOR head decoder와
+unsigned 64-bit/잘린 prefix/비최소 encoding/major type/reserve 경계 회귀를 추가했다.
+새 worktree의 중복 toolchain 다운로드는 중단하고 이미 설치·검증한 동일 버전의
+Windows 도구로 소스를 실제 빌드했다. Host Debug 121/121(16.88초), Release
+121/121(17.38초), WSL Clang 21.1.8 ASan/UBSan focused 시험이 통과했다. Arm GNU
+15.3.rel1 Cortex-M4 freestanding C99 object(1352 B)와 단일 stack frame 72 B를
+확인했다. 이는 전체 target binary·OTA 설치 또는 physical 증거가 아니다.
+
+Focused llvm-cov는 PowerShell의 unquoted profile 인자로 첫 report 조회가 실패했다.
+같은 생성 profile을 정확히 quote해 조회한 결과 함수1/1·행62/62·분기26/26 모두
+100%였다. 최초 명령 실패를 coverage 실패/성공으로 혼동하지 않으며 전체 container
+coverage나 CI gate가 완성됐다고 주장하지 않는다.
+
+새 shared source를 포함하는 합성 T103 fixture digest는
+`7f8620834513cb2e1e9ac7ea849758a99f7361ca2a70c24dccc6652f57ed1867`로 갱신했다.
+과거 capture/서명·review 원문을 바꾸지 않았다. 전체 container/서명·schema·Python
+differential·target 연결·2인 적대적 리뷰는 남아 있다. B-12/B-13 clean review
+worktree 두 개는 process 부재·main ancestry 확인 후 git worktree remove로 정리했다.
+원문/로그는 별도 보존했고 source는 Git에서 복구 가능하다. A debt 및 기존 build
+worktree·dirty 기본 checkout은 보존했다.
+
 ## 2026-09-09 (codex, PR #33 merge와 T-007 시작)
 
 최종 evidence-only `3ff04b7` CI 34335812873의 6개 job이 모두 성공했다. 다운로드한

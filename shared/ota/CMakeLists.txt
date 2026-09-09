@@ -1,0 +1,6 @@
+add_library(canview_ota STATIC src/cbor_head.c)
+target_include_directories(canview_ota PRIVATE src ../interface)
+target_compile_features(canview_ota PUBLIC c_std_99)
+if(TARGET canview_warnings)
+    target_link_libraries(canview_ota PRIVATE canview_warnings)
+endif()
