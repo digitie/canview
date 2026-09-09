@@ -78,11 +78,15 @@ Arm GCC와 STM32CubeG4로 ELF/HEX/BIN/MAP을 각각 생성하고 warning/error s
 
 | 범위 | 결과 |
 |---|---|
-| host CTest 119/119 | `PASS` |
+| Windows host Debug/Release CTest 각각 120/120 | `PASS` |
 | 4 Mbps C `soak-smoke` 양방향 | `PASS` |
 | 4 Mbps C `soak-24h` 양방향 byte budget | `PASS` |
 | UART schema/generator/board/plan/link/sdkconfig | `PASS` |
 | STM32 Debug/Release target binary·warning scan | `PASS` |
+| UART reset stale TX event·COMMIT 999/1000/1001 ms·RX unread loss 회귀 | `PASS` |
+| GNU linker build ID ↔ BSP symbol ↔ BIN 일치·negative mutation | `PASS` |
+| Doxygen/Sphinx strict·TSan pool | `PASS` |
+| 독립 reviewer 재확인·최종 candidate CI/artifact | `PENDING`, PR #33 Draft 유지 |
 | 실제 board flash, DMA/IRQ/CTS·RTS 전기 측정, physical 24시간 PRBS | `NOT_RUN` |
 | reset/brownout rail, ST-LINK/USB, 차량 CAN·vehicle evidence | `NOT_RUN` |
 

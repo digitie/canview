@@ -2,6 +2,18 @@
 
 ## 현재 진척도
 
+2026-09-09 T-104 PR #33은 Draft이며 수정 candidate `14ea3c9`를 push했다. 기존 candidate
+`bdc6798`의 A-05/B-07 원본 verdict는 모두 `BLOCK`이다. stale TX completion의
+reset 후 재사용, tick 전 만료 COMMIT, RX 오류의 unread byte 누락, zero HELLO
+build ID와 SDK mutation oracle·coverage 설명을 수정했다. Windows Debug/Release
+각각 120/120, STM32 Debug/Release clean target·warning/error 0, ELF/BIN build ID
+대조, STM32/ESP32/shared coverage와 strict API 문서가 통과했다. WSL GCC와
+ASan/UBSan도 각각 120/120이다. A-08 재검토는 reviewer 서비스의 보안 제한으로
+중단되어 `INCOMPLETE/BLOCK`이며 [service 원문](reviews/adversarial/evidence/2026-09-09-T-104-reviewer-a-08-service-block.md)에
+보존했다. 제한을 우회하거나 P1 closure를 대신하지 않는다. 다음 작업은 reviewer
+서비스 접근 문제 해결 후 원 A의 재확인과 최신 CI/artifact gate closure다.
+physical/HIL·실제 24시간 UART·차량 gate는 `NOT_RUN`, 차량 CAN TX는 `NO-GO`다.
+
 2026-09-09 T-103 PR #32가 merge commit `b17bdfc0bb2a1bfa9d300c1e7662cac05c96df40`으로
 `origin/main`에 통합됐다. 3채널 FDCAN capture-only software/target/review/CI
 closure는 끝났지만 실제 board·전원·FDCAN·차량 gate는 여전히 `NOT_RUN`이다.

@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-09 | T-104 UART DMA/link 최초·post-fix hostile review | `9066379`→`bdc6798`, 수정 candidate `14ea3c9` | embedded runtime·안전 / SDK·build·security·evidence | [최초](adversarial/2026-09-09-T-104.md)·[post-fix](adversarial/2026-09-09-T-104-02.md), 원문 `BLOCK` 보존·원 reviewer 재확인 대기, physical/HIL `NOT_RUN` |
 | 2026-09-09 | T-103 STM32 FDCAN capture-only source/target-evidence closure | `6db3998` → `365a921`, 3-channel monitor/RX FIFO·raw ring·timestamp/drop·no-TX provenance·target artifact | embedded runtime·ISR·안전 / SDK·build·security·evidence | [report](adversarial/2026-09-09-T-103.md), 최종 A `PASS`·B `CONDITIONAL`, unresolved P0/P1 0; P2 2건 T-500 defer, physical/HIL `NOT_RUN`, CAN TX `NO-GO` |
 | 2026-09-08 | T-500 protocol/CAN fault bench와 HIL harness closure | `50410ba` → `ff3121c`, deterministic host harness·read-only rig contract·JSONL/evidence validator | embedded runtime·안전 / protocol·security·build·evidence | [report](adversarial/2026-09-08-T-500.md), A-10/B-10 최종 PASS, unresolved P0/P1/P2/P3 0; host 12/12·unit 46/46·full 97/97; g2 physical `SKIPPED`, physical/HIL `NOT_RUN`, CAN TX `NO-GO` |
 | 2026-09-08 | T-102 STM32 platform source/review closure | b2495a9 → 1894117, C99 boot/clock/IWDG/scheduler·stack/reset·CAPTURE_ONLY·CMake/SDK/CI gate | embedded runtime·안전 / SDK·build·evidence | [report](adversarial/2026-09-08-T-102.md), A-005/B-005 최종 PASS, unresolved P0/P1/P2/P3 0; PR #29 CI/merge 대기, physical/HIL NOT_RUN, CAN TX NO-GO |

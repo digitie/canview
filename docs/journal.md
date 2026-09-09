@@ -1,5 +1,28 @@
 # CANView 작업 일지
 
+## 2026-09-09 (codex, T-104 UART review 재수정)
+
+수정 commit `14ea3c9`를 push하고 A-08/B-09 및 최초 P1 reviewer A-10/B-11에
+독립 재검토를 요청했다. A-08은 service 보안 제한으로 final report 전에 중단됐다.
+service 원문을 보존하고 `INCOMPLETE/BLOCK`으로 기록했으며 제한 우회나 merge를
+수행하지 않았다. 다른 실행의 결과를 원 A의 P1 closure로 대체하지 않는다.
+
+`bdc6798`의 A-05/B-07 report를 원문 보존하고 C runtime reset에서 TX DMA를
+PRIMASK 안에서 정지한 뒤 이전 completion/error latch를 폐기했다. RX 오류는
+유지하며, unread byte와 producer 불명 손실을 분리해 기록한다. time-sync
+COMMIT에는 tick 호출 순서와 무관한 1초 경계를 적용했다. HELLO build ID는
+GNU linker SHA-1 앞 16 byte를 BSP에서 복사하고 ELF note/symbol/BIN 대조와
+잘못된 note·symbol·BIN negative 시험으로 검증한다. SHA-1 ID는 인증이 아니다.
+
+Windows Debug/Release 120/120, STM32 Debug/Release clean target 및 warning/error
+scan 0, STM32 coverage, SDK 13/13, Doxygen/Sphinx strict와 TSan pool 1/1을
+확인했다. WSL 보충 GCC 실행은 Windows worktree의 `.git` 경로를 해석하지 못해
+Python provenance 시험이 실패했다. 확인된 Git directory를 WSL의 `GIT_DIR`와
+`GIT_WORK_TREE`로 명시해 같은 HEAD를 검증한 뒤 전체 GCC/sanitizer 각각 120/120을 확인했다.
+이 환경 실패를 C firmware 실패나 PASS로 바꿔 기록하지 않는다. main checkout의
+사용자 변경과 기존 build directory는 보존했다. reviewer·CI가 닫히기 전 merge하지
+않으며 physical/HIL·board flash·차량 TX는 계속 `NOT_RUN`/`NO-GO`다.
+
 ## 2026-09-09 (codex, T-103 hostile finding fix와 adapter coverage)
 
 초기 immutable T-103 candidate에 대한 독립 Reviewer A/B raw report는 각각
