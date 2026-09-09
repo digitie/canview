@@ -1,6 +1,8 @@
 # T-103 STM32 3채널 FDCAN capture-only 경로
 
 - 상태: `IN_PROGRESS`
+- branch: `codex/t103-fdcan-capture`
+- PR: [#32](https://github.com/digitie/canview/pull/32)
 - 우선순위: `P0`
 - Gate: `G2`
 - 선행: `T-004`, `T-102`, `T-500`
@@ -66,13 +68,13 @@ physical G2를 닫거나 차량 연결 권한을 부여하지 않는다.
 - [x] CAN FD frame은 corruption 없이 unsupported counter로 분리된다. (FD/BRS/DLC malformed matrix)
 - [x] bitrate mismatch, bus-off, no-data가 서로 다른 상태가 된다. (profile/status host test)
 - [x] source timestamp wrap과 batch delta overflow가 새 batch로 안전하게 나뉜다. (wrap/65535 boundary test)
-- [ ] analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 확인한다. helper는
-  runner report가 제공한 `source`, `execution_id`, firmware `source_sha256`를 모든
-  event에 exact match로 요구하고 unknown kind/field, 실행된 `COMMAND_REPLAY`와
-  forbidden TX kind를 fail-closed로 거부한다. `run_can_capture.py`는 expected
-  candidate·firmware·harness source digest를 현재 checkout 및 report와 대조한 뒤
-  생성된 host event log에 이 helper를 직접 적용한다. 실제 analyzer 측정은 physical
-  gate로 남는다.
+- [x] `CAPTURE_ONLY` host runner가 runner report의 `source`, `execution_id`, firmware
+  `source_sha256`를 모든 event에 exact match로 요구하고 unknown kind/field, 실행된
+  `COMMAND_REPLAY`와 forbidden TX kind를 fail-closed로 거부한다.
+  `run_can_capture.py`는 expected candidate·firmware·harness source digest를 현재
+  checkout 및 report와 대조한 뒤 생성된 host event log에 이 helper를 직접 적용한다.
+- [ ] 실제 analyzer가 `CAPTURE_ONLY`에서 ACK와 data TX 0건을 측정한다. 장비가 없어
+  physical/HIL gate는 `NOT_RUN`이며 차량 CAN TX는 `NO-GO`다.
 - [x] safety path가 observer queue saturation에 막히지 않는다. (filter/reentry/
   bounded filter consumption/fixed inventory host test)
 
@@ -101,14 +103,27 @@ physical JSONL을 검사하는 bounded 계약 시험이다. 둘 다 physical har
 대신하지 않는다. 실제 analyzer에서 ACK/data TX 0건을 측정하는 acceptance는 장비가 없어
 `NOT_RUN`이다. event identity와 strict no-TX runner 연결도 함께 검증한다.
 
-최종 candidate의 검증 결과와 target artifact manifest는 독립 hostile reviewer
-2명의 post-fix verdict가 끝난 뒤 이 절에 정확한 commit·source digest·harness
-digest·CI run·evidence 링크로 갱신한다. physical board flash·전원·CAN analyzer·
-차량 evidence는 장비가 없으면 계속 `NOT_RUN`이며, 차량 CAN TX release는 `NO-GO`다.
+최종 source candidate는 `91ec28f550f18575f22a205155cffe2cbf18422d`이고, target
+Debug/Release clean-first build input은 `9d27fc2f6eb73e99127184193575e680c358cc7b`다.
+최종 evidence-only closure candidate `365a92193dc66b33fcd42b077bf4c058d21fac0c`에
+target manifest를 고정했다. firmware/shared/protocol source SHA-256은
+`f9ea109772edef0743fd22899f9c6c6d8c6035c3a43c03090a6d709bc2309212`, `tests/hil`
+harness SHA-256은 `00f0d68afcf3e30707f642e808ff645c1a60f62f91ee33e23ac0e7570d72ffbb`다.
+Debug/Release ELF·MAP·BIN·HEX와 fixed FDCAN layout checker가 통과했고 warning/error
+scan은 0건이다. 상세 disposition은 [T-103 통합 hostile review](../reviews/adversarial/2026-09-09-T-103.md),
+[target manifest](../reviews/adversarial/evidence/2026-09-09-T-103-target-91ec28f.md),
+[Reviewer A closure](../reviews/adversarial/evidence/2026-09-09-T-103-final-365a921-reviewer-a.md),
+[Reviewer B closure](../reviews/adversarial/evidence/2026-09-09-T-103-final-365a921-reviewer-b.md)에 둔다.
+최종 A는 `PASS`, B는 physical gate를 반영한 `CONDITIONAL`이며 active P0/P1은 없다.
+소프트웨어 source/target-evidence closure는 끝났지만, plan DAG상 선행 T-102가 아직
+`IN_PROGRESS`이고 physical G2도 열려 있으므로 이 상세 task 상태는 `IN_PROGRESS`로
+유지한다. remote CI run은 PR #32 head에서 확인 전까지 pending으로 취급한다. physical board flash·
+전원·CAN analyzer·차량 evidence는 장비가 없어 `NOT_RUN`이며, 차량 CAN TX release는
+`NO-GO`다.
 
 ## evidence
 
-CAN simulator seed/profile, analyzer log, frame count·drop·latency report, firmware digest를 G2 bundle에 넣는다.
+CAN simulator seed/profile, analyzer log, frame count·drop·latency report, firmware digest를 G2 bundle에 넣는다. 현재 target manifest에는 Debug/Release artifact 8개 SHA-256, toolchain, layout/warning 결과와 physical/HIL `NOT_RUN`을 보존했다. generic fixture raw-content digest pinning과 standalone helper identity widening은 P2로 T-500에 defer한다(owner: T-500, G2 evidence reproducibility, 목표 2026-09-30).
 
 
 ## 산출물·범위 경계
