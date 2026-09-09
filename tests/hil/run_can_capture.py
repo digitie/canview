@@ -16,7 +16,7 @@ if str(ROOT / "tests") not in sys.path:
 
 from hil.adapter import HOST_EVENT_SOURCE  # noqa: E402
 from hil.assert_no_tx import assert_no_tx  # noqa: E402
-from hil.run import main as run_main  # noqa: E402
+from hil.run import _source_digest, main as run_main  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -29,6 +29,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="immutable candidate commit expected by this evidence run")
     parser.add_argument("--expected-firmware-source-sha256", required=True,
                         help="SHA-256 of firmware/shared/protocol source tree")
+    parser.add_argument("--expected-harness-source-sha256", required=True,
+                        help="SHA-256 of the tests/hil harness source tree")
     return parser
 
 
@@ -39,9 +41,22 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     expected_commit = args.expected_commit.lower()
     expected_firmware_identity = args.expected_firmware_source_sha256.lower()
+    expected_harness_identity = args.expected_harness_source_sha256.lower()
     if (re.fullmatch(r"[0-9a-f]{40}", expected_commit) is None or
-            re.fullmatch(r"[0-9a-f]{64}", expected_firmware_identity) is None):
-        print("BLOCKED: candidate commit or firmware source digest is malformed", file=sys.stderr)
+            re.fullmatch(r"[0-9a-f]{64}", expected_firmware_identity) is None or
+            re.fullmatch(r"[0-9a-f]{64}", expected_harness_identity) is None):
+        print("BLOCKED: candidate, firmware, or harness source digest is malformed",
+              file=sys.stderr)
+        return 2
+    try:
+        current_harness_identity = _source_digest((ROOT / "tests" / "hil",))
+    except OSError as error:
+        print(f"BLOCKED: unable to compute current harness source digest: {error}",
+              file=sys.stderr)
+        return 2
+    if current_harness_identity != expected_harness_identity:
+        print("BLOCKED: expected harness source digest does not match this checkout",
+              file=sys.stderr)
         return 2
     result = run_main([
         "--suite", "host",
@@ -56,9 +71,11 @@ def main(argv: list[str] | None = None) -> int:
         report = json.loads((output / "report.json").read_text(encoding="utf-8"))
         event_identity = report["event_identity"]
         firmware = report["firmware"]
+        harness = report["harness"]
         scenario_results = report["scenario_results"]
         if (not isinstance(event_identity, dict)
                 or not isinstance(firmware, dict)
+                or not isinstance(harness, dict)
                 or not isinstance(scenario_results, list)
                 or len(scenario_results) != 1
                 or not isinstance(scenario_results[0], dict)
@@ -66,8 +83,10 @@ def main(argv: list[str] | None = None) -> int:
                 or scenario_results[0].get("id") != "can-load"
                 or firmware.get("git_commit", "").lower() != expected_commit
                 or firmware.get("source_sha256", "").lower() != expected_firmware_identity
+                or harness.get("source_sha256", "").lower() != expected_harness_identity
+                or report.get("runner_version") != harness.get("version")
                 or event_identity.get("firmware_identity") != firmware.get("source_sha256")):
-            raise ValueError("capture report identity, candidate, or selection is invalid")
+            raise ValueError("capture report identity, candidate, harness, or selection is invalid")
         event_path = (output / scenario_results[0]["events_file"]).resolve()
         if output.resolve() not in event_path.parents:
             raise ValueError("capture event path escapes output directory")

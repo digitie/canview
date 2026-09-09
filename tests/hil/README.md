@@ -79,6 +79,11 @@ T-103 전용 `run_can_capture.py`는 host runner가 만든 can-load event log를
 `execution_id`와 firmware `source_sha256` identity로 strict no-TX analyzer에
 다시 전달하며, synthetic fixture 검사는 이 연결을 대신하지 않는다.
 
+`run_can_capture.py`의 T-103 smoke는 expected candidate commit, firmware source
+digest, harness source digest를 필수로 받아 현재 checkout과 report identity가
+같은지 확인한다. 세 값은 동일한 evidence manifest에서 주입해야 하며, harness
+digest가 맞지 않으면 report 생성 전에 `BLOCKED`로 끝난다.
+
 `--suite g2-readonly`는 같은 scenario inventory를 소비하지만 rig 설정이 없거나
 하드웨어가 없으면 실행을 거부한다. 따라서 host simulator를 physical evidence로
 재사용하지 않는다.

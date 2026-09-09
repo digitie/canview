@@ -31,6 +31,7 @@ typedef struct
     canview_stm_fdcan_platform_t *platform;
     bool reenter_service;
     canview_status_t reentry_status;
+    canview_status_t frame_status;
 } sink_fixture_t;
 
 static canview_stm_fdcan_profile_t valid_profile(uint32_t bitrate)
@@ -62,7 +63,7 @@ static canview_status_t frame_sink(void *context, size_t channel,
         fixture->reentry_status =
             canview_stm_fdcan_platform_service(fixture->platform, frame->source_timestamp_us);
     }
-    return fixture->fail_frame ? CANVIEW_TIMEOUT : CANVIEW_OK;
+    return fixture->fail_frame ? CANVIEW_TIMEOUT : fixture->frame_status;
 }
 
 static canview_status_t drop_sink(void *context, size_t channel, uint32_t dropped)
@@ -556,6 +557,36 @@ static void callback_safety_tests(void)
     CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
 }
 
+static void terminal_sink_status_tests(void)
+{
+    fake_hardware_reset();
+    sink_fixture_t fixture = {0};
+    canview_stm_fdcan_platform_t platform = {0};
+    start_platform(&platform, &fixture);
+
+    fixture.frame_status = CANVIEW_UNSUPPORTED_MESSAGE;
+    put_fifo_word(0U, UINT32_C(0x321) << 18U, UINT32_C(1) << 16U, 0U, 0U);
+    fake_fdcan1.RXF0S = 1U;
+    fake_fdcan1.IR = FDCAN_IR_RF0N;
+    FDCAN1_IT0_IRQHandler();
+    const uint8_t first_read_index = platform.raw_read_index[0];
+    CHECK(canview_stm_fdcan_platform_service(&platform, 400U) ==
+          CANVIEW_UNSUPPORTED_MESSAGE);
+    CHECK(platform.raw_read_index[0] != first_read_index);
+    const uint32_t first_frame_count = fixture.frames;
+    CHECK(platform.sink_failures[0] != 0U);
+
+    fixture.frame_status = CANVIEW_OK;
+    put_fifo_word(0U, UINT32_C(0x322) << 18U, UINT32_C(1) << 16U, 0U, 0U);
+    fake_fdcan1.RXF0S = 1U;
+    fake_fdcan1.IR = FDCAN_IR_RF0N;
+    FDCAN1_IT0_IRQHandler();
+    CHECK(canview_stm_fdcan_platform_service(&platform, 401U) == CANVIEW_OK);
+    CHECK(fixture.frames > first_frame_count);
+    CHECK(fixture.last_frame.can_id == 0x322U);
+    CHECK(canview_stm_fdcan_platform_stop(&platform) == CANVIEW_OK);
+}
+
 int main(void)
 {
     message_ram_layout_tests();
@@ -563,6 +594,7 @@ int main(void)
     fifo_and_loss_tests();
     hardware_loss_tests();
     callback_safety_tests();
+    terminal_sink_status_tests();
     (void)puts("PASS: STM32 FDCAN CMSIS adapter fake-register tests");
     return EXIT_SUCCESS;
 }

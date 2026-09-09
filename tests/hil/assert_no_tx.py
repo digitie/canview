@@ -148,6 +148,13 @@ def _validate_event_fields(kind: str, fields: dict[str, Any]) -> None:
         if (not isinstance(fields.get("scenario"), str) or not fields["scenario"]
                 or fields.get("firmware_mode") != "CAPTURE_ONLY"):
             raise ValueError("invalid capture-only completion")
+    elif kind == "COMMAND_REPLAY":
+        if (not isinstance(fields.get("request_token"), str)
+                or not fields["request_token"]
+                or not isinstance(fields.get("executed"), bool)
+                or not isinstance(fields.get("result"), str)
+                or not fields["result"]):
+            raise ValueError("invalid command replay record")
     elif kind == "BUDGET_SAMPLE":
         metrics = fields.get("metrics")
         if not isinstance(metrics, dict) or not set(metrics).issubset(BOUND_BUDGET_METRICS):
@@ -249,6 +256,8 @@ def assert_no_tx(path: Path, *, expected_source: str | None = None,
                 upper_kind = kind.upper()
                 if upper_kind in FORBIDDEN_KINDS:
                     violations.append(f"line {line_number}: {kind}")
+                if kind == "COMMAND_REPLAY" and fields.get("executed") is True:
+                    violations.append(f"line {line_number}: COMMAND_REPLAY executed=true")
 
                 for boolean_name in ("vehicle_tx", "tx_permitted"):
                     if boolean_name in fields:

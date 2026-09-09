@@ -31,6 +31,13 @@ typedef struct
     uint32_t source_timestamp_us;
 } canview_stm_fdcan_raw_element_t;
 
+/** @brief decoded frame을 downstream sink으로 전달하는 worker-context callback.
+ *
+ * `CANVIEW_RESOURCE_BUSY` 또는 `CANVIEW_TIMEOUT`은 현재 raw element를 보류하고
+ * 다음 service 호출에서 재시도한다. 그 외의 non-OK status는 해당 element가
+ * terminal하게 소비된 것으로 간주하여 raw ring을 진행시키되 service 결과로
+ * 반환한다. 따라서 sink은 재시도 가능한 back-pressure를 두 상태로만 보고해야 한다.
+ */
 typedef canview_status_t canview_stm_fdcan_frame_sink_fn(
     void *context, size_t channel, const canview_stm_fdcan_rx_frame_t *frame);
 typedef canview_status_t canview_stm_fdcan_drop_sink_fn(void *context, size_t channel,

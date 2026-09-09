@@ -488,6 +488,11 @@ static void release_raw_element(canview_stm_fdcan_platform_t *platform, size_t c
     platform->raw_read_index[channel_index] = (uint8_t)(read_index + 1U);
 }
 
+static bool sink_status_retryable(canview_status_t status)
+{
+    return status == CANVIEW_RESOURCE_BUSY || status == CANVIEW_TIMEOUT;
+}
+
 static canview_status_t service_raw_elements(canview_stm_fdcan_platform_t *platform,
                                              size_t channel_index)
 {
@@ -523,7 +528,12 @@ static canview_status_t service_raw_elements(canview_stm_fdcan_platform_t *platf
             {
                 result = sink_status;
             }
-            return result;
+            if (sink_status_retryable(sink_status))
+            {
+                return result;
+            }
+            release_raw_element(platform, channel_index);
+            continue;
         }
         release_raw_element(platform, channel_index);
     }
