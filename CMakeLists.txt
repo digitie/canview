@@ -26,6 +26,7 @@ find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_library(canview_stm_build_provider STATIC
+    firmware/communicator/stm32/tests/build_id_fixture.c
     firmware/communicator/stm32/bsp/build_metadata.c)
 target_include_directories(canview_stm_build_provider PUBLIC
     firmware/communicator/stm32/interface

@@ -122,6 +122,10 @@ static int init_runtime(canview_stm_uart_context_t *runtime, test_authorizer_t *
     config.local_boot_id = TEST_STM_BOOT_ID;
     config.local_device_id = TEST_STM_DEVICE_ID;
     config.local_safety_revision = CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION;
+    for (size_t index = 0U; index < sizeof(config.build_id_digest); ++index)
+    {
+        config.build_id_digest[index] = (uint8_t)(index + 1U);
+    }
     if (authorizer != NULL)
     {
         config.authorize = allow_command;
@@ -382,6 +386,10 @@ static int establish_link(canview_stm_uart_context_t *runtime, test_authorizer_t
     CHECK(init_runtime(runtime, authorizer) == 0);
     test_message_t message;
     CHECK(expect_outbound(runtime, CANVIEW_UART_MSG_LINK_HELLO, &message) == 0);
+    for (size_t index = 0U; index < CANVIEW_STM_UART_BUILD_ID_DIGEST_SIZE; ++index)
+    {
+        CHECK(message.payload[32U + index] == (uint8_t)(index + 1U));
+    }
 
     uint8_t hello[72U];
     build_hello(hello, TEST_ESP_BOOT_ID, TEST_ESP_DEVICE_ID);
@@ -546,6 +554,50 @@ static int test_reset_hook_and_safety_inhibit(void)
     hook.status = CANVIEW_OK;
     CHECK(canview_stm_uart_reset(&runtime, 61U, 6000U) == CANVIEW_OK);
     CHECK(hook.calls == 3U);
+    CHECK(expect_outbound(&runtime, CANVIEW_UART_MSG_LINK_HELLO, &message) == 0);
+    for (size_t index = 0U; index < CANVIEW_STM_UART_BUILD_ID_DIGEST_SIZE; ++index)
+    {
+        CHECK(message.payload[32U + index] == (uint8_t)(index + 1U));
+    }
+    return 0;
+}
+
+static int test_time_sync_commit_expiry_before_tick(void)
+{
+    static const uint64_t ages[] = {
+        CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS - 1U,
+        CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS,
+        CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS + 1U};
+    for (size_t index = 0U; index < sizeof(ages) / sizeof(ages[0]); ++index)
+    {
+        static canview_stm_uart_context_t runtime;
+        CHECK(establish_link(&runtime, NULL) == 0);
+        uint8_t payload[80U];
+        build_time_sync(payload, CANVIEW_UART_TIME_SYNC_REQUEST, 0x9001U,
+                        TEST_CONTROLLER_BOOT_ID, 0U, TEST_SYNC_GENERATION,
+                        2000000U, 0U, 0U, 0U);
+        CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
+                           CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY,
+                           4U, 0U, 2000000U, payload, sizeof(payload), 40U, 2000000U) ==
+              CANVIEW_OK);
+        test_message_t message;
+        CHECK(expect_outbound(&runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC, &message) == 0);
+        uint8_t heartbeat[48U];
+        build_heartbeat(heartbeat, TEST_ESP_BOOT_ID,
+                        CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION);
+        CHECK(feed_inbound(&runtime, CANVIEW_UART_MSG_HEARTBEAT, 0U, 5U, 0U,
+                           900000U, heartbeat, sizeof(heartbeat), 900U, 900000U) == CANVIEW_OK);
+        build_time_sync(payload, CANVIEW_UART_TIME_SYNC_COMMIT, 0x9001U,
+                        TEST_CONTROLLER_BOOT_ID, TEST_STM_BOOT_ID, TEST_SYNC_GENERATION,
+                        2000000U, 2000000U, 2000000U, 2000100U);
+        const canview_status_t status = feed_inbound(
+            &runtime, CANVIEW_UART_MSG_CONTROL_TIME_SYNC,
+            CANVIEW_UART_FLAG_RESPONSE | CANVIEW_UART_FLAG_HIGH_PRIORITY,
+            6U, 0U, 2000100U, payload, sizeof(payload), 40U + ages[index], 2000100U);
+        CHECK(status == (index == 0U ? CANVIEW_OK : CANVIEW_STALE));
+        CHECK(runtime.time_mapping.valid == (index == 0U));
+        CHECK(!runtime.pending_sync_valid);
+    }
     return 0;
 }
 
@@ -1282,6 +1334,7 @@ int main(void)
 {
     CHECK(test_handshake_and_time_sync() == 0);
     CHECK(test_time_sync_cross_clock_and_pending_timeout() == 0);
+    CHECK(test_time_sync_commit_expiry_before_tick() == 0);
     CHECK(test_reset_hook_and_safety_inhibit() == 0);
     CHECK(test_command_idempotency_and_reentry() == 0);
     CHECK(test_capture_only_denies_control() == 0);

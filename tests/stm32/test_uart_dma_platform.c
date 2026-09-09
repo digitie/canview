@@ -41,7 +41,7 @@ static int fixture_start(fixture_t *fixture)
     memset(fixture, 0, sizeof(*fixture));
     const canview_stm_uart_config_t runtime_config = {
         TEST_STM_BOOT_ID, TEST_STM_DEVICE_ID, CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION,
-        NULL, NULL};
+        NULL, NULL, {0x42U}};
     CHECK(canview_stm_uart_init(&fixture->runtime, &runtime_config, 0U, 0U) == CANVIEW_OK);
     const canview_stm_uart_platform_config_t platform_config = {
         &fixture->runtime, fixture->rx_buffer, sizeof(fixture->rx_buffer)};
@@ -100,12 +100,30 @@ static int test_runtime_reset_quiesces_dma(void)
     CHECK(fixture_start(&fixture) == 0);
     CHECK(canview_stm_uart_platform_service(&fixture.platform, 2U, 2000U, 64U) == CANVIEW_OK);
     CHECK(fixture.platform.tx_in_flight && fixture.runtime.tx_current.valid);
+    DMA1->ISR = DMA_ISR_TCIF2 | DMA_ISR_TEIF2;
+    DMA1_Channel2_IRQHandler();
+    DMA1->ISR = 0U;
+    CHECK(fixture.platform.tx_done_pending && fixture.platform.tx_error_pending);
+    fixture.platform.rx_error_pending = true;
+    fixture.platform.events |= CANVIEW_STM_UART_PLATFORM_EVENT_RX_ERROR;
     CHECK(canview_stm_uart_reset(&fixture.runtime, 3U, 3000U) == CANVIEW_OK);
+    CHECK(!fixture.platform.tx_done_pending && !fixture.platform.tx_error_pending);
+    CHECK((fixture.platform.events & (CANVIEW_STM_UART_PLATFORM_EVENT_TX_DONE |
+                                     CANVIEW_STM_UART_PLATFORM_EVENT_TX_ERROR)) == 0U);
+    CHECK(fixture.platform.rx_error_pending &&
+          (fixture.platform.events & CANVIEW_STM_UART_PLATFORM_EVENT_RX_ERROR) != 0U);
+    fixture.platform.rx_error_pending = false;
+    fixture.platform.events = 0U;
     CHECK(!fixture.platform.tx_in_flight && !fixture.runtime.tx_current.valid &&
           (DMA1_Channel2->CCR & DMA_CCR_EN) == 0U &&
           (USART2->CR3 & USART_CR3_DMAT) == 0U);
     CHECK(canview_stm_uart_platform_service(&fixture.platform, 4U, 4000U, 64U) == CANVIEW_OK);
     CHECK(fixture.platform.tx_in_flight);
+    const uint32_t completed = fixture.runtime.stats.tx_completed;
+    const uint32_t remaining = DMA1_Channel2->CNDTR;
+    CHECK(canview_stm_uart_platform_service(&fixture.platform, 5U, 5000U, 64U) == CANVIEW_OK);
+    CHECK(fixture.platform.tx_in_flight && fixture.runtime.stats.tx_completed == completed &&
+          DMA1_Channel2->CNDTR == remaining);
     CHECK(fixture_stop(&fixture) == 0);
     return 0;
 }
@@ -125,12 +143,21 @@ static int test_rx_recovery_accounting(void)
     DMA1_Channel1->CNDTR = CANVIEW_STM_UART_PLATFORM_RX_CAPACITY + 1U;
     CHECK(canview_stm_uart_platform_service(&fixture.platform, 4U, 4000U, 64U) == CANVIEW_OK);
     CHECK(fixture.platform.last_rx_recovery_reason == CANVIEW_STM_UART_RX_RECOVERY_CNDTR_INVALID);
+    CHECK(fixture.platform.rx_unknown_loss_count == 1U);
 
+    const uint64_t discarded_before = fixture.platform.rx_discarded_bytes;
+    DMA1_Channel1->CNDTR = CANVIEW_STM_UART_PLATFORM_RX_CAPACITY - 7U;
     fixture.platform.rx_error_pending = true;
     CHECK(canview_stm_uart_platform_service(&fixture.platform, 5U, 5000U, 64U) == CANVIEW_OK);
     CHECK(fixture.platform.rx_error_recovery_count >= 1U &&
           fixture.platform.last_rx_recovery_reason ==
               CANVIEW_STM_UART_RX_RECOVERY_DMA_OR_USART_ERROR);
+    CHECK(fixture.platform.rx_discarded_bytes == discarded_before + 7U);
+    CHECK(fixture.platform.rx_unknown_loss_count == 1U);
+    fixture.platform.rx_unknown_loss_count = UINT32_MAX;
+    DMA1_Channel1->CNDTR = CANVIEW_STM_UART_PLATFORM_RX_CAPACITY + 1U;
+    CHECK(canview_stm_uart_platform_service(&fixture.platform, 6U, 6000U, 64U) == CANVIEW_OK);
+    CHECK(fixture.platform.rx_unknown_loss_count == UINT32_MAX);
     CHECK(fixture_stop(&fixture) == 0);
     return 0;
 }
@@ -175,7 +202,7 @@ static int test_irq_events_and_singleton(void)
     memset(&second, 0, sizeof(second));
     const canview_stm_uart_config_t runtime_config = {
         TEST_STM_BOOT_ID + 1U, TEST_STM_DEVICE_ID + 1U,
-        CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION, NULL, NULL};
+        CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION, NULL, NULL, {0x42U}};
     CHECK(canview_stm_uart_init(&second.runtime, &runtime_config, 0U, 0U) == CANVIEW_OK);
     const canview_stm_uart_platform_config_t platform_config = {
         &second.runtime, second.rx_buffer, sizeof(second.rx_buffer)};

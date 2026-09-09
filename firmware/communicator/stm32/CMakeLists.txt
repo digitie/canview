@@ -164,6 +164,7 @@ target_link_options(${TARGET_NAME} PRIVATE
     --specs=nano.specs
     --specs=nosys.specs
     -Wl,--gc-sections
+    -Wl,--build-id=sha1
     -Wl,--cref
     -Wl,--print-memory-usage
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.map

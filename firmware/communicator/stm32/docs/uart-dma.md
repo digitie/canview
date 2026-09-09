@@ -88,10 +88,14 @@ command admission을 멈추며 1초 이상이면 session과 pending/lease를 폐
 HELLO부터 다시 시작한다.
 
 runtime의 `reset_hook`는 session buffer와 `tx_serial`을 지우기 직전에 platform이
-DMA channel을 disable하고 bounded read-back/DSB를 수행하게 한다. quiesce가
+PRIMASK critical section에서 TX DMA channel을 disable하고 bounded read-back/DSB,
+hardware flag·NVIC pending·software TX done/error latch 폐기를 수행하게 한다.
+RX error/event는 유지하여 session 전환과 겹친 수신 손실을 다음 service에서 처리한다.
+TX DMA 정지 후에만 runtime buffer를 지우며 이후 transfer에 이전 완료가 적용되지 않는다. quiesce가
 timeout이면 runtime은 buffer를 지우지 않고 fail-closed로 반환한다. RX DMA가
 `CNDTR` 모순, DMA/USART 오류 또는 ring overrun으로 재시작되면 platform context에
-마지막 원인, recovery 횟수와 폐기 byte 누적량을 남긴다.
+마지막 원인, recovery 횟수와 확인 가능한 미소비 byte 누적량을 남긴다.
+producer 위치를 확정할 수 없으면 `rx_unknown_loss_count`를 증가시킨다.
 
 ## session·idempotency·시간
 
@@ -101,11 +105,18 @@ snapshot이 모두 준비되어야 command admission이 가능하다. `HEARTBEAT
 STM local `SAFETY_SNAPSHOT`을 state queue에 coalesce한다. snapshot은 현재 build의
 `CAPTURE_ONLY`, closed TX gate와 inhibit reason을 명시한다.
 
+`LINK_HELLO.build_id_digest`는 최종 ELF의 GNU linker SHA-1 build ID 앞 16 byte다.
+linker가 Flash의 `.note.gnu.build-id`를 유지하고 크기를 확인하며 BSP provider가
+app config로 전달한다. runtime은 init에서 복사하고 session reset 뒤에도 유지한다.
+host provider에는 별도 명시적 fixture가 링크되며 target에는 포함되지 않는다.
+식별 용도이며 서명·인증 또는 최종 BIN SHA-256 evidence를 대체하지 않는다.
+
 `CONTROL_TIME_SYNC`는 `(controller_boot_id, stm_boot_id, generation)`에 묶인
 4-timestamp mapping을 만들고 uncertainty가 50 ms를 넘거나 30초가 지나면
 무효화한다. controller clock과 STM32 clock 사이의 timestamp 대소관계를 직접
 비교하지 않으며, STM32가 response에서 기록한 `t2/t3`를 COMMIT에서 exact match로
-확인한다. 미완료 sync는 1초 뒤 폐기되어 오래된 COMMIT을 재사용할 수 없다.
+확인한다. 미완료 sync는 1초 경계부터 RX handler와 maintenance tick 모두에서
+폐기하므로 tick 직전 도착한 COMMIT도 mapping을 갱신할 수 없다.
 command의 origin·session·generation·token·digest·control tag는
 ESP32에서 재작성하지 않고 pending/cache에 copy한다.
 
@@ -120,7 +131,8 @@ host에서는 `stm32-uart-link`와 `uart-*` protocol test가 handshake, malforme
 resync, cache full, duplicate/conflict, queue 포화, callback reentry, boot 변경,
 CTS offline, cross-clock time-sync와 pending timeout을 검증한다. STM32 portable
 UART owner coverage는 별도 profile로 function 100%/line 70%/branch 50% 이상을
-요구하며, platform adapter는 실제 STM32CubeG4 CMSIS와 Arm GCC target object/
+요구하며, host platform adapter도 function 100%/line 70%/branch 50% 이상을
+요구한다. platform adapter는 실제 STM32CubeG4 CMSIS와 Arm GCC target object/
 ELF/HEX/BIN/MAP compile gate로 검증한다. host register model은 UART 전기 동작이나
 DMA timing을 증명하지 않는다.
 

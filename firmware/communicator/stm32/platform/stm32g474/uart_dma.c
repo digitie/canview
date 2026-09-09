@@ -145,6 +145,7 @@ static void reset_adapter_counters(canview_stm_uart_platform_t *platform)
     platform->tx_done_pending = false;
     platform->tx_in_flight = false;
     platform->servicing = false;
+    platform->irq_quiesced = false;
 }
 
 static void configure_dma_requests(void)
@@ -205,6 +206,44 @@ static void disable_interrupts(void)
     NVIC_ClearPendingIRQ(DMA1_Channel1_IRQn);
     NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
     NVIC_ClearPendingIRQ(USART2_IRQn);
+}
+
+static void clear_pending_events(canview_stm_uart_platform_t *platform)
+{
+    if (platform == NULL)
+    {
+        return;
+    }
+    const uint32_t saved_mask = canview_stm_critical_enter(NULL);
+    platform->events = 0U;
+    platform->rx_error_pending = false;
+    platform->tx_error_pending = false;
+    platform->tx_done_pending = false;
+    canview_stm_critical_leave(NULL, saved_mask);
+}
+
+static bool begin_irq_quiesce(canview_stm_uart_platform_t *platform)
+{
+    if (platform == NULL || platform->irq_quiesced)
+    {
+        return false;
+    }
+    disable_interrupts();
+    platform->irq_quiesced = true;
+    return true;
+}
+
+static void end_irq_quiesce(canview_stm_uart_platform_t *platform, bool owned)
+{
+    if (platform == NULL || !owned)
+    {
+        return;
+    }
+    NVIC_ClearPendingIRQ(DMA1_Channel1_IRQn);
+    NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
+    NVIC_ClearPendingIRQ(USART2_IRQn);
+    enable_interrupts();
+    platform->irq_quiesced = false;
 }
 
 static bool cts_is_blocked(void)
@@ -298,12 +337,28 @@ static canview_status_t runtime_reset_hook(void *opaque)
 {
     canview_stm_uart_platform_t *const platform =
         (canview_stm_uart_platform_t *)opaque;
-    return abort_tx_dma(platform);
+    if (platform == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    const uint32_t saved_mask = canview_stm_critical_enter(NULL);
+    const canview_status_t status = abort_tx_dma(platform);
+    if (status == CANVIEW_OK)
+    {
+        /* No completion/error from the old transfer may be consumed after reset. */
+        platform->tx_done_pending = false;
+        platform->tx_error_pending = false;
+        platform->events &= ~(uint32_t)(CANVIEW_STM_UART_PLATFORM_EVENT_TX_DONE |
+                                       CANVIEW_STM_UART_PLATFORM_EVENT_TX_ERROR);
+        NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
+    }
+    canview_stm_critical_leave(NULL, saved_mask);
+    return status;
 }
 
 static void record_rx_recovery(canview_stm_uart_platform_t *platform,
                                canview_stm_uart_rx_recovery_reason_t reason,
-                               uint64_t discarded_bytes)
+                               uint64_t discarded_bytes, bool loss_unknown)
 {
     if (platform == NULL)
     {
@@ -331,22 +386,21 @@ static void record_rx_recovery(canview_stm_uart_platform_t *platform,
     {
         platform->rx_discarded_bytes += discarded_bytes;
     }
+    if (loss_unknown && platform->rx_unknown_loss_count != UINT32_MAX)
+    {
+        ++platform->rx_unknown_loss_count;
+    }
     platform->last_rx_recovery_reason = reason;
 }
 
 static canview_status_t reset_rx_dma(canview_stm_uart_platform_t *platform,
                                      uint64_t now_ms, uint64_t now_us,
                                      canview_stm_uart_rx_recovery_reason_t reason,
-                                     uint64_t discarded_bytes)
+                                     uint64_t discarded_bytes, bool loss_unknown)
 {
     canview_status_t result = CANVIEW_OK;
-    record_rx_recovery(platform, reason, discarded_bytes);
-    NVIC_DisableIRQ(DMA1_Channel1_IRQn);
-    NVIC_DisableIRQ(DMA1_Channel2_IRQn);
-    NVIC_DisableIRQ(USART2_IRQn);
-    NVIC_ClearPendingIRQ(DMA1_Channel1_IRQn);
-    NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
-    NVIC_ClearPendingIRQ(USART2_IRQn);
+    record_rx_recovery(platform, reason, discarded_bytes, loss_unknown);
+    const bool owns_quiesce = begin_irq_quiesce(platform);
     const canview_status_t tx_abort_status = abort_tx_dma(platform);
     DMA1_Channel1->CCR &= ~DMA_CCR_EN;
     USART2->CR3 &= ~USART_CR3_DMAR;
@@ -378,12 +432,11 @@ static canview_status_t reset_rx_dma(canview_stm_uart_platform_t *platform,
         platform->tx_error_pending = false;
         platform->tx_done_pending = false;
     }
-    NVIC_ClearPendingIRQ(DMA1_Channel1_IRQn);
-    NVIC_ClearPendingIRQ(DMA1_Channel2_IRQn);
-    NVIC_ClearPendingIRQ(USART2_IRQn);
-    NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-    NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-    NVIC_EnableIRQ(USART2_IRQn);
+    if (tx_abort_status == CANVIEW_OK)
+    {
+        clear_pending_events(platform);
+    }
+    end_irq_quiesce(platform, owns_quiesce);
     return result;
 }
 
@@ -551,15 +604,16 @@ canview_status_t canview_stm_uart_platform_stop(canview_stm_uart_platform_t *pla
     {
         return CANVIEW_RESOURCE_BUSY;
     }
+    (void)begin_irq_quiesce(platform);
     if (active_platform == platform)
     {
         active_platform = NULL;
     }
     const canview_status_t abort_status = abort_tx_dma(platform);
-    disable_interrupts();
     disable_dma();
     disable_usart();
     configure_uart_gpio_input();
+    clear_pending_events(platform);
     platform->started = false;
     reset_adapter_counters(platform);
     const canview_status_t hook_status = canview_stm_uart_set_reset_hook(
@@ -594,11 +648,24 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
 
     uint64_t producer_total = 0U;
     const bool producer_valid = sample_rx_total(platform, &producer_total);
+    uint64_t discarded_bytes = 0U;
+    bool loss_unknown = !producer_valid;
+    if (producer_valid)
+    {
+        if (producer_total >= platform->rx_read_total)
+        {
+            discarded_bytes = producer_total - platform->rx_read_total;
+        }
+        else
+        {
+            loss_unknown = true;
+        }
+    }
     canview_status_t result = CANVIEW_OK;
     bool reset_happened = false;
-    if (!producer_valid || rx_error)
+    if (!producer_valid || producer_total < platform->rx_read_total || rx_error)
     {
-        if (!producer_valid)
+        if (!producer_valid || producer_total < platform->rx_read_total)
         {
             producer_total = platform->rx_read_total;
         }
@@ -606,7 +673,7 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
             reset_rx_dma(platform, now_ms, now_us,
                          rx_error ? CANVIEW_STM_UART_RX_RECOVERY_DMA_OR_USART_ERROR
                                   : CANVIEW_STM_UART_RX_RECOVERY_CNDTR_INVALID,
-                         0U);
+                         discarded_bytes, loss_unknown);
         reset_happened = true;
         if (recovery_status != CANVIEW_OK)
         {
@@ -621,7 +688,7 @@ canview_status_t canview_stm_uart_platform_service(canview_stm_uart_platform_t *
         const canview_status_t recovery_status =
             reset_rx_dma(platform, now_ms, now_us,
                          CANVIEW_STM_UART_RX_RECOVERY_RING_OVERRUN,
-                         producer_total - platform->rx_read_total);
+                         producer_total - platform->rx_read_total, false);
         reset_happened = true;
         if (recovery_status != CANVIEW_OK)
         {

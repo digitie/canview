@@ -22,9 +22,9 @@ def main():
         # part of the STM32 core fixture; keep its lower, explicit profile
         # threshold separate from the legacy core gate.
         "uart-link": {"functions": 100, "lines": 70, "branches": 50},
-        # Register-adapter tests run against a fake STM32 register model.  The
-        # fixed-address UID path is intentionally not executed on the host.
-        "uart-platform": {"functions": 80, "lines": 70, "branches": 50},
+        # Register-adapter tests exercise every function, including the UID
+        # provider through a host address fixture. Hardware timing remains HIL.
+        "uart-platform": {"functions": 100, "lines": 70, "branches": 50},
     }
     for group, binary, sources in (
         ("portable", "canview-stm32-core-tests", ["app/boot.c", "module/scheduler.c", "module/queue.c"]),
@@ -64,7 +64,7 @@ def main():
                 threshold = thresholds[key]
                 if summary[key]["count"] == 0 or summary[key]["percent"] < threshold:
                     raise RuntimeError(f"coverage gate 미달: {item['filename']} {key} < {threshold}")
-    print("PASS: STM32 core function100%/line≥95%/branch≥90%; UART owner profile function100%/line≥70%/branch≥50%; host model≠HIL; report", report)
+    print("PASS: STM32 core function100%/line≥95%/branch≥90%; UART owner function100%/line≥70%/branch≥50%; UART platform function100%/line≥70%/branch≥50%; host model≠HIL; report", report)
     return 0
 
 

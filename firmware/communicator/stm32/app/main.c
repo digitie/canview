@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 #include "canview_stm_board_core.h"
+#include "canview_stm_build.h"
 #include "canview_stm_uart.h"
 #include "canview_build_mode.h"
 #include "canview_board.h"
@@ -52,12 +53,17 @@ int main(void)
         boot_port.fault(boot_port.context, CANVIEW_STM_FAULT_BOOT);
         canview_stm_board_wait_reset();
     }
-    const canview_stm_uart_config_t uart_config = {
-        local_boot_id,
-        local_device_id,
-        CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION,
-        NULL,
-        NULL};
+    canview_stm_uart_config_t uart_config = {
+        .local_boot_id = local_boot_id,
+        .local_device_id = local_device_id,
+        .local_safety_revision = CANVIEW_STM_UART_CAPTURE_ONLY_SAFETY_REVISION,
+        .authorize = NULL,
+        .authorize_context = NULL};
+    if (canview_stm_build_id_digest(uart_config.build_id_digest) != CANVIEW_OK)
+    {
+        boot_port.fault(boot_port.context, CANVIEW_STM_FAULT_BOOT);
+        canview_stm_board_wait_reset();
+    }
     if (canview_stm_uart_init(&uart_runtime, &uart_config,
                               canview_stm_now_ms64(NULL),
                               canview_stm_now_us64(NULL)) != CANVIEW_OK)

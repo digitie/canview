@@ -23,6 +23,7 @@ extern "C"
 #endif
 
 #define CANVIEW_STM_UART_RX_DMA_CAPACITY (2048U)
+#define CANVIEW_STM_UART_BUILD_ID_DIGEST_SIZE (16U)
 #define CANVIEW_STM_UART_TX_QUEUE_CAPACITY (8U)
 #define CANVIEW_STM_UART_PENDING_COMMAND_CAPACITY (8U)
 #define CANVIEW_STM_UART_COMMAND_PAYLOAD_MAX (240U)
@@ -183,6 +184,7 @@ typedef struct
     uint32_t local_safety_revision;
     canview_stm_uart_authorize_fn *authorize;
     void *authorize_context;
+    uint8_t build_id_digest[CANVIEW_STM_UART_BUILD_ID_DIGEST_SIZE];
 } canview_stm_uart_config_t;
 
 /** @brief One caller-owned STM32 UART runtime context. */
@@ -211,6 +213,7 @@ typedef struct
     uint64_t local_boot_id;
     uint64_t local_device_id;
     uint32_t local_safety_revision;
+    uint8_t build_id_digest[CANVIEW_STM_UART_BUILD_ID_DIGEST_SIZE];
     canview_stm_uart_authorize_fn *authorize;
     void *authorize_context;
     canview_stm_uart_reset_hook_fn *reset_hook;
@@ -240,7 +243,7 @@ typedef char canview_stm_uart_context_fits_budget[
 
 /** @brief Initialize all state and enqueue the local HELLO.
  * @param context caller-owned zero-init runtime context.
- * @param config local identity, safety revision and optional authorizer.
+ * @param config local identity, safety revision, build identity digest and optional authorizer.
  * @param now_ms current monotonic millisecond timestamp.
  * @param now_us current monotonic microsecond timestamp.
  * @return `CANVIEW_OK` or invalid configuration/reset failure.

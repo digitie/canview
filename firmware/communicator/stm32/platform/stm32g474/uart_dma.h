@@ -71,7 +71,9 @@ typedef struct
     uint32_t rx_error_recovery_count;
     uint32_t rx_overrun_recovery_count;
     uint64_t rx_discarded_bytes;
+    uint32_t rx_unknown_loss_count;
     canview_stm_uart_rx_recovery_reason_t last_rx_recovery_reason;
+    bool irq_quiesced;
 } canview_stm_uart_platform_t;
 
 /** @cond INTERNAL */

@@ -275,6 +275,8 @@ static canview_status_t enqueue_hello(canview_stm_uart_context_t *context)
     write_le(payload + 18U, 2U, UART_FIRMWARE_PATCH);
     write_le(payload + 20U, 8U, UART_CAPTURE_ONLY_CAPABILITY);
     write_le(payload + 28U, 2U, CANVIEW_UART_MAX_FRAME_SIZE);
+    memcpy(payload + offsetof(canview_uart_link_hello_payload_t, build_id_digest),
+           context->build_id_digest, sizeof(context->build_id_digest));
     write_le(payload + 48U, 8U, context->local_device_id);
     return enqueue_validated(context, CANVIEW_STM_UART_TX_P0, CANVIEW_UART_MSG_LINK_HELLO, 0U, 0U,
                              context->last_now_us, payload, sizeof(payload));
@@ -613,6 +615,19 @@ static void clear_pending_time_sync(canview_stm_uart_context_t *context)
     context->pending_sync_t3_stm_us = 0U;
     context->pending_sync_started_ms = 0U;
     context->pending_sync_valid = false;
+}
+
+static bool expire_pending_time_sync_if_needed(canview_stm_uart_context_t *context,
+                                               uint64_t now_ms)
+{
+    if (context == NULL || !context->pending_sync_valid ||
+        elapsed_ms(now_ms, context->pending_sync_started_ms) <
+            CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS)
+    {
+        return false;
+    }
+    clear_pending_time_sync(context);
+    return true;
 }
 
 static canview_status_t clear_local_session(canview_stm_uart_context_t *context, uint64_t now_ms,
@@ -981,6 +996,16 @@ static canview_status_t handle_time_sync(canview_stm_uart_context_t *context,
                                          uint64_t now_ms, uint64_t now_us)
 {
     const uint8_t *payload = view->wire.payload;
+    const uint8_t phase = payload[28U];
+    const bool pending_expired = expire_pending_time_sync_if_needed(context, now_ms);
+    if (pending_expired)
+    {
+        increment_saturating(&context->stats.time_sync_rejected);
+        if (phase == CANVIEW_UART_TIME_SYNC_COMMIT)
+        {
+            return CANVIEW_STALE;
+        }
+    }
     if (!context->link.hello_complete || !context->link.hello_ack_complete)
     {
         increment_saturating(&context->stats.time_sync_rejected);
@@ -993,7 +1018,6 @@ static canview_status_t handle_time_sync(canview_stm_uart_context_t *context,
         increment_saturating(&context->stats.time_sync_rejected);
         return admission;
     }
-    const uint8_t phase = payload[28U];
     const uint64_t request_token = read_le(payload, 8U);
     const uint64_t controller_boot_id = read_le(payload + 8U, 8U);
     const uint64_t stm_boot_id = read_le(payload + 16U, 8U);
@@ -1656,6 +1680,8 @@ canview_status_t canview_stm_uart_init(canview_stm_uart_context_t *context,
     context->local_boot_id = config->local_boot_id;
     context->local_device_id = config->local_device_id;
     context->local_safety_revision = config->local_safety_revision;
+    memcpy(context->build_id_digest, config->build_id_digest,
+           sizeof(context->build_id_digest));
     context->authorize = config->authorize;
     context->authorize_context = config->authorize_context;
     context->next_tx_sequence = 1U;
@@ -2094,11 +2120,8 @@ canview_status_t canview_stm_uart_tick(canview_stm_uart_context_t *context, uint
     {
         memset(&context->lease, 0, sizeof(context->lease));
     }
-    if (context->pending_sync_valid &&
-        elapsed_ms(now_ms, context->pending_sync_started_ms) >=
-            CANVIEW_STM_UART_TIME_SYNC_PENDING_TIMEOUT_MS)
+    if (expire_pending_time_sync_if_needed(context, now_ms))
     {
-        clear_pending_time_sync(context);
         increment_saturating(&context->stats.time_sync_rejected);
     }
     if (context->time_mapping.valid &&
