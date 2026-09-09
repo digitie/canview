@@ -192,6 +192,13 @@ static size_t fill_valid_payload(uint8_t message_type, uint8_t *payload, size_t 
     case CANVIEW_UART_MSG_HEARTBEAT:
         put_le(payload, 8U, 1U);
         break;
+    case CANVIEW_UART_MSG_CONTROL_TIME_SYNC:
+        put_le(payload, 8U, 1U);
+        put_le(payload + 8U, 8U, 2U);
+        put_le(payload + 24U, 4U, 1U);
+        payload[28U] = CANVIEW_UART_TIME_SYNC_REQUEST;
+        put_le(payload + 32U, 8U, 1U);
+        break;
     case CANVIEW_UART_MSG_CAN_RX_BATCH:
         payload[8] = maximum ? CANVIEW_UART_CAN_BATCH_MAX_RECORDS : 0U;
         for (size_t index = 0U; index < payload[8]; ++index)
@@ -462,6 +469,9 @@ static int test_malformed(void)
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_LINK_HELLO_ACK, 30U, 2U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_HEARTBEAT, 0U, 8U, 0U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_HEARTBEAT, 44U, 4U, 1U) == 0);
+    CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CONTROL_TIME_SYNC, 28U, 1U, 0U) == 0);
+    CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CONTROL_TIME_SYNC, 29U, 1U, 1U) == 0);
+    CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CONTROL_TIME_SYNC, 16U, 8U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_ERROR, 5U, 1U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_ERROR, 16U, 4U, 1U) == 0);
     CHECK(expect_fixed_malformed(CANVIEW_UART_MSG_CAN_BUS_STATUS, 0U, 1U,

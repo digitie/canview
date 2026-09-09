@@ -50,6 +50,7 @@ EXPECTED_MESSAGES = {
     "COMMAND_REQUEST": 0x20,
     "COMMAND_RESULT": 0x21,
     "CONTROL_LEASE": 0x22,
+    "CONTROL_TIME_SYNC": 0x23,
     "CONFIG_GET": 0x30,
     "CONFIG_SET": 0x31,
     "CONFIG_RESULT": 0x32,
@@ -273,6 +274,8 @@ def validate_schema(schema: Mapping[str, Any]) -> None:
         raise SchemaError("capture actions must not include MARK")
     if enums.get("plan_operation") != {"BEGIN": 1, "CHUNK": 2, "COMMIT": 3, "ABORT": 4}:
         raise SchemaError("observer plan operation contract changed")
+    if enums.get("control_time_sync_phase") != {"REQUEST": 1, "RESPONSE": 2, "COMMIT": 3}:
+        raise SchemaError("control time sync phase contract changed")
     messages = schema.get("messages")
     if not isinstance(messages, list) or len(messages) != len(EXPECTED_MESSAGES):
         raise SchemaError("UART message catalog is incomplete")
@@ -424,6 +427,12 @@ def render(schema: Mapping[str, Any], digest: str) -> str:
         "    CANVIEW_UART_CAPTURE_STOP = UINT8_C(3),",
         "    CANVIEW_UART_CAPTURE_CANCEL = UINT8_C(4),",
         "} canview_uart_capture_action_t;",
+        "",
+        "typedef enum {",
+        "    CANVIEW_UART_TIME_SYNC_REQUEST = UINT8_C(1),",
+        "    CANVIEW_UART_TIME_SYNC_RESPONSE = UINT8_C(2),",
+        "    CANVIEW_UART_TIME_SYNC_COMMIT = UINT8_C(3),",
+        "} canview_uart_time_sync_phase_t;",
         "",
         "typedef enum {",
         "    CANVIEW_UART_PAYLOAD_FIXED = UINT8_C(0),",

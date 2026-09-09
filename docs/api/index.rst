@@ -51,4 +51,5 @@ CANView 기반 C API
    app
    stm32_core
    stm32_fdcan
+   stm32_uart
    esp32_core

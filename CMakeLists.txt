@@ -151,6 +151,10 @@ if(BUILD_TESTING)
     target_link_libraries(canview-stm32-fdcan-tests PRIVATE canview_stm_core canview_wire canview_warnings)
     add_test(NAME stm32-fdcan-capture COMMAND canview-stm32-fdcan-tests)
     set_tests_properties(stm32-fdcan-capture PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm32-uart-link-tests tests/stm32/test_uart_link.c)
+    target_link_libraries(canview-stm32-uart-link-tests PRIVATE canview_stm_core canview_wire canview_warnings)
+    add_test(NAME stm32-uart-link COMMAND canview-stm32-uart-link-tests)
+    set_tests_properties(stm32-uart-link PROPERTIES TIMEOUT 60)
     add_executable(canview-stm32-fdcan-platform-tests
         tests/stm32/test_fdcan_platform.c
         tests/stm32/fake_stm32/fake_hardware.c

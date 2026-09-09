@@ -29,8 +29,14 @@ canview_status_t canview_stm_watchdog_start(void *context);
 canview_status_t canview_stm_clock_start(void *context);
 /** @brief TIM2 1MHz·SysTick 1ms. clock 성공 뒤만 허용. */
 canview_status_t canview_stm_time_start(void *context);
-/** @brief TIM2 u32 microseconds. single register read, 약71.6분 wrap. */
+/** @brief TIM2 u32 microseconds. single register read, 약71.6분 wrap.
+ * Capture timestamp compatibility API; long-lived owners use now_us64().
+ */
 uint32_t canview_stm_now_us(void *context);
+/** @brief Critical-section protected monotonic TIM2 microseconds with wrap extension.
+ * The owner must call this at least once per 32-bit TIM2 wrap while the timer runs.
+ */
+uint64_t canview_stm_now_us64(void *context);
 /** @brief scheduler 전용 IWDG feed. fault/clock loss 뒤에는 거부. */
 canview_status_t canview_stm_watchdog_feed(void *context);
 /** @brief ISR에서 호출 가능한 fail-stop latch. GPIO reset은 BSP 책임. */
@@ -39,4 +45,8 @@ void canview_stm_hw_latch_fault(void);
 uint32_t canview_stm_critical_enter(void *context);
 /** @brief enter의 이전 mask를 그대로 복원. 무조건 enable 금지. */
 void canview_stm_critical_leave(void *context, uint32_t saved_mask);
+#if defined(CANVIEW_STM_REGISTER_TEST)
+/** @brief Register-model-only setter for exercising timer extension saturation. */
+void canview_stm_test_set_timer2_extension(uint32_t last_count, uint64_t epoch, bool valid);
+#endif
 #endif

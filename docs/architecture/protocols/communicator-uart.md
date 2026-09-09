@@ -100,6 +100,7 @@ COBS decode 뒤 실제 길이는 `header_len + payload_len`과 정확히 같아�
 | `0x20` | `COMMAND_REQUEST` | ESP→STM | end-to-end request token, ACK required |
 | `0x21` | `COMMAND_RESULT` | STM→ESP | accepted/executing/completed/rejected |
 | `0x22` | `CONTROL_LEASE` | ESP→STM | Controller lease와 만료 시간 |
+| `0x23` | `CONTROL_TIME_SYNC` | 양방향 | Controller↔STM four-timestamp mapping |
 | `0x30` | `CONFIG_GET` | ESP→STM | 정차/service mode 한정 |
 | `0x31` | `CONFIG_SET` | ESP→STM | allow-listed key만, ACK required |
 | `0x32` | `CONFIG_RESULT` | STM→ESP | 적용 결과와 revision |

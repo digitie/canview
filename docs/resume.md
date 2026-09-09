@@ -2,6 +2,14 @@
 
 ## 현재 진척도
 
+2026-09-09 T-103 PR #32가 merge commit `b17bdfc0bb2a1bfa9d300c1e7662cac05c96df40`으로
+`origin/main`에 통합됐다. 3채널 FDCAN capture-only software/target/review/CI
+closure는 끝났지만 실제 board·전원·FDCAN·차량 gate는 여전히 `NOT_RUN`이다.
+T-104 STM32 UART DMA/link/idempotency C 구현을 `codex/t104-stm32-uart-control`
+에서 시작했다. T-004와 T-102의 protocol/platform 선행은 main에 있으며, 현재
+`CAPTURE_ONLY` 경계에서는 UART가 명령을 운반해도 lease 발급·raw CAN TX·vehicle
+replay를 수행하지 않는다.
+
 2026-09-09 T-103 STM32 3채널 FDCAN capture-only C source와 초기 적대적 리뷰 finding
 수정을 진행 중이다. module batch는 callback 이후 transactional commit과 channel별
 timestamp epoch를 사용하고, PSR/ECR snapshot은 frame timestamp를 덮어쓰지 않는다.
@@ -53,14 +61,14 @@ physical/HIL·flash·전원/reset/brownout·CAN analyzer·차량 bus·provisioni
 
 ## 다음 한 작업
 
-현재 다음 구현은 [T-103](tasks/T-103-stm32-fdcan-capture.md) STM32 3채널
-FDCAN capture-only C firmware다. 선행 T-004, T-102, T-500은 main에 통합됐다.
-세 CAN channel의 listen-only 수신·bounded ring·timestamp·bus 상태를 구현하며
-임의 CAN TX, ACK와 차량 송신은 만들지 않는다. 실제 board flash/HIL·clock/reset/
-rail/brownout·FDCAN 계측은 장비가 없으면 `NOT_RUN`으로 남긴다.
+현재 구현은 [T-104](tasks/T-104-stm32-uart-control.md) STM32 4 Mbps UART DMA,
+link state, priority queue, `CONTROL_TIME_SYNC` mapping과 256-entry idempotency
+cache다. 선행 T-004, T-102와 병렬 T-103은 main에 통합됐다. raw CAN TX,
+vehicle replay와 lease 발급은 만들지 않으며 실제 board flash/HIL·clock/reset/
+rail/brownout·UART DMA/CTS 계측은 장비가 없으면 `NOT_RUN`으로 남긴다.
 
-- 현재 문서: docs/tasks/T-103-stm32-fdcan-capture.md, docs/architecture/README.md, docs/development/windows.md, docs/runbooks/agent-workflow.md
-- 다음 검증 순서: T-103 C source → host unit/malformed/concurrency/sanitizer → STM32 target ELF/MAP/BIN/HEX warning 0 → 독립 reviewer 2명 → Draft PR/CI/merge. 장비가 없으면 G1/G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
+- 현재 문서: docs/tasks/T-104-stm32-uart-control.md, docs/architecture/protocols/communicator-uart.md, docs/development/windows.md, docs/runbooks/agent-workflow.md
+- 다음 검증 순서: T-104 C source/generated ABI → host malformed/duplicate/queue/time-sync/concurrency/sanitizer → STM32 target ELF/MAP/BIN/HEX warning 0 → 독립 reviewer 2명 → Draft PR/CI/merge. 장비가 없으면 G2 physical/HIL gate는 `NOT_RUN`으로 남기며 host/CI 성공으로 대체하지 않는다.
 - Diagnostic Bridge의 read-only 경계는 T-400 전체에서 유지한다. control lease, raw replay, vehicle TX는 범위 밖이다.
 
 하드웨어는 진행 중인 T-100의 MAX20040 land90-0409 원본 대조, 미확보/구판 PDF, 전원/SOA·부품 선정 gate부터 닫는다. 다음 PCB 제작 입력은 T-100a, 조립품 실측은 T-101이다. T-100b의 실제 GNSS/INS·원격 mic·센서 protocol 통합은 필요한 선행 task와 실물 준비 후 수행한다.
