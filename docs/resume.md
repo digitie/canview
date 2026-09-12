@@ -2,6 +2,11 @@
 
 ## 현재 진척도
 
+2026-09-13 사용자 요청으로 [단순한 구현 우선](../AGENTS.md#2-작업-원칙)을 공통
+작업 원칙에 기록했다. T-007은 C/Python CBOR 구조 검사와 host Debug/Release
+123/123까지 진행했다. 다음은 작은 서명 파일 생성→C 검증 연결이며, 범용 기능을
+늘리지 않는다. 서명·전체 container·target 연결·최종 2인 review는 미완료다.
+
 2026-09-09 T-104 PR #33이 `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`로 merge됐고
 `origin/main` 및 candidate `3ff04b7`의 ancestry를 확인했다. 최종 CI `34335812873`
 6/6, target 이미지 18/18 bytes/SHA-256·source6/6·target log21 compiler/linker/CMake

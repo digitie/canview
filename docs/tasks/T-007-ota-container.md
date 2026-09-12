@@ -18,6 +18,19 @@ CBOR source의 focused coverage는 함수/행/분기 100%다. Object의 단일 f
 전체 target binary·call-chain·실행 timing 검증이 아니다.
 현재 app/bootloader에는 연결하지 않았다. 전체 manifest/서명/target/2인 리뷰는 남아 있다.
 
+2026-09-13 문서 구조 검사까지 확장했다. C/Python 11,989건 교차 시험,
+Windows Debug/Release 전체 CTest 각각123/123, focused ASan/UBSan과 Cortex-M4
+freestanding object compile을 확인했다. 전체 container·서명·target 연결은 아직 없다.
+
+## 구현 접근
+
+[공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
+순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
+Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
+이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
+다음은 범용 파서 확장이 아니라 합성 파일 생성→C 검증 경로 연결이다. 이 순서는
+아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
+
 ## 목표
 
 OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 한다. 현재 parser·packager가 없으므로 이 task는 설계 기록의 구현 전환이며 배포 승인이 아니다.

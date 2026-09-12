@@ -1,5 +1,29 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, 단순화 원칙과 T-007 CBOR 문서 검사)
+
+사용자가 OTA container의 필요성을 먼저 설명하고 전체적으로 간단한 방법을
+사용하라고 요청했다. AGENTS에 가장 단순한 구현·기존 SDK 재사용·실제 사용처
+없는 범용화 금지·복잡성 도입 전 대안 설명을 기록했다. 안전/검증 gate는 유지한다.
+T-007은 작은 manifest+순차 image와 합성 파일 생성→C 검증 연결을 다음 작업으로
+두며, 새로운 범용 package framework나 자체 암호 알고리즘을 만들지 않는다.
+
+중단 전 CBOR 문서 검사 변경을 보존하고 정수 key 정렬·UTF-8·depth8·item2048·
+16KiB 한도, 모든 첫 byte·prefix·고정 seed 변이·Python 순환 입력 회귀를 보강했다.
+`ctest --preset host-debug --output-on-failure`는123/123(26.03초), Release는
+123/123(21.67초)이다. `. F:/dev/canview-wt/t104-stm32-uart-control/tools/environment/foundation-windows.ps1`
+로 설치된 pinned 도구만 재사용하고 현재 source를 빌드했다. focused Python/C
+11,989건과 WSL Clang ASan/UBSan probe·C test가 통과했다. Arm GCC의 Cortex-M4
+freestanding object compile에서 document validator frame216B, UTF-8 helper40B,
+key helper16B를 관찰했다. 이는 전체 target binary/실측 call-chain evidence가 아니다.
+
+합성 T103 fixture source digest는 `a3a72738db64375a554557cbc819fbd61cdf4725b97ca6ad22497c8bac7b6810`
+이다. `validate_document_links.py`(324문서/1343target 오류0), `validate_plan.py`
+(49task 오류0), `git diff --check`를 실행했다. Git LF→CRLF 안내는 target compiler
+warning과 구분한다. 기존 head490d2f8 CI34338457956은6job success로 확인했으나
+이번 변경의 CI/target/review evidence를 대신하지 않는다. physical/HIL NOT_RUN,
+vehicle TX NO-GO와 issue34 OPEN을 유지한다.
+
 ## 2026-09-09 (codex, T-007 CBOR head 첫 C99 구현)
 
 Draft PR #35에서 heap·SDK·writer 권한 없는 최대 9-byte CBOR head decoder와

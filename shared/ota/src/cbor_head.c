@@ -4,11 +4,11 @@
  */
 #include "cbor_head.h"
 
-#define CBOR_MAJOR_SHIFT 5U
-#define CBOR_ADDITIONAL_MASK 0x1FU
-#define CBOR_INLINE_LIMIT 24U
-#define CBOR_EXTENDED_LAST 27U
-#define CBOR_BYTE_BITS 8U
+#define CBOR_MAJOR_SHIFT (5U)
+#define CBOR_ADDITIONAL_MASK (0x1FU)
+#define CBOR_INLINE_LIMIT (24U)
+#define CBOR_EXTENDED_LAST (27U)
+#define CBOR_BYTE_BITS (8U)
 
 canview_status_t canview_ota_cbor_read_head(const uint8_t *data, size_t length,
                                          canview_ota_cbor_head_t *out)
