@@ -1,5 +1,40 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, 실제 서명 prefix 교차 시험)
+
+작은 header+CBOR+64B 서명 prefix와 순차 image 조립을 연결했다. 자체 암호
+알고리즘을 만들지 않고 Cryptography48.0.0 및 Windows CNG P256/SHA-256을
+사용한다. key는 시험 실행 메모리에서만 생성하고 출력/파일/장치/Git에 쓰지 않았다.
+실제 signature/prefix230건에는 wrong key/invalid point, signature 각 byte 변이,
+manifest 변이, 유효 서명이 붙은 잘못된 CBOR, 전체 prefix 절단·최대 길이가 있다.
+조립기의 잘못된 이미지/서명 길이와 signer가 입력 list를 바꾸는 경우도 검사했다.
+
+`tools/requirements-ota.lock`은 Windows x64/CPython3.14용 실제 PyPI wheel
+세 개의 SHA-256을 고정한다. 새 ignored venv에 `--no-index --find-links
+build/ota-wheels --only-binary=:all: --require-hashes`로 설치하고230건을 재실행했다.
+전체 Debug125/125(26.17초), Release125/125(21.63초), WSL Clang21의 portable
+envelope 경계 ASan/UBSan, Cortex-M4 freestanding compile이 통과했다. Arm
+envelope 단일 frame64B/helper16B는 전체 crypto call-chain/target evidence가 아니다.
+Windows CNG dll 관찰 버전은10.0.26100.8875다. Windows CI에도 같은 lock을 설치한다.
+
+합성 source digest는 `1d1b8d52deff4ed54d4784bce898f5dfd7f1304bb93ca74d5d56f8cbe20e2635`다.
+앞선 checkpoint6d83962의 독립 A/B 정적 리뷰는 finding0/PASS로 원문 보존했다.
+A 원문의 절대 checkout link 때문에 최초 문서 검사1건이 실패했다. 원문을 바꾸거나
+validator를 완화하지 않고 보고서 전체를4-backtick 원문 인용으로 감쌌고
+327문서/1348target 오류0으로 재검증했다. 이후 추가된 envelope 코드에는 앞선
+리뷰 verdict를 적용하지 않는다. 전체 task의 최종 독립 리뷰는 별도 필요하다.
+
+staged `git diff --check`는 B 원문의 Markdown hard-break 공백4행을 보고했다.
+반환 원문과 보존 본문을 직접 대조해 동일함을 확인했고 원문 공백은 유지했다.
+해당 원본 파일만 제외한 staged diff 검사는 오류0이다. 코드 검사나 전역 Git
+설정은 완화하지 않았으며 이4건을 전체 diff 오류0으로 보고하지 않는다.
+
+현재 검사 성공은 prefix의 구조와 manifest 서명만 뜻한다. unsigned header의
+declared image/total은 서명된 manifest 필드와 아직 대조하지 않으므로 설치 정보가
+아니다. role/board/layout/epoch/key_id/호환성·native image 자체 검증·streaming과
+정식 packager CLI/golden/target 연결이 남아 있다. Flash erase/PREPARED 권한,
+physical/HIL NOT_RUN과 차량 TX NO-GO는 변하지 않았다.
+
 ## 2026-09-13 (codex, 단순화 원칙과 T-007 CBOR 문서 검사)
 
 사용자가 OTA container의 필요성을 먼저 설명하고 전체적으로 간단한 방법을

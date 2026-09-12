@@ -2,6 +2,12 @@
 
 ## 현재 진척도
 
+2026-09-13 T-007 후속: Python 조립→C prefix/실제 P256 서명 검증230건,
+Windows Debug/Release125/125와 portable 경계 ASan/UBSan을 통과했다. 앞선
+CBOR checkpoint6d83962의 A/B static PASS 원문은 보존했다. 이번 서명 코드는
+그 리뷰 범위 밖이다. 다음은 같은 경로의 manifest 대상/길이/호환성·image 검증이다.
+전체 T-007은 IN_PROGRESS, PR #35 Draft이며 실제 target 연결·최종 리뷰가 남았다.
+
 2026-09-13 사용자 요청으로 [단순한 구현 우선](../AGENTS.md#2-작업-원칙)을 공통
 작업 원칙에 기록했다. T-007은 C/Python CBOR 구조 검사와 host Debug/Release
 123/123까지 진행했다. 다음은 작은 서명 파일 생성→C 검증 연결이며, 범용 기능을

@@ -1,0 +1,5 @@
+# Windows x64 / CPython 3.14의 OTA 서명 교차 시험용 wheel lock.
+# 공식 PyPI에서 받은 wheel의 SHA-256. 다른 platform은 별도 검증 후 hash를 추가한다.
+cryptography==48.0.0 --hash=sha256:5b012212e08b8dd5edc78ef54da83dd9892fd9105323b3993eff6bea65dc21d7
+cffi==2.1.1 --hash=sha256:3222ba5d678f80a030e6afbcc33dc1ae5cb45facabb61cee2c7016b8432fde48
+pycparser==3.0 --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992

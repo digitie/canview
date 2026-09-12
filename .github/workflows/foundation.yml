@@ -22,6 +22,8 @@ jobs:
         shell: pwsh
         run: |
           . tools/environment/foundation-windows.ps1 -IncludeDocs
+          python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota.lock
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --preset host-debug
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build --preset host-debug

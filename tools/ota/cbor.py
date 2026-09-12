@@ -11,10 +11,12 @@ MAX_ITEMS = 2048
 class Status(IntEnum):
     OK = 0
     MALFORMED = 3
+    UNSUPPORTED_VERSION = 4
     UNSUPPORTED_MESSAGE = 5
     OVERSIZE = 7
     INCOMPLETE = 8
     DUPLICATE = 9
+    AUTH_FAILED = 12
 
 
 class CborError(ValueError):

@@ -22,13 +22,21 @@ CBOR source의 focused coverage는 함수/행/분기 100%다. Object의 단일 f
 Windows Debug/Release 전체 CTest 각각123/123, focused ASan/UBSan과 Cortex-M4
 freestanding object compile을 확인했다. 전체 container·서명·target 연결은 아직 없다.
 
+같은 날 후속 구현에서 작은 prefix의 C 길이/CBOR 검사와 실제 P256 서명 provider를
+연결했다. Python 조립→Windows CNG 검증230건, portable callback 실패/재진입,
+Windows Debug/Release125/125를 확인했다. 개인키를 저장하지 않는 합성 시험이며
+아직 manifest 의미·image 자체 서명/본문·streaming·대상 firmware에는 연결하지
+않았다. [앞선 CBOR checkpoint 리뷰](../reviews/adversarial/2026-09-13-T-007-cbor.md)의
+A/B static PASS는 이 후속 서명 코드나 전체 task의 최종 검토 결과가 아니다.
+
 ## 구현 접근
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
-다음은 범용 파서 확장이 아니라 합성 파일 생성→C 검증 경로 연결이다. 이 순서는
+다음은 기존 prefix 경로에 서명된 manifest 필드·대상/길이·본문 검사를 연결하는
+것이다. 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 
 ## 목표
