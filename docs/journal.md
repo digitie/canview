@@ -1,5 +1,51 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, ESP native SDK 재사용의 정렬 제약 확인)
+
+`5b3a711` clean 기준에서 ESP-IDF6.0.3 source와 실제 CI image를 조사했다.
+독립 read-only 조사 agent `01a09874-f824-77e2-8ea6-866a6f4cf962`(Pasteur)도
+같은 결론을 반환했다. 이는 설계 조사이며 hostile review/PASS가 아니다.
+
+확인한 제약:
+
+- `components/bootloader_support/src/esp_image_format.c:1179` 부근에서 서명 끝을
+  **절대 Flash 주소**의4KiB로 올림한다. 임의 offset에 둔 compact image를 그대로
+  `esp_image_verify()`에 넘기면 image-relative 서명 배치와 다를 수 있다.
+- 같은 파일916행 부근은 mapped segment의 Flash/load 주소를 MMU page로 대조한다.
+  `components/soc/Kconfig:25`와 현재8/16MiB board 기준은64KiB다. 따라서4KiB
+  정렬만으로는 부족하며, SDK 전체 verifier 재사용에는 image 시작64KiB 정렬이 필요하다.
+- `bootloader_flash/src/bootloader_flash.c:53`의 앱용 mmap handle은 전역 하나다.
+  OTA/boot 검증 관련 SDK 호출을 한 owner가 직렬화하고 중첩 호출하지 않아야 한다.
+- `esp_image_format.c:43`의 `CONFIG_SECURE_SIGNED_ON_UPDATE` 조건을 확인했다.
+  서명 검증이 꺼진 bench 빌드를 native signature 성공으로 처리하면 안 된다.
+
+CI34730820401(c0de352)는6/6 성공을 확인했다. `gh run download 34730820401
+-n target-firmware-images -D build/ci-34730820401-images`로 실제 산출물을 받았다.
+IDF export 후 esptool5.4.0의 `LoadFirmwareImage('esp32s3', path)`로 Communicator,
+Controller, Bridge BIN을 각각 읽었다. mapped segment 두 개씩에서 SDK의
+`(base + segment.file_offs + 8) % 65536 == segment.addr % 65536` 조건을 재현했다.
+세 이미지 모두 base0xA40000/0xA50000은 일치하고0xA41000은 불일치했다.
+이는 실제 BIN으로 주소 조건을 재현한 것이며 장치의 verifier/서명 실행 시험은 아니다.
+
+조사에 사용한 BIN SHA256:
+
+- Communicator: `909350e56679dcce4d33cd3285e89f3e007d18a814536b9e499c669fb24b889a`
+- Controller: `588705269905bb3ca564eac4f6fb7ee68d9160a97125bcbae5c3b22ffa26667a`
+- Bridge: `7cfb7bfbb47d4b23b2cc9b5c8a7bae5549a4130fbb917c2e6b0975ce1fcaa6fd`
+
+단순한 대안은 prefix 뒤/각 image 앞에 canonical zero padding을 두고64KiB 정렬된
+bundle을 staging에 그대로 저장하는 방식이다. 임의 주소 필드나 별도 ESP parser,
+논리/물리 offset 변환 계층이 필요 없다. 마지막 image 뒤 padding은 불필요하다.
+`boards.json`의 staging base0xA40000은 이미64KiB 정렬이다. 최대4MiB ESP와180KiB
+STM을 양쪽 순서로 계산하면 bundle은4444160/4456448B이며 staging4718592B에 들어간다.
+다만 padding은16KiB 이하 chunk로 검사해야 하며64KiB prefix buffer를 만들면 안 된다.
+
+이 정렬은 현재 compact 후보의 wire 해석을 바꾼다. 이번 조사에서는 parser/서명 byte
+계약을 조용히 바꾸지 않았다. 다음 구현에서 포맷 revision/정식 schema와 정렬 규칙을
+명시하고 C/Python·padding 변이·streaming·SDK 통합을 함께 검증해야 한다.
+기존 v1 체크포인트 결과를 새 배치의 검증으로 재사용하지 않는다.
+T-007/최종 2인 리뷰는 미완료, physical/HIL NOT_RUN, 차량 CAN TX NO-GO다.
+
 ## 2026-09-13 (codex, OTA version floor와 동일 이미지 복구 사전 판정)
 
 `floor.c/h`에 OTA §7.1의 순수 C99 비교를 구현하고 body open에서 호환성 검사 뒤,
