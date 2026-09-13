@@ -129,9 +129,9 @@ board/layout, epoch, key_id를 가져오면 안 된다. key_id는 verify context
 
 ABI 범위의 min≤max, image ABI 포함, 조합 범위/중복·Communicator 비어 있지 않은
 조합 목록, config snapshot의 범위 포함을 검사한다. **실제 실행중/새 image와 네
-old/new 조합의 호환성 대조, requires 충족, 영속 version floor, 본문 hash/native
-서명 및 signed metadata 대조는 아직 구현하지 않았다.** OK는 erase/write,
-PREPARED/boot selector 권한이 아니다. streaming/정식 CLI·golden/target 연결도 남았다.
+old/new 조합의 호환성 대조, requires 충족, version floor와 본문 검사는 아래 별도
+단계에서 수행한다.** STM native 검사는 구현했고 ESP native 검사는 남아 있다.
+OK는 erase/write/PREPARED/boot selector 권한이 아니다. 정식 CLI·golden/target 연결도 남았다.
 
 `ctest --test-dir build/host-debug -R ota-manifest --output-on-failure`로 C/Python
 typed 교차 시험을 실행한다. portable probe는 서명 mock을 사용하며 Windows CNG
@@ -141,7 +141,7 @@ truncation, ABI/config 경계를 검사한다. 실제 firmware 설치·물리/HI
 
 ## 순차 image 본문 검사
 
-`body_open()`은 완전한 prefix의 manifest와 로컬 호환성을 검증한 뒤 첫 SHA-256
+`body_open()`은 완전한 prefix의 manifest·로컬 호환성·version floor를 검증한 뒤 첫 SHA-256
 operation을 시작한다. `body_feed()`는 절대 file offset과0..16KiB chunk를 받아
 이미지 경계를 순서대로 처리한다. image bytes는 복사/보존하지 않고 SDK provider의
 update에 전달한다. 끝에서 signed descriptor의 SHA-256과 대조한 뒤 operation을
@@ -150,10 +150,11 @@ update에 전달한다. 끝에서 signed descriptor의 SHA-256과 대조한 뒤 
 `canview_ota_` prefix를 가진 내부 C API다.
 
 - caller는 body 객체를 처음에 `{0}`으로 초기화하고 한 task에서 직렬 호출한다.
-  prefix/identity/runtime/chunk는 호출 중만 빌리며 descriptor와 hash 함수표는 복사한다.
+  prefix/identity/runtime/floor/chunk는 호출 중만 빌리며 descriptor와 hash 함수표는 복사한다.
   provider context는 reset 성공까지 유효해야 한다. 활성 body 복사/memset은 금지한다.
 - offset 중복·누락, 길이 초과, hash/provider 오류는 FAILED이며 manifest 결과를
-  지운다. 실패한 stream에 재전송해 이어 쓰지 않는다. reset 후 prefix부터 다시 검증한다.
+  지우고 floor 판정도 무효화한다. 실패한 stream에 재전송해 이어 쓰지 않는다.
+  reset 후 prefix부터 다시 검증한다.
 - `body_reset()`은 부분 start/수신/finish/실패를 정리한다. cleanup 실패 시 context와
   자원 소유 상태를 보존해 reset을 재시도할 수 있다. 원 오류와 cleanup 오류는 별도다.
 - busy flag는 동일 객체 callback 재진입만 막는다. thread lock이 아니며 ISR에서
@@ -175,7 +176,7 @@ Windows crypto probe는 역할별 임시 공개키, 실제 P256 서명과 SHA-25
 answer, 본문 변이·최대 image·잘린 입력·provider/cleanup 실패를 시험한다. 시험은
 native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지 않는다.
 
-`HASHES_MATCHED`는 **native image signature/protected metadata·version floor 검증,
+`HASHES_MATCHED`는 **native image signature/protected metadata·최신 version floor 재검증,
 설치 직전 로컬 상태 재확인, Flash read-back, 설치 또는 PREPARED 승인과 별개**다.
 이 모듈에는 writer·boot selector callback 자체가 없다. prefix의 부분 수신 조립,
 정식 schema/CLI/golden, 실제 ESP/STM provider와 target 통합은 남아 있다.
@@ -201,9 +202,43 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 
 이 함수는 서명된 후보의 주장과 로컬 snapshot을 비교할 뿐이다. native image의
 서명/보호 metadata 대조는 별도 단계다. STM 검사는 아래 함수를 사용하며 ESP 검사는
-미구현이다. snapshot을 보존하지
-않으므로 설치 owner는 transaction/상태 변경 뒤 다시 검증해야 한다. 영속 version floor,
-same-sequence CONFLICT/REPAIR 판정과 write/activation 권한을 대신하지 않는다.
+미구현이다. snapshot을 보존하지 않으므로 설치 owner는 transaction/상태 변경 뒤 다시
+검증해야 한다. floor 비교는 아래 검사, 영속 갱신과 write/activation 권한은 별도 owner다.
+
+## 버전 하한 사전 검사
+
+`canview_ota_floor_check()`는 preflight 뒤, 첫 본문 hash operation 전에 호출한다.
+기존 [OTA §7.1](../../docs/architecture/ota.md#71-영속-버전-하한과-복원-예외)의 정책을
+순수 C99 비교로 구현하며 영속 journal·범용 policy engine을 추가하지 않는다.
+
+| 후보와 로컬 record 비교 | 반환/판정 |
+|---|---|
+| sequence < minimum_sequence | `STALE`, 수신 후보 거절 |
+| 같은 sequence, 다른 confirmed_digest | `AUTH_FAILED`, `CONFLICT` |
+| 같은 sequence/hash, 실제 정상 설치 검증 | `ALREADY_INSTALLED` 사전 판정 |
+| 같은 sequence/hash, 정상 앱 손상/부팅 선택 불가 확인 | `REPAIR_REQUIRED` 후보 |
+| sequence > minimum_sequence | `UPGRADE` 후보 |
+| policy 미확인 또는 동일 이미지의 실제 설치 상태 미확인 | `INCOMPLETE` |
+
+sequence는 uint64 직접 비교한다. `floor_result.images[]`는 manifest image 순서이며
+record 순서는 독립이다. 누락/중복/잘못된 역할·target·enum·board/layout/epoch를
+검사하고, 어느 target이든 실패하면 판정 전체를0으로 지운다. 성공도 floor를 변경하지 않는다.
+
+`floor.ready`는 신뢰된 journal owner가 valid copy 선택과 CONFIRM_INTENT/실제 boot
+상태 조정을 완료했다는 뜻이다. `{0}`이나 두 copy 손상을 floor0으로 간주하지 않는다.
+이 경우 owner는 RECOVERY_LOCKED와 쓰기 금지를 유지한다. 현재 비교기는 copy를 읽거나
+CRC/commit을 검증하지 않는다. `floor`는 영속 wire가 아닌 호출 중만 빌리는 snapshot이다.
+네트워크 입력으로 구성하지 않으며 task owner가 Flash/정책 변경과 직렬화해야 한다.
+
+`BOOTABLE`은 실제 정상 앱의 전체 hash/native 서명/board/layout/epoch/부팅 선택
+metadata 검증을 뜻한다. 그 앱의 observed sequence/digest도 floor와 대조한다.
+recovery 실행이나 과거 transaction 성공은 설치 증거가 아니다. 읽기 실패는 UNKNOWN,
+손상/선택 불가를 확인한 경우만 DAMAGED다. 같은 정식 이미지의 복구에도 전체 native
+검증·새 activation commit·trial이 필요하다. 자동 rollback/확정/floor 갱신은 하지 않는다.
+
+`ctest --test-dir build/host-debug -R 'ota-version-floor|ota-body' --output-on-failure`
+로 순수 비교와 body 연결을 검사한다. 영속 A/B·실제 앱 검사 provider·전원 차단 검증은
+아직 남아 있으며 host snapshot 모형을 물리/HIL 결과로 표시하지 않는다.
 
 ## STM native image 검사
 

@@ -1,5 +1,45 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, OTA version floor와 동일 이미지 복구 사전 판정)
+
+`floor.c/h`에 OTA §7.1의 순수 C99 비교를 구현하고 body open에서 호환성 검사 뒤,
+첫 hash 시작 전에 필수 호출한다. uint64 하한 미만은 STALE, 같은 sequence/다른
+confirmed digest는 AUTH_FAILED(CONFLICT)다. 실제 정상 앱 검증 snapshot이 일치해야
+ALREADY_INSTALLED, 손상/선택 불가가 확인돼야 REPAIR_REQUIRED 후보가 된다.
+미확인 policy/설치 상태는 INCOMPLETE이며 영속 floor0으로 초기화하지 않는다.
+
+불필요한 저장 계층이나 범용 policy engine은 추가하지 않았다. 스킬의 무힙·소유권·
+문서화 규칙을 적용해 입력은 호출 중 불변으로 빌리고 판정만 복사한다. 실패 시
+두 target의 판정을 모두 지운다. 영속 journal A/B 선택·CONFIRM_INTENT·실제 설치본
+검사·floor 갱신·automatic rollback은 기존 설계의 owner가 구현할 별도 범위다.
+
+검증과 실패 수정:
+
+- body probe 호출부 변경 중 무관한 manifest_preflight NULL 시험 두 곳에 인자를
+  하나 더 넣어 strict compile이 실패했다. 해당 두 호출만 복원한 뒤 재빌드/회귀했다.
+- `ctest --test-dir build/host-debug -R 'ota-version-floor|ota-body' -V`: 순수 C3847건,
+  본문 모형1480건, 실제 CNG P256+SHA2561486건 통과. 미확인/누락/잘못된 policy,
+  u64 하한/충돌/NULL은 첫 hash operation 전에 거절됨을 probe에서 확인했다.
+- `tests/ota/test_floor.c`: 네 target, u32/u53/u63/u64 경계 교차, 모든 digest bit,
+  잘못된 count/role/target/enum/text, 부분 성공 폐기와 입력 불변성을 검사했다.
+- WSL Clang21 ASan/UBSan: floor3847건과 body 모형1480건 통과.
+  `build/ota-floor.profdata`의 floor.c 함수5/5·행105/105·분기94/94;
+  `build/ota-floor-body.profdata`의 body.c 함수10/10·행203/203·분기84/84다.
+  floor는 암호 연산을 하지 않으며 body 모형은 실제 암호 검증으로 집계하지 않는다.
+- 고정 Windows Clang23/CMake strict build 뒤 전체 Debug131/131(32.54초),
+  Release131/131(26.47초). `ctest --test-dir build/host-debug --output-on-failure
+  --output-log build/ota-floor-debug.log` 및 host-release/ota-floor-release.log로 재현한다.
+- Arm GNU15.3.rel1 `-mcpu=cortex-m4 -mthumb -ffreestanding -Os -fstack-usage` strict
+  object compile 통과. floor_check 단일 frame40B다. target ELF/MAP/BIN 증거는 아니다.
+- source digest `76c48306a09135c595f5dc80aa4e3a7e383edf80348b8699d3b221f685a0d5f8`로
+  T103 합성 fixture만 갱신했다. 실제 물리 evidence는 변경하지 않았다.
+- 직전 c0de352 CI34730820401의 host/portability/sanitizer/browser job 성공,
+  target job 실행 중을 확인했다. 이후 floor 변경의 CI 또는 target 통합 증거로 쓰지 않는다.
+
+T-007 IN_PROGRESS/PR #35 Draft다. ESP native 검증·prefix 부분 조립·정식 schema/CLI/
+signed golden·실제 provider/target 통합과 최종 독립 2인 리뷰는 남아 있다.
+physical/HIL NOT_RUN, 차량 CAN TX NO-GO와 writer/activation 권한 분리를 유지한다.
+
 ## 2026-09-13 (codex, MCUboot native P256 image 검사)
 
 공식 MCUboot v2.4.0을 `C:/cv/mcuboot-2.4.0`에 clone했다. 실제 HEAD는

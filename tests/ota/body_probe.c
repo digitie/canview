@@ -11,7 +11,7 @@
 #include "cng_provider.h"
 #endif
 
-#define PROBE_HEADER_BYTES (24U)
+#define PROBE_HEADER_BYTES (28U)
 #define PROBE_RUNTIME_BYTES (40U)
 #define PROBE_PUBLIC_BYTES (64U)
 #define PROBE_WIRE_MAX (5U * 1024U * 1024U)
@@ -74,7 +74,7 @@ typedef struct
 
 static bool probe_reentry(const probe_context_t *probe)
 {
-    return canview_ota_body_open(probe->body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) == CANVIEW_RESOURCE_BUSY &&
+    return canview_ota_body_open(probe->body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL) == CANVIEW_RESOURCE_BUSY &&
            canview_ota_body_feed(probe->body, 0U, NULL, 0U) == CANVIEW_RESOURCE_BUSY &&
            canview_ota_body_finish(probe->body) == CANVIEW_RESOURCE_BUSY &&
            canview_ota_body_reset(probe->body) == CANVIEW_RESOURCE_BUSY;
@@ -161,11 +161,11 @@ static bool probe_arguments(void)
     {
         if (((const uint8_t *)&manifest)[index] != 0U) { return false; }
     }
-    if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
+    if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
-        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, &valid_hash) != CANVIEW_INVALID_ARGUMENT ||
+        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, &valid_hash) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
-        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, &null_context) != CANVIEW_INVALID_ARGUMENT ||
+        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, &null_context) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
         canview_ota_body_finish(&body) != CANVIEW_INCOMPLETE ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
@@ -181,7 +181,7 @@ static bool probe_arguments(void)
         if (index == 1U) { hash.update = NULL; }
         if (index == 2U) { hash.finish = NULL; }
         if (index == 3U) { hash.reset = NULL; }
-        if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, &hash) != CANVIEW_INVALID_ARGUMENT ||
+        if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, &hash) != CANVIEW_INVALID_ARGUMENT ||
             canview_ota_body_reset(&body) != CANVIEW_OK)
         {
             return false;
@@ -196,7 +196,7 @@ int main(void)
     uint8_t local_bytes[PROBE_RUNTIME_BYTES];
     uint8_t prefix[CANVIEW_OTA_ENVELOPE_PREFIX_MAX + 1U];
     uint8_t chunk[CANVIEW_OTA_BODY_CHUNK_MAX + 1U];
-    if (canview_ota_body_open(NULL, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
+    if (canview_ota_body_open(NULL, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_feed(NULL, 0U, NULL, 0U) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_finish(NULL) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(NULL) != CANVIEW_INVALID_ARGUMENT || !probe_arguments())
@@ -215,6 +215,7 @@ int main(void)
         probe_context_t probe = {.body = &body};
         canview_ota_identity_t identity = {CANVIEW_OTA_ROLE_COMMUNICATOR, "synthetic-board", "synthetic-layout", 7U, 11U};
         canview_ota_runtime_t runtime = {0};
+        canview_ota_floor_t floor = {0};
         canview_ota_hash_t hash = {&probe, probe_start, probe_update, probe_finish, probe_reset};
 #if defined(CANVIEW_TEST_CNG)
         canview_test_cng_hash_t native = {0};
@@ -237,9 +238,10 @@ int main(void)
         const uint32_t body_size = probe_u32(header + 8U);
         const uint32_t chunk_size = probe_u32(header + 12U);
         const uint32_t scenario = probe_u32(header + 16U);
+        const uint32_t policy_case = probe_u32(header + 24U);
         probe.fault = probe_u32(header + 20U);
         if (role < 1U || role > 3U || prefix_size > sizeof(prefix) || body_size > PROBE_WIRE_MAX ||
-            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > 7U ||
+            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > 7U || policy_case > 5U ||
             (probe.fault & 0xFFU) > PROBE_FAULT_RESET || (probe.fault >> 8U) > 1U ||
             fread(local_bytes, 1U, sizeof(local_bytes), stdin) != sizeof(local_bytes) ||
             probe_u32(local_bytes) > 1U ||
@@ -249,6 +251,20 @@ int main(void)
             return 1;
         }
         identity.role = (canview_ota_role_t)role;
+        floor.ready = policy_case != 1U;
+        floor.identity = identity;
+        floor.count = role == 1U ? 2U : 1U;
+        floor.records[0].target = role == 1U ? CANVIEW_OTA_TARGET_COMM_ESP :
+            (role == 2U ? CANVIEW_OTA_TARGET_CONTROLLER : CANVIEW_OTA_TARGET_BRIDGE);
+        floor.records[1].target = CANVIEW_OTA_TARGET_COMM_STM;
+        /* 기존 body 모형의 신뢰된 합성 floor0. 실제 journal/provider가 아니다. */
+        if (policy_case == 2U)
+        {
+            floor.records[0].minimum_sequence = UINT64_MAX;
+            floor.records[1].minimum_sequence = UINT64_MAX;
+        }
+        if (policy_case == 3U) { floor.identity.board_revision[0] = 'x'; }
+        if (policy_case == 4U) { floor.count = 0U; }
         runtime.available = probe_u32(local_bytes) != 0U;
         runtime.esp_abi = probe_u32(local_bytes + 4U);
         runtime.stm_abi = probe_u32(local_bytes + 8U);
@@ -259,13 +275,16 @@ int main(void)
         runtime.config_schema = probe_u32(local_bytes + 28U);
         runtime.hardware_capabilities = (uint64_t)probe_u32(local_bytes + 32U) |
             ((uint64_t)probe_u32(local_bytes + 36U) << 32U);
-        canview_status_t status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, probe_verify, &probe, &hash);
+        const canview_ota_floor_t *policy = policy_case == 5U ? NULL : &floor;
+        canview_status_t status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, policy, probe_verify, &probe, &hash);
         if (status != CANVIEW_OK && probe.fault == 0U && probe.start_calls != 0U)
         {
             return 1;
         }
         if (status != CANVIEW_OK)
         {
+            if (body.floor_result.images[0] != CANVIEW_OTA_FLOOR_UNCHECKED ||
+                body.floor_result.images[1] != CANVIEW_OTA_FLOOR_UNCHECKED) { return 1; }
             for (size_t index = 0U; index < sizeof(body.manifest); ++index)
             {
                 if (((const uint8_t *)&body.manifest)[index] != 0U) { return 1; }
@@ -276,17 +295,18 @@ int main(void)
             status = canview_ota_body_reset(&body);
             if (status == CANVIEW_OK)
             {
-                status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, probe_verify, &probe, &hash);
+                status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, policy, probe_verify, &probe, &hash);
             }
         }
         /* borrowed prefix/identity/함수표를 덮어써도 body는 자체 descriptor/함수표를 소유한다. */
         (void)memset(prefix, 0xA5, sizeof(prefix));
         (void)memset(&identity, 0, sizeof(identity));
         (void)memset(&runtime, 0, sizeof(runtime));
+        (void)memset(&floor, 0, sizeof(floor));
         hash = (canview_ota_hash_t){0};
         if (status == CANVIEW_OK)
         {
-            if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY)
+            if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY)
             {
                 return 1;
             }
@@ -332,12 +352,14 @@ int main(void)
             status = finished;
         }
         if (status != finished || canview_ota_body_finish(&body) != finished || (status != CANVIEW_OK &&
-            (body.manifest.image_count != 0U || body.next_offset != 0U || body.state != CANVIEW_OTA_BODY_FAILED)))
+            (body.manifest.image_count != 0U || body.next_offset != 0U || body.state != CANVIEW_OTA_BODY_FAILED ||
+             body.floor_result.images[0] != CANVIEW_OTA_FLOOR_UNCHECKED ||
+             body.floor_result.images[1] != CANVIEW_OTA_FLOOR_UNCHECKED)))
         {
             return 1;
         }
         if (status != CANVIEW_OK && (canview_ota_body_feed(&body, 0U, NULL, 0U) != status ||
-            canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY))
+            canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY))
         {
             return 1;
         }

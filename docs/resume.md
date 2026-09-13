@@ -23,10 +23,14 @@ body 시작 전에 신뢰된 로컬 snapshot으로 구·신 ABI 네 조합, MCU�
 hardware capability와 config 읽기 범위를 검사한다. 미확인 snapshot은 거부하며
 Controller/Bridge의 존재 여부를 Communicator 복구 조건으로 추가하지 않는다.
 
-현재 body/호환성 시험은 모형1462건, 실제 P256+SHA-256 1468건이다. 모형1462건과
-typed1422건은 ASan/UBSan도 통과했다. 합산 coverage는 body.c100%, manifest.c
-함수100%·행97.72%·분기93.70%다. 기존 typed P2561425건도 전체 CTest에 포함한다.
-현재 source의 Windows Host Debug/Release는 각각130/130을 통과했다. STM native의
+로컬 version floor 검사도 body 시작 전 필수로 연결했다. 낮은 sequence와 같은
+sequence/다른 hash를 거부하고, 실제 설치 증거로 ALREADY_INSTALLED/REPAIR_REQUIRED를
+구분한다. 영속 copy/CONFIRM_INTENT 조정·실제 설치 검사 provider는 아직 없다.
+
+현재 body/호환성/floor 시험은 모형1480건, 실제 P256+SHA-2561486건이다. floor C
+비교3847건과 body 모형1480건은 ASan/UBSan 통과, 두 파일의 함수·행·분기100%다.
+앞선 manifest.c coverage는 함수100%·행97.72%·분기93.70%이며 typed P2561425건도 유지한다.
+현재 source의 Windows Host Debug/Release는 각각131/131을 통과했다. STM native의
 실제 CNG 시험2287건·비암호 모형 ASan/UBSan2284건이 통과했고 native_stm.c coverage는
 함수100%·행98.14%·분기94.74%다. DER 길이에 따라 byte 변이/절단 건수는 달라진다.
 Cortex-M4 freestanding object compile은 통과했지만 OTA target 통합의 증거는 아니다.
@@ -39,9 +43,10 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-ESP native image 서명·signed metadata 대조와 version floor 검사를 연결한다.
+ESP native image 서명·signed metadata 대조를 구현한다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
 실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
+floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통합 완료가 아니다.
 
 시작 파일은 [상세 task](tasks/T-007-ota-container.md)와
 [현재 구현 계약](../shared/ota/README.md)이며, 설계 정본은

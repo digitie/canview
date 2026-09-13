@@ -23,6 +23,7 @@ static canview_status_t body_mark_failed(canview_ota_body_t *body, canview_statu
     body->state = CANVIEW_OTA_BODY_FAILED;
     body->error = error;
     (void)memset(&body->manifest, 0, sizeof(body->manifest));
+    (void)memset(&body->floor_result, 0, sizeof(body->floor_result));
     body->image_index = 0U;
     body->image_bytes = 0U;
     body->next_offset = 0U;
@@ -45,6 +46,7 @@ static canview_status_t body_start_hash(canview_ota_body_t *body)
 canview_status_t canview_ota_body_open(
     canview_ota_body_t *body, const uint8_t *prefix, size_t size,
     const canview_ota_identity_t *identity, const canview_ota_runtime_t *runtime,
+    const canview_ota_floor_t *floor,
     canview_ota_manifest_verify_fn verify,
     void *verify_context, const canview_ota_hash_t *hash)
 {
@@ -64,6 +66,10 @@ canview_status_t canview_ota_body_open(
     }
     body->busy = true;
     status = canview_ota_manifest_preflight(prefix, size, identity, runtime, verify, verify_context, &body->manifest);
+    if (status == CANVIEW_OK)
+    {
+        status = canview_ota_floor_check(&body->manifest, floor, &body->floor_result);
+    }
     if (status == CANVIEW_OK)
     {
         body->hash = *hash;

@@ -4,7 +4,7 @@
 #define CANVIEW_OTA_BODY_H
 
 #include <stdbool.h>
-#include "manifest.h"
+#include "floor.h"
 
 #define CANVIEW_OTA_BODY_CHUNK_MAX (16384U)
 
@@ -41,6 +41,7 @@ typedef enum
 typedef struct
 {
     canview_ota_manifest_t manifest;
+    canview_ota_floor_result_t floor_result;
     canview_ota_hash_t hash;
     canview_ota_body_state_t state;
     canview_status_t error;
@@ -58,15 +59,18 @@ typedef struct
  * @param size prefix 실제 크기. prefix 조립 buffer는 caller가 최대16KiB manifest로 제한한다.
  * @param identity 신뢰된 BSP/provisioning identity. manifest.h 계약을 따른다.
  * @param runtime 신뢰된 로컬 ABI/boot/recovery/config/capability snapshot. 호출 중만 빌린다.
+ * @param floor 신뢰된 로컬 policy/정상 앱 snapshot. floor.h 계약, 호출 중만 빌린다.
  * @param verify 신뢰된 manifest 서명 verifier.
  * @param verify_context verify 호출 중만 유효하면 된다.
  * @param hash SDK SHA-256 provider. 함수표는 복사하고 context만 빌린다.
  * @return OK 또는 prefix/provider 오류. 활성/완료 객체 재사용은 RESOURCE_BUSY.
- * @details 오류 후 reset이 필요하다. native signature/version floor/erase 권한은 검사하지 않는다.
+ * @details hash 시작 전에 floor를 검사한다. 오류 후 reset이 필요하다. native signature와
+ * erase 권한은 별도 gate다. floor_result는 snapshot 시점 판정이며 설치 전에 재검사한다.
  */
 canview_status_t canview_ota_body_open(
     canview_ota_body_t *body, const uint8_t *prefix, size_t size,
     const canview_ota_identity_t *identity, const canview_ota_runtime_t *runtime,
+    const canview_ota_floor_t *floor,
     canview_ota_manifest_verify_fn verify,
     void *verify_context, const canview_ota_hash_t *hash);
 

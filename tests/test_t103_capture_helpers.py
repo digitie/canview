@@ -23,7 +23,7 @@ FIXTURE = ROOT / "tests" / "hil" / "fixtures" / "t103-capture-only.jsonl"
 EXPECTED_SOURCE = "t103-fixture"
 EXPECTED_EXECUTION_ID = "T103-FIXTURE-001"
 EXPECTED_COMMIT = _git_commit()
-EXPECTED_FIRMWARE_IDENTITY = "8bddaf30c8f30e20d0ebec4c5faea3207cd4b5669327e05af1ad7f47a1fccb0a"
+EXPECTED_FIRMWARE_IDENTITY = "76c48306a09135c595f5dc80aa4e3a7e383edf80348b8699d3b221f685a0d5f8"
 EXPECTED_HARNESS_IDENTITY = _source_digest((ROOT / "tests" / "hil",))
 
 

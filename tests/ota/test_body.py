@@ -53,12 +53,22 @@ def main():
                 image[2] = digest(payload)
             return make_prefix(manifest, sign), b"".join(payloads), manifest
 
-        def add(name, prefix, data, chunk=31, expected=OK, scenario=0, fault=0, root=public, local=LOCAL):
-            wire = (struct.pack("<6I", role, len(prefix), len(data), chunk, scenario, fault) +
+        def add(name, prefix, data, chunk=31, expected=OK, scenario=0, fault=0, root=public, local=LOCAL, policy=0):
+            wire = (struct.pack("<7I", role, len(prefix), len(data), chunk, scenario, fault, policy) +
                     struct.pack("<8IQ", *local) + root + prefix + data)
             vectors.append((f"{role}-{name}", wire, expected, fault))
 
         prefix, data, manifest = prepare(blobs)
+        # 실제 body 경로의 floor 실패는 첫 hash operation 전에 거절해야 한다.
+        add("policy-unavailable", prefix, data, policy=1, expected=INCOMPLETE)
+        add("policy-floor-conflict", prefix, data, policy=2, expected=AUTH)
+        add("policy-wrong-board", prefix, data, policy=3, expected=AUTH)
+        add("policy-record-missing", prefix, data, policy=4, expected=INCOMPLETE)
+        add("policy-null", prefix, data, policy=5, expected=INVALID)
+        older = copy.deepcopy(manifest)
+        for image in older[8]:
+            image[4] -= 1
+        add("below-floor-u64", make_prefix(older, sign), data, policy=2, expected=STALE)
         # 서명된 후보와 trusted 로컬 snapshot을 실제 body 시작 경로에서 비교한다.
         for field in range(8):
             for value in (0, 1, 2, 3, 4, 5, 0xFFFFFFFF):
