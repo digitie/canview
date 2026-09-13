@@ -22,6 +22,14 @@ jobs:
         shell: pwsh
         run: |
           . tools/environment/foundation-windows.ps1 -IncludeDocs
+          python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota.lock
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mcubootPin = (Get-Content tools/toolchain-versions.json -Raw | ConvertFrom-Json).sdk.mcuboot
+          $env:MCUBOOT_ROOT = Join-Path $env:RUNNER_TEMP 'canview-mcuboot'
+          git clone --depth 1 --branch $mcubootPin.version $mcubootPin.repository $env:MCUBOOT_ROOT
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mcubootHead = git -C $env:MCUBOOT_ROOT rev-parse HEAD
+          if ($LASTEXITCODE -or $mcubootHead -ne $mcubootPin.gitCommit) { throw 'MCUboot commit mismatch' }
           cmake --preset host-debug
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build --preset host-debug

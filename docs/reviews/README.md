@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-13 | T-007 CBOR·단순화 원칙 checkpoint 정적 리뷰 | `490d2f8` → `6d83962`, 16파일 | C memory·자원 / oracle·CMake·문서·digest | [기록](adversarial/2026-09-13-T-007-cbor.md), A/B static PASS·finding0; 전체 T-007/서명/target/merge 승인 아님 |
 | 2026-09-09 | T-104 누락 응답 복구·B 후속 closure | `14ea3c9`/`6b33a59`, 기록 전용 | A-10 runtime / B-11·12·13 원 reviewer | [기록](adversarial/2026-09-09-T-104-04.md), B 후속 PASS; A-08 사용자 한정 면제·P1 확인 debt, A-10 P2 defer·NOT_RUN 유지 |
 | 2026-09-09 | T-104 A 중단·사용자 PR #33 한정 면제/B-09 결과 | `14ea3c9`, DMAMUX mock·watchdog 문서 후속 수정 | A embedded runtime / B SDK·build·evidence | [기록](adversarial/2026-09-09-T-104-03.md), A `INCOMPLETE/BLOCK`·P1 closure 미완료를 이슈 #34로 추적; B `CONDITIONAL`; physical/HIL `NOT_RUN` |
 | 2026-09-09 | T-104 UART DMA/link 최초·post-fix hostile review | `9066379`→`bdc6798`, 수정 candidate `14ea3c9` | embedded runtime·안전 / SDK·build·security·evidence | [최초](adversarial/2026-09-09-T-104.md)·[post-fix](adversarial/2026-09-09-T-104-02.md), 원문 `BLOCK` 보존·원 reviewer 재확인 대기, physical/HIL `NOT_RUN` |
