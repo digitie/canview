@@ -14,6 +14,15 @@ typedef struct
 canview_status_t canview_test_p256_verify(void *context, const uint8_t *message, size_t message_size,
     const uint8_t signature[CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES]);
 
+/** @brief MCUboot 시험용 prehashed P256 검증. context는 신뢰된 X||Y다. */
+canview_status_t canview_test_p256_digest_verify(void *context,
+    const uint8_t digest[CANVIEW_OTA_DIGEST_BYTES],
+    const uint8_t signature[CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES]);
+
+/** @brief MCUboot 시험용 SDK SHA256. 최대180KiB, context/digest/data NULL 불가. */
+canview_status_t canview_test_native_sha256(void *context, const uint8_t *data, size_t size,
+    uint8_t digest[CANVIEW_OTA_DIGEST_BYTES]);
+
 /** @brief Windows SDK SHA-256 함수표. context는 body reset까지 유효해야 한다. */
 canview_ota_hash_t canview_test_cng_hash_provider(canview_test_cng_hash_t *context);
 #endif

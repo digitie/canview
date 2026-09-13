@@ -5,6 +5,7 @@
 #include <bcrypt.h>
 #include <string.h>
 #include "cng_provider.h"
+#include "native_stm.h"
 
 #define TEST_PUBLIC_BYTES (64U)
 #define TEST_COORDINATE_BYTES (32U)
@@ -13,24 +14,46 @@ canview_status_t canview_test_p256_verify(
     void *context, const uint8_t *message, size_t message_size,
     const uint8_t signature[CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES])
 {
-    BCRYPT_ALG_HANDLE algorithm = NULL;
-    BCRYPT_KEY_HANDLE key = NULL;
-    BCRYPT_ECCKEY_BLOB header = {BCRYPT_ECDSA_PUBLIC_P256_MAGIC, TEST_COORDINATE_BYTES};
-    uint8_t blob[sizeof(header) + TEST_PUBLIC_BYTES];
     uint8_t digest[CANVIEW_OTA_DIGEST_BYTES];
-    canview_status_t result = CANVIEW_AUTH_FAILED;
     if (context == NULL || message == NULL || signature == NULL ||
         message_size > CANVIEW_OTA_ENVELOPE_MANIFEST_MAX)
     {
         return CANVIEW_INVALID_ARGUMENT;
     }
-    (void)memcpy(blob, &header, sizeof(header));
-    (void)memcpy(blob + sizeof(header), context, TEST_PUBLIC_BYTES);
     if (BCryptHash(BCRYPT_SHA256_ALG_HANDLE, NULL, 0U, (PUCHAR)message,
                    (ULONG)message_size, digest, sizeof(digest)) != 0)
     {
         return CANVIEW_AUTH_FAILED;
     }
+    return canview_test_p256_digest_verify(context, digest, signature);
+}
+
+canview_status_t canview_test_native_sha256(void *context, const uint8_t *data, size_t size,
+    uint8_t digest[CANVIEW_OTA_DIGEST_BYTES])
+{
+    if (context == NULL || data == NULL || digest == NULL || size > CANVIEW_OTA_STM_IMAGE_MAX)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    return BCryptHash(BCRYPT_SHA256_ALG_HANDLE, NULL, 0U, (PUCHAR)data, (ULONG)size,
+                       digest, CANVIEW_OTA_DIGEST_BYTES) == 0 ? CANVIEW_OK : CANVIEW_AUTH_FAILED;
+}
+
+canview_status_t canview_test_p256_digest_verify(void *context,
+    const uint8_t digest[CANVIEW_OTA_DIGEST_BYTES],
+    const uint8_t signature[CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES])
+{
+    BCRYPT_ALG_HANDLE algorithm = NULL;
+    BCRYPT_KEY_HANDLE key = NULL;
+    BCRYPT_ECCKEY_BLOB header = {BCRYPT_ECDSA_PUBLIC_P256_MAGIC, TEST_COORDINATE_BYTES};
+    uint8_t blob[sizeof(header) + TEST_PUBLIC_BYTES];
+    canview_status_t result = CANVIEW_AUTH_FAILED;
+    if (context == NULL || digest == NULL || signature == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    (void)memcpy(blob, &header, sizeof(header));
+    (void)memcpy(blob + sizeof(header), context, TEST_PUBLIC_BYTES);
     if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0U) != 0)
     {
         return CANVIEW_AUTH_FAILED;
@@ -38,7 +61,7 @@ canview_status_t canview_test_p256_verify(
     if (BCryptImportKeyPair(algorithm, NULL, BCRYPT_ECCPUBLIC_BLOB, &key,
                             blob, sizeof(blob), 0U) == 0)
     {
-        if (BCryptVerifySignature(key, NULL, digest, sizeof(digest), (PUCHAR)signature,
+        if (BCryptVerifySignature(key, NULL, (PUCHAR)digest, CANVIEW_OTA_DIGEST_BYTES, (PUCHAR)signature,
                                   CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES, 0U) == 0)
         {
             result = CANVIEW_OK;

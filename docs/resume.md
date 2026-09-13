@@ -15,6 +15,10 @@ C99 CBOR·P256 prefix·typed manifest 뒤에 순차 image 길이/SHA-256 검사�
 검사한다. body는 입력 chunk를 보존하지 않으며 성공 상태도 `HASHES_MATCHED`다.
 native image signature·설치 승인이 아니며 Flash writer를 호출하지 않는다.
 
+별도 STM native 검사기는 공식 MCUboot v2.4.0 image의 전체 hash/P256 서명과
+protected metadata(board/role/layout/epoch/ABI/u64 sequence)를 대조한다. SDK/부트로더
+target 연결은 아직 없으며 ESP native 검사는 다음 구현이다.
+
 body 시작 전에 신뢰된 로컬 snapshot으로 구·신 ABI 네 조합, MCU별 boot/recovery,
 hardware capability와 config 읽기 범위를 검사한다. 미확인 snapshot은 거부하며
 Controller/Bridge의 존재 여부를 Communicator 복구 조건으로 추가하지 않는다.
@@ -22,9 +26,11 @@ Controller/Bridge의 존재 여부를 Communicator 복구 조건으로 추가하
 현재 body/호환성 시험은 모형1462건, 실제 P256+SHA-256 1468건이다. 모형1462건과
 typed1422건은 ASan/UBSan도 통과했다. 합산 coverage는 body.c100%, manifest.c
 함수100%·행97.72%·분기93.70%다. 기존 typed P2561425건도 전체 CTest에 포함한다.
-현재 source의 Windows Host Debug/Release도 각각129/129을 통과했다.
+현재 source의 Windows Host Debug/Release는 각각130/130을 통과했다. STM native의
+실제 CNG 시험2287건·비암호 모형 ASan/UBSan2284건이 통과했고 native_stm.c coverage는
+함수100%·행98.14%·분기94.74%다. DER 길이에 따라 byte 변이/절단 건수는 달라진다.
 Cortex-M4 freestanding object compile은 통과했지만 OTA target 통합의 증거는 아니다.
-마지막 확인된 성공 CI는 `b25b69a`의 `34727655450`이며, 그 결과를 이후
+마지막 확인된 성공 CI는 `0e62ec6`의 `34729444268`이며, 그 결과를 이후
 수정 source에 적용하지 않는다. target artifact/hash의 별도 대조도 아직 하지 않았다.
 
 [CBOR checkpoint 리뷰](reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
@@ -33,7 +39,7 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-native image signature·signed metadata 대조와 version floor 검사를 연결한다.
+ESP native image 서명·signed metadata 대조와 version floor 검사를 연결한다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
 실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
 

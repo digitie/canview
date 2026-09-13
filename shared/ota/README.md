@@ -199,7 +199,54 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 - 필요한 hardware capability는 로컬 bit 집합의 부분집합이어야 한다. 보존 중인 config
   schema는 후보의 읽기 범위 안이어야 한다. snapshot을 수정하거나 migration하지 않는다.
 
-이 함수는 서명된 후보의 주장과 로컬 snapshot을 비교할 뿐이다. 실제 native image의
-서명/보호 metadata와 manifest 대조는 아직 별도 미구현 gate다. snapshot을 보존하지
+이 함수는 서명된 후보의 주장과 로컬 snapshot을 비교할 뿐이다. native image의
+서명/보호 metadata 대조는 별도 단계다. STM 검사는 아래 함수를 사용하며 ESP 검사는
+미구현이다. snapshot을 보존하지
 않으므로 설치 owner는 transaction/상태 변경 뒤 다시 검증해야 한다. 영속 version floor,
 same-sequence CONFLICT/REPAIR 판정과 write/activation 권한을 대신하지 않는다.
+
+## STM native image 검사
+
+`canview_ota_stm_image_check()`는 MCUboot v2.4.0의 비압축·비암호화 P256 image를
+검사한다. 공식 imgtool은 `tools/toolchain-versions.json`의 commit
+`6d3b3d2c38ab20c242e5b9abb04d050086383eb2`로 고정한다. header512B, 일반 앱 image
+최대180KiB, load address/flags0, 별도 slot padding/trailer가 없는 profile이다.
+protected TLV 한 개 뒤 SHA256·KEYHASH·P256 DER TLV만 허용한다.
+
+검사기는 전체 image SHA256을 manifest와 비교하고, header+code+protected TLV의
+SHA256과 native signature도 독립 검사한다. DER은 정규 positive integer 두 개를
+raw r/s로 옮길 뿐 암호 연산은 SDK가 소유한다. root는 입력 이미지가 아니라 신뢰된
+STM 전용 공개키/context에서 공급하며 SPKI DER key hash도 대조한다. 함수는 불변
+전체 image를 호출 중만 빌린다. memory-mapped staging도 가능하지만 실제 Flash
+reader·SDK provider·T-107 bootloader 연결은 아직 없다. vector/부팅 가능성 검사는
+이 image-format 시험의 성공만으로 주장하지 않는다.
+
+보드·역할·sequence는 native 표준 header만으로 표현할 수 없으므로 MCUboot의 기존
+vendor protected TLV(tag `0x00A0`)를 사용한다. 내부168B metadata 후보는 다음과 같다.
+ESP에는 별도 컨테이너 대신 SDK의 `.rodata_custom_desc`에 같은 정보가 들어갈 예정이며
+아직 구현하지 않았다. 아래 배정은 최종 machine-readable schema/ADR 동결 전이다.
+
+| offset | 내용 |
+|---|---|
+| 0 | `CVIMG001`8byte |
+| 8,10 | version1:u16, size168:u16 |
+| 12,16,20,24,28 | role, target, security_epoch, ABI, reserved0:u32 |
+| 32 | release_sequence:u64 |
+| 40,104 | board_revision, layout_id: 각각64byte |
+
+정수는 little-endian, 문자열은 printable ASCII1..63byte/NUL/나머지0이다. 이 값들과
+manifest/local identity가 다르면 거부한다. image version도 native header와 정규
+`major.minor.revision+build` 문자열을 대조한다. 서명된 metadata의 잘못된 역할이나
+sequence는 서명이 유효해도 거부한다. 성공은 영속 floor/REPAIR/activation 승인이 아니다.
+
+Windows에서 `MCUBOOT_ROOT`를 위 commit의 clean checkout으로 지정하고 기존 OTA
+wheel lock을 설치한 뒤 `ctest --test-dir build/host-debug -R ota-native-stm
+--output-on-failure`를 실행한다. 기본 경로는 `C:/cv/mcuboot-2.4.0`이다. CI도 같은
+commit을 clone/확인한다. 시험은 imgtool의 실제 생성/검증과 CNG 검증을 사용하며
+개인키는 메모리에만 둔다. 합성 code bytes는 부팅 가능한 firmware가 아니다.
+`--model`은 Python 계산 결과를 돌려주는 비암호 callback 모형으로 별도 집계한다.
+
+공식 근거:
+[MCUboot imgtool](https://github.com/mcu-tools/mcuboot/blob/6d3b3d2c38ab20c242e5b9abb04d050086383eb2/docs/imgtool.md),
+[image 형식](https://github.com/mcu-tools/mcuboot/blob/6d3b3d2c38ab20c242e5b9abb04d050086383eb2/docs/design.md),
+[ESP-IDF custom descriptor](https://github.com/espressif/esp-idf/blob/v6.0.3/docs/en/api-reference/system/app_image_format.rst).

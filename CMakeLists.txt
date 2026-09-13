@@ -103,6 +103,13 @@ if(BUILD_TESTING)
         add_test(NAME ota-body-crypto COMMAND ${Python3_EXECUTABLE} -X utf8 -B
             ${PROJECT_SOURCE_DIR}/tests/ota/test_body.py $<TARGET_FILE:canview-ota-body-crypto-probe> --crypto)
         set_tests_properties(ota-body-crypto PROPERTIES TIMEOUT 60)
+        add_executable(canview-ota-native-stm-probe tests/ota/native_stm_probe.c tests/ota/cng_provider.c)
+        target_compile_definitions(canview-ota-native-stm-probe PRIVATE CANVIEW_TEST_CNG=1)
+        target_include_directories(canview-ota-native-stm-probe PRIVATE shared/ota/src shared/interface)
+        target_link_libraries(canview-ota-native-stm-probe PRIVATE canview_ota canview_warnings bcrypt)
+        add_test(NAME ota-native-stm COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_native_stm.py $<TARGET_FILE:canview-ota-native-stm-probe>)
+        set_tests_properties(ota-native-stm PROPERTIES TIMEOUT 60)
     endif()
     add_executable(canview-bridge-auth-tests tests/bridge_web/test_auth.c)
     target_link_libraries(canview-bridge-auth-tests PRIVATE canview_bridge_auth_host canview_warnings)

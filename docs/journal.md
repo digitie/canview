@@ -1,5 +1,57 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, MCUboot native P256 image 검사)
+
+공식 MCUboot v2.4.0을 `C:/cv/mcuboot-2.4.0`에 clone했다. 실제 HEAD는
+`6d3b3d2c38ab20c242e5b9abb04d050086383eb2`, clean이며 imgtool CLI는2.4.0을 출력했다.
+commit은 toolchain manifest, Windows 의존성은 기존 OTA wheel lock에 고정했다.
+CI host job도 같은 source를 clone/검증한 뒤 시험한다. upstream 원본은 수정하지 않았다.
+
+`native_stm.c`는 header512/일반 image180KiB 상한, flags/load address0, protected
+vendor TLV와 SHA256/KEYHASH/P256 DER의 고정 profile을 검사한다. 전체 image digest와
+manifest, protected board/role/layout/epoch/ABI/sequence와 local identity/descriptor,
+native version과 정규 version 문자열을 대조한다. native signed-region hash와 P256
+signature도 SDK로 독립 검사한다. Windows의 기존 CNG P256 검증을 digest helper로
+추출해 재사용했다. DER 정수 변환 외에 암호 알고리즘을 새로 구현하지 않았다.
+
+검증:
+
+- `python -B tests/ota/test_native_stm.py build/host-debug/canview-ota-native-stm-probe.exe`:
+  실제 imgtool 생성/검증·CNG SHA256/P2562283건. wrong root/whole hash, 모든 byte 변이/
+  절단, 유효하게 재서명한 잘못된 metadata, u64 경계, DER 음수/길이/중복 TLV,
+  provider 실패와 최대 image를 검사했다. 임시 image 파일만 생성하며 개인키는 메모리 전용이다.
+- WSL Clang21 ASan/UBSan C probe와 같은 script의 `--model --wsl`:2284건.
+  Python이 계산한 hash/서명 결과를 반환하는 모형이며 실제 암호 통과로 집계하지 않는다.
+  무작위 ECDSA DER 길이에 따라 byte별 시험 건수가 달라진다.
+- `build/ota-native-stm.profdata`: native_stm.c 함수9/9·행158/161(98.14%)·
+  분기180/190(94.74%). 최초 default.profraw는 생성 위치를 확인한 뒤 ignored
+  build/ota-native-stm-initial.profraw로 이동했고 후속 profile은 build에 직접 출력했다.
+- Windows Clang23 strict C99/CMake build, CLI dependency 수정 후 최종
+  Debug130/130(29.95초), Release130/130(25.61초). 로그는 ignored
+  build/ota-native-stm-debug-final.log와 build/ota-native-stm-release-final.log다.
+  앞선 envelope/body/manifest 암호 회귀도 포함한다.
+- Arm GNU15.3.rel1 Cortex-M4 freestanding object compile. native check 단일 frame160B,
+  helper16~56B다. 실제 target ELF/MAP/BIN/call-chain budget 완료는 아니다.
+- Doxygen1.18/Sphinx9.1 strict build 통과, 기존 공개 API71개 계약 PASS다.
+  이 XML 입력 목록에는 새 내부 OTA header가 없으므로 그 API의 추출 증거로 확대하지 않는다.
+- 이전0e62ec6 CI34729444268 success를 확인했다. 이후 source에 재사용하지 않는다.
+  합성 source digest는 `8bddaf30c8f30e20d0ebec4c5faea3207cd4b5669327e05af1ad7f47a1fccb0a`다.
+
+wheel 설치 시 user Python의 click/cffi가 lock 버전으로 갱신됐다. pip의 user Scripts
+PATH 안내 경고는 target compiler warning과 구분하며 해당 CLI를 설치 검증으로 사용하지
+않았다. 명령은 Python module/API로 실행했다. 개발환경 문서에는 공용 Python 보존이
+필요한 경우 venv와 CMake Python 경로를 함께 지정하도록 기록했다.
+분리된 기존 OTA venv에서 재확인하니 imgtool API 시험은 통과했지만 CLI는 PyYAML
+누락으로 실패했다. CLI import에 필요한 PyYAML wheel/hash를 lock에 추가하고 시험에도
+실제 CLI version 호출을 넣었다. 환경의 우연한 전역 패키지로 숨기지 않는다.
+수정 뒤 같은 분리 venv의 CLI+native CNG2287건과 위 최종 전체 회귀가 통과했다.
+
+스킬의 인터페이스/소유권 규칙에 따라 기존 OTA README에168B metadata 후보와
+공식 extension 근거를 기록했다. 정식 schema/ADR 동결·ESP native 검사·packager/golden·
+version floor·target SDK/Flash/bootloader 통합과 최종 2인 리뷰는 남아 있다.
+합성 bytes의 format/crypto 성공은 부팅 가능성·실물 복구 검증이 아니다.
+T-007 IN_PROGRESS, PR #35 Draft, physical/HIL NOT_RUN, 차량 CAN TX NO-GO를 유지한다.
+
 ## 2026-09-13 (codex, OTA 로컬 호환성 사전 검사)
 
 `manifest_preflight()`를 기존 C 검사기에 추가하고 body open에서 필수 호출한다.

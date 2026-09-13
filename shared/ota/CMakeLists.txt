@@ -1,4 +1,4 @@
-add_library(canview_ota STATIC src/cbor_head.c src/cbor_document.c src/envelope.c src/manifest.c src/body.c)
+add_library(canview_ota STATIC src/cbor_head.c src/cbor_document.c src/envelope.c src/manifest.c src/body.c src/native_stm.c)
 target_include_directories(canview_ota PRIVATE src ../interface)
 target_compile_features(canview_ota PUBLIC c_std_99)
 if(TARGET canview_warnings)
