@@ -31,6 +31,15 @@ A/B static PASS는 이 후속 서명 코드나 전체 task의 최종 검토 결�
 
 ## 구현 접근
 
+2026-09-13 후속: typed manifest를 기존 prefix 서명 검사 뒤에 연결했다. 신뢰된
+로컬 identity와 role/board/layout/epoch/key_id, 허용 target/slot 상한, 순차 길이 합과
+header 대조, uint64 sequence 보존, ABI/config 내부 정합성 검사를 구현했다.
+구조 교차1422건·실제 P256 교차1425건, OTA focused7/7과 전체 Windows
+Debug/Release127/127을 통과했다. ASan/UBSan과 manifest 함수100%/행97.12%/
+분기91.85% coverage도 확인했다. 정식 schema,
+실제 현재/후보 ABI 조합·requires/version floor와 native image 본문/metadata 검사,
+streaming·CLI·target 통합·최종 리뷰는 남아 있다. 수용 기준 완료로 표시하지 않는다.
+
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.

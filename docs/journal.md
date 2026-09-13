@@ -1,5 +1,51 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, OTA typed manifest와 대상·길이 대조)
+
+기존 prefix/실제 서명 경로 뒤에 고정 구조체 decoder를 연결했다. 임의 주소나
+경로를 허용하지 않고 역할별 일반 앱 enum·길이 상한으로 제한한다. 신뢰된 로컬
+role/board/layout/epoch/key_id를 대조하고, image offset을 순차 합으로 계산해
+header image 수·총길이에 대조한다. uint64 release_sequence를 그대로 보존한다.
+required field/unknown field/중복 target/key, 잘못된 native signature 형식,
+ABI 범위와 조합·config snapshot의 내부 정합성도 거부 경로로 시험했다.
+새 범용 tree/framework/암호 구현 없이 기존 bounded parser와 provider를 재사용했다.
+
+검증 결과:
+
+- Windows 고정 Clang23/CMake4.4.3/Ninja1.13.2에서 strict C99 build 통과.
+- `ctest --preset host-debug --output-on-failure`, `host-release`: 각각127/127.
+- `python -B tests/ota/test_manifest.py build/host-debug/canview-ota-manifest-probe.exe`:
+  서명 mock을 사용한 구조/출력 교차1422건. NULL/크기/identity/실패 출력0과 callback
+  별도 out 재진입·provider 실패도 C probe에서 실행한다.
+- 같은 script에 `build/host-debug/canview-ota-envelope-probe.exe --crypto`:
+  Cryptography48→Windows CNG 실제 P256 서명 교차1425건. 개인키는 메모리에서만 생성했다.
+- WSL Clang21의 현재 C source에 ASan/UBSan·coverage instrumentation을 함께 적용하고
+  같은 portable 교차1422건 통과. manifest.c 함수12/12, 행304/313(97.12%),
+  분기169/184(91.85%). profile은 새 `mktemp -d`에서 실행별로 생성·merge해 이전
+  run을 섞지 않았다. ignored 결과는 `build/ota-manifest-sanitize`,
+  `build/ota-manifest.profdata`다. 전체 OTA coverage gate 완료는 아니다.
+- Arm GNU15.3.rel1 `-mcpu=cortex-m4 -mthumb -ffreestanding -fstack-usage` object
+  compile 통과. `build/ota-manifest-arm.su`의 public 함수 frame864B/helper16~64B는
+  crypto 포함 전체 call-chain stack 또는 target ELF/MAP/BIN 완료의 증거가 아니다.
+- 직전 commit da63535의 CI34726660432는6/6 success. 이후 source와 별개이며 해당
+  artifact/hash를 이번 세션에서 재감사했다고 주장하지 않는다.
+
+ABI 회귀 추가 직후 재빌드 전 executable로 실행한 두 교차 시험은 old code가 ABI
+범위 밖 값을 수락해 실패했다. 현재 source를 재빌드한 뒤 두 교차 시험과 전체
+Debug/Release를 다시 실행해 통과했다. 테스트 기대값이나 validator를 완화하지 않았다.
+합성 T103 fixture의 source digest만
+`1217e49b4b47a40731e8ba7fc82072bc72e0bf6a89ec9f8a2f244a26279b35da`로 갱신했다.
+
+문서 스킬의 책임/수명 설명을 OTA README에 반영했다. resume는 오래된 설치·WSL
+차단 설명과 시간순 상세 이력을 제거하고 현재 상태/다음 작업/debt/안전 경계로
+줄였다. 과거 journal·review·ADR 원본은 수정/삭제하지 않았다.
+
+현재 manifest는 미배포 내부 후보이며 정식 schema/CLI, 실제 실행중/후보 ABI 조합·
+requires/version floor, image 본문 hash/native 서명과 protected metadata,
+streaming·target 연결·최종 독립 2인 리뷰는 남아 있다. CBOR checkpoint A/B를
+새 코드의 리뷰로 대체하지 않는다. PR #35는 Draft이며 T-007은 IN_PROGRESS,
+physical/HIL은 NOT_RUN, 차량 CAN TX는 NO-GO다.
+
 ## 2026-09-13 (codex, 실제 서명 prefix 교차 시험)
 
 작은 header+CBOR+64B 서명 prefix와 순차 image 조립을 연결했다. 자체 암호

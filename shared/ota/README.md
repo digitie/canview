@@ -84,3 +84,57 @@ Linux는 portable 경계 시험만 실행하며 Windows CNG 시험 성공으로 
 암호 API 근거는 [Cryptography48 EC](https://cryptography.io/en/48.0.0/hazmat/primitives/asymmetric/ec/),
 [CNG verify](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptverifysignature),
 [CNG 공개키 구조](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_ecckey_blob)다.
+
+## Typed manifest 검사 후보
+
+`canview_ota_manifest_check()`는 기존 prefix/서명 검사를 호출한 뒤 고정 구조체를
+채운다. 범용 객체 tree나 heap 없이 필드를 순서대로 읽고 입력 pointer를 보존하지
+않는다. 실패 시 결과 전체를0으로 만든다. verify callback의 독립 context/out
+재진입은 가능하고, 동일 출력이나 입력을 callback에서 변경하는 것은 금지한다.
+실행은 최대16KiB 구조 검사와 서명1회, image≤3·ABI 조합≤16의 고정 반복으로
+제한된다. MCU의 실제 timing/전체 call-chain stack은 아직 측정하지 않았다.
+
+아래 integer key는 **미배포 내부 후보**다. 정식 schema/packager/native image
+연결과 최종 리뷰 전 wire 계약을 확정하거나 외부에 배포하지 않는다.
+
+| root key | 필드 | 형식 |
+|---|---|---|
+| 0 | format_version | uint32, 값1 |
+| 1 | package_id | bytes16 |
+| 2 | role | Communicator1, Controller2, Bridge3; peer 권한 enum과 별개 |
+| 3, 4, 5 | board_revision, layout_id, release | 1..63 printable ASCII; 표시 버전은 비교하지 않음 |
+| 6, 7 | security_epoch, key_id | uint32 |
+| 8 | images | descriptor map 배열 |
+| 9 | compatibility | key0 ESP 범위,1 STM 범위,2 peer 범위,3 허용 ESP/STM ABI 쌍 배열 |
+| 10 | config_schema | `[read_min:uint32, read_max:uint32, snapshot:uint32]` |
+| 11 | requires | `[minimum_bootloader:uint32, minimum_recovery:uint32, capabilities:uint64]` |
+
+image map key0..6은 차례로 target enum, length:uint32, SHA-256:bytes32,
+version:text, release_sequence:uint64, native signature 형식, ABI:uint32다.
+signature 형식1은 ESP Secure Boot V2,2는 MCUboot P256이며 실제 서명은 native
+image 안에 있다. manifest의 이 숫자만으로 이미지 서명이 검증됐다고 판단하지 않는다.
+모든 map은 정확한 필수 key 집합만 허용하고 누락/추가/중복/역순을 거부한다.
+
+target1은 Communicator ESP(4MiB),2는 Communicator STM(180KiB),3은 Controller
+(4MiB),4는 Bridge(2.5MiB)다. Controller/Bridge는 해당 image1개, Communicator는
+중복 없는 ESP/STM1~2개만 허용한다. zero/초과 길이와 잘못된 native signature
+형식을 거부하고 offset은 prefix 뒤에서 순차 길이 합으로만 만든다. 외부 offset,
+경로, 주소, recovery/bootloader target은 없으므로 겹친 blob을 지정할 수 없다.
+계산한 image 수와 전체 길이는 header의 주장과 정확히 대조한다.
+
+identity는 신뢰된 BSP/provisioning caller가 공급한다. 파일/HTTP에서 기대 role,
+board/layout, epoch, key_id를 가져오면 안 된다. key_id는 verify context에서 실제
+선택한 역할별 root와 같아야 한다. 현재 합성 host fixture의 board/layout 문자열은
+실제 보드나 승인된 Flash layout ID가 아니다.
+
+ABI 범위의 min≤max, image ABI 포함, 조합 범위/중복·Communicator 비어 있지 않은
+조합 목록, config snapshot의 범위 포함을 검사한다. **실제 실행중/새 image와 네
+old/new 조합의 호환성 대조, requires 충족, 영속 version floor, 본문 hash/native
+서명 및 signed metadata 대조는 아직 구현하지 않았다.** OK는 erase/write,
+PREPARED/boot selector 권한이 아니다. streaming/정식 CLI·golden/target 연결도 남았다.
+
+`ctest --test-dir build/host-debug -R ota-manifest --output-on-failure`로 C/Python
+typed 교차 시험을 실행한다. portable probe는 서명 mock을 사용하며 Windows CNG
+probe를 사용하는 별도 시험만 실제 서명 검증이다. 양쪽은 잘못된 role/board/layout/
+epoch/key, 필드 누락/추가, 중복 target/key, 길이 상한, uint64 sequence 보존,
+truncation, ABI/config 경계를 검사한다. 실제 firmware 설치·물리/HIL은 NOT_RUN이다.
