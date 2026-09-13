@@ -12,6 +12,7 @@
 #endif
 
 #define PROBE_HEADER_BYTES (24U)
+#define PROBE_RUNTIME_BYTES (40U)
 #define PROBE_PUBLIC_BYTES (64U)
 #define PROBE_WIRE_MAX (5U * 1024U * 1024U)
 #define PROBE_FAULT_START (1U)
@@ -67,12 +68,13 @@ typedef struct
     uint8_t public_key[PROBE_PUBLIC_BYTES];
     uint32_t fault;
     uint32_t fault_calls;
+    uint32_t start_calls;
     bool fired;
 } probe_context_t;
 
 static bool probe_reentry(const probe_context_t *probe)
 {
-    return canview_ota_body_open(probe->body, NULL, 0U, NULL, NULL, NULL, NULL) == CANVIEW_RESOURCE_BUSY &&
+    return canview_ota_body_open(probe->body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) == CANVIEW_RESOURCE_BUSY &&
            canview_ota_body_feed(probe->body, 0U, NULL, 0U) == CANVIEW_RESOURCE_BUSY &&
            canview_ota_body_finish(probe->body) == CANVIEW_RESOURCE_BUSY &&
            canview_ota_body_reset(probe->body) == CANVIEW_RESOURCE_BUSY;
@@ -99,6 +101,7 @@ static canview_status_t probe_inject(probe_context_t *probe, uint32_t fault, can
 static canview_status_t probe_start(void *context)
 {
     probe_context_t *probe = context;
+    ++probe->start_calls;
     const canview_status_t status = probe->inner.start(probe->inner.context);
     return probe_inject(probe, PROBE_FAULT_START, status);
 }
@@ -144,11 +147,25 @@ static uint32_t probe_u32(const uint8_t *bytes)
 static bool probe_arguments(void)
 {
     canview_ota_body_t body = {0};
+    canview_ota_manifest_t manifest;
     probe_context_t context = {.body = &body};
     const canview_ota_hash_t null_context = {NULL, probe_start, probe_update, probe_finish, probe_reset};
-    if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
+    const canview_ota_hash_t valid_hash = {&context, probe_start, probe_update, probe_finish, probe_reset};
+    (void)memset(&manifest, 0xA5, sizeof(manifest));
+    if (canview_ota_manifest_preflight(NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
+        canview_ota_manifest_preflight(NULL, 0U, NULL, NULL, NULL, NULL, &manifest) != CANVIEW_INVALID_ARGUMENT)
+    {
+        return false;
+    }
+    for (size_t index = 0U; index < sizeof(manifest); ++index)
+    {
+        if (((const uint8_t *)&manifest)[index] != 0U) { return false; }
+    }
+    if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
-        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, &null_context) != CANVIEW_INVALID_ARGUMENT ||
+        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, &valid_hash) != CANVIEW_INVALID_ARGUMENT ||
+        canview_ota_body_reset(&body) != CANVIEW_OK ||
+        canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, &null_context) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
         canview_ota_body_finish(&body) != CANVIEW_INCOMPLETE ||
         canview_ota_body_reset(&body) != CANVIEW_OK ||
@@ -164,7 +181,7 @@ static bool probe_arguments(void)
         if (index == 1U) { hash.update = NULL; }
         if (index == 2U) { hash.finish = NULL; }
         if (index == 3U) { hash.reset = NULL; }
-        if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, &hash) != CANVIEW_INVALID_ARGUMENT ||
+        if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, &hash) != CANVIEW_INVALID_ARGUMENT ||
             canview_ota_body_reset(&body) != CANVIEW_OK)
         {
             return false;
@@ -176,9 +193,10 @@ static bool probe_arguments(void)
 int main(void)
 {
     uint8_t header[PROBE_HEADER_BYTES];
+    uint8_t local_bytes[PROBE_RUNTIME_BYTES];
     uint8_t prefix[CANVIEW_OTA_ENVELOPE_PREFIX_MAX + 1U];
     uint8_t chunk[CANVIEW_OTA_BODY_CHUNK_MAX + 1U];
-    if (canview_ota_body_open(NULL, NULL, 0U, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
+    if (canview_ota_body_open(NULL, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_feed(NULL, 0U, NULL, 0U) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_finish(NULL) != CANVIEW_INVALID_ARGUMENT ||
         canview_ota_body_reset(NULL) != CANVIEW_INVALID_ARGUMENT || !probe_arguments())
@@ -196,6 +214,7 @@ int main(void)
         canview_ota_body_t body = {0};
         probe_context_t probe = {.body = &body};
         canview_ota_identity_t identity = {CANVIEW_OTA_ROLE_COMMUNICATOR, "synthetic-board", "synthetic-layout", 7U, 11U};
+        canview_ota_runtime_t runtime = {0};
         canview_ota_hash_t hash = {&probe, probe_start, probe_update, probe_finish, probe_reset};
 #if defined(CANVIEW_TEST_CNG)
         canview_test_cng_hash_t native = {0};
@@ -222,28 +241,52 @@ int main(void)
         if (role < 1U || role > 3U || prefix_size > sizeof(prefix) || body_size > PROBE_WIRE_MAX ||
             chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > 7U ||
             (probe.fault & 0xFFU) > PROBE_FAULT_RESET || (probe.fault >> 8U) > 1U ||
+            fread(local_bytes, 1U, sizeof(local_bytes), stdin) != sizeof(local_bytes) ||
+            probe_u32(local_bytes) > 1U ||
             fread(probe.public_key, 1U, PROBE_PUBLIC_BYTES, stdin) != PROBE_PUBLIC_BYTES ||
             fread(prefix, 1U, prefix_size, stdin) != prefix_size)
         {
             return 1;
         }
         identity.role = (canview_ota_role_t)role;
-        canview_status_t status = canview_ota_body_open(&body, prefix, prefix_size, &identity, probe_verify, &probe, &hash);
+        runtime.available = probe_u32(local_bytes) != 0U;
+        runtime.esp_abi = probe_u32(local_bytes + 4U);
+        runtime.stm_abi = probe_u32(local_bytes + 8U);
+        runtime.esp_bootloader = probe_u32(local_bytes + 12U);
+        runtime.stm_bootloader = probe_u32(local_bytes + 16U);
+        runtime.esp_recovery = probe_u32(local_bytes + 20U);
+        runtime.stm_recovery = probe_u32(local_bytes + 24U);
+        runtime.config_schema = probe_u32(local_bytes + 28U);
+        runtime.hardware_capabilities = (uint64_t)probe_u32(local_bytes + 32U) |
+            ((uint64_t)probe_u32(local_bytes + 36U) << 32U);
+        canview_status_t status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, probe_verify, &probe, &hash);
+        if (status != CANVIEW_OK && probe.fault == 0U && probe.start_calls != 0U)
+        {
+            return 1;
+        }
+        if (status != CANVIEW_OK)
+        {
+            for (size_t index = 0U; index < sizeof(body.manifest); ++index)
+            {
+                if (((const uint8_t *)&body.manifest)[index] != 0U) { return 1; }
+            }
+        }
         if (status == CANVIEW_OK && scenario == 3U)
         {
             status = canview_ota_body_reset(&body);
             if (status == CANVIEW_OK)
             {
-                status = canview_ota_body_open(&body, prefix, prefix_size, &identity, probe_verify, &probe, &hash);
+                status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, probe_verify, &probe, &hash);
             }
         }
         /* borrowed prefix/identity/함수표를 덮어써도 body는 자체 descriptor/함수표를 소유한다. */
         (void)memset(prefix, 0xA5, sizeof(prefix));
         (void)memset(&identity, 0, sizeof(identity));
+        (void)memset(&runtime, 0, sizeof(runtime));
         hash = (canview_ota_hash_t){0};
         if (status == CANVIEW_OK)
         {
-            if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY)
+            if (canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY)
             {
                 return 1;
             }
@@ -294,7 +337,7 @@ int main(void)
             return 1;
         }
         if (status != CANVIEW_OK && (canview_ota_body_feed(&body, 0U, NULL, 0U) != status ||
-            canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY))
+            canview_ota_body_open(&body, NULL, 0U, NULL, NULL, NULL, NULL, NULL) != CANVIEW_RESOURCE_BUSY))
         {
             return 1;
         }

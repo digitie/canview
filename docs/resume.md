@@ -15,12 +15,16 @@ C99 CBOR·P256 prefix·typed manifest 뒤에 순차 image 길이/SHA-256 검사�
 검사한다. body는 입력 chunk를 보존하지 않으며 성공 상태도 `HASHES_MATCHED`다.
 native image signature·설치 승인이 아니며 Flash writer를 호출하지 않는다.
 
-현재 body 시험은 모형 수명/오류900건, 실제 P256+SHA-256 906건이다. 모형900건은
-ASan/UBSan도 통과했고 body.c 함수/행/분기 coverage100%다. 앞선 typed 시험은
-구조1422건·P2561425건, manifest.c coverage 함수100%·행97.12%·분기91.85%다.
+body 시작 전에 신뢰된 로컬 snapshot으로 구·신 ABI 네 조합, MCU별 boot/recovery,
+hardware capability와 config 읽기 범위를 검사한다. 미확인 snapshot은 거부하며
+Controller/Bridge의 존재 여부를 Communicator 복구 조건으로 추가하지 않는다.
+
+현재 body/호환성 시험은 모형1462건, 실제 P256+SHA-256 1468건이다. 모형1462건과
+typed1422건은 ASan/UBSan도 통과했다. 합산 coverage는 body.c100%, manifest.c
+함수100%·행97.72%·분기93.70%다. 기존 typed P2561425건도 전체 CTest에 포함한다.
 현재 source의 Windows Host Debug/Release도 각각129/129을 통과했다.
 Cortex-M4 freestanding object compile은 통과했지만 OTA target 통합의 증거는 아니다.
-직전 source `b25b69a`의 CI `34727655450`는 success이며, 그 결과를 이후
+마지막 확인된 성공 CI는 `b25b69a`의 `34727655450`이며, 그 결과를 이후
 수정 source에 적용하지 않는다. target artifact/hash의 별도 대조도 아직 하지 않았다.
 
 [CBOR checkpoint 리뷰](reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
@@ -29,7 +33,7 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-현재/후보 ABI·requires와 native image signature·signed metadata 대조를 연결한다.
+native image signature·signed metadata 대조와 version floor 검사를 연결한다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
 실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
 

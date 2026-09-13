@@ -402,3 +402,98 @@ canview_status_t canview_ota_manifest_check(
     }
     return status;
 }
+
+static bool manifest_contains_abi(const canview_ota_abi_range_t *range, uint32_t abi)
+{
+    return range->minimum <= abi && abi <= range->maximum;
+}
+
+static bool manifest_contains_pair(const canview_ota_manifest_t *manifest, uint32_t esp, uint32_t stm)
+{
+    for (uint32_t index = 0U; index < manifest->combination_count; ++index)
+    {
+        if (manifest->combinations[index].esp == esp && manifest->combinations[index].stm == stm)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* manifest_check 직후에만 호출한다. 배열 길이/target/범위는 이미 검증됐다. */
+static canview_status_t manifest_runtime(const canview_ota_manifest_t *manifest,
+                                        const canview_ota_runtime_t *runtime)
+{
+    const bool communicator = manifest->role == CANVIEW_OTA_ROLE_COMMUNICATOR;
+    if (!manifest_contains_abi(&manifest->esp, runtime->esp_abi) ||
+        runtime->esp_bootloader < manifest->minimum_bootloader ||
+        runtime->esp_recovery < manifest->minimum_recovery ||
+        runtime->config_schema < manifest->config_minimum || runtime->config_schema > manifest->config_maximum)
+    {
+        return CANVIEW_UNSUPPORTED_VERSION;
+    }
+    if (communicator && (!manifest_contains_abi(&manifest->stm, runtime->stm_abi) ||
+        runtime->stm_bootloader < manifest->minimum_bootloader || runtime->stm_recovery < manifest->minimum_recovery))
+    {
+        return CANVIEW_UNSUPPORTED_VERSION;
+    }
+    if ((runtime->hardware_capabilities & manifest->hardware_capabilities) != manifest->hardware_capabilities)
+    {
+        return CANVIEW_UNSUPPORTED_MESSAGE;
+    }
+    if (communicator)
+    {
+        uint32_t new_esp = runtime->esp_abi;
+        uint32_t new_stm = runtime->stm_abi;
+        for (uint32_t index = 0U; index < manifest->image_count; ++index)
+        {
+            const canview_ota_image_t *image = &manifest->images[index];
+            if (image->target == CANVIEW_OTA_TARGET_COMM_ESP)
+            {
+                new_esp = image->abi;
+            }
+            else
+            {
+                new_stm = image->abi;
+            }
+        }
+        if (!manifest_contains_pair(manifest, runtime->esp_abi, runtime->stm_abi) ||
+            !manifest_contains_pair(manifest, new_esp, runtime->stm_abi) ||
+            !manifest_contains_pair(manifest, runtime->esp_abi, new_stm) ||
+            !manifest_contains_pair(manifest, new_esp, new_stm))
+        {
+            return CANVIEW_UNSUPPORTED_VERSION;
+        }
+    }
+    return CANVIEW_OK;
+}
+
+canview_status_t canview_ota_manifest_preflight(
+    const uint8_t *prefix, size_t size, const canview_ota_identity_t *identity,
+    const canview_ota_runtime_t *runtime, canview_ota_manifest_verify_fn verify,
+    void *context, canview_ota_manifest_t *out)
+{
+    if (out == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    (void)memset(out, 0, sizeof(*out));
+    if (runtime == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (!runtime->available)
+    {
+        return CANVIEW_INCOMPLETE;
+    }
+    canview_status_t status = canview_ota_manifest_check(prefix, size, identity, verify, context, out);
+    if (status == CANVIEW_OK)
+    {
+        status = manifest_runtime(out, runtime);
+    }
+    if (status != CANVIEW_OK)
+    {
+        (void)memset(out, 0, sizeof(*out));
+    }
+    return status;
+}

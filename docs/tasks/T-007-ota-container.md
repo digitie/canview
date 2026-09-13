@@ -13,17 +13,20 @@ T-001은 완료됐으며 상세 과거 구현·검증 이력은 [journal](../jou
 [OTA 내부 모듈](../../shared/ota/README.md)의 C99 CBOR 구조·서명 prefix·typed
 manifest와 순차 본문 길이/SHA-256 검사를 연결했다. identity/target/slot 상한,
 unsigned header 대조, uint64 sequence 보존, ABI/config 내부 정합성을 검사한다.
+본문 시작 전 로컬 snapshot과 구·신 ABI 네 조합·MCU별 boot/recovery·hardware
+capability·config 읽기 범위도 대조한다. 미확인 로컬 정보는 거부한다.
 
 body는 chunk를 보존하지 않고 SDK provider를 사용한다. offset 중복/누락·partial
 input/reset·provider/cleanup 실패와 재진입을 검사한다. 성공 상태는
 `HASHES_MATCHED`이며 native image 검증이나 erase/PREPARED 승인이 아니다.
 
-2026-09-13 현재 body 모형 시험900건과 Windows 실제 P256+SHA-256 시험906건이
-통과했다. 모형900건은 ASan/UBSan도 통과했고 body.c 함수/행/분기 coverage100%다.
+2026-09-13 현재 body/호환성 모형1462건과 Windows 실제 P256+SHA-2561468건이
+통과했다. 모형1462건·typed1422건은 ASan/UBSan도 통과했다. 합산 coverage는
+body.c100%, manifest.c 함수100%·행97.72%·분기93.70%다.
 앞선 typed 교차1422/1425건과 CBOR11989건·서명 prefix230건도 유지한다.
 현재 source의 전체 Windows Host Debug/Release는 각각129/129 통과다.
 
-현재/후보 ABI 네 조합·requires/version floor, native image signature/protected
+version floor, native image signature/protected
 metadata, prefix 부분 수신 조립, 정식 schema·CLI·signed golden과 실제 target
 provider/통합·최종 독립 2인 리뷰는 남아 있다. Arm object compile을 최종
 ELF/MAP/BIN gate로 대체하지 않는다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
@@ -36,7 +39,7 @@ PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. �
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
-다음은 native image 검증과 현재/후보 호환성, 정식 schema/CLI 및 target 연결이다.
+다음은 native image 검증과 version floor, 정식 schema/CLI 및 target 연결이다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 

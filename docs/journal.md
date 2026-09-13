@@ -1,5 +1,44 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, OTA 로컬 호환성 사전 검사)
+
+`manifest_preflight()`를 기존 C 검사기에 추가하고 body open에서 필수 호출한다.
+서명/identity 검사 뒤 신뢰된 로컬 snapshot으로 ESP/STM 구·신 네 조합을 signed
+allowlist와 비교한다. 한 image만 업데이트하면 다른 MCU의 ABI는 그대로 유지한다.
+MCU별 bootloader/recovery 최소 ABI, hardware capability 부분집합과 보존 config의
+읽기 범위를 검사한다. 미확인 snapshot은 INCOMPLETE이며 provider 시작 전 거부한다.
+외부 peer의 존재/ABI를 Communicator 자체 복구의 설치 조건으로 추가하지 않는다.
+
+기존 파일/API를 확장했으며 새 framework·wire 필드·writer는 만들지 않았다.
+embedded-cstyle/architecture/documentation 스킬의 고정 메모리·소유권 원칙에 따라
+snapshot의 출처/수명/실패 동작을 header와 기존 OTA README에 기록했다.
+
+검증 결과:
+
+- 고정 Windows Clang23 strict C99 build, 전체 Host Debug129/129(37.22초),
+  Release129/129(28.44초). `ctest --test-dir build/host-debug --output-on-failure`
+  및 host-release. ignored 로그: `build/ota-preflight-debug.log`,
+  `build/ota-preflight-release.log`.
+- `python -B tests/ota/test_body.py build/host-debug/canview-ota-body-probe.exe` 모형1462건,
+  crypto-probe.exe와 `--crypto` 실제 P256+SHA-2561468건. 네 조합 각각 누락,
+  단일 target·순서 반전·16개 조합·0/u32 최대 ABI, 모든64bit capability 누락/허용,
+  boot/recovery/config 경계와 재진입/cleanup 회귀를 포함한다.
+- WSL Clang21 ASan/UBSan으로 body1462건과 기존 manifest1422건을 각각 재빌드/실행했다.
+  새 임시 profile 디렉터리를 합친 `build/ota-preflight-combined.profdata`에서
+  manifest.c 함수16/16·행386/395(97.72%)·분기223/238(93.70%),
+  body.c 함수10/10·행198/198·분기82/82(100%)다. provider/장치 전체 coverage가 아니다.
+- Arm GNU15.3.rel1 Cortex-M4 strict freestanding object compile 통과.
+  `build/ota-preflight-arm.su`의 preflight 단일 frame40B, runtime48B,
+  기존 manifest_check864B다. call-chain stack/target ELF/MAP/BIN 증거는 아니다.
+- 문서327개/target1340개·task49개 오류0. 합성 source digest는
+  `fae13dde1175135377bf9abc93b2b470e0b4934b7c2d6f8b696b0fd0e8d93cf5`이며
+  T103 합성 fixture 식별자만 갱신했다. 과거 physical evidence는 그대로다.
+
+snapshot은 저장하지 않으므로 설치 owner가 transaction/상태 변경 뒤 다시 검사해야 한다.
+native image 서명/보호 metadata와 manifest 대조, version floor/CONFLICT/REPAIR,
+schema/CLI/golden·prefix 조립·실제 target 통합·최종 독립 2인 리뷰는 미완료다.
+T-007 IN_PROGRESS, PR #35 Draft, physical/HIL NOT_RUN, 차량 CAN TX NO-GO다.
+
 ## 2026-09-13 (codex, OTA 순차 본문 hash와 수신 lifecycle)
 
 기존 manifest 검사 뒤에 body open/feed/finish/reset을 연결했다. 완전한 prefix를

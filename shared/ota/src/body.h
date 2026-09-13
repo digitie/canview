@@ -57,15 +57,17 @@ typedef struct
  * @param prefix 호출 중만 읽는 완전한 prefix. body image는 포함하지 않는다.
  * @param size prefix 실제 크기. prefix 조립 buffer는 caller가 최대16KiB manifest로 제한한다.
  * @param identity 신뢰된 BSP/provisioning identity. manifest.h 계약을 따른다.
+ * @param runtime 신뢰된 로컬 ABI/boot/recovery/config/capability snapshot. 호출 중만 빌린다.
  * @param verify 신뢰된 manifest 서명 verifier.
  * @param verify_context verify 호출 중만 유효하면 된다.
  * @param hash SDK SHA-256 provider. 함수표는 복사하고 context만 빌린다.
  * @return OK 또는 prefix/provider 오류. 활성/완료 객체 재사용은 RESOURCE_BUSY.
- * @details 오류 후 reset이 필요하다. native signature/호환성/erase 권한은 검사하지 않는다.
+ * @details 오류 후 reset이 필요하다. native signature/version floor/erase 권한은 검사하지 않는다.
  */
 canview_status_t canview_ota_body_open(
     canview_ota_body_t *body, const uint8_t *prefix, size_t size,
-    const canview_ota_identity_t *identity, canview_ota_manifest_verify_fn verify,
+    const canview_ota_identity_t *identity, const canview_ota_runtime_t *runtime,
+    canview_ota_manifest_verify_fn verify,
     void *verify_context, const canview_ota_hash_t *hash);
 
 /** @brief 절대 file offset 순서대로 최대16KiB chunk를 소비한다.
