@@ -5,52 +5,44 @@
 - Gate: `G0 / OTA-01`
 - 선행: `T-001`
 
-2026-09-09 T-104 PR #33 merge `d229772`/origin/main 확인 뒤 이 task를 시작했다.
-T-001 선행이 완료돼 STM32 boot/core 공용 선행을 구현할 수 있다. 먼저 C99
-bounded CBOR primitive부터 추가하며, 전체 manifest/서명·writer 연결과 실제 target
-gate는 후속 구현이다. 초기 host test를 OTA 완료나 배포 승인으로 표시하지 않는다.
+2026-09-09 T-104 PR #33 merge `d229772`/origin/main 확인 뒤 시작했다.
+T-001은 완료됐으며 상세 과거 구현·검증 이력은 [journal](../journal.md)에 보존한다.
 
-초기 구현은 [OTA 내부 모듈](../../shared/ota/README.md)의 CBOR head decoder다.
-unsigned 64-bit 경계, 잘린 prefix, 최소 길이, major type·reserve/indefinite 거부를
-검사한다. Windows Debug/Release 전체 CTest 각각 121/121, focused Clang ASan/UBSan,
-Arm GCC 15.3.rel1의 Cortex-M4 freestanding C99 object compile이 통과했다.
-CBOR source의 focused coverage는 함수/행/분기 100%다. Object의 단일 frame 72 B는
-전체 target binary·call-chain·실행 timing 검증이 아니다.
-현재 app/bootloader에는 연결하지 않았다. 전체 manifest/서명/target/2인 리뷰는 남아 있다.
+## 현재 구현과 검증
 
-2026-09-13 문서 구조 검사까지 확장했다. C/Python 11,989건 교차 시험,
-Windows Debug/Release 전체 CTest 각각123/123, focused ASan/UBSan과 Cortex-M4
-freestanding object compile을 확인했다. 전체 container·서명·target 연결은 아직 없다.
+[OTA 내부 모듈](../../shared/ota/README.md)의 C99 CBOR 구조·서명 prefix·typed
+manifest와 순차 본문 길이/SHA-256 검사를 연결했다. identity/target/slot 상한,
+unsigned header 대조, uint64 sequence 보존, ABI/config 내부 정합성을 검사한다.
 
-같은 날 후속 구현에서 작은 prefix의 C 길이/CBOR 검사와 실제 P256 서명 provider를
-연결했다. Python 조립→Windows CNG 검증230건, portable callback 실패/재진입,
-Windows Debug/Release125/125를 확인했다. 개인키를 저장하지 않는 합성 시험이며
-아직 manifest 의미·image 자체 서명/본문·streaming·대상 firmware에는 연결하지
-않았다. [앞선 CBOR checkpoint 리뷰](../reviews/adversarial/2026-09-13-T-007-cbor.md)의
-A/B static PASS는 이 후속 서명 코드나 전체 task의 최종 검토 결과가 아니다.
+body는 chunk를 보존하지 않고 SDK provider를 사용한다. offset 중복/누락·partial
+input/reset·provider/cleanup 실패와 재진입을 검사한다. 성공 상태는
+`HASHES_MATCHED`이며 native image 검증이나 erase/PREPARED 승인이 아니다.
+
+2026-09-13 현재 body 모형 시험900건과 Windows 실제 P256+SHA-256 시험906건이
+통과했다. 모형900건은 ASan/UBSan도 통과했고 body.c 함수/행/분기 coverage100%다.
+앞선 typed 교차1422/1425건과 CBOR11989건·서명 prefix230건도 유지한다.
+현재 source의 전체 Windows Host Debug/Release는 각각129/129 통과다.
+
+현재/후보 ABI 네 조합·requires/version floor, native image signature/protected
+metadata, prefix 부분 수신 조립, 정식 schema·CLI·signed golden과 실제 target
+provider/통합·최종 독립 2인 리뷰는 남아 있다. Arm object compile을 최종
+ELF/MAP/BIN gate로 대체하지 않는다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
+[CBOR checkpoint 리뷰](../reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
+PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. 수용 기준은 미완료다.
 
 ## 구현 접근
-
-2026-09-13 후속: typed manifest를 기존 prefix 서명 검사 뒤에 연결했다. 신뢰된
-로컬 identity와 role/board/layout/epoch/key_id, 허용 target/slot 상한, 순차 길이 합과
-header 대조, uint64 sequence 보존, ABI/config 내부 정합성 검사를 구현했다.
-구조 교차1422건·실제 P256 교차1425건, OTA focused7/7과 전체 Windows
-Debug/Release127/127을 통과했다. ASan/UBSan과 manifest 함수100%/행97.12%/
-분기91.85% coverage도 확인했다. 정식 schema,
-실제 현재/후보 ABI 조합·requires/version floor와 native image 본문/metadata 검사,
-streaming·CLI·target 통합·최종 리뷰는 남아 있다. 수용 기준 완료로 표시하지 않는다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
-다음은 기존 prefix 경로에 서명된 manifest 필드·대상/길이·본문 검사를 연결하는
-것이다. 별도 범용 기능을 추가하지 않는다. 이 순서는
+다음은 native image 검증과 현재/후보 호환성, 정식 schema/CLI 및 target 연결이다.
+별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 
 ## 목표
 
-OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 한다. 현재 parser·packager가 없으므로 이 task는 설계 기록의 구현 전환이며 배포 승인이 아니다.
+OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 한다. 현재 부분 검사기를 정식 schema·packager와 실제 target에 연결하는 task이며 배포 승인이 아니다.
 
 ## 고정 결정
 

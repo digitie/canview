@@ -10,16 +10,17 @@
 - [단순한 구현 우선](../AGENTS.md#2-작업-원칙): 고정 manifest와 순차 image만 사용한다.
   기존 SDK/부트로더를 재사용하고 범용 package framework를 만들지 않는다.
 
-C99 CBOR 구조 검사, prefix의 실제 P256 서명, typed manifest의 identity·target·
-길이 검사를 연결했다. 순차 image 길이 합을 unsigned header와 대조하며, uint64
-release_sequence를 보존한다. ABI/config의 내부 범위·중복도 검사한다. 실패하면
-출력을 지우고 Flash writer를 호출하지 않는다.
+C99 CBOR·P256 prefix·typed manifest 뒤에 순차 image 길이/SHA-256 검사를
+연결했다. offset 중복/누락, partial input/reset, hash/provider/cleanup 실패를
+검사한다. body는 입력 chunk를 보존하지 않으며 성공 상태도 `HASHES_MATCHED`다.
+native image signature·설치 승인이 아니며 Flash writer를 호출하지 않는다.
 
-현재 typed 시험은 구조 교차1422건, 실제 P256 교차1425건과 OTA focused7/7이다.
-전체 Windows Host Debug/Release도 각각127/127을 통과했다.
-ASan/UBSan이 통과했고 manifest.c coverage는 함수100%·행97.12%·분기91.85%다.
+현재 body 시험은 모형 수명/오류900건, 실제 P256+SHA-256 906건이다. 모형900건은
+ASan/UBSan도 통과했고 body.c 함수/행/분기 coverage100%다. 앞선 typed 시험은
+구조1422건·P2561425건, manifest.c coverage 함수100%·행97.12%·분기91.85%다.
+현재 source의 Windows Host Debug/Release도 각각129/129을 통과했다.
 Cortex-M4 freestanding object compile은 통과했지만 OTA target 통합의 증거는 아니다.
-직전 source `da63535`의 CI `34726660432`는6/6 success이며, 그 결과를 이후
+직전 source `b25b69a`의 CI `34727655450`는 success이며, 그 결과를 이후
 수정 source에 적용하지 않는다. target artifact/hash의 별도 대조도 아직 하지 않았다.
 
 [CBOR checkpoint 리뷰](reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
@@ -28,9 +29,9 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-현재/후보 ABI·requires와 이미지 본문 hash/native signature·signed metadata
-대조를 같은 OTA 경로에 연결한다. 이어서 streaming, 정식 schema·CLI·signed
-golden과 실제 STM32/ESP32 target 연결을 완성한다. 내부 key 배정은 미배포 후보다.
+현재/후보 ABI·requires와 native image signature·signed metadata 대조를 연결한다.
+본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
+실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
 
 시작 파일은 [상세 task](tasks/T-007-ota-container.md)와
 [현재 구현 계약](../shared/ota/README.md)이며, 설계 정본은

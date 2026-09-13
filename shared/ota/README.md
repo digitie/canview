@@ -138,3 +138,44 @@ typed 교차 시험을 실행한다. portable probe는 서명 mock을 사용하�
 probe를 사용하는 별도 시험만 실제 서명 검증이다. 양쪽은 잘못된 role/board/layout/
 epoch/key, 필드 누락/추가, 중복 target/key, 길이 상한, uint64 sequence 보존,
 truncation, ABI/config 경계를 검사한다. 실제 firmware 설치·물리/HIL은 NOT_RUN이다.
+
+## 순차 image 본문 검사
+
+`body_open()`은 완전한 prefix를 기존 manifest 검사로 검증한 뒤 첫 SHA-256
+operation을 시작한다. `body_feed()`는 절대 file offset과0..16KiB chunk를 받아
+이미지 경계를 순서대로 처리한다. image bytes는 복사/보존하지 않고 SDK provider의
+update에 전달한다. 끝에서 signed descriptor의 SHA-256과 대조한 뒤 operation을
+정리한다. 모든 image가 맞아야 `HASHES_MATCHED`가 된다. `body_finish()`는 EOF를
+확인하며 아직 부족하면 `INCOMPLETE/FAILED`로 종료한다. 이름은 모두
+`canview_ota_` prefix를 가진 내부 C API다.
+
+- caller는 body 객체를 처음에 `{0}`으로 초기화하고 한 task에서 직렬 호출한다.
+  prefix/identity/chunk는 호출 중만 빌리며 descriptor와 hash 함수표는 복사한다.
+  provider context는 reset 성공까지 유효해야 한다. 활성 body 복사/memset은 금지한다.
+- offset 중복·누락, 길이 초과, hash/provider 오류는 FAILED이며 manifest 결과를
+  지운다. 실패한 stream에 재전송해 이어 쓰지 않는다. reset 후 prefix부터 다시 검증한다.
+- `body_reset()`은 부분 start/수신/finish/실패를 정리한다. cleanup 실패 시 context와
+  자원 소유 상태를 보존해 reset을 재시도할 수 있다. 원 오류와 cleanup 오류는 별도다.
+- busy flag는 동일 객체 callback 재진입만 막는다. thread lock이 아니며 ISR에서
+  호출하지 않는다. 호출당 hash에 전달하는 데이터는 최대16KiB, image 경계 반복≤3이다.
+  빈 chunk는 offset을 진행시키지 않는다. transport timeout은 caller가 reset으로 종료한다.
+
+암호 구현은 provider가 소유한다. Windows host는 기존 CNG P256 verifier를
+`tests/ota/cng_provider.c`로 추출해 재사용하고 CNG SHA-256 operation을 연결했다.
+Windows SDK가 hash object를 할당/해제하므로 이 **host provider의 할당**을 portable
+core의 무힙 특성과 혼동하지 않는다. 실제 장치용 SDK provider는 아직 연결하지 않았다.
+[CNG 생성](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptcreatehash),
+[완료](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptfinishhash),
+[해제](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/nf-bcrypt-bcryptdestroyhash)의
+공식 계약을 따른다.
+
+`ctest --test-dir build/host-debug -R ota-body --output-on-failure`로 실행한다.
+portable probe의 sum/length 모형은 실패·수명 시험일 뿐 SHA-256 검증이 아니다.
+Windows crypto probe는 역할별 임시 공개키, 실제 P256 서명과 SHA-256, `abc` known
+answer, 본문 변이·최대 image·잘린 입력·provider/cleanup 실패를 시험한다. 시험은
+native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지 않는다.
+
+`HASHES_MATCHED`는 **native image signature/protected metadata·현재/후보 ABI와
+requires/version floor 검증, Flash read-back, 설치 또는 PREPARED 승인과 별개**다.
+이 모듈에는 writer·boot selector callback 자체가 없다. prefix의 부분 수신 조립,
+정식 schema/CLI/golden, 실제 ESP/STM provider와 target 통합은 남아 있다.

@@ -1,5 +1,56 @@
 # CANView 작업 일지
 
+## 2026-09-13 (codex, OTA 순차 본문 hash와 수신 lifecycle)
+
+기존 manifest 검사 뒤에 body open/feed/finish/reset을 연결했다. 완전한 prefix를
+검증하고0..16KiB chunk의 절대 offset·image 길이·SHA-256을 순서대로 대조한다.
+chunk/prefix/identity pointer를 저장하지 않고 descriptor와 hash 함수표만 복사한다.
+hash context는 NULL을 거부하고 reset 성공까지 빌린다. 중복/누락 offset, 크기
+초과, hash/provider 오류는 FAILED이며 manifest를 지운다. cleanup 실패는 자원을
+잃지 않고 원 오류와 별도로 기록해 reset을 재시도한다. 동일 객체 callback 재진입은
+busy로 거부하며 thread 동기화는 caller의 단일 owner 계약이다.
+
+암호를 새로 구현하지 않았다. 기존 Windows P256 verifier를 host 전용
+`tests/ota/cng_provider.c`로 추출해 기존 envelope 시험과 함께 사용하고, 같은 SDK의
+SHA-256 operation을 연결했다. Windows provider의 SDK hash allocation은 portable
+core의 무힙 특성과 구분한다. provider는 장치 binary에 아직 링크하지 않는다.
+
+최종 검증:
+
+- Windows Clang23/CMake4.4.3/Ninja1.13.2 strict C99 build, Debug129/129(25.43초),
+  Release129/129(20.90초). 로그는 ignored `build/ota-body-debug-final.log`,
+  `build/ota-body-release-final.log`다.
+- `python -B tests/ota/test_body.py build/host-debug/canview-ota-body-probe.exe`:
+  sum/length 모형의 수명/실패900건. 모형을 SHA-256 성공으로 집계하지 않는다.
+- 같은 script와 `build/host-debug/canview-ota-body-crypto-probe.exe --crypto`:
+  실제 Cryptography48 P256 manifest + Windows CNG SHA-256906건. 역할별 임시
+  key와 잘못된 root, 잘못된 서명, `abc` known answer·모든 본문 byte 변이,
+  최대 slot 길이·image 경계 chunk·EOF·중복/누락·reset·provider/cleanup 실패를 검사했다.
+  개인키는 메모리에서만 생성하며 합성 bytes는 부팅 가능한 firmware가 아니다.
+- WSL Clang21 ASan/UBSan과 위 모형900건 통과. 매번 새 profile 디렉터리를 사용했고
+  `build/ota-body.profdata`의 body.c 함수10/10·행198/198·분기82/82(모두100%)다.
+  전체 OTA/native provider/target coverage gate 완료로 확대하지 않는다.
+- Arm GNU15.3.rel1 Cortex-M4 freestanding object compile 통과. 단일 frame은
+  open48B/feed32B/finish24B/reset864B, helper16~56B다. reset의 aggregate 초기화
+  temporary를 포함한 값이며 SDK 포함 call-chain stack·MCU timing·ELF/MAP/BIN
+  검증을 대신하지 않는다.
+- 직전 b25b69a의 CI34727655450는 success다. 이후 본문 source의 CI/artifact
+  검증으로 재사용하지 않는다. 새 staged diff와 secret/VIN은 push 전에 별도 확인한다.
+
+EOF+cleanup 실패 시험의 초기 입력은 Communicator 첫 image를 끝내 reset 실패가
+먼저 발생했다. 기대했던 EOF 경로가 아니므로 첫 image가 끝나기 전에 끊도록 시험
+입력을 수정했다. 이후 두 모형/실제 암호 시험과 전체 회귀를 재실행했다. 구현의
+거절 조건을 완화하지 않았다. 합성 source digest는
+`94c2f6fdffc8e820205326b8866bd6cea32960b8edb89fd48771444fa2b78684`다.
+
+스킬의 소유권·정리·상태 계약을 OTA README에 기록했고, 상세 task의 중복 진행
+이력은 현재 구현/검증으로 줄였다. 기존 journal/review 원본은 변경하지 않았다.
+HASHES_MATCHED는 native image signature/protected metadata, 현재/후보 ABI·
+requires/version floor, Flash read-back·PREPARED/boot selector 권한이 아니다.
+prefix 부분 수신 조립·정식 schema/CLI/golden·실제 ESP/STM provider와 target 통합,
+최종 독립 2인 리뷰는 남아 있다. PR #35 Draft, T-007 IN_PROGRESS,
+physical/HIL NOT_RUN, 차량 CAN TX NO-GO를 유지한다.
+
 ## 2026-09-13 (codex, OTA typed manifest와 대상·길이 대조)
 
 기존 prefix/실제 서명 경로 뒤에 고정 구조체 decoder를 연결했다. 임의 주소나

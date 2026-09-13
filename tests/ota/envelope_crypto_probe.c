@@ -2,67 +2,15 @@
 /** @file envelope_crypto_probe.c
  * @brief Windows host 전용 실제 CNG ECDSA-P256/SHA-256 oracle. 장치용 provider가 아니다.
  */
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <bcrypt.h>
 #include <fcntl.h>
 #include <io.h>
 #include <stdio.h>
 #include <string.h>
 #include "envelope.h"
 #include "manifest.h"
+#include "cng_provider.h"
 
 #define TEST_PUBLIC_BYTES (64U)
-#define TEST_COORDINATE_BYTES (32U)
-#define TEST_DIGEST_BYTES (32U)
-
-static canview_status_t probe_verify(
-    void *context, const uint8_t *message, size_t message_size,
-    const uint8_t signature[CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES])
-{
-    BCRYPT_ALG_HANDLE algorithm = NULL;
-    BCRYPT_KEY_HANDLE key = NULL;
-    BCRYPT_ECCKEY_BLOB header = {BCRYPT_ECDSA_PUBLIC_P256_MAGIC, TEST_COORDINATE_BYTES};
-    uint8_t blob[sizeof(header) + TEST_PUBLIC_BYTES];
-    uint8_t digest[TEST_DIGEST_BYTES];
-    canview_status_t result = CANVIEW_AUTH_FAILED;
-
-    if (context == NULL || message == NULL || signature == NULL ||
-        message_size > CANVIEW_OTA_ENVELOPE_MANIFEST_MAX)
-    {
-        return CANVIEW_INVALID_ARGUMENT;
-    }
-    (void)memcpy(blob, &header, sizeof(header));
-    (void)memcpy(blob + sizeof(header), context, TEST_PUBLIC_BYTES);
-    if (BCryptHash(BCRYPT_SHA256_ALG_HANDLE, NULL, 0U, (PUCHAR)message,
-                   (ULONG)message_size, digest, sizeof(digest)) != 0)
-    {
-        return CANVIEW_AUTH_FAILED;
-    }
-    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_ECDSA_P256_ALGORITHM, NULL, 0U) != 0)
-    {
-        return CANVIEW_AUTH_FAILED;
-    }
-    if (BCryptImportKeyPair(algorithm, NULL, BCRYPT_ECCPUBLIC_BLOB, &key,
-                            blob, sizeof(blob), 0U) == 0)
-    {
-        if (BCryptVerifySignature(key, NULL, digest, sizeof(digest), (PUCHAR)signature,
-                                  CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES, 0U) == 0)
-        {
-            result = CANVIEW_OK;
-        }
-        if (BCryptDestroyKey(key) != 0)
-        {
-            result = CANVIEW_AUTH_FAILED;
-        }
-    }
-    if (BCryptCloseAlgorithmProvider(algorithm, 0U) != 0)
-    {
-        result = CANVIEW_AUTH_FAILED;
-    }
-    return result;
-}
-
 int main(int argc, char **argv)
 {
     uint8_t data[CANVIEW_OTA_ENVELOPE_PREFIX_MAX + 1U];
@@ -109,7 +57,7 @@ int main(int argc, char **argv)
         if (argc == 1)
         {
             (void)memset(&view, 0xA5, sizeof(view));
-            result = canview_ota_envelope_check(data, size, probe_verify, public_key, &view);
+            result = canview_ota_envelope_check(data, size, canview_test_p256_verify, public_key, &view);
             if (result != CANVIEW_OK && (view.manifest_offset != 0U || view.manifest_size != 0U ||
                 view.images_offset != 0U || view.declared_total_size != 0U || view.declared_image_count != 0U))
             {
@@ -120,7 +68,7 @@ int main(int argc, char **argv)
         {
             canview_ota_manifest_t manifest;
             (void)memset(&manifest, 0xA5, sizeof(manifest));
-            result = canview_ota_manifest_check(data, size, &identity, probe_verify, public_key, &manifest);
+            result = canview_ota_manifest_check(data, size, &identity, canview_test_p256_verify, public_key, &manifest);
             if (result != CANVIEW_OK)
             {
                 const uint8_t *bytes = (const uint8_t *)&manifest;
