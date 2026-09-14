@@ -60,8 +60,9 @@ API는 아직 없다. OK는 구조 검사 성공일 뿐 Flash writer를 호출�
 상한·잘린 prefix·고정 seed 변이·순환 Python 입력을 검사한다. 재현 명령은
 host build 뒤 `ctest --test-dir build/host-debug -R ota-cbor --output-on-failure`다.
 
-상위 manifest schema와 서명 검증, streaming lifecycle, 서명된 golden,
-target 연결·coverage·2인 review는 후속 구현이다. 현재 production app은 이 primitive를
+상위 manifest schema·서명 검사·body streaming은 아래 절의 구현을 사용한다.
+prefix 부분 수신 조립·완전한 signed packager/golden·정상 target 연결과 최종 검증은
+남아 있다. 현재 production app은 이 primitive를
 호출하지 않으며 physical/HIL은 NOT_RUN이다. 내부 header는 최종 public API가 아니다.
 
 ## 서명 prefix 연결 후보
@@ -97,8 +98,9 @@ SDK/heap/Flash writer가 없고 provider의 crypto 상태·수명·cleanup은 �
 Windows host 교차 시험만 Microsoft CNG의 실제 P256/SHA-256을 사용한다.
 `cryptography==48.0.0`으로 메모리에서 임시 개인키를 생성·서명하고 CNG가 검증한다.
 개인키는 파일/Git/장치에 저장하지 않는다. 합성 image는 부팅 가능하거나 image
-자체 서명이 검증된 firmware가 아니다. board/epoch/호환성·부팅·Flash writer와
-영속 golden fixture는 아직 미구현이다. CNG provider는 장치 firmware에 링크하지 않는다.
+자체 서명이 검증된 firmware가 아니다. board/epoch/호환성은 아래 typed manifest와
+preflight가 검사한다. 부팅·Flash writer 연결과 영속 signed golden fixture는 남아 있다.
+CNG provider는 장치 firmware에 링크하지 않는다.
 
 Windows x64 CPython3.14에서는 먼저 `python -m pip install --only-binary=:all:
 --require-hashes -r tools/requirements-ota.lock`을 실행한다. host build 뒤
@@ -162,7 +164,8 @@ board/layout, epoch, key_id를 가져오면 안 된다. key_id는 verify context
 ABI 범위의 min≤max, image ABI 포함, 조합 범위/중복·Communicator 비어 있지 않은
 조합 목록, config snapshot의 범위 포함을 검사한다. **실제 실행중/새 image와 네
 old/new 조합의 호환성 대조, requires 충족, version floor와 본문 검사는 아래 별도
-단계에서 수행한다.** STM native 검사는 구현했고 ESP native 검사는 남아 있다.
+단계에서 수행한다.** STM native 검사와 ESP SDK adapter·BSP 연결은 구현했다.
+정상 OTA owner/장치 실행·target 통합은 아직 남아 있다.
 OK는 erase/write/PREPARED/boot selector 권한이 아니다. 정식 CLI·golden/target 연결도 남았다.
 
 `ctest --test-dir build/host-debug -R ota-manifest --output-on-failure`로 C/Python
@@ -212,7 +215,8 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 `HASHES_MATCHED`는 **native image signature/protected metadata·최신 version floor 재검증,
 설치 직전 로컬 상태 재확인, Flash read-back, 설치 또는 PREPARED 승인과 별개**다.
 이 모듈에는 writer·boot selector callback 자체가 없다. prefix의 부분 수신 조립,
-정식 schema/CLI/golden, 실제 ESP/STM provider와 target 통합은 남아 있다.
+전체 signed packager/검사 CLI/golden, 실제 ESP/STM provider와 정상 target 통합은 남아 있다.
+schema와 서명 전 JSON 작성 도구는 위 절의 구현을 사용한다.
 
 ## 로컬 호환성 사전 검사
 
@@ -234,8 +238,9 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
   schema는 후보의 읽기 범위 안이어야 한다. snapshot을 수정하거나 migration하지 않는다.
 
 이 함수는 서명된 후보의 주장과 로컬 snapshot을 비교할 뿐이다. native image의
-서명/보호 metadata 대조는 별도 단계다. STM 검사는 아래 함수를 사용하며 ESP 검사는
-미구현이다. snapshot을 보존하지 않으므로 설치 owner는 transaction/상태 변경 뒤 다시
+서명/보호 metadata 대조는 별도 단계다. STM 검사와 ESP SDK adapter·공통 metadata
+검사는 아래 구현을 사용하며 정상 owner/target 연결은 미완료다.
+snapshot을 보존하지 않으므로 설치 owner는 transaction/상태 변경 뒤 다시
 검증해야 한다. floor 비교는 아래 검사, 영속 갱신과 write/activation 권한은 별도 owner다.
 
 ## 버전 하한 사전 검사

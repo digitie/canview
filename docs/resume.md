@@ -4,6 +4,10 @@
 
 2026-09-15, [T-007 OTA-01](tasks/T-007-ota-container.md)은 `IN_PROGRESS`다.
 
+사용자는 현재 작업을 완료·merge한 뒤 일시중지를 요청했다. 다음 task를 시작하지 않는다.
+T-007 전체 완성인지 현재 구현분의 review/CI closure인지 확인 질문은 답변 대기 중이다.
+추가 기능 구현과 merge는 보류하고, 어느 범위에도 필요한 현재 candidate의 독립 리뷰·CI를 확인한다.
+
 - worktree: `F:/dev/canview-wt/t007-ota-container`
 - branch: `codex/t007-ota-container`
 - [PR #35](https://github.com/digitie/canview/pull/35): Draft
@@ -35,7 +39,7 @@ sequence/다른 hash를 거부하고, 실제 설치 증거로 ALREADY_INSTALLED/
 revision2로 구분했다. C/Python이 image 앞64KiB 정렬을 계산하고 C body가0 padding을
 chunk로 검사한다. prefix buffer와 native image byte열은 그대로이며 v1은 거절한다.
 
-현재 body/호환성/floor 시험은 모형1696건, 실제 P256+SHA-2561702건이다.
+현재 body/호환성/floor 시험은 모형1702건, 실제 P256+SHA-2561708건이다.
 모형 ASan/UBSan과 body.c 함수·행·분기100%를 확인했다. typed manifest 교차1437/1440건,
 서명 prefix232건도 통과했다. manifest.c의 이번 모형 coverage는 함수100%·행93.78%·
 분기90.00%이며 예전 실행의 더 높은 수치를 새 source에 적용하지 않는다.
@@ -55,12 +59,23 @@ ELF/MAP/BIN 경고0을 확인했다. 이는 장치에서 native 서명을 실행
 실제 SDK fixture ELF/MAP/BIN도 생성했고 경고0을 확인했다. 이것은 SDK 연결/compile
 증거이며 장치에서 RSA를 실행하거나 정상 firmware 설치를 검증한 결과는 아니다.
 Cortex-M4 body object compile은 통과했지만 OTA target 통합의 증거는 아니다.
-마지막 확인된 성공 CI는 `69508bf`의 `34903724621`이며, 그 결과를 이후
-수정 source에 적용하지 않는다. target artifact/hash의 별도 대조도 아직 하지 않았다.
+`21909e5`의 CI `34906746695`는6개 job이 성공했다. 이후 수정 source에 적용하지 않는다.
+내려받은 Host Debug/Release 로그는 각각
+140/140이며 ASan/UBSan job은136/136이다. target artifact/hash 대조는 아직 하지 않았다.
+전체 job 로그에는 Node/Git 경고와 예상된 argparse 음성 시험 출력이 있으므로 CI 전체
+warning0으로 표시하지 않는다. 자세한 분류는 [journal](journal.md)에 기록했다.
 
 [CBOR checkpoint 리뷰](reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
 PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 전체 T-007의
 최종 독립 2인 리뷰는 남아 있다. 두 기존 reviewer는 완료 결과를 보존한 뒤 종료했다.
+
+현재 구현분의 새 object-only 리뷰는 `21909e5`/base`d229772`에서 A/B CONDITIONAL로 끝났다.
+A `01a0a229-5363-7f61-a607-ecae1f0a4ff8`, B `01a0a229-545f-7fc0-a90a-240470bb1206`.
+요청 원문은 [A](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-a.md)와
+[B](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-b.md)에 있다.
+원본은 보존했고 P0/P1 없음, P2 두 건과 공통 문서 P3를 수정했다.
+[통합 기록](reviews/adversarial/2026-09-15-T-007-current.md)의 원 reviewer 재확인과
+post-fix CI/target artifact 감사를 마치기 전 merge하지 않는다. 전체 T-007 미완료는 유지한다.
 
 ## 다음 한 작업
 

@@ -20,7 +20,7 @@ body는 chunk를 보존하지 않고 SDK provider를 사용한다. offset 중복
 input/reset·provider/cleanup 실패와 재진입을 검사한다. 성공 상태는
 `HASHES_MATCHED`이며 native image 검증이나 erase/PREPARED 승인이 아니다.
 
-2026-09-15 현재 body/호환성/floor 모형1696건과 Windows 실제 P256+SHA-2561702건이
+2026-09-15 현재 body/호환성/floor 모형1702건과 Windows 실제 P256+SHA-2561708건이
 통과했다. body 모형은 ASan/UBSan도 통과하고 함수·행·분기100%다.
 이번 manifest.c 모형 coverage는 함수100%·행93.78%·분기90.00%다.
 typed 교차1437/1440건과 CBOR11989건·서명 prefix232건, floor C3847건도 통과했다.
@@ -51,6 +51,11 @@ provider/통합·최종 독립 2인 리뷰는 남아 있다. Arm object compile�
 ELF/MAP/BIN gate로 대체하지 않는다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
 [CBOR checkpoint 리뷰](../reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
 PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. 수용 기준은 미완료다.
+
+[현재 구현분 리뷰](../reviews/adversarial/2026-09-15-T-007-current.md)는 최초 A/B CONDITIONAL이다.
+반복 cleanup의 최초 오류 보존 P2와 staging64KiB 생성기 검사 P2, 이전 README 문구 P3를
+수정했고 원 reviewer 재확인·post-fix CI가 남았다. 사용자는 현재 작업 merge 뒤 일시중지를
+요청했으며 전체 task 또는 현재 구현분 범위 확인은 대기 중이다. 다음 task를 시작하지 않는다.
 
 ## 구현 접근
 

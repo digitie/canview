@@ -24,6 +24,18 @@ BOARDS = load_script("generate_boards")
 
 
 class GeneratorTests(unittest.TestCase):
+    def test_staging_rejects_sector_only_alignment(self):
+        manifest = BOARDS.canonical(BOARDS.SOURCE)
+        base = next(b for b in json.loads(manifest)["boards"] if b["id"] == "comm-r2-n16r8")
+        source = BOARDS.canonical(ROOT / base["source"])
+        for offset in range(4096, 65536, 4096):
+            with self.subTest(offset=offset):
+                board = copy.deepcopy(base)
+                board["ota"]["data_offset"] += offset
+                board["ota"]["data_size"] -= offset
+                with self.assertRaisesRegex(ValueError, "OTA staging image alignment"):
+                    BOARDS.board_outputs(board, manifest, source)
+
     def test_staging_sdk_contract(self):
         board = next(b for b in json.loads(BOARDS.SOURCE.read_bytes())["boards"] if b["id"] == "comm-r2-n16r8")
         generated = BOARDS.outputs()

@@ -1,5 +1,65 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, 현재 구현분 reviewer finding 수정)
+
+`21909e5` 기준 A/B 원본을 모두 보존했다. 각각 CONDITIONAL이며 P0/P1 없음,
+A-01/B-01 P2와 A-02/B-02 공통 문서 P3가 있었다. 상세 원문과 disposition은
+[통합 리뷰](reviews/adversarial/2026-09-15-T-007-current.md)에 있다. 추가 기능은 구현하지 않았다.
+
+- A-01: 이미 FAILED인 body의 reset 재시도는 최초 error를 유지하고 cleanup 오류만 별도로
+  전달한다. 새 scenario9는 최초 AUTH_FAILED/INCOMPLETE 뒤 cleanup이 추가로2번 실패한 뒤
+  성공하는 경로를 역할3종에서 검사한다. 수정 전 모형 시험의 exit1을 실제 확인했다.
+- B-01: staging data_offset64KiB 정렬을 generator에서 검사한다. Flash 끝은 보존하면서
+  offset을4KiB씩15가지 이동한 회귀가 수정 전 모두 실패했고 수정 후 통과했다.
+  현재 board 설정과 generated13개 출력은 변경하지 않았다.
+- A-02/B-02: 기존 검사기/adapter 구현과 미완료 owner·signed packager·target 통합을
+  README에서 구분했다. 새 계층/SDK/의존성 없이 기존 함수와 검사 조건만 수정했다.
+- `python -B tests/ota/test_body.py build/host-debug/canview-ota-body-probe.exe` 모형1702건,
+  crypto probe `--crypto` 실제 P256/SHA-2561708건. generator11개 시험 통과.
+- WSL Clang ASan/UBSan 모형1702건 통과. 새 build/ota-review-fix-body.profraw/.profdata로
+  body.c 함수10/10·행220/220·분기94/94 확인. core와 body_probe를 현재 source에서 직접
+  `-fsanitize=address,undefined -fprofile-instr-generate -fcoverage-mapping`으로 빌드했다.
+- Windows strict 전체 Debug140/140(30.81s), Release140/140(24.99s). build compiler/linker/CMake
+  warning/error0. 로그는 build/ota-review-fix-{debug,release}-{build,test}.log다.
+- 문서331개/링크1363개·plan49 오류0, board generation check 통과.
+  firmware source SHA256 `639bfe1c01453de483e2dd3dbc9b6540c9064e3433526a053a8360f2d2cec1e3`.
+  T103 합성 fixture identity만 동기화했으며 physical evidence는 바꾸지 않았다.
+
+직전 candidate의 CI34906746695는6/6 성공했다. 이후 수정 source의 CI/target artifact
+감사는 별도이며 원 reviewer post-fix 재확인도 남아 있다. 현재 구현분 merge와 T-007 전체
+완료를 구분한다. 범위 질문은 답변 대기, physical/HIL NOT_RUN, 차량 TX NO-GO를 유지한다.
+
+## 2026-09-15 (codex, 현재 구현분 closure 준비·사용자 일시중지 요청)
+
+사용자는 현재 작업 완료·merge 뒤 일시중지를 요청했다. T-007 전체 완성인지 현재
+구현분 merge인지 질문했으며 아직 답변을 받지 않았다. 새 packager 구현은 시작하지
+않았다. 두 경우 공통인 독립 review와 현재 CI 확인만 진행하며 다음 task는 시작하지 않는다.
+
+- source candidate `21909e586d8fc9e7ebf8d0a4aacd7037e1d7f962`, base `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`.
+- 2026-09-14 23:03:32 UTC 새 A/B 요청. execution ID와 공통 manifest는
+  [A 실행 기록](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-a.md),
+  [B 실행 기록](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-b.md)에 보존했다.
+  object-only 독립 검토 중이며 원본 verdict는 미수신이다. 60초 관찰 timeout 뒤에도 재시작하지 않았다.
+- CI `34906746695`: Windows host/GCC/Clang/sanitizer/browser 성공, target 실행 중.
+  `gh run download 34906746695 --name windows-foundation-evidence --dir build/ci-34906746695-windows`로
+  받은 LastTest.log에서 Debug/Release 각각140 Passed/0 Failed, coverage 실행9 Passed/0 Failed 확인.
+  Debug log SHA256 `2d82973bb2fb2e98ec469c189a573733c3d444997b38f49803043e16935d8d9d`,
+  Release log SHA256 `0fd049f44aacb6a115a631d4a5bd8ac589ceac70ccde0a2f58d25b0a45c37767`.
+- 내려받은 host-sim report는 candidate/source hash와 일치하며
+  `python -B tests/hil/validate_evidence.py build/ci-34906746695-windows/hil-host --expect-status PASS`
+  12 scenario PASS. physical/HIL은 report 자체도 NOT_RUN이다.
+- job `104185088872`의 실제 로그에서 ASan/UBSan136/136과 OTA 모형 실행을 확인했다.
+  Windows CNG 4개 시험을 Linux에서 실행한 것으로 집계하지 않는다.
+- Windows job `104185089154`의 로그 진단 검색6건은 Node deprecation4건, annotated Git tag
+  경고1건, argparse 필수 인자 누락을 의도한 음성 시험 error1건이다. 별도로 runner의
+  Node20→24 경고 annotation도 있다. Git은 바로 다음 줄에서 고정 MCUboot commit으로
+  checkout했고 이후 실제 imgtool/CNG 시험이 통과했다. compiler/linker/CMake 경고와
+  구분하며 전체 CI warning0을 주장하지 않는다. 로그는 build/ci-34906746695-windows-job.log와
+  build/ci-34906746695-sanitizer-job.log에 있다.
+
+PR35는 Draft이며 merge하지 않았다. target artifact/hash 대조와 원본 review/disposition은
+남아 있다. 차량 TX NO-GO, physical/HIL NOT_RUN과 미완료 T-007 수용 기준을 유지한다.
+
 ## 2026-09-15 (codex, OTA schema와 서명 전 manifest 작성 도구)
 
 직전 턴은 BSP 구현·push progress다. `7b36478` clean에서 시작했고 CI `34905471810`은

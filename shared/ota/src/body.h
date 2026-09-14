@@ -97,6 +97,8 @@ canview_status_t canview_ota_body_finish(canview_ota_body_t *body);
 /** @brief 부분 입력·실패·완료 객체를 정리한다. reset 실패는 재시도 가능하다.
  * @param body {0}으로 초기화된 객체. NULL 불가.
  * @return 정리 성공은 EMPTY/OK, 실패는 FAILED이며 provider/context를 계속 보존한다.
+ * @details 이미 FAILED이면 최초 error를 보존한다. cleanup 실패는 반환값과
+ * cleanup_error로 전달하며, reset 성공 때만 모든 오류와 소유 상태를 지운다.
  */
 canview_status_t canview_ota_body_reset(canview_ota_body_t *body);
 

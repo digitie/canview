@@ -240,16 +240,18 @@ canview_status_t canview_ota_body_reset(canview_ota_body_t *body)
         return CANVIEW_RESOURCE_BUSY;
     }
     body->busy = true;
-    const canview_status_t status = body_close_hash(body);
+    canview_status_t status = body_close_hash(body);
     if (status == CANVIEW_OK)
     {
         *body = (canview_ota_body_t){0};
     }
     else
     {
-        const canview_status_t error = body_mark_failed(body, status);
+        if (body->state != CANVIEW_OTA_BODY_FAILED)
+        {
+            status = body_mark_failed(body, status);
+        }
         body->busy = false;
-        return error;
     }
     return status;
 }

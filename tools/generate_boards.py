@@ -83,6 +83,8 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
             raise ValueError("OTA flash extent")
         if "staging_size" in ota and (not 0 < ota["staging_size"] < ota["data_size"] or ota["staging_size"] % 4096):
             raise ValueError("OTA staging size")
+        if "staging_size" in ota and ota["data_offset"] % 65536:
+            raise ValueError("OTA staging image alignment")
     elif board["kind"] == "stm32g474":
         clock = board["clock"]
         if (board["flash_bytes"], board["sram_bytes"], board["ccm_bytes"]) != (524288, 98304, 32768):

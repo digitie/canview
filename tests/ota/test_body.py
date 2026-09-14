@@ -214,6 +214,10 @@ def main():
             chunk=len(data))
         add("bad-hash-and-cleanup-failure", prefix, bytes([data[0] ^ 1]) + data[1:], expected=AUTH,
             fault=4, chunk=len(data))
+        add("bad-hash-and-repeated-cleanup-failure", prefix, bytes([data[0] ^ 1]) + data[1:], expected=AUTH,
+            scenario=9, fault=4, chunk=len(data))
+        add("truncated-and-repeated-cleanup-failure", prefix, blobs[0][:-1], expected=INCOMPLETE,
+            scenario=9, fault=4, chunk=len(data))
         for fault in range(1, 5):
             add(f"provider-error-{fault}", prefix, data, expected=BUSY, fault=fault)
             if role == 1:

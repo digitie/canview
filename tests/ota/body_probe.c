@@ -19,6 +19,8 @@
 #define PROBE_FAULT_UPDATE (2U)
 #define PROBE_FAULT_FINISH (3U)
 #define PROBE_FAULT_RESET (4U)
+#define PROBE_REPEAT_CLEANUP_SCENARIO (9U)
+#define PROBE_CLEANUP_RETRIES (2U)
 
 #if !defined(CANVIEW_TEST_CNG)
 /* 수명/실패 주입 시험용 sum/length 모형. SHA-256으로 보고하면 안 된다. */
@@ -241,7 +243,7 @@ int main(void)
         const uint32_t policy_case = probe_u32(header + 24U);
         probe.fault = probe_u32(header + 20U);
         if (role < 1U || role > 3U || prefix_size > sizeof(prefix) || body_size > PROBE_WIRE_MAX ||
-            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > 8U || policy_case > 5U ||
+            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > PROBE_REPEAT_CLEANUP_SCENARIO || policy_case > 5U ||
             (probe.fault & 0xFFU) > PROBE_FAULT_RESET || (probe.fault >> 8U) > 1U ||
             fread(local_bytes, 1U, sizeof(local_bytes), stdin) != sizeof(local_bytes) ||
             probe_u32(local_bytes) > 1U ||
@@ -362,6 +364,24 @@ int main(void)
         if (status == CANVIEW_OK)
         {
             status = finished;
+        }
+        if (scenario == PROBE_REPEAT_CLEANUP_SCENARIO)
+        {
+            if (probe.fault != PROBE_FAULT_RESET || status == CANVIEW_OK || !body.hash_live)
+            {
+                return 1;
+            }
+            for (uint32_t retry = 0U; retry < PROBE_CLEANUP_RETRIES; ++retry)
+            {
+                probe.fired = false;
+                probe.fault_calls = 0U;
+                if (canview_ota_body_reset(&body) != CANVIEW_RESOURCE_BUSY ||
+                    body.error != status || body.cleanup_error != CANVIEW_RESOURCE_BUSY ||
+                    !body.hash_live || body.busy)
+                {
+                    return 1;
+                }
+            }
         }
         if (status != finished || canview_ota_body_finish(&body) != finished || (status != CANVIEW_OK &&
             (body.manifest.image_count != 0U || body.next_offset != 0U || body.state != CANVIEW_OTA_BODY_FAILED ||
