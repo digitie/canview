@@ -22,3 +22,4 @@ CANView의 구조적 결정은 파일당 하나의 ADR로 둔다. 파일명은 N
 | [ADR-006](006-compact-hardware-power-and-sensors.md) | 소형 R1 회로·USB service 전원·INS·원격 수음 | partially superseded by ADR-007 |
 | [ADR-007](007-n16r8-independent-recoverable-ota.md) | N16R8과 장치별 독립 복구 OTA | accepted |
 | [ADR-008](008-portable-foundation-and-api-docs.md) | 공용 C99 기반과 생성 API 문서 | accepted |
+| [ADR-009](009-ota-native-image-alignment.md) | SDK 재사용을 위한 OTA image 정렬 | accepted |

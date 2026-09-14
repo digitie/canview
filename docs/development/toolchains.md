@@ -198,6 +198,26 @@ STM32 firmware 초기화 순서는 다음과 같이 고정한다.
 
 IWDG 목표 timeout은 250–500 ms다. main loop만으로 refresh하지 않고 CAN 처리, UART worker, safety state가 모두 정상일 때만 refresh한다. 외부 WDI falling pulse와 재무장 latch는 별도 계약이며 [핀맵](../hardware/r1/firmware-pinmap.md)을 따른다. reset/fault 뒤 자동 재무장하지 않는다.
 
+### 5.6 OTA image signing 도구
+
+T-007의 host native image 시험은 MCUboot v2.4.0 imgtool을 사용한다. 정확한 commit은
+`tools/toolchain-versions.json`의 `sdk.mcuboot`가 정본이다. clean checkout을
+`MCUBOOT_ROOT`로 지정하며 기본 경로는 `C:/cv/mcuboot-2.4.0`이다. 시험은 HEAD와
+clean 상태를 확인하고 SDK가 없으면 실패한다. T-107 STM 부트로더 port 완료가 아니다.
+
+```powershell
+git clone --depth 1 --branch v2.4.0 https://github.com/mcu-tools/mcuboot.git C:/cv/mcuboot-2.4.0
+git -C C:/cv/mcuboot-2.4.0 rev-parse HEAD
+python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota.lock
+python -B C:/cv/mcuboot-2.4.0/scripts/imgtool.py version
+ctest --test-dir build/host-debug -R ota-native-stm --output-on-failure
+```
+
+기존 checkout이 있으면 clone으로 덮어쓰지 않고 HEAD/dirty 상태부터 확인한다.
+wheel lock은 Windows x64/CPython3.14용이다. 공용 Python 의존성을 보존해야 하는
+환경에서는 별도 venv를 사용하고 CMake의 Python 실행 경로도 그 venv로 지정한다.
+시험은 개인키를 메모리에만 만들며 생산 signing/provisioning과 별개다.
+
 ## 6. DBC toolchain
 
 ```powershell

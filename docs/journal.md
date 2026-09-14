@@ -1,5 +1,671 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, 현재 PR merge 후 일시중지 범위 확정)
+
+사용자의 "지금 작업까지만 머지하고 작업 일시중지", "완료시키고 머지 후 일시중지"를
+현재 PR #35 구현분의 검증·merge 요청으로 적용한다. 앞선 범위 질문을 이유로 계속
+대기하지 않는다. 전체 T-007 수용 기준을 축소하거나 완료로 바꾸지 않으며, 남은
+packager/정상 OTA 통합과 다음 task는 재개 요청 전 시작하지 않는다.
+review 원본은 그대로 보존하고 현재 상태/후속 작업 안내만 갱신했다.
+현재 target CI 및 review 기록 반영 뒤 CI와 artifact 감사를 마친 다음 merge한다.
+physical/HIL NOT_RUN, 차량 CAN TX NO-GO는 유지한다.
+
+## 2026-09-15 (codex, 현재 구현분 post-fix 독립 리뷰 closure)
+
+`63197e3`를 같은 reviewer2명에게 object-only로 재검토시켰다. 요청·submission ID·시각과
+두 원본을 [post-fix 기록](reviews/adversarial/2026-09-15-T-007-current-post.md)에 연결했다.
+A는 정적 PASS, B는 CI/artifact 조건부 CONDITIONAL이며 네 finding은 모두 FIXED,
+새 P0/P1/P2/P3는 없다. B의 CONDITIONAL을 PASS로 변경하지 않았다. 양 원본 보존 후
+결과를 종합하고 두 reviewer 실행을 종료했다. 이번 변경은 review/상태 기록뿐이다.
+
+CI34908276012는23:25 UTC 확인 시5/6 성공이고 target은 실행 중이었다. Windows artifact를
+내려받아 Debug/Release140 Passed/0 Failed, body mock1702/CNG1708, host-sim12 PASS와
+commit/source identity를 확인했다. 실제 MCUboot CNG 시험은 이번 실행2283건이며 DER 길이에
+따라 건수가 달라진다. 정확한 log digest와 scope는 post-fix 기록에 있다. Node/Git 경고와
+예상 argparse 음성시험 출력을 포함한 전체 CI를 warning0으로 표시하지 않는다.
+
+현재 source 결함 리뷰는 닫혔지만 target artifact/source/hash 감사와 기록 반영 후 CI,
+사용자의 완료·merge 범위 답변은 남아 있다. T-007 전체 acceptance를 완료로 바꾸지 않았고
+추가 기능/다음 task는 시작하지 않는다. physical/HIL NOT_RUN, 차량 CAN TX NO-GO다.
+
+## 2026-09-15 (codex, 현재 구현분 reviewer finding 수정)
+
+`21909e5` 기준 A/B 원본을 모두 보존했다. 각각 CONDITIONAL이며 P0/P1 없음,
+A-01/B-01 P2와 A-02/B-02 공통 문서 P3가 있었다. 상세 원문과 disposition은
+[통합 리뷰](reviews/adversarial/2026-09-15-T-007-current.md)에 있다. 추가 기능은 구현하지 않았다.
+
+- A-01: 이미 FAILED인 body의 reset 재시도는 최초 error를 유지하고 cleanup 오류만 별도로
+  전달한다. 새 scenario9는 최초 AUTH_FAILED/INCOMPLETE 뒤 cleanup이 추가로2번 실패한 뒤
+  성공하는 경로를 역할3종에서 검사한다. 수정 전 모형 시험의 exit1을 실제 확인했다.
+- B-01: staging data_offset64KiB 정렬을 generator에서 검사한다. Flash 끝은 보존하면서
+  offset을4KiB씩15가지 이동한 회귀가 수정 전 모두 실패했고 수정 후 통과했다.
+  현재 board 설정과 generated13개 출력은 변경하지 않았다.
+- A-02/B-02: 기존 검사기/adapter 구현과 미완료 owner·signed packager·target 통합을
+  README에서 구분했다. 새 계층/SDK/의존성 없이 기존 함수와 검사 조건만 수정했다.
+- `python -B tests/ota/test_body.py build/host-debug/canview-ota-body-probe.exe` 모형1702건,
+  crypto probe `--crypto` 실제 P256/SHA-2561708건. generator11개 시험 통과.
+- WSL Clang ASan/UBSan 모형1702건 통과. 새 build/ota-review-fix-body.profraw/.profdata로
+  body.c 함수10/10·행220/220·분기94/94 확인. core와 body_probe를 현재 source에서 직접
+  `-fsanitize=address,undefined -fprofile-instr-generate -fcoverage-mapping`으로 빌드했다.
+- Windows strict 전체 Debug140/140(30.81s), Release140/140(24.99s). build compiler/linker/CMake
+  warning/error0. 로그는 build/ota-review-fix-{debug,release}-{build,test}.log다.
+- 문서331개/링크1363개·plan49 오류0, board generation check 통과.
+  firmware source SHA256 `639bfe1c01453de483e2dd3dbc9b6540c9064e3433526a053a8360f2d2cec1e3`.
+  T103 합성 fixture identity만 동기화했으며 physical evidence는 바꾸지 않았다.
+
+직전 candidate의 CI34906746695는6/6 성공했다. 이후 수정 source의 CI/target artifact
+감사는 별도이며 원 reviewer post-fix 재확인도 남아 있다. 현재 구현분 merge와 T-007 전체
+완료를 구분한다. 범위 질문은 답변 대기, physical/HIL NOT_RUN, 차량 TX NO-GO를 유지한다.
+
+## 2026-09-15 (codex, 현재 구현분 closure 준비·사용자 일시중지 요청)
+
+사용자는 현재 작업 완료·merge 뒤 일시중지를 요청했다. T-007 전체 완성인지 현재
+구현분 merge인지 질문했으며 아직 답변을 받지 않았다. 새 packager 구현은 시작하지
+않았다. 두 경우 공통인 독립 review와 현재 CI 확인만 진행하며 다음 task는 시작하지 않는다.
+
+- source candidate `21909e586d8fc9e7ebf8d0a4aacd7037e1d7f962`, base `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`.
+- 2026-09-14 23:03:32 UTC 새 A/B 요청. execution ID와 공통 manifest는
+  [A 실행 기록](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-a.md),
+  [B 실행 기록](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-b.md)에 보존했다.
+  object-only 독립 검토 중이며 원본 verdict는 미수신이다. 60초 관찰 timeout 뒤에도 재시작하지 않았다.
+- CI `34906746695`: Windows host/GCC/Clang/sanitizer/browser 성공, target 실행 중.
+  `gh run download 34906746695 --name windows-foundation-evidence --dir build/ci-34906746695-windows`로
+  받은 LastTest.log에서 Debug/Release 각각140 Passed/0 Failed, coverage 실행9 Passed/0 Failed 확인.
+  Debug log SHA256 `2d82973bb2fb2e98ec469c189a573733c3d444997b38f49803043e16935d8d9d`,
+  Release log SHA256 `0fd049f44aacb6a115a631d4a5bd8ac589ceac70ccde0a2f58d25b0a45c37767`.
+- 내려받은 host-sim report는 candidate/source hash와 일치하며
+  `python -B tests/hil/validate_evidence.py build/ci-34906746695-windows/hil-host --expect-status PASS`
+  12 scenario PASS. physical/HIL은 report 자체도 NOT_RUN이다.
+- job `104185088872`의 실제 로그에서 ASan/UBSan136/136과 OTA 모형 실행을 확인했다.
+  Windows CNG 4개 시험을 Linux에서 실행한 것으로 집계하지 않는다.
+- Windows job `104185089154`의 로그 진단 검색6건은 Node deprecation4건, annotated Git tag
+  경고1건, argparse 필수 인자 누락을 의도한 음성 시험 error1건이다. 별도로 runner의
+  Node20→24 경고 annotation도 있다. Git은 바로 다음 줄에서 고정 MCUboot commit으로
+  checkout했고 이후 실제 imgtool/CNG 시험이 통과했다. compiler/linker/CMake 경고와
+  구분하며 전체 CI warning0을 주장하지 않는다. 로그는 build/ci-34906746695-windows-job.log와
+  build/ci-34906746695-sanitizer-job.log에 있다.
+
+PR35는 Draft이며 merge하지 않았다. target artifact/hash 대조와 원본 review/disposition은
+남아 있다. 차량 TX NO-GO, physical/HIL NOT_RUN과 미완료 T-007 수용 기준을 유지한다.
+
+## 2026-09-15 (codex, OTA schema와 서명 전 manifest 작성 도구)
+
+직전 턴은 BSP 구현·push progress다. `7b36478` clean에서 시작했고 CI `34905471810`은
+이번 재확인까지 in_progress였다. 동일 실행을 재시작하지 않았다. T-007은 IN_PROGRESS다.
+
+T-007 수용 범위와 기존 C/Python을 다시 대조했다. 정상 OTA app/owner 확대 전에 누락된
+schema와 packager 입력을 완성하는 순서로 조정했다. 기존 byte 계약을 바꾸지 않고
+schema/cvota-v2.schema.json과 protocol/schema/ota-container-v2.yaml에 기록했다.
+JSON 이름→CBOR integer key는 schema의 x-cbor-key를 재사용한다. JSON 표준 parser와
+기존 typed validator를 쓰며 범용 JSON Schema 엔진/새 암호 구현을 만들지 않았다.
+
+tools/ota/manifest_json.py는 최대32KiB UTF-8 JSON을 검증하고 서명 전 CBOR만 생성한다.
+duplicate/unknown field, float/NaN, 잘린 입력, 잘못된 hex/type/range/ABI/target 조합을
+거부한다. u64를 Python 정수로 보존하며 출력 파일은 exclusive create로 기존 파일을
+덮어쓰지 않는다. 실제 signing/native image 검증과 전체 cvota packager는 아직 남아 있다.
+UNSIGNED_MANIFEST 출력에 header·dummy signature·image bytes를 넣지 않는다.
+
+- 최초 직접 시험에서 테스트의 read_text가 Windows cp949를 사용해 한글 schema 읽기에
+  실패했다. UTF-8을 명시하고 같은 직접 명령과 CTest를 재실행해 통과했다.
+- `python -B tests/ota/test_manifest_json.py build/host-debug/canview-ota-manifest-probe.exe -v`
+  4개 unittest 통과. 각 JSON prefix 절단, role3종×sequence6종의 C 대조, schema
+  매핑/enum/header/native layout 상수와 CLI 기존 출력 보존·실패 입력 비노출을 확인했다.
+- 로컬 기존 jsonschema4.26.0의 Draft202012Validator.check_schema, 역할3종 positive,
+  newline/role/signature negative 통과. runtime/CI dependency를 추가하지 않았다.
+  새 CTest는 mapping drift와 기존 Python/C validator 대조이며 metaschema 엔진 실행은 아니다.
+- Windows strict build warning/error0, Debug140/140(30.64s), Release140/140(24.27s).
+  build/ota-schema-debug.log, build/ota-schema-release.log와 각 -build.log에 기록했다.
+- 문서328개/링크1353개·plan49개 오류0, generated board check 통과. firmware source SHA256
+  `33e89e01de8b93e58ec5aac7580fa50ab97c9e2743a5611e88296bf283608ae6`.
+  protocol schema/README 추가를 반영해 T103 합성 fixture만 동기화했다.
+
+문서화 스킬에 따라 schema/도구 책임과 검증 한계를 기존 README/OTA 정본에 연결했다.
+이번 변경에 firmware C/SDK 경로 수정은 없으며 target/sanitizer를 새로 실행한 것으로
+집계하지 않는다. 이후 전체 target CI·native signing/golden·prefix 수신/owner/영속 policy와
+독립2인 리뷰가 남았다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다. 사용자 파일은 보존했다.
+
+## 2026-09-15 (codex, Communicator OTA BSP 읽기 검증 연결)
+
+직전 턴은 구현·push progress다. `ba10e46` clean에서 시작했다. CI `34904547650`은
+재확인 시 in_progress이며 그 부모 `69508bf`의 `34903724621` 성공을 확인했다.
+관찰 대기만으로 CI를 재시작하지 않았다. T-007/PR35는 IN_PROGRESS/Draft다.
+
+Communicator BSP `ota.c`는 외부 partition pointer/주소를 받지 않고 고정 bundle_stage를
+찾는다. generated board ID/위치/크기, COMM_ESP target과 서명 scheme, prefix 뒤 정렬된
+offset을 검사한 다음 기존 SDK 전체 hash/native 서명과 공통 metadata 대조를 호출한다.
+정상 OTA task가 호출을 직렬화하고 Flash 불변을 보장해야 하며 현재 이 owner 연결은 없다.
+새 mutex/상태기계/writer/부팅 선택은 만들지 않았다. 구조/C 스타일 스킬은 SDK 경계에,
+문서화 스킬은 기존 SDK README의 신뢰 입력·수명·미완료 범위 갱신에 적용했다.
+
+- generator에 staging 위치/크기의 BSP macro와 encrypted flag를 연결했다. 최초 공식
+  SDK partition parser 실행에서 기존 recovery label이 SDK subtype 이름과 겹치는
+  WARNING을 발견했다. 세 template의 label만 recovery_app으로 바꾼 뒤 다시 실행해
+  경고0을 확인했다. 주소/크기/app-test subtype과 factory-only sdkconfig는 불변이다.
+- `python C:/cv/esp-idf-6.0.3/components/partition_table/gen_esp32part.py --offset 0x18000
+  --flash-size 16MB firmware/communicator/esp32/partitions.ota-template.csv build/ota-communicator-esp32-partitions.bin`
+  및 Controller16MB/Bridge8MB도 성공. CI의 같은 SDK parser/warning scan에 세 검사를 추가했다.
+  partition BIN은 생성만 했으며 flash/migration하지 않았다.
+- Windows Debug139/139(34.93s), Release139/139(28.78s). 로그는
+  build/ota-comm-bsp-debug.log와 build/ota-comm-bsp-release.log다. generator10개 시험도 통과했다.
+- BSP/SDK/metadata/STM 관련9개 CTest 통과. BSP 모형은 실제 metadata 코드를 실행하고
+  SDK만 대체한다. NULL·wrong board/role/target/scheme·offset·partition 위치/크기/type·
+  SDK 오류·전체168B 변조·version 불일치를 시험했다. 모형은 실제 RSA 검증이 아니다.
+- WSL Clang21 ASan/UBSan 통과, BSP 함수1/1·행29/29·분기32/32·region66/66.
+  build/ota-comm-bsp.profdata와 build/ota-comm-bsp-asan에 해당한다.
+- 실제 SDK fixture에서 BSP/SDK/metadata 심볼을 nm으로 확인했다. build/ota-comm-bsp-idf.log
+  compiler/linker/CMake warning/error0. unsigned fixture BIN262144B SHA256
+  `df141c306db9b3b5d60b0f73ad4d6d3fe8ec5af3cfff724475b5889640b934a5`,
+  ELF4155012B `63e4d15b3cb5f2f6743a66b03daf484f04b110c24d9f263c3e7da7003357fcf4`,
+  MAP3025942B `7ea16451eb3db1a0233b41cdda25398bc84af8c75a340de1ee807dae3f5a6ec4`.
+- generated board drift 없음, 문서328개/링크1351개·plan49개 오류0. firmware source SHA256
+  `421f40a151ec0de52f6d9ad928deac78a4f9c8b9dd148632c58a983a23c71fd1`.
+  T103 합성 fixture만 동기화했다. 생성기로 생긴 내용 동일 line-ending 변경은 Git 정규화한다.
+
+다음은 body 완료→BSP 검사를 단일 OTA owner에 연결하고 실제 signed descriptor 생성과
+schema/CLI/golden을 완성하는 작업이다. 정상 target 통합·영속 policy·독립2인 리뷰는 남아
+있다. physical/HIL·장치 RSA 실행은 NOT_RUN, 차량 TX는 NO-GO다. 사용자 파일을 보존했다.
+
+## 2026-09-15 (codex, STM/ESP native metadata 공통 대조)
+
+직전 턴은 구현·push progress였다. `69508bf` clean에서 시작했으며 부모 CI
+`34903724621`은 이번 검증 중 재확인까지 in_progress다. 실행 중인 CI를 재시작하지 않았다.
+
+기존 STM `CVIMG001`168B 대조를 `shared/ota/src/native_metadata.c`로 옮겼다.
+ESP에도 같은 함수를 사용하고 SDK `app.version[32]`의 정확한 문자열 대조만 더했다.
+role/target/signature 조합을 명시적으로 거부하며 epoch와 u64 sequence를 서로 다른
+필드로 유지한다. SDK `secure_version`을 release_sequence로 변환하지 않는다.
+새 ESP parser/암호/범용 abstraction을 추가하지 않았다. C 스타일·구조 스킬은
+무상태/무힙과 SDK 경계를, 문서화 스킬은 기존 README의 입력 수명·검증 책임 갱신에 적용했다.
+
+- Windows Debug138/138(29.38s), Release138/138(24.61s). 기존 공식 MCUboot imgtool/CNG
+  STM 교차 시험을 포함한다. `build/ota-metadata-debug.log`, `build/ota-metadata-release.log`.
+- 새 CTest는 NULL·길이0..169/SIZE_MAX·전체168byte 각8bit 변이·role/target/signature
+  조합·u64 경계·문자열 최대/미종단/비ASCII/zero padding 불일치를 검사했다.
+- WSL Clang21 strict C99 ASan/UBSan 통과. `native_metadata.c` 함수6/6·행60/60·
+  분기76/76·region108/108. `build/ota-metadata.profdata`, `build/ota-metadata-asan`.
+- 실제 ESP-IDF6.0.3 fixture에서 SDK와 공통 검사기를 compile/link했다. SDK version32B와
+  custom168B의 compile-time drift assertion을 추가했다. `nm`에 공통 두 함수와
+  adapter/SDK verifier가 존재한다. fixture의 NULL negative 외 실제 호출은 미실행이다.
+- `build/ota-metadata-idf.log`의 compiler/linker/CMake warning/error0. unsigned fixture
+  BIN262144B SHA256 `83b8dbc6d34f346fb8f4c7a9abc5a9fedb03314e1e47f152641f55efb316e2ee`,
+  ELF4150236B `22f12bf0c3f628800a0e1ad0fbf97ba0a9362a274c1ba260500d6dae95b52c17`,
+  MAP3022892B `95c84d2f6d48e0bcee87523e5acfc1155fc975c2545e682ad6b50e3191cf4c22`.
+- generated board check 통과, 문서328개/링크1351개·plan49개 오류0.
+- firmware source SHA256 `5cb77580ff911e2bedf542d2f94e734365b5a481e6aec6916a797504db22afaf`.
+  T103 합성 fixture만 동기화했다. 사용자 파일·physical evidence는 변경하지 않았다.
+
+다음은 SDK→metadata의 BSP/body provider 연결과 owner/Flash 불변 보장이다.
+실제 descriptor 생성·signed golden·schema/CLI, 영속 policy/정상 target 통합과 최종
+독립2인 리뷰는 남아 있다. Task/PR은 IN_PROGRESS/Draft다. physical/HIL·장치 RSA
+실행은 NOT_RUN, 차량 TX는 NO-GO이며 writer/boot selector/provisioning은 실행하지 않았다.
+
+## 2026-09-15 (codex, ESP native SDK read-only adapter 실제 빌드)
+
+`8749529` clean에서 시작했다. 앞선 정렬 구현 턴은 progress이며 동일 CI
+`34901848402`는 작업 시작 시5개 job 성공/target-firmware-windows 실행 중이었고,
+커밋 직전 재확인에서6개 job 모두 성공했다. 관찰 timeout으로 재시작하지 않았다.
+이 결과는 `8749529`에만 해당한다. T-007/PR #35는 계속 IN_PROGRESS/Draft다.
+
+`firmware/platform/esp32s3/ota_image.c`는 BSP가 준 실제 partition의 내부 Flash·범위·
+정렬·signature sector 길이를 검사한다. SDK의 DATA hash 모드로 signature sector까지
+전체 file hash를 대조하고 `esp_image_verify()` 뒤 app/custom descriptor를 읽는다.
+SDK를 재사용하므로 자체 SHA/RSA/ESP image parser와 Flash writer를 추가하지 않았다.
+signature 비활성·0값·다른 scheme·FPGA 및 bootloader alias는 fail-closed다.
+실제 Flash 암호화가 켜졌는데 staging이 암호화되지 않았으면 거절한다.
+
+문서화 스킬의 경계·소유권 계약을 [SDK fixture README](../tests/fixtures/idf-ota-image/README.md)에
+기록했다. SDK 타입은 platform/BSP에만 있다. 단일 task/Flash 불변은 caller 계약이며
+아직 정상 app orchestration에 연결되지 않았다. raw signed metadata와 CANView 정책
+대조·body provider·generated staging 암호화 flag 확인은 다음 작업이다.
+
+- SDK compile/link fixture의 실제 ELF/MAP/BIN 생성. BIN262144B,
+  ELF4141676B, MAP3019229B. `nm`으로 adapter, 전체 file hash, image verifier와
+  `esp_secure_boot_verify_sbv2_signature_block` 심볼을 확인했다.
+- `CONFIG_SECURE_SIGNED_ON_UPDATE=y`/RSA scheme의 실제 sdkconfig를 확인했다.
+  자동 signing은 꺼져 있으므로 이 BIN은 서명된 CANView 배포 이미지가 아니다.
+- 최초 SDK 빌드에서 deprecated `esp_flash_encryption_enabled()` 경고를 발견했다.
+  `esp_efuse_is_flash_encryption_enabled()`로 교체하고 재빌드 log의
+  compiler/linker/CMake warning/error0을 확인했다. 경고를 억제하지 않았다.
+- 최초 `-B ../../../build/idf-ota-image`는 기대와 달리 `F:/build/idf-ota-image`에
+  생성됐다. 이후 현재 checkout의 절대 `build/idf-ota-image` 경로로 다시 빌드했다.
+  앞선 디렉터리는 삭제/재사용하지 않았으며 아래 증거는 checkout 안의 후속 빌드다.
+- Host unsigned 시험의 사용하지 않는 `external_chip` 변수로 strict compile이
+  실패했다. 해당 변수의 선언을 실제 사용하는 signed 시험 scope로 옮긴 뒤 재검증했다.
+- Windows Debug137/137(28.42s), Release137/137(23.91s). 로그는
+  `build/ota-esp-sdk-debug.log`, `build/ota-esp-sdk-release.log`다. 새6개 SDK 설정
+  모형은 실제 adapter의 bounds·hash/SDK/read 실패·출력0·호출 순서를 검사한다.
+- WSL Clang21 signed SDK 모형 ASan/UBSan 통과. adapter 함수1/1·행54/54·분기70/70.
+  `build/ota-esp-sdk.profdata`는 해당 모형 실행이며 실제 RSA 실행 증거가 아니다.
+- SDK 로그 `build/ota-esp-idf-build-fixed.log`, BIN SHA-256
+  `ac04f8f05241f0d7caf1aaa968a7517ce3007929abacdf027fdf89a2dea7b6df`,
+  ELF `b639a8736dd1f67ca8a8b5ba8c24602a7dde776d9c173f73964bbf3c259635da`,
+  MAP `7acdd68d9f7f41864bcc685ce98e3bbcfb8ffafb5a8589bd9c702b4874af1e14`.
+  local dirty source의 compile fixture이며 CI/production artifact로 재사용하지 않는다.
+- firmware source SHA-256은
+  `f6652e2099743ab2431633ceb308bbd12605015d175b4d25f55dde6f34e2d468`.
+  T103 합성 fixture 식별자만 동기화했다. physical evidence를 수정하지 않았다.
+- CI에 실제 SDK fixture build·서명 설정 확인·ELF/MAP/BIN manifest/hash·로그 warning
+  검사를 연결했다. 기존 target18개에 probe3개를 더 보존한다. 이 새 CI는 아직 미실행이다.
+
+SDK API는 실제 빌드했으나 board에서 signature를 실행하지 않았다. physical/HIL,
+Flash/boot selector/provisioning은 NOT_RUN, 차량 TX는 NO-GO다. 최종 독립2인 review,
+정식 schema/CLI/golden, metadata 정책·정상 target integration은 미완료로 남긴다.
+
+## 2026-09-15 (codex, OTA revision2 정렬과 순차 padding 검사)
+
+`4d99222` clean worktree에서 시작했다. PR #35는 OPEN/Draft이며 그 기준선의
+CI `34731902196` SUCCESS를 확인했다. 이전 턴은 실제 SDK/BIN 정렬 제약을
+확인한 progress였고, 이번에는 C/Python 구현과 회귀시험으로 반영했다.
+
+[ADR-009](adr/009-ota-native-image-alignment.md)에 따라 `CVOTA002`/header2/signed
+manifest2로 구분한다. 작은 prefix 이후 각 native image를64KiB에 정렬하며 빈 공간은
+0만 허용한다. C body는 prefix 실제 길이부터 chunk를 읽어 padding을 검사하고,
+image hash에서는 제외한다.64KiB RAM buffer·별도 ESP parser·Flash writer는 없다.
+native metadata/Flash layout version은 바꾸지 않았다. AGENTS의 단순화 원칙을 유지한다.
+
+기존 payload 모든 byte 변이/절단, 단일·역순·최대 image, provider/cleanup/reentry
+시험을 유지했다. padding 양 끝과4KiB 경계±1,64KiB 길이±1, 구버전/미래 버전,
+완료 뒤 추가 byte를 보강했다. Python assembler 결과를 독립 padding fixture와
+대조하고 같은 byte열을 C stream에 넣었다. padding 전체에 대한 전수 변이로
+표시하지 않는다. 마지막 추가 시험은 probe의 scenario 상한이7인 탓에 중단됐고
+Debug129/131과 ASan probe exit1을 확인했다. 새 scenario8을 명시적으로 허용한 뒤
+아래 전체 검증을 재실행했다. 해당 실패를 firmware 결함이나 PASS로 기록하지 않는다.
+
+- Windows strict build 뒤 Host Debug131/131(37.14s), Release131/131(24.64s).
+  로그: `build/ota-alignment-debug.log`, `build/ota-alignment-release.log`.
+- body 모형1696건, Windows 실제 P256+SHA-2561702건. typed manifest1437/1440건,
+  실제 P256 prefix232건, CBOR11989건, floor3847건과 STM native CNG2285건도 통과.
+- WSL clang21 ASan/UBSan으로 현재 body1696건, typed manifest1437건과 envelope
+  경계 C 시험 통과. `build/ota-alignment.profdata`는 이 세 실행의 profile만 합쳤다.
+  body.c: 함수10/10·행219/219·분기92/92. envelope.c: 함수3/3·행80/89·분기32/38.
+  manifest.c: 함수16/16·행377/402·분기216/240. 이전 profile 수치를 합산하지 않았다.
+- Cortex-M4 GCC15.3 freestanding/strict object compile 통과. body의 보고된 frame은
+  open40B/feed56B, helper8~16B이며 전체 call-chain/SDK stack 측정은 아니다.
+- `python -B tools/generate_boards.py --check`, document links328문서/1347target,
+  plan49task 검증 통과. 전체 host에는 SDK config negative와 generated drift도 포함된다.
+- Doxygen1.18/Sphinx9.1 strict build 통과. 추출71개는 기존 public API 범위이며
+  private OTA header까지 자동 문서화했다고 주장하지 않는다.
+- firmware source SHA-256은
+  `18263a9cc9035e7b5601cd3532df3e934c75e97b7172a88e3bbc00a9ae42f5bb`다.
+  T103의 합성 JSONL5행과 합성 helper 기대 hash만 동기화했다. 물리 evidence가 아니다.
+
+새 source의 CI와 최종 target 통합·artifact/hash/warning 감사, T-007 최종 독립2인
+리뷰는 남아 있다. 다음은 정렬된 staging에서 SDK native verifier·signed metadata를
+연결하는 작업이다. 실제 eFuse/Flash/board/HIL은 NOT_RUN, 차량 CAN TX는 NO-GO다.
+T-007/PR을 완료·ready·merge하지 않았으며 다른 worktree의 사용자 변경을 보존했다.
+
+## 2026-09-13 (codex, ESP native SDK 재사용의 정렬 제약 확인)
+
+`5b3a711` clean 기준에서 ESP-IDF6.0.3 source와 실제 CI image를 조사했다.
+독립 read-only 조사 agent `01a09874-f824-77e2-8ea6-866a6f4cf962`(Pasteur)도
+같은 결론을 반환했다. 이는 설계 조사이며 hostile review/PASS가 아니다.
+
+확인한 제약:
+
+- `components/bootloader_support/src/esp_image_format.c:1179` 부근에서 서명 끝을
+  **절대 Flash 주소**의4KiB로 올림한다. 임의 offset에 둔 compact image를 그대로
+  `esp_image_verify()`에 넘기면 image-relative 서명 배치와 다를 수 있다.
+- 같은 파일916행 부근은 mapped segment의 Flash/load 주소를 MMU page로 대조한다.
+  `components/soc/Kconfig:25`와 현재8/16MiB board 기준은64KiB다. 따라서4KiB
+  정렬만으로는 부족하며, SDK 전체 verifier 재사용에는 image 시작64KiB 정렬이 필요하다.
+- `bootloader_flash/src/bootloader_flash.c:53`의 앱용 mmap handle은 전역 하나다.
+  OTA/boot 검증 관련 SDK 호출을 한 owner가 직렬화하고 중첩 호출하지 않아야 한다.
+- `esp_image_format.c:43`의 `CONFIG_SECURE_SIGNED_ON_UPDATE` 조건을 확인했다.
+  서명 검증이 꺼진 bench 빌드를 native signature 성공으로 처리하면 안 된다.
+
+CI34730820401(c0de352)는6/6 성공을 확인했다. `gh run download 34730820401
+-n target-firmware-images -D build/ci-34730820401-images`로 실제 산출물을 받았다.
+IDF export 후 esptool5.4.0의 `LoadFirmwareImage('esp32s3', path)`로 Communicator,
+Controller, Bridge BIN을 각각 읽었다. mapped segment 두 개씩에서 SDK의
+`(base + segment.file_offs + 8) % 65536 == segment.addr % 65536` 조건을 재현했다.
+세 이미지 모두 base0xA40000/0xA50000은 일치하고0xA41000은 불일치했다.
+이는 실제 BIN으로 주소 조건을 재현한 것이며 장치의 verifier/서명 실행 시험은 아니다.
+
+조사에 사용한 BIN SHA256:
+
+- Communicator: `909350e56679dcce4d33cd3285e89f3e007d18a814536b9e499c669fb24b889a`
+- Controller: `588705269905bb3ca564eac4f6fb7ee68d9160a97125bcbae5c3b22ffa26667a`
+- Bridge: `7cfb7bfbb47d4b23b2cc9b5c8a7bae5549a4130fbb917c2e6b0975ce1fcaa6fd`
+
+단순한 대안은 prefix 뒤/각 image 앞에 canonical zero padding을 두고64KiB 정렬된
+bundle을 staging에 그대로 저장하는 방식이다. 임의 주소 필드나 별도 ESP parser,
+논리/물리 offset 변환 계층이 필요 없다. 마지막 image 뒤 padding은 불필요하다.
+`boards.json`의 staging base0xA40000은 이미64KiB 정렬이다. 최대4MiB ESP와180KiB
+STM을 양쪽 순서로 계산하면 bundle은4444160/4456448B이며 staging4718592B에 들어간다.
+다만 padding은16KiB 이하 chunk로 검사해야 하며64KiB prefix buffer를 만들면 안 된다.
+
+이 정렬은 현재 compact 후보의 wire 해석을 바꾼다. 이번 조사에서는 parser/서명 byte
+계약을 조용히 바꾸지 않았다. 다음 구현에서 포맷 revision/정식 schema와 정렬 규칙을
+명시하고 C/Python·padding 변이·streaming·SDK 통합을 함께 검증해야 한다.
+기존 v1 체크포인트 결과를 새 배치의 검증으로 재사용하지 않는다.
+T-007/최종 2인 리뷰는 미완료, physical/HIL NOT_RUN, 차량 CAN TX NO-GO다.
+
+## 2026-09-13 (codex, OTA version floor와 동일 이미지 복구 사전 판정)
+
+`floor.c/h`에 OTA §7.1의 순수 C99 비교를 구현하고 body open에서 호환성 검사 뒤,
+첫 hash 시작 전에 필수 호출한다. uint64 하한 미만은 STALE, 같은 sequence/다른
+confirmed digest는 AUTH_FAILED(CONFLICT)다. 실제 정상 앱 검증 snapshot이 일치해야
+ALREADY_INSTALLED, 손상/선택 불가가 확인돼야 REPAIR_REQUIRED 후보가 된다.
+미확인 policy/설치 상태는 INCOMPLETE이며 영속 floor0으로 초기화하지 않는다.
+
+불필요한 저장 계층이나 범용 policy engine은 추가하지 않았다. 스킬의 무힙·소유권·
+문서화 규칙을 적용해 입력은 호출 중 불변으로 빌리고 판정만 복사한다. 실패 시
+두 target의 판정을 모두 지운다. 영속 journal A/B 선택·CONFIRM_INTENT·실제 설치본
+검사·floor 갱신·automatic rollback은 기존 설계의 owner가 구현할 별도 범위다.
+
+검증과 실패 수정:
+
+- body probe 호출부 변경 중 무관한 manifest_preflight NULL 시험 두 곳에 인자를
+  하나 더 넣어 strict compile이 실패했다. 해당 두 호출만 복원한 뒤 재빌드/회귀했다.
+- `ctest --test-dir build/host-debug -R 'ota-version-floor|ota-body' -V`: 순수 C3847건,
+  본문 모형1480건, 실제 CNG P256+SHA2561486건 통과. 미확인/누락/잘못된 policy,
+  u64 하한/충돌/NULL은 첫 hash operation 전에 거절됨을 probe에서 확인했다.
+- `tests/ota/test_floor.c`: 네 target, u32/u53/u63/u64 경계 교차, 모든 digest bit,
+  잘못된 count/role/target/enum/text, 부분 성공 폐기와 입력 불변성을 검사했다.
+- WSL Clang21 ASan/UBSan: floor3847건과 body 모형1480건 통과.
+  `build/ota-floor.profdata`의 floor.c 함수5/5·행105/105·분기94/94;
+  `build/ota-floor-body.profdata`의 body.c 함수10/10·행203/203·분기84/84다.
+  floor는 암호 연산을 하지 않으며 body 모형은 실제 암호 검증으로 집계하지 않는다.
+- 고정 Windows Clang23/CMake strict build 뒤 전체 Debug131/131(32.54초),
+  Release131/131(26.47초). `ctest --test-dir build/host-debug --output-on-failure
+  --output-log build/ota-floor-debug.log` 및 host-release/ota-floor-release.log로 재현한다.
+- Arm GNU15.3.rel1 `-mcpu=cortex-m4 -mthumb -ffreestanding -Os -fstack-usage` strict
+  object compile 통과. floor_check 단일 frame40B다. target ELF/MAP/BIN 증거는 아니다.
+- source digest `76c48306a09135c595f5dc80aa4e3a7e383edf80348b8699d3b221f685a0d5f8`로
+  T103 합성 fixture만 갱신했다. 실제 물리 evidence는 변경하지 않았다.
+- 직전 c0de352 CI34730820401의 host/portability/sanitizer/browser job 성공,
+  target job 실행 중을 확인했다. 이후 floor 변경의 CI 또는 target 통합 증거로 쓰지 않는다.
+
+T-007 IN_PROGRESS/PR #35 Draft다. ESP native 검증·prefix 부분 조립·정식 schema/CLI/
+signed golden·실제 provider/target 통합과 최종 독립 2인 리뷰는 남아 있다.
+physical/HIL NOT_RUN, 차량 CAN TX NO-GO와 writer/activation 권한 분리를 유지한다.
+
+## 2026-09-13 (codex, MCUboot native P256 image 검사)
+
+공식 MCUboot v2.4.0을 `C:/cv/mcuboot-2.4.0`에 clone했다. 실제 HEAD는
+`6d3b3d2c38ab20c242e5b9abb04d050086383eb2`, clean이며 imgtool CLI는2.4.0을 출력했다.
+commit은 toolchain manifest, Windows 의존성은 기존 OTA wheel lock에 고정했다.
+CI host job도 같은 source를 clone/검증한 뒤 시험한다. upstream 원본은 수정하지 않았다.
+
+`native_stm.c`는 header512/일반 image180KiB 상한, flags/load address0, protected
+vendor TLV와 SHA256/KEYHASH/P256 DER의 고정 profile을 검사한다. 전체 image digest와
+manifest, protected board/role/layout/epoch/ABI/sequence와 local identity/descriptor,
+native version과 정규 version 문자열을 대조한다. native signed-region hash와 P256
+signature도 SDK로 독립 검사한다. Windows의 기존 CNG P256 검증을 digest helper로
+추출해 재사용했다. DER 정수 변환 외에 암호 알고리즘을 새로 구현하지 않았다.
+
+검증:
+
+- `python -B tests/ota/test_native_stm.py build/host-debug/canview-ota-native-stm-probe.exe`:
+  실제 imgtool 생성/검증·CNG SHA256/P2562283건. wrong root/whole hash, 모든 byte 변이/
+  절단, 유효하게 재서명한 잘못된 metadata, u64 경계, DER 음수/길이/중복 TLV,
+  provider 실패와 최대 image를 검사했다. 임시 image 파일만 생성하며 개인키는 메모리 전용이다.
+- WSL Clang21 ASan/UBSan C probe와 같은 script의 `--model --wsl`:2284건.
+  Python이 계산한 hash/서명 결과를 반환하는 모형이며 실제 암호 통과로 집계하지 않는다.
+  무작위 ECDSA DER 길이에 따라 byte별 시험 건수가 달라진다.
+- `build/ota-native-stm.profdata`: native_stm.c 함수9/9·행158/161(98.14%)·
+  분기180/190(94.74%). 최초 default.profraw는 생성 위치를 확인한 뒤 ignored
+  build/ota-native-stm-initial.profraw로 이동했고 후속 profile은 build에 직접 출력했다.
+- Windows Clang23 strict C99/CMake build, CLI dependency 수정 후 최종
+  Debug130/130(29.95초), Release130/130(25.61초). 로그는 ignored
+  build/ota-native-stm-debug-final.log와 build/ota-native-stm-release-final.log다.
+  앞선 envelope/body/manifest 암호 회귀도 포함한다.
+- Arm GNU15.3.rel1 Cortex-M4 freestanding object compile. native check 단일 frame160B,
+  helper16~56B다. 실제 target ELF/MAP/BIN/call-chain budget 완료는 아니다.
+- Doxygen1.18/Sphinx9.1 strict build 통과, 기존 공개 API71개 계약 PASS다.
+  이 XML 입력 목록에는 새 내부 OTA header가 없으므로 그 API의 추출 증거로 확대하지 않는다.
+- 이전0e62ec6 CI34729444268 success를 확인했다. 이후 source에 재사용하지 않는다.
+  합성 source digest는 `8bddaf30c8f30e20d0ebec4c5faea3207cd4b5669327e05af1ad7f47a1fccb0a`다.
+
+wheel 설치 시 user Python의 click/cffi가 lock 버전으로 갱신됐다. pip의 user Scripts
+PATH 안내 경고는 target compiler warning과 구분하며 해당 CLI를 설치 검증으로 사용하지
+않았다. 명령은 Python module/API로 실행했다. 개발환경 문서에는 공용 Python 보존이
+필요한 경우 venv와 CMake Python 경로를 함께 지정하도록 기록했다.
+분리된 기존 OTA venv에서 재확인하니 imgtool API 시험은 통과했지만 CLI는 PyYAML
+누락으로 실패했다. CLI import에 필요한 PyYAML wheel/hash를 lock에 추가하고 시험에도
+실제 CLI version 호출을 넣었다. 환경의 우연한 전역 패키지로 숨기지 않는다.
+수정 뒤 같은 분리 venv의 CLI+native CNG2287건과 위 최종 전체 회귀가 통과했다.
+
+스킬의 인터페이스/소유권 규칙에 따라 기존 OTA README에168B metadata 후보와
+공식 extension 근거를 기록했다. 정식 schema/ADR 동결·ESP native 검사·packager/golden·
+version floor·target SDK/Flash/bootloader 통합과 최종 2인 리뷰는 남아 있다.
+합성 bytes의 format/crypto 성공은 부팅 가능성·실물 복구 검증이 아니다.
+T-007 IN_PROGRESS, PR #35 Draft, physical/HIL NOT_RUN, 차량 CAN TX NO-GO를 유지한다.
+
+## 2026-09-13 (codex, OTA 로컬 호환성 사전 검사)
+
+`manifest_preflight()`를 기존 C 검사기에 추가하고 body open에서 필수 호출한다.
+서명/identity 검사 뒤 신뢰된 로컬 snapshot으로 ESP/STM 구·신 네 조합을 signed
+allowlist와 비교한다. 한 image만 업데이트하면 다른 MCU의 ABI는 그대로 유지한다.
+MCU별 bootloader/recovery 최소 ABI, hardware capability 부분집합과 보존 config의
+읽기 범위를 검사한다. 미확인 snapshot은 INCOMPLETE이며 provider 시작 전 거부한다.
+외부 peer의 존재/ABI를 Communicator 자체 복구의 설치 조건으로 추가하지 않는다.
+
+기존 파일/API를 확장했으며 새 framework·wire 필드·writer는 만들지 않았다.
+embedded-cstyle/architecture/documentation 스킬의 고정 메모리·소유권 원칙에 따라
+snapshot의 출처/수명/실패 동작을 header와 기존 OTA README에 기록했다.
+
+검증 결과:
+
+- 고정 Windows Clang23 strict C99 build, 전체 Host Debug129/129(37.22초),
+  Release129/129(28.44초). `ctest --test-dir build/host-debug --output-on-failure`
+  및 host-release. ignored 로그: `build/ota-preflight-debug.log`,
+  `build/ota-preflight-release.log`.
+- `python -B tests/ota/test_body.py build/host-debug/canview-ota-body-probe.exe` 모형1462건,
+  crypto-probe.exe와 `--crypto` 실제 P256+SHA-2561468건. 네 조합 각각 누락,
+  단일 target·순서 반전·16개 조합·0/u32 최대 ABI, 모든64bit capability 누락/허용,
+  boot/recovery/config 경계와 재진입/cleanup 회귀를 포함한다.
+- WSL Clang21 ASan/UBSan으로 body1462건과 기존 manifest1422건을 각각 재빌드/실행했다.
+  새 임시 profile 디렉터리를 합친 `build/ota-preflight-combined.profdata`에서
+  manifest.c 함수16/16·행386/395(97.72%)·분기223/238(93.70%),
+  body.c 함수10/10·행198/198·분기82/82(100%)다. provider/장치 전체 coverage가 아니다.
+- Arm GNU15.3.rel1 Cortex-M4 strict freestanding object compile 통과.
+  `build/ota-preflight-arm.su`의 preflight 단일 frame40B, runtime48B,
+  기존 manifest_check864B다. call-chain stack/target ELF/MAP/BIN 증거는 아니다.
+- 문서327개/target1340개·task49개 오류0. 합성 source digest는
+  `fae13dde1175135377bf9abc93b2b470e0b4934b7c2d6f8b696b0fd0e8d93cf5`이며
+  T103 합성 fixture 식별자만 갱신했다. 과거 physical evidence는 그대로다.
+
+snapshot은 저장하지 않으므로 설치 owner가 transaction/상태 변경 뒤 다시 검사해야 한다.
+native image 서명/보호 metadata와 manifest 대조, version floor/CONFLICT/REPAIR,
+schema/CLI/golden·prefix 조립·실제 target 통합·최종 독립 2인 리뷰는 미완료다.
+T-007 IN_PROGRESS, PR #35 Draft, physical/HIL NOT_RUN, 차량 CAN TX NO-GO다.
+
+## 2026-09-13 (codex, OTA 순차 본문 hash와 수신 lifecycle)
+
+기존 manifest 검사 뒤에 body open/feed/finish/reset을 연결했다. 완전한 prefix를
+검증하고0..16KiB chunk의 절대 offset·image 길이·SHA-256을 순서대로 대조한다.
+chunk/prefix/identity pointer를 저장하지 않고 descriptor와 hash 함수표만 복사한다.
+hash context는 NULL을 거부하고 reset 성공까지 빌린다. 중복/누락 offset, 크기
+초과, hash/provider 오류는 FAILED이며 manifest를 지운다. cleanup 실패는 자원을
+잃지 않고 원 오류와 별도로 기록해 reset을 재시도한다. 동일 객체 callback 재진입은
+busy로 거부하며 thread 동기화는 caller의 단일 owner 계약이다.
+
+암호를 새로 구현하지 않았다. 기존 Windows P256 verifier를 host 전용
+`tests/ota/cng_provider.c`로 추출해 기존 envelope 시험과 함께 사용하고, 같은 SDK의
+SHA-256 operation을 연결했다. Windows provider의 SDK hash allocation은 portable
+core의 무힙 특성과 구분한다. provider는 장치 binary에 아직 링크하지 않는다.
+
+최종 검증:
+
+- Windows Clang23/CMake4.4.3/Ninja1.13.2 strict C99 build, Debug129/129(25.43초),
+  Release129/129(20.90초). 로그는 ignored `build/ota-body-debug-final.log`,
+  `build/ota-body-release-final.log`다.
+- `python -B tests/ota/test_body.py build/host-debug/canview-ota-body-probe.exe`:
+  sum/length 모형의 수명/실패900건. 모형을 SHA-256 성공으로 집계하지 않는다.
+- 같은 script와 `build/host-debug/canview-ota-body-crypto-probe.exe --crypto`:
+  실제 Cryptography48 P256 manifest + Windows CNG SHA-256906건. 역할별 임시
+  key와 잘못된 root, 잘못된 서명, `abc` known answer·모든 본문 byte 변이,
+  최대 slot 길이·image 경계 chunk·EOF·중복/누락·reset·provider/cleanup 실패를 검사했다.
+  개인키는 메모리에서만 생성하며 합성 bytes는 부팅 가능한 firmware가 아니다.
+- WSL Clang21 ASan/UBSan과 위 모형900건 통과. 매번 새 profile 디렉터리를 사용했고
+  `build/ota-body.profdata`의 body.c 함수10/10·행198/198·분기82/82(모두100%)다.
+  전체 OTA/native provider/target coverage gate 완료로 확대하지 않는다.
+- Arm GNU15.3.rel1 Cortex-M4 freestanding object compile 통과. 단일 frame은
+  open48B/feed32B/finish24B/reset864B, helper16~56B다. reset의 aggregate 초기화
+  temporary를 포함한 값이며 SDK 포함 call-chain stack·MCU timing·ELF/MAP/BIN
+  검증을 대신하지 않는다.
+- 직전 b25b69a의 CI34727655450는 success다. 이후 본문 source의 CI/artifact
+  검증으로 재사용하지 않는다. 새 staged diff와 secret/VIN은 push 전에 별도 확인한다.
+
+EOF+cleanup 실패 시험의 초기 입력은 Communicator 첫 image를 끝내 reset 실패가
+먼저 발생했다. 기대했던 EOF 경로가 아니므로 첫 image가 끝나기 전에 끊도록 시험
+입력을 수정했다. 이후 두 모형/실제 암호 시험과 전체 회귀를 재실행했다. 구현의
+거절 조건을 완화하지 않았다. 합성 source digest는
+`94c2f6fdffc8e820205326b8866bd6cea32960b8edb89fd48771444fa2b78684`다.
+
+스킬의 소유권·정리·상태 계약을 OTA README에 기록했고, 상세 task의 중복 진행
+이력은 현재 구현/검증으로 줄였다. 기존 journal/review 원본은 변경하지 않았다.
+HASHES_MATCHED는 native image signature/protected metadata, 현재/후보 ABI·
+requires/version floor, Flash read-back·PREPARED/boot selector 권한이 아니다.
+prefix 부분 수신 조립·정식 schema/CLI/golden·실제 ESP/STM provider와 target 통합,
+최종 독립 2인 리뷰는 남아 있다. PR #35 Draft, T-007 IN_PROGRESS,
+physical/HIL NOT_RUN, 차량 CAN TX NO-GO를 유지한다.
+
+## 2026-09-13 (codex, OTA typed manifest와 대상·길이 대조)
+
+기존 prefix/실제 서명 경로 뒤에 고정 구조체 decoder를 연결했다. 임의 주소나
+경로를 허용하지 않고 역할별 일반 앱 enum·길이 상한으로 제한한다. 신뢰된 로컬
+role/board/layout/epoch/key_id를 대조하고, image offset을 순차 합으로 계산해
+header image 수·총길이에 대조한다. uint64 release_sequence를 그대로 보존한다.
+required field/unknown field/중복 target/key, 잘못된 native signature 형식,
+ABI 범위와 조합·config snapshot의 내부 정합성도 거부 경로로 시험했다.
+새 범용 tree/framework/암호 구현 없이 기존 bounded parser와 provider를 재사용했다.
+
+검증 결과:
+
+- Windows 고정 Clang23/CMake4.4.3/Ninja1.13.2에서 strict C99 build 통과.
+- `ctest --preset host-debug --output-on-failure`, `host-release`: 각각127/127.
+- `python -B tests/ota/test_manifest.py build/host-debug/canview-ota-manifest-probe.exe`:
+  서명 mock을 사용한 구조/출력 교차1422건. NULL/크기/identity/실패 출력0과 callback
+  별도 out 재진입·provider 실패도 C probe에서 실행한다.
+- 같은 script에 `build/host-debug/canview-ota-envelope-probe.exe --crypto`:
+  Cryptography48→Windows CNG 실제 P256 서명 교차1425건. 개인키는 메모리에서만 생성했다.
+- WSL Clang21의 현재 C source에 ASan/UBSan·coverage instrumentation을 함께 적용하고
+  같은 portable 교차1422건 통과. manifest.c 함수12/12, 행304/313(97.12%),
+  분기169/184(91.85%). profile은 새 `mktemp -d`에서 실행별로 생성·merge해 이전
+  run을 섞지 않았다. ignored 결과는 `build/ota-manifest-sanitize`,
+  `build/ota-manifest.profdata`다. 전체 OTA coverage gate 완료는 아니다.
+- Arm GNU15.3.rel1 `-mcpu=cortex-m4 -mthumb -ffreestanding -fstack-usage` object
+  compile 통과. `build/ota-manifest-arm.su`의 public 함수 frame864B/helper16~64B는
+  crypto 포함 전체 call-chain stack 또는 target ELF/MAP/BIN 완료의 증거가 아니다.
+- 직전 commit da63535의 CI34726660432는6/6 success. 이후 source와 별개이며 해당
+  artifact/hash를 이번 세션에서 재감사했다고 주장하지 않는다.
+
+ABI 회귀 추가 직후 재빌드 전 executable로 실행한 두 교차 시험은 old code가 ABI
+범위 밖 값을 수락해 실패했다. 현재 source를 재빌드한 뒤 두 교차 시험과 전체
+Debug/Release를 다시 실행해 통과했다. 테스트 기대값이나 validator를 완화하지 않았다.
+합성 T103 fixture의 source digest만
+`1217e49b4b47a40731e8ba7fc82072bc72e0bf6a89ec9f8a2f244a26279b35da`로 갱신했다.
+
+문서 스킬의 책임/수명 설명을 OTA README에 반영했다. resume는 오래된 설치·WSL
+차단 설명과 시간순 상세 이력을 제거하고 현재 상태/다음 작업/debt/안전 경계로
+줄였다. 과거 journal·review·ADR 원본은 수정/삭제하지 않았다.
+
+현재 manifest는 미배포 내부 후보이며 정식 schema/CLI, 실제 실행중/후보 ABI 조합·
+requires/version floor, image 본문 hash/native 서명과 protected metadata,
+streaming·target 연결·최종 독립 2인 리뷰는 남아 있다. CBOR checkpoint A/B를
+새 코드의 리뷰로 대체하지 않는다. PR #35는 Draft이며 T-007은 IN_PROGRESS,
+physical/HIL은 NOT_RUN, 차량 CAN TX는 NO-GO다.
+
+## 2026-09-13 (codex, 실제 서명 prefix 교차 시험)
+
+작은 header+CBOR+64B 서명 prefix와 순차 image 조립을 연결했다. 자체 암호
+알고리즘을 만들지 않고 Cryptography48.0.0 및 Windows CNG P256/SHA-256을
+사용한다. key는 시험 실행 메모리에서만 생성하고 출력/파일/장치/Git에 쓰지 않았다.
+실제 signature/prefix230건에는 wrong key/invalid point, signature 각 byte 변이,
+manifest 변이, 유효 서명이 붙은 잘못된 CBOR, 전체 prefix 절단·최대 길이가 있다.
+조립기의 잘못된 이미지/서명 길이와 signer가 입력 list를 바꾸는 경우도 검사했다.
+
+`tools/requirements-ota.lock`은 Windows x64/CPython3.14용 실제 PyPI wheel
+세 개의 SHA-256을 고정한다. 새 ignored venv에 `--no-index --find-links
+build/ota-wheels --only-binary=:all: --require-hashes`로 설치하고230건을 재실행했다.
+전체 Debug125/125(26.17초), Release125/125(21.63초), WSL Clang21의 portable
+envelope 경계 ASan/UBSan, Cortex-M4 freestanding compile이 통과했다. Arm
+envelope 단일 frame64B/helper16B는 전체 crypto call-chain/target evidence가 아니다.
+Windows CNG dll 관찰 버전은10.0.26100.8875다. Windows CI에도 같은 lock을 설치한다.
+
+합성 source digest는 `1d1b8d52deff4ed54d4784bce898f5dfd7f1304bb93ca74d5d56f8cbe20e2635`다.
+앞선 checkpoint6d83962의 독립 A/B 정적 리뷰는 finding0/PASS로 원문 보존했다.
+A 원문의 절대 checkout link 때문에 최초 문서 검사1건이 실패했다. 원문을 바꾸거나
+validator를 완화하지 않고 보고서 전체를4-backtick 원문 인용으로 감쌌고
+327문서/1348target 오류0으로 재검증했다. 이후 추가된 envelope 코드에는 앞선
+리뷰 verdict를 적용하지 않는다. 전체 task의 최종 독립 리뷰는 별도 필요하다.
+
+staged `git diff --check`는 B 원문의 Markdown hard-break 공백4행을 보고했다.
+반환 원문과 보존 본문을 직접 대조해 동일함을 확인했고 원문 공백은 유지했다.
+해당 원본 파일만 제외한 staged diff 검사는 오류0이다. 코드 검사나 전역 Git
+설정은 완화하지 않았으며 이4건을 전체 diff 오류0으로 보고하지 않는다.
+
+현재 검사 성공은 prefix의 구조와 manifest 서명만 뜻한다. unsigned header의
+declared image/total은 서명된 manifest 필드와 아직 대조하지 않으므로 설치 정보가
+아니다. role/board/layout/epoch/key_id/호환성·native image 자체 검증·streaming과
+정식 packager CLI/golden/target 연결이 남아 있다. Flash erase/PREPARED 권한,
+physical/HIL NOT_RUN과 차량 TX NO-GO는 변하지 않았다.
+
+## 2026-09-13 (codex, 단순화 원칙과 T-007 CBOR 문서 검사)
+
+사용자가 OTA container의 필요성을 먼저 설명하고 전체적으로 간단한 방법을
+사용하라고 요청했다. AGENTS에 가장 단순한 구현·기존 SDK 재사용·실제 사용처
+없는 범용화 금지·복잡성 도입 전 대안 설명을 기록했다. 안전/검증 gate는 유지한다.
+T-007은 작은 manifest+순차 image와 합성 파일 생성→C 검증 연결을 다음 작업으로
+두며, 새로운 범용 package framework나 자체 암호 알고리즘을 만들지 않는다.
+
+중단 전 CBOR 문서 검사 변경을 보존하고 정수 key 정렬·UTF-8·depth8·item2048·
+16KiB 한도, 모든 첫 byte·prefix·고정 seed 변이·Python 순환 입력 회귀를 보강했다.
+`ctest --preset host-debug --output-on-failure`는123/123(26.03초), Release는
+123/123(21.67초)이다. `. F:/dev/canview-wt/t104-stm32-uart-control/tools/environment/foundation-windows.ps1`
+로 설치된 pinned 도구만 재사용하고 현재 source를 빌드했다. focused Python/C
+11,989건과 WSL Clang ASan/UBSan probe·C test가 통과했다. Arm GCC의 Cortex-M4
+freestanding object compile에서 document validator frame216B, UTF-8 helper40B,
+key helper16B를 관찰했다. 이는 전체 target binary/실측 call-chain evidence가 아니다.
+
+합성 T103 fixture source digest는 `a3a72738db64375a554557cbc819fbd61cdf4725b97ca6ad22497c8bac7b6810`
+이다. `validate_document_links.py`(324문서/1343target 오류0), `validate_plan.py`
+(49task 오류0), `git diff --check`를 실행했다. Git LF→CRLF 안내는 target compiler
+warning과 구분한다. 기존 head490d2f8 CI34338457956은6job success로 확인했으나
+이번 변경의 CI/target/review evidence를 대신하지 않는다. physical/HIL NOT_RUN,
+vehicle TX NO-GO와 issue34 OPEN을 유지한다.
+
+## 2026-09-09 (codex, T-007 CBOR head 첫 C99 구현)
+
+Draft PR #35에서 heap·SDK·writer 권한 없는 최대 9-byte CBOR head decoder와
+unsigned 64-bit/잘린 prefix/비최소 encoding/major type/reserve 경계 회귀를 추가했다.
+새 worktree의 중복 toolchain 다운로드는 중단하고 이미 설치·검증한 동일 버전의
+Windows 도구로 소스를 실제 빌드했다. Host Debug 121/121(16.88초), Release
+121/121(17.38초), WSL Clang 21.1.8 ASan/UBSan focused 시험이 통과했다. Arm GNU
+15.3.rel1 Cortex-M4 freestanding C99 object(1352 B)와 단일 stack frame 72 B를
+확인했다. 이는 전체 target binary·OTA 설치 또는 physical 증거가 아니다.
+
+Focused llvm-cov는 PowerShell의 unquoted profile 인자로 첫 report 조회가 실패했다.
+같은 생성 profile을 정확히 quote해 조회한 결과 함수1/1·행62/62·분기26/26 모두
+100%였다. 최초 명령 실패를 coverage 실패/성공으로 혼동하지 않으며 전체 container
+coverage나 CI gate가 완성됐다고 주장하지 않는다.
+
+새 shared source를 포함하는 합성 T103 fixture digest는
+`7f8620834513cb2e1e9ac7ea849758a99f7361ca2a70c24dccc6652f57ed1867`로 갱신했다.
+과거 capture/서명·review 원문을 바꾸지 않았다. 전체 container/서명·schema·Python
+differential·target 연결·2인 적대적 리뷰는 남아 있다. B-12/B-13 clean review
+worktree 두 개는 process 부재·main ancestry 확인 후 git worktree remove로 정리했다.
+원문/로그는 별도 보존했고 source는 Git에서 복구 가능하다. A debt 및 기존 build
+worktree·dirty 기본 checkout은 보존했다.
+
+## 2026-09-09 (codex, PR #33 merge와 T-007 시작)
+
+최종 evidence-only `3ff04b7` CI 34335812873의 6개 job이 모두 성공했다. 다운로드한
+manifest의 head/base/run identity, 이미지18/18 bytes·SHA-256, source provenance6/6,
+target log21 compiler/linker/CMake warning/error0을 확인했다. Manifest SHA-256은
+`1dd10972ccc9ec565f726ac21a58862ea10db704a576b67f9188cf1a421a0514`다. Node20→24
+runner 안내는 별도 후속 항목으로 PR에 공개했다. A 면제는 사용자 PR #33 한정이며
+원문·P1 확인 debt·P2 defer를 닫지 않았다. 18:55:58 KST `gh pr merge --merge
+--match-head-commit`으로 merge했고 `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`가
+fetch한 origin/main과 일치하며 candidate가 ancestor임을 확인했다. 이슈 #34 OPEN.
+
+dirty 기본 checkout을 보존하고 `codex/t007-ota-container` 별도 worktree를 만들었다.
+선행 T-001 완료와 STM32 boot/core 순서를 근거로 T-007을 선택했다. CBOR primitive
+구현부터 시작하며 정식 container/서명/target/review/CI gate는 아직 남아 있다.
+physical/HIL·provisioning NOT_RUN, 차량 CAN TX NO-GO를 계속 유지한다.
+
 ## 2026-09-09 (codex, T-104 완료 응답 복구와 B closure)
 
 앱 조회에서 비었던 A-10/B-11의 기존 final 응답/작성 원문을 로컬 기록에서 복구했다.

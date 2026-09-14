@@ -22,6 +22,14 @@ jobs:
         shell: pwsh
         run: |
           . tools/environment/foundation-windows.ps1 -IncludeDocs
+          python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota.lock
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mcubootPin = (Get-Content tools/toolchain-versions.json -Raw | ConvertFrom-Json).sdk.mcuboot
+          $env:MCUBOOT_ROOT = Join-Path $env:RUNNER_TEMP 'canview-mcuboot'
+          git clone --depth 1 --branch $mcubootPin.version $mcubootPin.repository $env:MCUBOOT_ROOT
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mcubootHead = git -C $env:MCUBOOT_ROOT rev-parse HEAD
+          if ($LASTEXITCODE -or $mcubootHead -ne $mcubootPin.gitCommit) { throw 'MCUboot commit mismatch' }
           cmake --preset host-debug
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build --preset host-debug
@@ -293,12 +301,26 @@ jobs:
             Invoke-TargetCommand "public-component-fullclean" { idf.py -C tests/fixtures/idf-public-component fullclean }
             Invoke-TargetCommand "public-component-set-target" { idf.py -C tests/fixtures/idf-public-component set-target esp32s3 }
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
+            Invoke-TargetCommand "ota-image-sdk-set-target" { idf.py -C tests/fixtures/idf-ota-image set-target esp32s3 }
+            Invoke-TargetCommand "ota-image-sdk-build" { idf.py -C tests/fixtures/idf-ota-image build }
+            foreach ($otaBoard in @('communicator/esp32', 'controller', 'diagnostic-bridge')) {
+              $otaName = $otaBoard.Replace('/', '-')
+              $otaFlash = if ($otaBoard -eq 'diagnostic-bridge') { '8MB' } else { '16MB' }
+              Invoke-TargetCommand "ota-template-$otaName" {
+                python "$env:IDF_PATH/components/partition_table/gen_esp32part.py" --offset 0x18000 --flash-size $otaFlash "firmware/$otaBoard/partitions.ota-template.csv" "build/ota-$otaName-partitions.bin"
+              }
+            }
+            $otaSdkConfig = Get-Content tests/fixtures/idf-ota-image/sdkconfig -Raw
+            foreach ($required in @('CONFIG_SECURE_SIGNED_ON_UPDATE=y', 'CONFIG_SECURE_SIGNED_APPS_RSA_SCHEME=y')) {
+              if ($otaSdkConfig -notmatch "(?m)^$required`r?$") { throw "OTA SDK signed verifier is not compiled: $required" }
+            }
             Assert-Esp32Target "firmware/communicator/esp32" "canview_communicator_esp32" "canview_communicator_esp32.bin"
             Invoke-TargetCommand "communicator-sdkconfig" { python -B tools/check_sdkconfig.py firmware/communicator/esp32/sdkconfig }
             Invoke-TargetCommand "bridge-sdkconfig" { python -B tools/check_sdkconfig.py firmware/diagnostic-bridge/sdkconfig --board bridge-r1-n8r2 }
             Assert-Esp32Target "firmware/diagnostic-bridge" "canview_diagnostic_bridge" "canview_diagnostic_bridge.bin"
             Assert-Esp32Target "firmware/controller" "canview_controller" "canview_controller.bin"
             Assert-Esp32Target "tests/fixtures/idf-public-component" "canview_public_component_fixture" "canview_public_component_fixture.bin"
+            Assert-Esp32Target "tests/fixtures/idf-ota-image" "canview_ota_image_sdk_probe" "canview_ota_image_sdk_probe.bin"
             Assert-TargetArtifact "communicator esp32" "firmware/communicator/esp32/build/canview_communicator_esp32.bin"
             Assert-TargetArtifact "diagnostic bridge" "firmware/diagnostic-bridge/build/canview_diagnostic_bridge.bin"
             Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
@@ -321,7 +343,10 @@ jobs:
             "firmware/controller/build/canview_controller.map",
             "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin",
             "tests/fixtures/idf-public-component/build/canview_public_component_fixture.elf",
-            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.map"
+            "tests/fixtures/idf-public-component/build/canview_public_component_fixture.map",
+            "tests/fixtures/idf-ota-image/build/canview_ota_image_sdk_probe.bin",
+            "tests/fixtures/idf-ota-image/build/canview_ota_image_sdk_probe.elf",
+            "tests/fixtures/idf-ota-image/build/canview_ota_image_sdk_probe.map"
             )
             foreach ($path in $artifactPaths) { Assert-TargetArtifact "target evidence" $path }
             $artifactManifest = foreach ($path in $artifactPaths) {
@@ -352,6 +377,7 @@ jobs:
               "firmware/communicator/esp32/sdkconfig.defaults",
               "firmware/diagnostic-bridge/sdkconfig.defaults",
               "firmware/controller/sdkconfig.defaults",
+              "tests/fixtures/idf-ota-image/sdkconfig.defaults",
               "tools/generate_boards.py",
               "tools/generate_bridge_web_assets.py",
               ".gitattributes"
@@ -409,6 +435,9 @@ jobs:
             tests/fixtures/idf-public-component/build/*.bin
             tests/fixtures/idf-public-component/build/*.elf
             tests/fixtures/idf-public-component/build/*.map
+            tests/fixtures/idf-ota-image/build/*.bin
+            tests/fixtures/idf-ota-image/build/*.elf
+            tests/fixtures/idf-ota-image/build/*.map
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

@@ -31,6 +31,11 @@
     }
   },
   "sdk": {
+    "mcuboot": {
+      "version": "v2.4.0",
+      "gitCommit": "6d3b3d2c38ab20c242e5b9abb04d050086383eb2",
+      "repository": "https://github.com/mcu-tools/mcuboot.git"
+    },
     "espIdf": {
       "version": "v6.0.3",
       "gitCommit": "76f5dedd9950a3012fee8fb7d5586df21fc67802",

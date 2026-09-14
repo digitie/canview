@@ -178,11 +178,19 @@ Bridge는 기존 GPIO4 PAIR와 RESET을 재사용하므로 OTA용 추가 IC가 �
 
 ## 7. 패키지·인증·보안 계약
 
-패키지는 압축 archive를 해제하는 구조 대신 작은 길이 제한 manifest와 순차 image blob을 갖는 `.cvota` 컨테이너다. 파서가 임의 파일 경로·외부 URL·Flash 절대주소를 받아들이지 않는다. v1은 최대3개 image, manifest16KiB, 개별 blob 길이는 대상 슬롯 이하, HTTP chunk16KiB 이하로 제한한다. Controller/Bridge 단일 image, Communicator는 ESP/STM 최대2개를 선택한다.
+패키지는 압축 archive를 해제하는 구조 대신 작은 길이 제한 manifest와 순차 image blob을 갖는 `.cvota` 컨테이너다. 파서가 임의 파일 경로·외부 URL·Flash 절대주소를 받아들이지 않는다. revision2는 최대3개 image, manifest16KiB, 개별 blob 길이는 대상 슬롯 이하, HTTP chunk16KiB 이하로 제한한다. Controller/Bridge 단일 image, Communicator는 ESP/STM 최대2개를 선택한다.
+
+[ADR-009](../adr/009-ota-native-image-alignment.md)에 따라 header magic은 `CVOTA002`,
+version은2이며 미배포 compact version1은 거절한다. 첫 image offset은 작은 prefix
+(24B header+manifest+64B 서명) 끝을64KiB 경계로 올린 값이다. 다음 image는 이전
+image 끝을 같은 경계로 올린 위치에 둔다. 사이 padding은0만 허용하고 최대16KiB
+chunk에서 검사한다. 마지막 image 뒤 padding은 금지한다. 총길이에는 padding을
+포함하지만 signed image length/hash에는 포함하지 않는다. native SDK 검증을 위한
+staging 시작도64KiB 정렬이어야 한다. prefix buffer를64KiB로 키우지 않는다.
 
 | 서명 manifest 필드 | 의미와 검증 |
 |---|---|
-| `format_version`, `package_id` | version1,128bit ID; 지원하지 않는 버전 거절 |
+| `format_version`, `package_id` | version2,128bit ID; 지원하지 않는 버전 거절 |
 | `role`, `board_revision`, `layout_id` | 대상 장치·회로·파티션 일치; 사용자 입력으로 override 금지 |
 | `release`, `security_epoch`, `key_id` | release는 표시용; 제조 고정 epoch와 역할별 서명키 대조 |
 | `images[]` | enum target, byte length, SHA-256, firmware version, signed release_sequence:u64, image signature |
@@ -191,6 +199,11 @@ Bridge는 기존 GPIO4 PAIR와 RESET을 재사용하므로 OTA용 추가 IC가 �
 | `requires` | 최소 bootloader/recovery ABI, hardware capabilities |
 
 정규화된 CBOR manifest의 정확한 byte열을 서명하고, duplicate key·unknown critical field·길이 overflow·중첩 제한 초과를 거절한다. 컨테이너 header의 lengths와 signed lengths를 비교한다. 역할/board/layout/호환성 검증 뒤에만 비활성 슬롯을 지우고, 전체 image 검증 전에는 부팅 표시를 변경하지 않는다. unsigned CRC는 전송 손상 검사일 뿐 인증이 아니다.
+
+기존 revision2 byte 배정은 [wire schema](../../protocol/schema/ota-container-v2.yaml),
+packager 작성용 JSON 표현은 [JSON schema](../../schema/cvota-v2.schema.json)에 기록한다.
+작성용 JSON은 차량 wire/API가 아니며 서명 전 CBOR 변환 성공도 package 인증이 아니다.
+schema 파일 존재와 최종 독립 리뷰·native image/target 통합 완료를 구분한다.
 
 ESP는 production Secure Boot V2 + Flash Encryption, STM은 부트로더 내 공개키로 ECDSA-P256/SHA-256 image 검증을 기본으로 한다. manifest 서명은 ECDSA-P256으로 별도 검증한다. STM은 ESP의 검증 결과만 신뢰하지 않고 자기 signed protected TLV의 board/role/ABI와 image hash·서명을 다시 검사한다. Flash 주소는 bootloader의 enum→고정 map으로만 결정한다. private signing key를 장치·웹·Git에 넣지 않는다. dev와 production root는 분리하고 Bridge 서명키로 Communicator 이미지를 허용하지 않는다.
 

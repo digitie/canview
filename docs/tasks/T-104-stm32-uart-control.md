@@ -6,6 +6,11 @@
 - 선행: `T-004`, `T-102`
 - 병렬 가능: `T-103`
 
+2026-09-09 PR #33은 `d229772de77a48ae197e2ff1b4e55b6cef9a88ed`로 merge됐다.
+CI `34335812873` 6/6·이미지18/18·source6/6·target log21 warning/error0을 확인했다.
+A 한정 면제와 이슈 #34의 원 P1 확인 debt·A-10 P2 DEFERRED, physical NOT_RUN은
+유지한다. 따라서 상태는 IN_PROGRESS이며 전체 DONE/차량 release 승인이 아니다.
+
 최신 [복구·B closure 기록](../reviews/adversarial/2026-09-09-T-104-04.md)에서
 B-12/B-13 PASS와 A-10의 P2 safety-inhibit 시험 공백을 구분한다. 후자는 owner
 `digitie`, 이슈 #34/T-104 검증 보강으로 defer하며 다음 UART/admission 변경 전,
