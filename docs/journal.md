@@ -1,5 +1,39 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, STM/ESP native metadata 공통 대조)
+
+직전 턴은 구현·push progress였다. `69508bf` clean에서 시작했으며 부모 CI
+`34903724621`은 이번 검증 중 재확인까지 in_progress다. 실행 중인 CI를 재시작하지 않았다.
+
+기존 STM `CVIMG001`168B 대조를 `shared/ota/src/native_metadata.c`로 옮겼다.
+ESP에도 같은 함수를 사용하고 SDK `app.version[32]`의 정확한 문자열 대조만 더했다.
+role/target/signature 조합을 명시적으로 거부하며 epoch와 u64 sequence를 서로 다른
+필드로 유지한다. SDK `secure_version`을 release_sequence로 변환하지 않는다.
+새 ESP parser/암호/범용 abstraction을 추가하지 않았다. C 스타일·구조 스킬은
+무상태/무힙과 SDK 경계를, 문서화 스킬은 기존 README의 입력 수명·검증 책임 갱신에 적용했다.
+
+- Windows Debug138/138(29.38s), Release138/138(24.61s). 기존 공식 MCUboot imgtool/CNG
+  STM 교차 시험을 포함한다. `build/ota-metadata-debug.log`, `build/ota-metadata-release.log`.
+- 새 CTest는 NULL·길이0..169/SIZE_MAX·전체168byte 각8bit 변이·role/target/signature
+  조합·u64 경계·문자열 최대/미종단/비ASCII/zero padding 불일치를 검사했다.
+- WSL Clang21 strict C99 ASan/UBSan 통과. `native_metadata.c` 함수6/6·행60/60·
+  분기76/76·region108/108. `build/ota-metadata.profdata`, `build/ota-metadata-asan`.
+- 실제 ESP-IDF6.0.3 fixture에서 SDK와 공통 검사기를 compile/link했다. SDK version32B와
+  custom168B의 compile-time drift assertion을 추가했다. `nm`에 공통 두 함수와
+  adapter/SDK verifier가 존재한다. fixture의 NULL negative 외 실제 호출은 미실행이다.
+- `build/ota-metadata-idf.log`의 compiler/linker/CMake warning/error0. unsigned fixture
+  BIN262144B SHA256 `83b8dbc6d34f346fb8f4c7a9abc5a9fedb03314e1e47f152641f55efb316e2ee`,
+  ELF4150236B `22f12bf0c3f628800a0e1ad0fbf97ba0a9362a274c1ba260500d6dae95b52c17`,
+  MAP3022892B `95c84d2f6d48e0bcee87523e5acfc1155fc975c2545e682ad6b50e3191cf4c22`.
+- generated board check 통과, 문서328개/링크1351개·plan49개 오류0.
+- firmware source SHA256 `5cb77580ff911e2bedf542d2f94e734365b5a481e6aec6916a797504db22afaf`.
+  T103 합성 fixture만 동기화했다. 사용자 파일·physical evidence는 변경하지 않았다.
+
+다음은 SDK→metadata의 BSP/body provider 연결과 owner/Flash 불변 보장이다.
+실제 descriptor 생성·signed golden·schema/CLI, 영속 policy/정상 target 통합과 최종
+독립2인 리뷰는 남아 있다. Task/PR은 IN_PROGRESS/Draft다. physical/HIL·장치 RSA
+실행은 NOT_RUN, 차량 TX는 NO-GO이며 writer/boot selector/provisioning은 실행하지 않았다.
+
 ## 2026-09-15 (codex, ESP native SDK read-only adapter 실제 빌드)
 
 `8749529` clean에서 시작했다. 앞선 정렬 구현 턴은 progress이며 동일 CI

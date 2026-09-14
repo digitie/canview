@@ -54,6 +54,11 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-ota-metadata-tests tests/ota/test_native_metadata.c)
+    target_include_directories(canview-ota-metadata-tests PRIVATE shared/ota/src shared/interface)
+    target_link_libraries(canview-ota-metadata-tests PRIVATE canview_ota canview_warnings)
+    add_test(NAME ota-native-metadata COMMAND canview-ota-metadata-tests)
+    set_tests_properties(ota-native-metadata PROPERTIES TIMEOUT 30)
     foreach(ota_sdk_mode signed unsigned wrong-scheme zero-update zero-scheme fpga)
         add_executable(canview-ota-esp-sdk-${ota_sdk_mode}
             firmware/platform/esp32s3/ota_image.c tests/ota/test_esp_image_sdk.c)

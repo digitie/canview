@@ -18,7 +18,8 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 별도 STM native 검사기는 공식 MCUboot v2.4.0 image의 전체 hash/P256 서명과
 protected metadata(board/role/layout/epoch/ABI/u64 sequence)를 대조한다. SDK/부트로더
 target 연결은 아직 없다. ESP native의 read-only SDK adapter는 실제 ESP-IDF
-서명 설정으로 compile/link했지만 반환 metadata의 CANView 정책 연결은 남아 있다.
+서명 설정으로 compile/link했다. 반환 metadata의 role/board/layout/epoch/ABI/u64
+sequence와 ESP version 대조는 기존 STM 검사와 공통화했다. 정상 BSP/body 연결은 남아 있다.
 
 body 시작 전에 신뢰된 로컬 snapshot으로 구·신 ABI 네 조합, MCU별 boot/recovery,
 hardware capability와 config 읽기 범위를 검사한다. 미확인 snapshot은 거부하며
@@ -39,7 +40,10 @@ chunk로 검사한다. prefix buffer와 native image byte열은 그대로이며 
 floor C3847건과 STM native 시험도 유지한다. 앞선 STM native의 비암호 모형
 ASan/UBSan2284건과 함수100%·행98.14%·분기94.74%는 해당 이전 source의 기록이다.
 실제 CNG native 시험은 ECDSA DER 길이에 따라 건수가 달라진다.
-현재 source의 Windows Host Debug/Release는 각각137/137을 통과했다.
+현재 source의 Windows Host Debug/Release는 각각138/138을 통과했다.
+공통 metadata의 모형 ASan/UBSan, 함수6/6·행60/60·분기76/76도 통과했다.
+기존 공식 imgtool/CNG STM 회귀를 재실행했고, SDK fixture에서 공통 함수까지
+실제 ESP32-S3 compile/link와 경고0을 확인했다. 정상 BSP 연결은 아직 아니다.
 새 ESP SDK adapter의 signed 모형 ASan/UBSan과 함수1/1·행54/54·분기70/70을 확인했다.
 실제 SDK fixture ELF/MAP/BIN도 생성했고 경고0을 확인했다. 이것은 SDK 연결/compile
 증거이며 장치에서 RSA를 실행하거나 정상 firmware 설치를 검증한 결과는 아니다.
@@ -53,9 +57,8 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-SDK adapter가 반환하는 signed metadata와 manifest의 role/board/layout/ABI/u64 sequence를
-portable core에서 대조하고 BSP/body provider에 연결한다. 기존 STM metadata 검사와
-같은 byte 계약을 재사용한다. SDK 단일 owner·Flash 불변 보장과 generated staging
+SDK adapter와 공통 metadata 검사기를 BSP/body provider에 연결한다.
+SDK 단일 owner·Flash 불변 보장과 generated staging
 암호화 flag도 실제 연결에서 확인한다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
 실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.

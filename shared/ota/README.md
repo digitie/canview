@@ -90,7 +90,7 @@ Linux는 portable 경계 시험만 실행하며 Windows CNG 시험 성공으로 
 ESP native 검증의 SDK adapter와 실제 compile/link fixture는
 [SDK fixture 계약](../../tests/fixtures/idf-ota-image/README.md)에 있다. SDK 타입은
 platform/BSP 경계에만 두며 이 portable 모듈에 포함하지 않는다. 반환한 signed
-metadata의 CANView 정책 대조와 body/설치 provider 연결은 아직 남아 있다.
+metadata 대조는 아래 공통 검사기로 수행하며 body/설치 provider 연결은 아직 남아 있다.
 
 `canview_ota_manifest_check()`는 기존 prefix/서명 검사를 호출한 뒤 고정 구조체를
 채운다. 범용 객체 tree나 heap 없이 필드를 순서대로 읽고 입력 pointer를 보존하지
@@ -268,8 +268,9 @@ reader·SDK provider·T-107 bootloader 연결은 아직 없다. vector/부팅 �
 
 보드·역할·sequence는 native 표준 header만으로 표현할 수 없으므로 MCUboot의 기존
 vendor protected TLV(tag `0x00A0`)를 사용한다. 내부168B metadata 후보는 다음과 같다.
-ESP에는 별도 컨테이너 대신 SDK의 `.rodata_custom_desc`에 같은 정보가 들어갈 예정이며
-아직 구현하지 않았다. 아래 배정은 최종 machine-readable schema/ADR 동결 전이다.
+ESP에는 SDK의 `.rodata_custom_desc`에서 같은 정보를 읽고 공통 검사기로 대조한다.
+실제 이미지에 descriptor를 생성·삽입하는 packager/target 연결은 아직 없다.
+아래 배정은 최종 machine-readable schema/ADR 동결 전이다.
 
 | offset | 내용 |
 |---|---|
@@ -283,6 +284,17 @@ ESP에는 별도 컨테이너 대신 SDK의 `.rodata_custom_desc`에 같은 정�
 manifest/local identity가 다르면 거부한다. image version도 native header와 정규
 `major.minor.revision+build` 문자열을 대조한다. 서명된 metadata의 잘못된 역할이나
 sequence는 서명이 유효해도 거부한다. 성공은 영속 floor/REPAIR/activation 승인이 아니다.
+
+`native_metadata.c`는 기존 STM 대조를 공통화한 무상태 C99 코드다. STM과 ESP가
+별도 parser를 유지하지 않는다. `canview_ota_native_metadata_check()`는 정확한168B와
+유효한 role/target/signature 조합을 요구한다. `canview_ota_esp_metadata_check()`는
+여기에 SDK `app.version[32]`의1..31byte printable ASCII/NUL/zero padding 대조만 더한다.
+ESP SDK native 서명·전체 hash 성공 뒤, 같은 불변 이미지의 반환 metadata를 전달해야 한다.
+이 함수에 웹 입력 metadata만 주어 얻은 OK는 서명 증거가 아니다. `secure_version`을
+u64 release_sequence나 제조 epoch로 변환하지 않으며 epoch는 위 custom 필드에서 대조한다.
+실제 BSP의 단일 owner/Flash 불변 보장·body/provider orchestration은 후속 연결이다.
+`ctest --test-dir build/host-debug -R ota-native --output-on-failure`로 공통 경계와
+기존 공식 imgtool/CNG STM 회귀시험을 실행한다.
 
 Windows에서 `MCUBOOT_ROOT`를 위 commit의 clean checkout으로 지정하고 기존 OTA
 wheel lock을 설치한 뒤 `ctest --test-dir build/host-debug -R ota-native-stm

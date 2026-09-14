@@ -23,33 +23,6 @@ static uint32_t stm_u32(const uint8_t *p)
 {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8U) | ((uint32_t)p[2] << 16U) | ((uint32_t)p[3] << 24U);
 }
-static uint64_t stm_u64(const uint8_t *p)
-{
-    return (uint64_t)stm_u32(p) | ((uint64_t)stm_u32(p + 4U) << 32U);
-}
-
-static bool stm_text_equal(const uint8_t *wire, const char *local)
-{
-    size_t end = 0U;
-    while (end < CANVIEW_OTA_TEXT_BYTES && wire[end] != 0U)
-    {
-        if (wire[end] < 0x20U || wire[end] > 0x7EU || wire[end] != (uint8_t)local[end])
-        {
-            return false;
-        }
-        ++end;
-    }
-    if (end == 0U || end == CANVIEW_OTA_TEXT_BYTES || local[end] != '\0')
-    {
-        return false;
-    }
-    for (; end < CANVIEW_OTA_TEXT_BYTES; ++end)
-    {
-        if (wire[end] != 0U) { return false; }
-    }
-    return true;
-}
-
 static bool stm_version(const uint8_t *header, const char version[CANVIEW_OTA_TEXT_BYTES])
 {
     const uint32_t fields[] = {header[20], header[21], stm_u16(header + 22U), stm_u32(header + 24U)};
@@ -112,21 +85,6 @@ static bool stm_signature(const uint8_t *der, size_t size, uint8_t raw[CANVIEW_O
         stm_der_integer(der, size, &offset, raw + STM_COORDINATE_BYTES) && offset == size;
 }
 
-static bool stm_metadata(const uint8_t *metadata, const canview_ota_identity_t *identity,
-                         const canview_ota_image_t *expected)
-{
-    static const uint8_t magic[8] = {'C', 'V', 'I', 'M', 'G', '0', '0', '1'};
-    return memcmp(metadata, magic, sizeof(magic)) == 0 && stm_u16(metadata + 8U) == 1U &&
-        stm_u16(metadata + 10U) == CANVIEW_OTA_NATIVE_METADATA_BYTES &&
-        stm_u32(metadata + 12U) == (uint32_t)identity->role &&
-        stm_u32(metadata + 16U) == (uint32_t)expected->target &&
-        stm_u32(metadata + 20U) == identity->security_epoch &&
-        stm_u32(metadata + 24U) == expected->abi && stm_u32(metadata + 28U) == 0U &&
-        stm_u64(metadata + 32U) == expected->release_sequence &&
-        stm_text_equal(metadata + 40U, identity->board_revision) &&
-        stm_text_equal(metadata + 104U, identity->layout_id);
-}
-
 canview_status_t canview_ota_stm_image_check(
     const uint8_t *data, size_t size, const canview_ota_identity_t *identity,
     const canview_ota_image_t *expected, const canview_ota_native_crypto_t *crypto)
@@ -169,7 +127,8 @@ canview_status_t canview_ota_stm_image_check(
     {
         return CANVIEW_MALFORMED;
     }
-    if (!stm_metadata(protected_tlv + 8U, identity, expected) || !stm_version(data, expected->version))
+    if (canview_ota_native_metadata_check(protected_tlv + 8U, CANVIEW_OTA_NATIVE_METADATA_BYTES,
+            identity, expected) != CANVIEW_OK || !stm_version(data, expected->version))
     {
         return CANVIEW_AUTH_FAILED;
     }

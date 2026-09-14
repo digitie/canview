@@ -36,8 +36,10 @@ ESP image parser를 만들지 않는다. SDK 전체 verifier 뒤에 app/custom d
 caller는 모든 bootloader_mmap/OTA 검증을 단일 task에서 직렬화하고 검증 도중
 Flash 내용을 불변으로 유지해야 한다. adapter 자체는 mutex나 writer를 만들지 않는다.
 반환하는 custom168B는 서명된 원본 byte열이며 CANView role/board/layout/ABI/u64
-sequence/floor 대조는 별도 portable core/BSP 연결에서 수행해야 한다.
-현재 그 정책 연결과 정상 장치 app integration은 아직 없다.
+sequence 대조는 [공통 portable 검사기](../../../shared/ota/src/native_metadata.h)가 맡는다.
+이 fixture는 SDK version/custom 배열 크기의 drift도 compile-time에 검사하고 공통
+검사기를 실제 target에 compile/link한다. NULL negative만 호출하므로 SDK→정책 성공
+경로나 정상 장치 app integration/영속 floor 검증이 완료됐다는 뜻은 아니다.
 
 기존 generated bundle_stage CSV의 암호화 flag, 실제 writer·원자성·설치 상태 provider는
 후속 T-007/T-205 연결에서 대조해야 한다. 현재 factory-only board 설치를 변경하지 않았다.

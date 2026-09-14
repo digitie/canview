@@ -2,11 +2,10 @@
 /** @file native_stm.h @brief MCUboot P256 image의 고정 CANView profile 검사. */
 #ifndef CANVIEW_OTA_NATIVE_STM_H
 #define CANVIEW_OTA_NATIVE_STM_H
-#include "manifest.h"
+#include "native_metadata.h"
 
 #define CANVIEW_OTA_STM_IMAGE_MAX (UINT32_C(184320))
 #define CANVIEW_OTA_STM_HEADER_BYTES (512U)
-#define CANVIEW_OTA_NATIVE_METADATA_BYTES (168U)
 #define CANVIEW_OTA_NATIVE_TLV (0x00A0U)
 
 /** @brief 신뢰된 SDK 암호 provider. package 내부 key를 root로 사용하지 않는다.
