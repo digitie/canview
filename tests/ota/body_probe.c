@@ -241,7 +241,7 @@ int main(void)
         const uint32_t policy_case = probe_u32(header + 24U);
         probe.fault = probe_u32(header + 20U);
         if (role < 1U || role > 3U || prefix_size > sizeof(prefix) || body_size > PROBE_WIRE_MAX ||
-            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > 7U || policy_case > 5U ||
+            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > 8U || policy_case > 5U ||
             (probe.fault & 0xFFU) > PROBE_FAULT_RESET || (probe.fault >> 8U) > 1U ||
             fread(local_bytes, 1U, sizeof(local_bytes), stdin) != sizeof(local_bytes) ||
             probe_u32(local_bytes) > 1U ||
@@ -345,6 +345,18 @@ int main(void)
             (void)memset(chunk, 0xA5, sizeof(chunk));
             consumed += count;
             ++chunk_index;
+        }
+        if (status == CANVIEW_OK && body.state == CANVIEW_OTA_BODY_HASHES_MATCHED)
+        {
+            status = canview_ota_body_feed(&body, prefix_size + body_size, NULL, 0U);
+            if (status != CANVIEW_OK)
+            {
+                return 1;
+            }
+            if (scenario == 8U)
+            {
+                status = canview_ota_body_feed(&body, prefix_size + body_size, chunk, 1U);
+            }
         }
         const canview_status_t finished = canview_ota_body_finish(&body);
         if (status == CANVIEW_OK)

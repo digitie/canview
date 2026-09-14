@@ -50,8 +50,8 @@ manifest schema와 최종 호환성 계약의 review 전에는 배포 포맷으�
 
 | offset | 크기 | 내용 |
 |---|---|---|
-| 0 | 8 | ASCII `CVOTA001` |
-| 8 | 2 | format version1 |
+| 0 | 8 | ASCII `CVOTA002` |
+| 8 | 2 | format version2 |
 | 10 | 2 | header 길이24 |
 | 12 | 4 | CBOR manifest 길이1..16384 |
 | 16 | 2 | manifest signature 길이64 |
@@ -59,10 +59,10 @@ manifest schema와 최종 호환성 계약의 review 전에는 배포 포맷으�
 | 20 | 4 | header가 주장하는 전체 file 길이 |
 | 24 | 가변 | 정확한 deterministic CBOR byte열 |
 | CBOR 뒤 | 64 | ECDSA-P256/SHA-256 `r[32] || s[32]` |
-| 서명 뒤 | 가변 | 순차 image bytes; prefix 함수의 입력에는 넣지 않음 |
+| 서명 뒤 | 가변 | 64KiB 정렬의0 padding과 순차 image bytes; prefix 입력에는 넣지 않음 |
 
 header 정수는 little-endian, r/s는 각각 big-endian이다. 전체 file 상한은
-3×4MiB+최대 prefix의 format 상한일 뿐 role/slot 허용값이 아니다. 역할별 한두
+3×(4MiB+64KiB)+최대 prefix의 보수적 format 상한일 뿐 role/slot 허용값이 아니다. 역할별 한두
 이미지 제한·서명된 길이/대상과 header 대조·본문 검증은 다음 manifest 단계에
 연결해야 한다. 현재 `declared_*` 결과를 신뢰된 설치 정보로 사용하면 안 된다.
 
@@ -99,7 +99,7 @@ Linux는 portable 경계 시험만 실행하며 Windows CNG 시험 성공으로 
 
 | root key | 필드 | 형식 |
 |---|---|---|
-| 0 | format_version | uint32, 값1 |
+| 0 | format_version | uint32, 값2 |
 | 1 | package_id | bytes16 |
 | 2 | role | Communicator1, Controller2, Bridge3; peer 권한 enum과 별개 |
 | 3, 4, 5 | board_revision, layout_id, release | 1..63 printable ASCII; 표시 버전은 비교하지 않음 |
@@ -118,9 +118,13 @@ image 안에 있다. manifest의 이 숫자만으로 이미지 서명이 검증�
 target1은 Communicator ESP(4MiB),2는 Communicator STM(180KiB),3은 Controller
 (4MiB),4는 Bridge(2.5MiB)다. Controller/Bridge는 해당 image1개, Communicator는
 중복 없는 ESP/STM1~2개만 허용한다. zero/초과 길이와 잘못된 native signature
-형식을 거부하고 offset은 prefix 뒤에서 순차 길이 합으로만 만든다. 외부 offset,
+형식을 거부하고 offset은 prefix 끝/직전 image 끝을64KiB 경계로 올려 만든다. 외부 offset,
 경로, 주소, recovery/bootloader target은 없으므로 겹친 blob을 지정할 수 없다.
 계산한 image 수와 전체 길이는 header의 주장과 정확히 대조한다.
+
+정렬 이유와 version1 거절은 [ADR-009](../../docs/adr/009-ota-native-image-alignment.md),
+byte 계약은 [OTA §7](../../docs/architecture/ota.md#7-패키지인증보안-계약)을 따른다.
+prefix 검사는 padding을 읽거나 검증한 것으로 간주하지 않는다.
 
 identity는 신뢰된 BSP/provisioning caller가 공급한다. 파일/HTTP에서 기대 role,
 board/layout, epoch, key_id를 가져오면 안 된다. key_id는 verify context에서 실제
@@ -143,7 +147,8 @@ truncation, ABI/config 경계를 검사한다. 실제 firmware 설치·물리/HI
 
 `body_open()`은 완전한 prefix의 manifest·로컬 호환성·version floor를 검증한 뒤 첫 SHA-256
 operation을 시작한다. `body_feed()`는 절대 file offset과0..16KiB chunk를 받아
-이미지 경계를 순서대로 처리한다. image bytes는 복사/보존하지 않고 SDK provider의
+prefix 실제 크기부터 padding·이미지 경계를 순서대로 처리한다. padding은0인지
+검사만 하며 hash에서 제외한다.64KiB buffer는 없다. image bytes는 복사/보존하지 않고 SDK provider의
 update에 전달한다. 끝에서 signed descriptor의 SHA-256과 대조한 뒤 operation을
 정리한다. 모든 image가 맞아야 `HASHES_MATCHED`가 된다. `body_finish()`는 EOF를
 확인하며 아직 부족하면 `INCOMPLETE/FAILED`로 종료한다. 이름은 모두

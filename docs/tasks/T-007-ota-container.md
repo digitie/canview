@@ -20,13 +20,13 @@ body는 chunk를 보존하지 않고 SDK provider를 사용한다. offset 중복
 input/reset·provider/cleanup 실패와 재진입을 검사한다. 성공 상태는
 `HASHES_MATCHED`이며 native image 검증이나 erase/PREPARED 승인이 아니다.
 
-2026-09-13 현재 body/호환성/floor 모형1480건과 Windows 실제 P256+SHA-2561486건이
-통과했다. floor C3847건·body 모형1480건은 ASan/UBSan도 통과하고 함수·행·분기100%다.
-앞선 manifest.c coverage는 함수100%·행97.72%·분기93.70%다.
-앞선 typed 교차1422/1425건과 CBOR11989건·서명 prefix230건도 유지한다.
+2026-09-15 현재 body/호환성/floor 모형1696건과 Windows 실제 P256+SHA-2561702건이
+통과했다. body 모형은 ASan/UBSan도 통과하고 함수·행·분기100%다.
+이번 manifest.c 모형 coverage는 함수100%·행93.78%·분기90.00%다.
+typed 교차1437/1440건과 CBOR11989건·서명 prefix232건, floor C3847건도 통과했다.
 STM native 검사도 추가했다. 공식 MCUboot imgtool v2.4.0 생성물의 전체 hash·P256
-서명과 protected metadata/manifest를 대조한다. 실제 CNG2287건, 비암호 모형
-ASan/UBSan2284건과 native_stm.c coverage 함수100%·행98.14%·분기94.74%다.
+서명과 protected metadata/manifest를 대조한다. 실제 CNG 교차 시험을 유지하며 앞선 비암호 모형
+ASan/UBSan2284건과 native_stm.c coverage는 함수100%·행98.14%·분기94.74%다.
 byte 변이/절단 건수는 ECDSA DER 길이에 따라 달라진다. 현재 source의 전체 Windows
 Host Debug/Release는 각각131/131 통과다.
 
@@ -45,6 +45,7 @@ PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. �
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
+[ADR-009](../adr/009-ota-native-image-alignment.md)의 SDK 재사용 정렬을 revision2로 구현했다.
 다음은 ESP native image 검증, 정식 schema/CLI 및 실제 policy/target 연결이다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
@@ -73,8 +74,8 @@ OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 �
 아래는 이 task가 생성·확정할 미래 산출물이다. 경로가 아직 없다는 사실을 검증 통과로 해석하지 않는다.
 
 ```text
-schema/cvota-v1.schema.json
-protocol/schema/ota-container-v1.yaml
+schema/cvota-v2.schema.json
+protocol/schema/ota-container-v2.yaml
 shared/ota/
 tools/ota/
 tests/ota/

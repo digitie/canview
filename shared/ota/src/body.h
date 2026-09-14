@@ -55,7 +55,7 @@ typedef struct
 
 /** @brief 완전한 prefix를 검증하고 첫 image의 hash operation을 시작한다.
  * @param body {0} 또는 reset 성공 뒤 EMPTY인 객체. 다른 인자와 비중첩.
- * @param prefix 호출 중만 읽는 완전한 prefix. body image는 포함하지 않는다.
+ * @param prefix 호출 중만 읽는 완전한 prefix. 정렬 padding과 image는 포함하지 않는다.
  * @param size prefix 실제 크기. prefix 조립 buffer는 caller가 최대16KiB manifest로 제한한다.
  * @param identity 신뢰된 BSP/provisioning identity. manifest.h 계약을 따른다.
  * @param runtime 신뢰된 로컬 ABI/boot/recovery/config/capability snapshot. 호출 중만 빌린다.
@@ -76,11 +76,13 @@ canview_status_t canview_ota_body_open(
 
 /** @brief 절대 file offset 순서대로 최대16KiB chunk를 소비한다.
  * @param body 활성 단일 owner 객체.
- * @param offset 기대하는 다음 절대 file offset. 중복/누락을 거부한다.
+ * @param offset 기대하는 다음 절대 file offset. 첫 호출은 prefix 실제 크기부터다.
+ * 중복/누락을 거부한다.
  * @param data size만큼 읽을 수 있는 불변 입력. size0일 때만 NULL 허용.
  * @param size 0..16KiB. 이미지 경계를 넘는 chunk도 허용한다.
  * @return OK 또는 실패. 실패 시 일부 hash 처리가 있었어도 FAILED이며 재전송으로 복구하지 않는다.
- * @details chunk를 보존하지 않는다. 완료 뒤 추가 bytes도 실패시킨다. 모든 image hash
+ * @details 정렬 padding은 0만 허용하며 image hash에서 제외한다. 별도 padding buffer를
+ * 만들거나 chunk를 보존하지 않는다. 완료 뒤 추가 bytes도 실패시킨다. 모든 image hash
  * 일치는 HASHES_MATCHED일 뿐 PREPARED/boot selector/erase/write 허가가 아니다.
  */
 canview_status_t canview_ota_body_feed(canview_ota_body_t *body, uint32_t offset,

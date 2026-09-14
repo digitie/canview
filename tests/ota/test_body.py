@@ -9,6 +9,8 @@ import sys
 
 from test_manifest import fixture, make_prefix
 from manifest import IMAGE_LIMITS
+from cbor import decode_document
+from envelope import HEADER, assemble
 
 OK, INVALID, MALFORMED, OVERSIZE, INCOMPLETE, DUPLICATE, STALE, AUTH, BUSY = 0, 1, 3, 7, 8, 9, 10, 12, 13
 VERSION, CAPABILITY = 4, 5
@@ -53,12 +55,60 @@ def main():
                 image[2] = digest(payload)
             return make_prefix(manifest, sign), b"".join(payloads), manifest
 
-        def add(name, prefix, data, chunk=31, expected=OK, scenario=0, fault=0, root=public, local=LOCAL, policy=0):
+        def aligned_body(prefix, data):
+            # 독립 fixture 계산. data는 padding 없는 논리 payload이며 절단도 허용한다.
+            fields = decode_document(prefix[HEADER.size:HEADER.size + HEADER.unpack_from(prefix)[3]])
+            body = bytearray()
+            consumed = 0
+            for image in fields[8]:
+                padding = -(len(prefix) + len(body)) % 65536
+                body.extend(bytes(padding))
+                payload = data[consumed:consumed + image[1]]
+                body.extend(payload)
+                consumed += len(payload)
+                if len(payload) < image[1]:
+                    break
+            body.extend(data[consumed:])  # 금지된 trailing byte 시험도 보존한다.
+            return bytes(body)
+
+        def add(name, prefix, data, chunk=31, expected=OK, scenario=0, fault=0, root=public, local=LOCAL, policy=0,
+                encoded=False):
+            if not encoded:
+                data = aligned_body(prefix, data)
             wire = (struct.pack("<7I", role, len(prefix), len(data), chunk, scenario, fault, policy) +
                     struct.pack("<8IQ", *local) + root + prefix + data)
             vectors.append((f"{role}-{name}", wire, expected, fault))
 
         prefix, data, manifest = prepare(blobs)
+        padded = aligned_body(prefix, data)
+        assert assemble(manifest, blobs, sign) == prefix + padded
+        if role == 1:
+            for length in (65535, 65536, 65537):
+                p, b, m = prepare([b"a" * length, b"b"])
+                bundle = assemble(m, [b"a" * length, b"b"], sign)
+                assert bundle == p + aligned_body(p, b)
+                add(f"image-alignment-boundary-{length}", p, bundle[len(p):], chunk=16384, encoded=True)
+        # leading/inter-image gap의 양 끝, 각 4KiB 및 chunk 경계의 ±1을 변이한다.
+        previous = len(prefix)
+        for image_index, blob in enumerate(blobs):
+            start = (previous + 65535) // 65536 * 65536
+            probes = {previous, start - 1, (previous + start) // 2}
+            for boundary in range((previous // 4096 + 1) * 4096, start, 4096):
+                probes.update((boundary - 1, boundary, boundary + 1))
+            for absolute in sorted(probes):
+                if previous <= absolute < start:
+                    relative = absolute - len(prefix)
+                    changed = bytearray(padded)
+                    changed[relative] = 0xFF
+                    add(f"padding-{image_index}-{absolute}", prefix, bytes(changed), chunk=16384,
+                        expected=MALFORMED, encoded=True)
+            for absolute in (previous, start - 1, start):
+                add(f"padding-truncated-{image_index}-{absolute}", prefix, padded[:absolute - len(prefix)],
+                    chunk=16384, expected=INCOMPLETE, encoded=True)
+            previous = start + len(blob)
+        add("compact-v1-layout-rejected", prefix, data, expected=MALFORMED, encoded=True)
+        add("padding-and-cleanup-failure", prefix, b"\xff" + padded[1:], expected=MALFORMED,
+            encoded=True, fault=4)
         # 실제 body 경로의 floor 실패는 첫 hash operation 전에 거절해야 한다.
         add("policy-unavailable", prefix, data, policy=1, expected=INCOMPLETE)
         add("policy-floor-conflict", prefix, data, policy=2, expected=AUTH)
@@ -151,6 +201,7 @@ def main():
             mutated[8][target_index][2] = bytes(32)
             add(f"signed-wrong-digest-{target_index}", make_prefix(mutated, sign), data, expected=AUTH)
         add("trailing-body", prefix, data + b"x", chunk=len(data), expected=OVERSIZE)
+        add("trailing-after-hash-complete", prefix, data, expected=OVERSIZE, scenario=8)
         add("duplicate-offset", prefix, data, expected=DUPLICATE, scenario=1)
         add("missing-offset", prefix, data, expected=MALFORMED, scenario=2)
         add("reset-restart", prefix, data, scenario=3)

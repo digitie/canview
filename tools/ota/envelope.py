@@ -6,11 +6,18 @@ import struct
 from cbor import CborError, MAX_BYTES, Status, decode_document, encode_document
 
 HEADER = struct.Struct("<8sHHIHHI")
-MAGIC = b"CVOTA001"
+MAGIC = b"CVOTA002"
+FORMAT_VERSION = 2
+IMAGE_ALIGNMENT = 65536
 SIGNATURE_BYTES = 64
 MAX_IMAGES = 3
 MAX_IMAGE_BYTES = 4 * 1024 * 1024
-MAX_BUNDLE = MAX_IMAGES * MAX_IMAGE_BYTES + HEADER.size + MAX_BYTES + SIGNATURE_BYTES
+MAX_BUNDLE = MAX_IMAGES * (MAX_IMAGE_BYTES + IMAGE_ALIGNMENT) + HEADER.size + MAX_BYTES + SIGNATURE_BYTES
+
+
+def image_offset(offset: int) -> int:
+    """내부 offset을 SDK MMU 경계로 올린다. 입력 Flash 주소를 받는 API가 아니다."""
+    return (offset + IMAGE_ALIGNMENT - 1) // IMAGE_ALIGNMENT * IMAGE_ALIGNMENT
 
 
 def assemble(manifest: dict, images: list[bytes], sign) -> bytes:
@@ -27,14 +34,19 @@ def assemble(manifest: dict, images: list[bytes], sign) -> bytes:
     if any(len(blob) > MAX_IMAGE_BYTES for blob in images):
         raise CborError(Status.OVERSIZE)
     manifest_bytes = encode_document(manifest)
-    total = HEADER.size + len(manifest_bytes) + SIGNATURE_BYTES + sum(map(len, images))
+    total = HEADER.size + len(manifest_bytes) + SIGNATURE_BYTES
+    body = []
+    for blob in images:
+        aligned = image_offset(total)
+        body.extend((bytes(aligned - total), blob))
+        total = aligned + len(blob)
     if total > MAX_BUNDLE:
         raise CborError(Status.OVERSIZE)
     signature = sign(manifest_bytes)
     if type(signature) is not bytes or len(signature) != SIGNATURE_BYTES:
         raise CborError(Status.MALFORMED)
-    return (HEADER.pack(MAGIC, 1, HEADER.size, len(manifest_bytes), SIGNATURE_BYTES,
-                        len(images), total) + manifest_bytes + signature + b"".join(images))
+    return (HEADER.pack(MAGIC, FORMAT_VERSION, HEADER.size, len(manifest_bytes), SIGNATURE_BYTES,
+                        len(images), total) + manifest_bytes + signature + b"".join(body))
 
 
 def prefix_length(data: bytes) -> int:
@@ -56,7 +68,7 @@ def check_prefix(data: bytes, verify) -> dict:
     magic, version, header_size, manifest_size, signature_size, count, total = HEADER.unpack_from(data)
     if magic != MAGIC:
         raise CborError(Status.MALFORMED)
-    if version != 1:
+    if version != FORMAT_VERSION:
         raise CborError(Status.UNSUPPORTED_VERSION)
     if header_size != HEADER.size or signature_size != SIGNATURE_BYTES or manifest_size == 0:
         raise CborError(Status.MALFORMED)
@@ -65,7 +77,7 @@ def check_prefix(data: bytes, verify) -> dict:
     expected = HEADER.size + manifest_size + SIGNATURE_BYTES
     if len(data) != expected:
         raise CborError(Status.INCOMPLETE if len(data) < expected else Status.MALFORMED)
-    if not 1 <= count <= MAX_IMAGES or total < expected + count:
+    if not 1 <= count <= MAX_IMAGES or total < image_offset(expected) + count:
         raise CborError(Status.MALFORMED)
     if total > MAX_BUNDLE:
         raise CborError(Status.OVERSIZE)

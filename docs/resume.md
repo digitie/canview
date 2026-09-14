@@ -2,7 +2,7 @@
 
 ## 현재 작업
 
-2026-09-13, [T-007 OTA-01](tasks/T-007-ota-container.md)은 `IN_PROGRESS`다.
+2026-09-15, [T-007 OTA-01](tasks/T-007-ota-container.md)은 `IN_PROGRESS`다.
 
 - worktree: `F:/dev/canview-wt/t007-ota-container`
 - branch: `codex/t007-ota-container`
@@ -27,14 +27,20 @@ Controller/Bridge의 존재 여부를 Communicator 복구 조건으로 추가하
 sequence/다른 hash를 거부하고, 실제 설치 증거로 ALREADY_INSTALLED/REPAIR_REQUIRED를
 구분한다. 영속 copy/CONFIRM_INTENT 조정·실제 설치 검사 provider는 아직 없다.
 
-현재 body/호환성/floor 시험은 모형1480건, 실제 P256+SHA-2561486건이다. floor C
-비교3847건과 body 모형1480건은 ASan/UBSan 통과, 두 파일의 함수·행·분기100%다.
-앞선 manifest.c coverage는 함수100%·행97.72%·분기93.70%이며 typed P2561425건도 유지한다.
-현재 source의 Windows Host Debug/Release는 각각131/131을 통과했다. STM native의
-실제 CNG 시험2287건·비암호 모형 ASan/UBSan2284건이 통과했고 native_stm.c coverage는
-함수100%·행98.14%·분기94.74%다. DER 길이에 따라 byte 변이/절단 건수는 달라진다.
-Cortex-M4 freestanding object compile은 통과했지만 OTA target 통합의 증거는 아니다.
-마지막 확인된 성공 CI는 `c0de352`의 `34730820401`이며, 그 결과를 이후
+[ADR-009](adr/009-ota-native-image-alignment.md)에 따라 미배포 컨테이너를
+revision2로 구분했다. C/Python이 image 앞64KiB 정렬을 계산하고 C body가0 padding을
+chunk로 검사한다. prefix buffer와 native image byte열은 그대로이며 v1은 거절한다.
+
+현재 body/호환성/floor 시험은 모형1696건, 실제 P256+SHA-2561702건이다.
+모형 ASan/UBSan과 body.c 함수·행·분기100%를 확인했다. typed manifest 교차1437/1440건,
+서명 prefix232건도 통과했다. manifest.c의 이번 모형 coverage는 함수100%·행93.78%·
+분기90.00%이며 예전 실행의 더 높은 수치를 새 source에 적용하지 않는다.
+floor C3847건과 STM native 시험도 유지한다. 앞선 STM native의 비암호 모형
+ASan/UBSan2284건과 함수100%·행98.14%·분기94.74%는 해당 이전 source의 기록이다.
+실제 CNG native 시험은 ECDSA DER 길이에 따라 건수가 달라진다.
+현재 source의 Windows Host Debug/Release는 각각131/131을 통과했다.
+Cortex-M4 body object compile은 통과했지만 OTA target 통합의 증거는 아니다.
+마지막 확인된 성공 CI는 `4d99222`의 `34731902196`이며, 그 결과를 이후
 수정 source에 적용하지 않는다. target artifact/hash의 별도 대조도 아직 하지 않았다.
 
 [CBOR checkpoint 리뷰](reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
@@ -43,12 +49,9 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-ESP native SDK 검증 연결 전, 미배포 컨테이너의 정렬과 포맷 revision을 명시한다.
-SDK 전체 verifier는 mapped segment의64KiB 정렬을 요구한다. 작은 prefix 뒤/각 image
-앞의 zero padding을 chunk로 검사하면 SDK를 재사용하고 별도 ESP parser를 피할 수 있다.
-실제 CI BIN 세 개로4KiB 정렬의 불충분함과64KiB 조건을 재현했다. 상세 근거·공간 계산은
-[journal 최신 조사](journal.md)에 있다. 현재 compact parser를 새 규칙으로 바꾼 상태는 아니다.
-그 뒤 ESP native image 서명·signed metadata 대조를 연결한다.
+정렬된 staging에서 ESP-IDF 전체 native image 서명 검증과 signed metadata 대조를
+연결한다. 별도 ESP parser를 만들지 않는다. 실제 staging base 정렬/범위, SDK verifier의
+단일 owner와 서명 활성화 조건을 확인하고 unsigned bench 설정을 서명 성공으로 취급하지 않는다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
 실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
 floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통합 완료가 아니다.

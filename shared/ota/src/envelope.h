@@ -14,9 +14,12 @@
 #define CANVIEW_OTA_ENVELOPE_PREFIX_MAX (CANVIEW_OTA_ENVELOPE_HEADER_BYTES + \
     CANVIEW_OTA_ENVELOPE_MANIFEST_MAX + CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES)
 #define CANVIEW_OTA_ENVELOPE_IMAGE_MAX (3U)
+#define CANVIEW_OTA_ENVELOPE_VERSION (2U)
+#define CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT (UINT32_C(65536))
 #define CANVIEW_OTA_ENVELOPE_IMAGE_BYTES_MAX (UINT32_C(4194304))
 #define CANVIEW_OTA_ENVELOPE_BUNDLE_MAX (CANVIEW_OTA_ENVELOPE_IMAGE_MAX * \
-    CANVIEW_OTA_ENVELOPE_IMAGE_BYTES_MAX + CANVIEW_OTA_ENVELOPE_PREFIX_MAX)
+    (CANVIEW_OTA_ENVELOPE_IMAGE_BYTES_MAX + CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT) + \
+    CANVIEW_OTA_ENVELOPE_PREFIX_MAX)
 
 /** @brief 신뢰된 caller가 제공하는 ECDSA-P256/SHA-256 검증 함수.
  * @details signature는 big-endian r[32] || s[32]이다. message는 정확한 CBOR
@@ -43,7 +46,7 @@ typedef struct
 
 /** @brief 고정 header + CBOR + 서명으로 구성된 prefix만 검사한다.
  * @param prefix 호출 중 불변이며 실제 size만큼 읽을 수 있는 입력. NULL 불가.
- * @param size prefix 실제 길이. image 본문을 포함하지 않는다.
+ * @param size prefix 실제 길이. 정렬 padding과 image 본문을 포함하지 않는다.
  * @param verify 신뢰된 검증 provider. NULL이면 실패한다.
  * @param context provider의 호출 수명 context. NULL 허용 여부는 provider 계약이다.
  * @param out 실패하면 모든 필드를 0으로 한다. NULL 불가. 다른 인자와 겹침 금지.

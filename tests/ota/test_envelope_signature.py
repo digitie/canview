@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, utils
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools" / "ota"))
 from cbor import CborError, Status
-from envelope import HEADER, MAX_BUNDLE, MAX_BYTES, MAX_IMAGE_BYTES, SIGNATURE_BYTES, assemble, check_prefix, prefix_length
+from envelope import HEADER, MAGIC, FORMAT_VERSION, IMAGE_ALIGNMENT, MAX_BUNDLE, MAX_BYTES, MAX_IMAGE_BYTES, SIGNATURE_BYTES, assemble, check_prefix, prefix_length
 
 
 def main() -> int:
@@ -35,7 +35,7 @@ def main() -> int:
         public.verify(utils.encode_dss_signature(r, s), message, ec.ECDSA(hashes.SHA256()))
 
     # 합성 문서/이미지다. 아직 최종 manifest schema 또는 부팅 가능한 이미지가 아니다.
-    manifest = {0: 1, 1: bytes(range(16)), 2: "synthetic-envelope-only", 3: (1 << 64) - 1}
+    manifest = {0: 2, 1: bytes(range(16)), 2: "synthetic-envelope-only", 3: (1 << 64) - 1}
     images = [b"CANVIEW SYNTHETIC IMAGE\x00"]
     package = assemble(manifest, images, sign)
     if package != assemble(manifest, images, sign):
@@ -45,6 +45,20 @@ def main() -> int:
         raise AssertionError("manifest roundtrip mismatch")
     if HEADER.unpack_from(package)[-1] != len(package):
         raise AssertionError("declared total mismatch")
+    assert package[len(prefix):IMAGE_ALIGNMENT] == bytes(IMAGE_ALIGNMENT - len(prefix))
+    assert package[IMAGE_ALIGNMENT:] == images[0]
+    # SDK와 독립인 고정 offset oracle: 정렬 직전/정렬/직후 image 길이.
+    for length in (1, IMAGE_ALIGNMENT - 1, IMAGE_ALIGNMENT, IMAGE_ALIGNMENT + 1):
+        blobs = [b"a" * length, b"b", b"c"]
+        bundle = assemble(manifest, blobs, sign)
+        offsets = [IMAGE_ALIGNMENT, IMAGE_ALIGNMENT * (2 if length <= IMAGE_ALIGNMENT else 3)]
+        offsets.append(offsets[1] + IMAGE_ALIGNMENT)
+        previous = prefix_length(bundle)
+        for offset, blob in zip(offsets, blobs):
+            assert bundle[previous:offset] == bytes(offset - previous)
+            assert bundle[offset:offset + len(blob)] == blob
+            previous = offset + len(blob)
+        assert len(bundle) == previous == HEADER.unpack_from(bundle)[-1]
     mutable_images = [b"snapshot"]
 
     def mutating_sign(message):
@@ -76,7 +90,9 @@ def main() -> int:
     cases.append((public_bytes, prefix + b"x", Status.MALFORMED))
     for offset, fmt, value, expected in (
         (0, "B", 0, Status.MALFORMED),
-        (8, "H", 2, Status.UNSUPPORTED_VERSION),
+        (7, "B", ord("1"), Status.MALFORMED),
+        (8, "H", 1, Status.UNSUPPORTED_VERSION),
+        (8, "H", 3, Status.UNSUPPORTED_VERSION),
         (10, "H", 23, Status.MALFORMED),
         (12, "I", 0, Status.MALFORMED),
         (12, "I", MAX_BYTES + 1, Status.OVERSIZE),
@@ -103,8 +119,8 @@ def main() -> int:
     cases.append((bytes(64), prefix, Status.AUTH_FAILED))
     cases.append((public_bytes, bytes(HEADER.size + MAX_BYTES + SIGNATURE_BYTES + 1), Status.OVERSIZE))
     for bad_cbor in (b"\x00", b"\xa1\x60\x00", b"\xa2\x00\x00\x00\x00"):
-        signed = (HEADER.pack(b"CVOTA001", 1, HEADER.size, len(bad_cbor), SIGNATURE_BYTES,
-                              1, HEADER.size + len(bad_cbor) + SIGNATURE_BYTES + 1)
+        signed = (HEADER.pack(MAGIC, FORMAT_VERSION, HEADER.size, len(bad_cbor), SIGNATURE_BYTES,
+                              1, IMAGE_ALIGNMENT + 1)
                   + bad_cbor + sign(bad_cbor))
         expected = Status.DUPLICATE if bad_cbor[0] == 0xA2 else Status.MALFORMED
         cases.append((public_bytes, signed, expected))

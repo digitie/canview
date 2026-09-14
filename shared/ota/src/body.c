@@ -73,7 +73,7 @@ canview_status_t canview_ota_body_open(
     if (status == CANVIEW_OK)
     {
         body->hash = *hash;
-        body->next_offset = body->manifest.images[0].offset;
+        body->next_offset = (uint32_t)size;
         status = body_start_hash(body);
     }
     if (status == CANVIEW_OK)
@@ -146,6 +146,22 @@ static canview_status_t body_consume(canview_ota_body_t *body, uint32_t offset,
     size_t used = 0U;
     while (used < size)
     {
+        const uint32_t image_offset = body->manifest.images[body->image_index].offset;
+        if (body->next_offset < image_offset)
+        {
+            const uint32_t remaining_padding = image_offset - body->next_offset;
+            const size_t padding = size - used < remaining_padding ? size - used : remaining_padding;
+            for (size_t index = 0U; index < padding; ++index)
+            {
+                if (data[used + index] != 0U)
+                {
+                    return body_fail(body, CANVIEW_MALFORMED);
+                }
+            }
+            used += padding;
+            body->next_offset += (uint32_t)padding;
+            continue;
+        }
         const uint32_t remaining = body->manifest.images[body->image_index].length - body->image_bytes;
         const size_t count = size - used < remaining ? size - used : remaining;
         canview_status_t status = body->hash.update(body->hash.context, data + used, count);

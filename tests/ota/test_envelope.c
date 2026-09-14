@@ -50,8 +50,8 @@ static bool test_cleared(const canview_ota_envelope_t *view)
 int main(void)
 {
     uint8_t prefix[TEST_PREFIX_BYTES] = {
-        'C', 'V', 'O', 'T', 'A', '0', '0', '1', 1U, 0U, 24U, 0U,
-        1U, 0U, 0U, 0U, 64U, 0U, 1U, 0U, 90U, 0U, 0U, 0U, 0xA0U
+        'C', 'V', 'O', 'T', 'A', '0', '0', '2', 2U, 0U, 24U, 0U,
+        1U, 0U, 0U, 0U, 64U, 0U, 1U, 0U, 1U, 0U, 1U, 0U, 0xA0U
     };
     test_verify_t state = {prefix, 0U, CANVIEW_OK, false};
     canview_ota_envelope_t view;
@@ -71,7 +71,7 @@ int main(void)
     CHECK(state.calls == 0U);
     CHECK(canview_ota_envelope_check(prefix, sizeof(prefix), test_verify, &state, &view) == CANVIEW_OK);
     CHECK(state.calls == 1U && view.manifest_offset == 24U && view.manifest_size == 1U);
-    CHECK(view.images_offset == sizeof(prefix) && view.declared_total_size == 90U && view.declared_image_count == 1U);
+    CHECK(view.images_offset == 65536U && view.declared_total_size == 65537U && view.declared_image_count == 1U);
     state.result = CANVIEW_AUTH_FAILED;
     CHECK(canview_ota_envelope_check(prefix, sizeof(prefix), test_verify, &state, &view) == CANVIEW_AUTH_FAILED);
     CHECK(state.calls == 2U && test_cleared(&view));
@@ -89,6 +89,12 @@ int main(void)
     CHECK(canview_ota_envelope_check(prefix, sizeof(prefix), test_verify, &state, &view) == CANVIEW_OK);
     CHECK(state.calls == 6U);
     prefix[18] = 2U;
+    CHECK(canview_ota_envelope_check(prefix, sizeof(prefix), test_verify, &state, &view) == CANVIEW_MALFORMED);
+    CHECK(state.calls == 6U && test_cleared(&view));
+    prefix[18] = 1U;
+    prefix[8] = 1U;
+    CHECK(canview_ota_envelope_check(prefix, sizeof(prefix), test_verify, &state, &view) == CANVIEW_UNSUPPORTED_VERSION);
+    prefix[7] = '1';
     CHECK(canview_ota_envelope_check(prefix, sizeof(prefix), test_verify, &state, &view) == CANVIEW_MALFORMED);
     CHECK(state.calls == 6U && test_cleared(&view));
     return 0;

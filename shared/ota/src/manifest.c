@@ -11,7 +11,6 @@
 #define RANGE_FIELDS (2U)
 #define CONFIG_FIELDS (3U)
 #define REQUIRES_FIELDS (3U)
-#define FORMAT_VERSION (1U)
 #define STM_IMAGE_MAX (UINT32_C(184320))
 #define BRIDGE_IMAGE_MAX (UINT32_C(2621440))
 #define ASCII_FIRST (0x20U)
@@ -243,7 +242,7 @@ static canview_status_t manifest_decode(const uint8_t *data, size_t size, canvie
     manifest_expect(&cursor, CANVIEW_OTA_CBOR_MAP, MANIFEST_FIELDS);
     manifest_expect(&cursor, CANVIEW_OTA_CBOR_UINT, MANIFEST_KEY_FORMAT);
     const uint32_t version = manifest_u32(&cursor);
-    if (cursor.status == CANVIEW_OK && version != FORMAT_VERSION)
+    if (cursor.status == CANVIEW_OK && version != CANVIEW_OTA_ENVELOPE_VERSION)
     {
         return CANVIEW_UNSUPPORTED_VERSION;
     }
@@ -330,6 +329,13 @@ static canview_status_t manifest_constraints(canview_ota_manifest_t *out,
                 return CANVIEW_DUPLICATE;
             }
         }
+        const uint32_t padding = (CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT -
+            total % CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT) % CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT;
+        if (padding > UINT32_MAX - total)
+        {
+            return CANVIEW_OVERSIZE;
+        }
+        total += padding;
         if (image->length > maximum || image->length > UINT32_MAX - total)
         {
             return CANVIEW_OVERSIZE;

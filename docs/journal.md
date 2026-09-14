@@ -1,5 +1,48 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, OTA revision2 정렬과 순차 padding 검사)
+
+`4d99222` clean worktree에서 시작했다. PR #35는 OPEN/Draft이며 그 기준선의
+CI `34731902196` SUCCESS를 확인했다. 이전 턴은 실제 SDK/BIN 정렬 제약을
+확인한 progress였고, 이번에는 C/Python 구현과 회귀시험으로 반영했다.
+
+[ADR-009](adr/009-ota-native-image-alignment.md)에 따라 `CVOTA002`/header2/signed
+manifest2로 구분한다. 작은 prefix 이후 각 native image를64KiB에 정렬하며 빈 공간은
+0만 허용한다. C body는 prefix 실제 길이부터 chunk를 읽어 padding을 검사하고,
+image hash에서는 제외한다.64KiB RAM buffer·별도 ESP parser·Flash writer는 없다.
+native metadata/Flash layout version은 바꾸지 않았다. AGENTS의 단순화 원칙을 유지한다.
+
+기존 payload 모든 byte 변이/절단, 단일·역순·최대 image, provider/cleanup/reentry
+시험을 유지했다. padding 양 끝과4KiB 경계±1,64KiB 길이±1, 구버전/미래 버전,
+완료 뒤 추가 byte를 보강했다. Python assembler 결과를 독립 padding fixture와
+대조하고 같은 byte열을 C stream에 넣었다. padding 전체에 대한 전수 변이로
+표시하지 않는다. 마지막 추가 시험은 probe의 scenario 상한이7인 탓에 중단됐고
+Debug129/131과 ASan probe exit1을 확인했다. 새 scenario8을 명시적으로 허용한 뒤
+아래 전체 검증을 재실행했다. 해당 실패를 firmware 결함이나 PASS로 기록하지 않는다.
+
+- Windows strict build 뒤 Host Debug131/131(37.14s), Release131/131(24.64s).
+  로그: `build/ota-alignment-debug.log`, `build/ota-alignment-release.log`.
+- body 모형1696건, Windows 실제 P256+SHA-2561702건. typed manifest1437/1440건,
+  실제 P256 prefix232건, CBOR11989건, floor3847건과 STM native CNG2285건도 통과.
+- WSL clang21 ASan/UBSan으로 현재 body1696건, typed manifest1437건과 envelope
+  경계 C 시험 통과. `build/ota-alignment.profdata`는 이 세 실행의 profile만 합쳤다.
+  body.c: 함수10/10·행219/219·분기92/92. envelope.c: 함수3/3·행80/89·분기32/38.
+  manifest.c: 함수16/16·행377/402·분기216/240. 이전 profile 수치를 합산하지 않았다.
+- Cortex-M4 GCC15.3 freestanding/strict object compile 통과. body의 보고된 frame은
+  open40B/feed56B, helper8~16B이며 전체 call-chain/SDK stack 측정은 아니다.
+- `python -B tools/generate_boards.py --check`, document links328문서/1347target,
+  plan49task 검증 통과. 전체 host에는 SDK config negative와 generated drift도 포함된다.
+- Doxygen1.18/Sphinx9.1 strict build 통과. 추출71개는 기존 public API 범위이며
+  private OTA header까지 자동 문서화했다고 주장하지 않는다.
+- firmware source SHA-256은
+  `18263a9cc9035e7b5601cd3532df3e934c75e97b7172a88e3bbc00a9ae42f5bb`다.
+  T103의 합성 JSONL5행과 합성 helper 기대 hash만 동기화했다. 물리 evidence가 아니다.
+
+새 source의 CI와 최종 target 통합·artifact/hash/warning 감사, T-007 최종 독립2인
+리뷰는 남아 있다. 다음은 정렬된 staging에서 SDK native verifier·signed metadata를
+연결하는 작업이다. 실제 eFuse/Flash/board/HIL은 NOT_RUN, 차량 CAN TX는 NO-GO다.
+T-007/PR을 완료·ready·merge하지 않았으며 다른 worktree의 사용자 변경을 보존했다.
+
 ## 2026-09-13 (codex, ESP native SDK 재사용의 정렬 제약 확인)
 
 `5b3a711` clean 기준에서 ESP-IDF6.0.3 source와 실제 CI image를 조사했다.

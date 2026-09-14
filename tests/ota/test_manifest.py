@@ -10,14 +10,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "ota"))
 from cbor import CborError, Status, encode_document
-from envelope import HEADER, MAGIC
+from envelope import HEADER, MAGIC, FORMAT_VERSION, image_offset
 from manifest import IMAGE_LIMITS, check_manifest
 
 
 def fixture(role=1):
     targets = {1: (1, 2), 2: (3,), 3: (4,)}[role]
     return {
-        0: 1, 1: bytes(range(16)), 2: role, 3: "synthetic-board", 4: "synthetic-layout",
+        0: 2, 1: bytes(range(16)), 2: role, 3: "synthetic-board", 4: "synthetic-layout",
         5: "synthetic-only", 6: 7, 7: 11,
         8: [{0: target, 1: 32, 2: bytes(range(32)), 3: "test", 4: 0xFFFFFFFFFFFFFFFF,
              5: 2 if target == 2 else 1, 6: 2} for target in targets],
@@ -32,13 +32,13 @@ def make_prefix(manifest, sign, *, count=None, total=None):
     if count is None:
         count = len(images) if type(images) is list else 1
     if total is None:
-        total = HEADER.size + len(encoded) + 64 + sum(
-            image.get(1, 32) if type(image) is dict and type(image.get(1, 32)) is int and
-            0 <= image.get(1, 32) <= 0xFFFFFFFF else 32 for image in images
-        ) if type(images) is list else HEADER.size + len(encoded) + 96
+        total = HEADER.size + len(encoded) + 64
+        for image in images if type(images) is list else [{1: 32}]:
+            length = image.get(1, 32) if type(image) is dict else 32
+            total = image_offset(total) + (length if type(length) is int and 0 <= length <= 0xFFFFFFFF else 32)
     # 총길이 자체 overflow 사례는 header의 표현 범위 안에서 별도로 검증한다.
     total = min(total, 0xFFFFFFFF)
-    return HEADER.pack(MAGIC, 1, HEADER.size, len(encoded), 64, count, total) + encoded + sign(encoded)
+    return HEADER.pack(MAGIC, FORMAT_VERSION, HEADER.size, len(encoded), 64, count, total) + encoded + sign(encoded)
 
 
 def cases(role, sign):
@@ -65,7 +65,8 @@ def cases(role, sign):
     for field in (0, 2, 6, 7):
         mutate(f"integer-overflow-{field}", [field], 1 << 32)
         mutate(f"integer-type-{field}", [field], "1", Status.MALFORMED)
-    mutate("wrong-version", [0], 2, Status.UNSUPPORTED_VERSION)
+    mutate("legacy-version", [0], 1, Status.UNSUPPORTED_VERSION)
+    mutate("future-version", [0], 3, Status.UNSUPPORTED_VERSION)
     for value in (0, 4, 0xFFFFFFFF):
         mutate(f"invalid-role-{value}", [2], value, Status.MALFORMED)
     for field, value in ((2, 2 if role == 1 else 1), (3, "other"), (4, "other"), (6, 8), (7, 12)):
@@ -89,7 +90,7 @@ def cases(role, sign):
             mutate(f"target-{index}-{target}", [8, index, 0], target, Status.MALFORMED)
         wrong_target = 4 if role != 3 else 3
         mutate(f"wrong-target-{index}", [8, index, 0], wrong_target, Status.MALFORMED)
-        for length in (0, 1, IMAGE_LIMITS[image[0]], IMAGE_LIMITS[image[0]] + 1, 0xFFFFFFFF, 1 << 32):
+        for length in (0, 1, 65535, 65536, 65537, IMAGE_LIMITS[image[0]], IMAGE_LIMITS[image[0]] + 1, 0xFFFFFFFF, 1 << 32):
             mutate(f"length-{index}-{length}", [8, index, 1], length)
         for length in (0, 31, 33):
             mutate(f"digest-{index}-{length}", [8, index, 2], bytes(length), Status.MALFORMED)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from cbor import CborError, Status
-from envelope import HEADER, check_prefix
+from envelope import HEADER, FORMAT_VERSION, check_prefix, image_offset
 
 TEXT_MAX = 63
 COMBINATIONS_MAX = 16
@@ -47,7 +47,7 @@ def check_manifest(data: bytes, identity: tuple, verify) -> dict:
     """
     manifest = check_prefix(data, verify)
     _map(manifest, 12)
-    if _uint(manifest[0]) != 1:
+    if _uint(manifest[0]) != FORMAT_VERSION:
         _reject(Status.UNSUPPORTED_VERSION)
     if type(manifest[1]) is not bytes or len(manifest[1]) != 16:
         _reject()
@@ -106,6 +106,7 @@ def check_manifest(data: bytes, identity: tuple, verify) -> dict:
     offsets = []
     seen = set()
     for image in images:
+        offset = image_offset(offset)
         target, length = image[0], image[1]
         abi_low, abi_high = compatibility[1 if target == 2 else 0]
         if (target not in ROLE_TARGETS[role] or length == 0 or

@@ -10,7 +10,6 @@
 #define ENVELOPE_SIGNATURE_SIZE_OFFSET (16U)
 #define ENVELOPE_IMAGE_COUNT_OFFSET (18U)
 #define ENVELOPE_TOTAL_SIZE_OFFSET (20U)
-#define ENVELOPE_VERSION (1U)
 #define BYTE_BITS (8U)
 
 static uint16_t envelope_u16(const uint8_t *bytes)
@@ -29,7 +28,7 @@ canview_status_t canview_ota_envelope_check(
     const uint8_t *prefix, size_t size, canview_ota_manifest_verify_fn verify,
     void *context, canview_ota_envelope_t *out)
 {
-    static const uint8_t magic[] = {'C', 'V', 'O', 'T', 'A', '0', '0', '1'};
+    static const uint8_t magic[] = {'C', 'V', 'O', 'T', 'A', '0', '0', '2'};
     canview_ota_envelope_t candidate = {0};
     canview_status_t status;
     uint32_t manifest_size;
@@ -56,7 +55,7 @@ canview_status_t canview_ota_envelope_check(
     {
         return CANVIEW_MALFORMED;
     }
-    if (envelope_u16(prefix + ENVELOPE_VERSION_OFFSET) != ENVELOPE_VERSION)
+    if (envelope_u16(prefix + ENVELOPE_VERSION_OFFSET) != CANVIEW_OTA_ENVELOPE_VERSION)
     {
         return CANVIEW_UNSUPPORTED_VERSION;
     }
@@ -82,9 +81,12 @@ canview_status_t canview_ota_envelope_check(
     }
     candidate.declared_image_count = envelope_u16(prefix + ENVELOPE_IMAGE_COUNT_OFFSET);
     candidate.declared_total_size = envelope_u32(prefix + ENVELOPE_TOTAL_SIZE_OFFSET);
+    /* expected_size는 PREFIX_MAX로 제한되어 정렬 덧셈이 넘치지 않는다. */
+    candidate.images_offset = ((expected_size + CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT - 1U) /
+        CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT) * CANVIEW_OTA_ENVELOPE_IMAGE_ALIGNMENT;
     if (candidate.declared_image_count == 0U ||
         candidate.declared_image_count > CANVIEW_OTA_ENVELOPE_IMAGE_MAX ||
-        candidate.declared_total_size < expected_size + candidate.declared_image_count)
+        candidate.declared_total_size < candidate.images_offset + candidate.declared_image_count)
     {
         return CANVIEW_MALFORMED;
     }
@@ -94,7 +96,6 @@ canview_status_t canview_ota_envelope_check(
     }
     candidate.manifest_offset = CANVIEW_OTA_ENVELOPE_HEADER_BYTES;
     candidate.manifest_size = manifest_size;
-    candidate.images_offset = expected_size;
     status = canview_ota_cbor_validate(prefix + candidate.manifest_offset, candidate.manifest_size);
     if (status != CANVIEW_OK)
     {
