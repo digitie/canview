@@ -1,5 +1,33 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, 현재 PR merge 후 일시중지 범위 확정)
+
+사용자의 "지금 작업까지만 머지하고 작업 일시중지", "완료시키고 머지 후 일시중지"를
+현재 PR #35 구현분의 검증·merge 요청으로 적용한다. 앞선 범위 질문을 이유로 계속
+대기하지 않는다. 전체 T-007 수용 기준을 축소하거나 완료로 바꾸지 않으며, 남은
+packager/정상 OTA 통합과 다음 task는 재개 요청 전 시작하지 않는다.
+review 원본은 그대로 보존하고 현재 상태/후속 작업 안내만 갱신했다.
+현재 target CI 및 review 기록 반영 뒤 CI와 artifact 감사를 마친 다음 merge한다.
+physical/HIL NOT_RUN, 차량 CAN TX NO-GO는 유지한다.
+
+## 2026-09-15 (codex, 현재 구현분 post-fix 독립 리뷰 closure)
+
+`63197e3`를 같은 reviewer2명에게 object-only로 재검토시켰다. 요청·submission ID·시각과
+두 원본을 [post-fix 기록](reviews/adversarial/2026-09-15-T-007-current-post.md)에 연결했다.
+A는 정적 PASS, B는 CI/artifact 조건부 CONDITIONAL이며 네 finding은 모두 FIXED,
+새 P0/P1/P2/P3는 없다. B의 CONDITIONAL을 PASS로 변경하지 않았다. 양 원본 보존 후
+결과를 종합하고 두 reviewer 실행을 종료했다. 이번 변경은 review/상태 기록뿐이다.
+
+CI34908276012는23:25 UTC 확인 시5/6 성공이고 target은 실행 중이었다. Windows artifact를
+내려받아 Debug/Release140 Passed/0 Failed, body mock1702/CNG1708, host-sim12 PASS와
+commit/source identity를 확인했다. 실제 MCUboot CNG 시험은 이번 실행2283건이며 DER 길이에
+따라 건수가 달라진다. 정확한 log digest와 scope는 post-fix 기록에 있다. Node/Git 경고와
+예상 argparse 음성시험 출력을 포함한 전체 CI를 warning0으로 표시하지 않는다.
+
+현재 source 결함 리뷰는 닫혔지만 target artifact/source/hash 감사와 기록 반영 후 CI,
+사용자의 완료·merge 범위 답변은 남아 있다. T-007 전체 acceptance를 완료로 바꾸지 않았고
+추가 기능/다음 task는 시작하지 않는다. physical/HIL NOT_RUN, 차량 CAN TX NO-GO다.
+
 ## 2026-09-15 (codex, 현재 구현분 reviewer finding 수정)
 
 `21909e5` 기준 A/B 원본을 모두 보존했다. 각각 CONDITIONAL이며 P0/P1 없음,

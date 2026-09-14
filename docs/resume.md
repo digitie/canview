@@ -5,8 +5,8 @@
 2026-09-15, [T-007 OTA-01](tasks/T-007-ota-container.md)은 `IN_PROGRESS`다.
 
 사용자는 현재 작업을 완료·merge한 뒤 일시중지를 요청했다. 다음 task를 시작하지 않는다.
-T-007 전체 완성인지 현재 구현분의 review/CI closure인지 확인 질문은 답변 대기 중이다.
-추가 기능 구현과 merge는 보류하고, 어느 범위에도 필요한 현재 candidate의 독립 리뷰·CI를 확인한다.
+"지금 작업까지만 머지" 요청에 따라 현재 PR #35 구현분의 review/CI closure를 마무리한다.
+전체 T-007의 남은 기능은 추가하지 않는다. 현재 구현분 검증 후 merge하고 일시중지한다.
 
 - worktree: `F:/dev/canview-wt/t007-ota-container`
 - branch: `codex/t007-ota-container`
@@ -74,10 +74,15 @@ A `01a0a229-5363-7f61-a607-ecae1f0a4ff8`, B `01a0a229-545f-7fc0-a90a-240470bb120
 요청 원문은 [A](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-a.md)와
 [B](reviews/adversarial/evidence/2026-09-15-T-007-current-reviewer-b.md)에 있다.
 원본은 보존했고 P0/P1 없음, P2 두 건과 공통 문서 P3를 수정했다.
-[통합 기록](reviews/adversarial/2026-09-15-T-007-current.md)의 원 reviewer 재확인과
-post-fix CI/target artifact 감사를 마치기 전 merge하지 않는다. 전체 T-007 미완료는 유지한다.
+`63197e3` [post-fix 재검토](reviews/adversarial/2026-09-15-T-007-current-post.md)에서
+A 정적 PASS·B CONDITIONAL, 네 finding 모두 FIXED·새 finding 없음으로 확인됐다.
+원본을 보존하고 두 reviewer 실행을 종료했다. 같은 source의 CI34908276012는5/6 성공,
+target 실행 중이다. 내려받은 Host 로그140/140과 source identity를 확인했다.
+target artifact 감사와 review 기록 반영 후 CI 확인 전 merge하지 않으며 전체 T-007 미완료를 유지한다.
 
-## 다음 한 작업
+## 일시중지 후 재개할 작업
+
+아래 구현은 사용자가 재개를 요청한 뒤에만 시작한다. 이번 PR merge 범위가 아니다.
 
 schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `.cvota` packager에
 연결한다. C/Python의 기존 byte 계약은 유지했다. 작성 도구의 UNSIGNED_MANIFEST 출력은
@@ -95,7 +100,8 @@ floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통
 [OTA §7–9](architecture/ota.md)다. 이미 지정된 task이므로 backlog 전체를 다시 읽지 않는다.
 
 전체 host/sanitizer/coverage·target ELF/MAP/BIN warning0·독립 reviewer2명·
-CI/artifact 확인 전에는 T-007을 DONE으로 표시하거나 PR을 ready/merge하지 않는다.
+CI/artifact 확인 전에는 현재 PR을 ready/merge하지 않는다. 현재 구현분 merge는
+전체 T-007의 DONE이나 정상 OTA 설치 기능의 완료를 뜻하지 않는다.
 T-007의 선행 T-001과 이전 T-400 구현을 다시 하지 않는다.
 
 ## 유지할 안전 경계와 미실행 gate

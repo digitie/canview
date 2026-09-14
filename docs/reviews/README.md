@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-15 | T-007 현재 구현분 post-fix | `21909e5` → `63197e3`, 16파일 delta | 동일 A/B | [기록](adversarial/2026-09-15-T-007-current-post.md), A 정적 PASS·B CONDITIONAL; 네 finding FIXED·새 finding 없음, 현재 구현분 CI/target artifact 확인 대기 |
 | 2026-09-15 | T-007 현재 구현분 독립 리뷰 | `d229772` → `21909e5`, 82파일 | C runtime·native / schema·generator·build | [기록](adversarial/2026-09-15-T-007-current.md), A/B CONDITIONAL·P0/P1 없음; P2 두 건/P3 공통 문구 수정·원 reviewer 재확인 대기, 전체 T-007 미완료 |
 | 2026-09-13 | T-007 CBOR·단순화 원칙 checkpoint 정적 리뷰 | `490d2f8` → `6d83962`, 16파일 | C memory·자원 / oracle·CMake·문서·digest | [기록](adversarial/2026-09-13-T-007-cbor.md), A/B static PASS·finding0; 전체 T-007/서명/target/merge 승인 아님 |
 | 2026-09-09 | T-104 누락 응답 복구·B 후속 closure | `14ea3c9`/`6b33a59`, 기록 전용 | A-10 runtime / B-11·12·13 원 reviewer | [기록](adversarial/2026-09-09-T-104-04.md), B 후속 PASS; A-08 사용자 한정 면제·P1 확인 debt, A-10 P2 defer·NOT_RUN 유지 |
