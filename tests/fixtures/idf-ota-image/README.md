@@ -38,11 +38,18 @@ Flash 내용을 불변으로 유지해야 한다. adapter 자체는 mutex나 wri
 반환하는 custom168B는 서명된 원본 byte열이며 CANView role/board/layout/ABI/u64
 sequence 대조는 [공통 portable 검사기](../../../shared/ota/src/native_metadata.h)가 맡는다.
 이 fixture는 SDK version/custom 배열 크기의 drift도 compile-time에 검사하고 공통
-검사기를 실제 target에 compile/link한다. NULL negative만 호출하므로 SDK→정책 성공
-경로나 정상 장치 app integration/영속 floor 검증이 완료됐다는 뜻은 아니다.
+검사기와 Communicator BSP 연결을 실제 target에 compile/link한다. NULL negative만
+호출하므로 SDK→정책의 장치 실행이나 정상 app integration/영속 floor 완료 증거는 아니다.
 
-기존 generated bundle_stage CSV의 암호화 flag, 실제 writer·원자성·설치 상태 provider는
-후속 T-007/T-205 연결에서 대조해야 한다. 현재 factory-only board 설치를 변경하지 않았다.
+Communicator BSP는 generated board ID·고정 bundle_stage 주소/크기를 검사하고 SDK 성공
+뒤 공통 metadata를 대조한다. [BSP 모형 시험](../../ota/test_comm_ota.c)은 SDK를 모형으로
+대체하고 실제 BSP→metadata를 실행한다. 이미지 hash/RSA의 장치 실행 시험은 아니다.
+generated bundle_stage CSV에는 SDK 암호화 reader와의 일치를 위해 `encrypted`를 넣었다.
+OTA template의 복구 app label은 `recovery_app`이다. 기존 `recovery`는 SDK의
+bootloader subtype 이름과 충돌해 경고를 내므로 label만 구분했다. app/test subtype과
+각 보드 주소/크기는 그대로이며 실제 파티션 migration을 실행하지 않는다.
+실제 writer·원자성·설치 상태 provider는 후속 T-007/T-205 연결에서 대조해야 한다.
+현재 factory-only board 설치를 변경하지 않았다.
 그 전에는 이 compile fixture를 설치·복구 완료로 표시하지 않는다.
 
 Host의 [SDK 모형 시험](../../ota/test_esp_image_sdk.c)은 호출 순서·오류·범위·출력 정리

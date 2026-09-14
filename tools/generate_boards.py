@@ -176,6 +176,9 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
     if board["kind"] == "esp32s3":
         available = board["psram_bytes"] * 15 // 16 if board["psram_ecc"] else board["psram_bytes"]
         lines.append(f"#define {prefix}PSRAM_AVAILABLE_BYTES ({available}U)")
+        if "staging_size" in board["ota"]:
+            lines += [f'#define {prefix}OTA_STAGING_OFFSET ({board["ota"]["data_offset"]}U)',
+                      f'#define {prefix}OTA_STAGING_BYTES ({board["ota"]["staging_size"]}U)']
     result = {board["path"] + "/bsp/board_pins.h": "\n".join(lines + ["", "#endif", ""])}
     if board["kind"] == "esp32s3":
         flash_mb = board["flash_bytes"] // 1048576
@@ -232,11 +235,11 @@ def board_outputs(board: dict, manifest: bytes, source: bytes) -> dict[str, str]
             "ota_journal_a,0x40,0,0x23000,0x1000,", "ota_journal_b,0x40,0,0x24000,0x1000,",
             "config_a,0x40,1,0x25000,0x4000,", "config_b,0x40,1,0x29000,0x4000,",
             "provision_a,0x40,2,0x2D000,0x4000,", "provision_b,0x40,2,0x31000,0x4000,",
-            f'recovery,app,test,0x{ota["recovery_offset"]:X},0x{ota["recovery_size"]:X},',
+            f'recovery_app,app,test,0x{ota["recovery_offset"]:X},0x{ota["recovery_size"]:X},',
             f'ota_0,app,ota_0,0x{ota["slot0"]:X},0x{ota["slot_size"]:X},',
             f'ota_1,app,ota_1,0x{ota["slot1"]:X},0x{ota["slot_size"]:X},']
         if "staging_size" in ota:
-            rows += [f'bundle_stage,0x40,3,0x{ota["data_offset"]:X},0x{ota["staging_size"]:X},',
+            rows += [f'bundle_stage,0x40,3,0x{ota["data_offset"]:X},0x{ota["staging_size"]:X},encrypted',
                      f'cache,0x40,4,0x{ota["data_offset"] + ota["staging_size"]:X},0x{ota["data_size"] - ota["staging_size"]:X},']
         else:
             rows.append(f'cache,0x40,4,0x{ota["data_offset"]:X},0x{ota["data_size"]:X},')

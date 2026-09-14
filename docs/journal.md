@@ -1,5 +1,46 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, Communicator OTA BSP 읽기 검증 연결)
+
+직전 턴은 구현·push progress다. `ba10e46` clean에서 시작했다. CI `34904547650`은
+재확인 시 in_progress이며 그 부모 `69508bf`의 `34903724621` 성공을 확인했다.
+관찰 대기만으로 CI를 재시작하지 않았다. T-007/PR35는 IN_PROGRESS/Draft다.
+
+Communicator BSP `ota.c`는 외부 partition pointer/주소를 받지 않고 고정 bundle_stage를
+찾는다. generated board ID/위치/크기, COMM_ESP target과 서명 scheme, prefix 뒤 정렬된
+offset을 검사한 다음 기존 SDK 전체 hash/native 서명과 공통 metadata 대조를 호출한다.
+정상 OTA task가 호출을 직렬화하고 Flash 불변을 보장해야 하며 현재 이 owner 연결은 없다.
+새 mutex/상태기계/writer/부팅 선택은 만들지 않았다. 구조/C 스타일 스킬은 SDK 경계에,
+문서화 스킬은 기존 SDK README의 신뢰 입력·수명·미완료 범위 갱신에 적용했다.
+
+- generator에 staging 위치/크기의 BSP macro와 encrypted flag를 연결했다. 최초 공식
+  SDK partition parser 실행에서 기존 recovery label이 SDK subtype 이름과 겹치는
+  WARNING을 발견했다. 세 template의 label만 recovery_app으로 바꾼 뒤 다시 실행해
+  경고0을 확인했다. 주소/크기/app-test subtype과 factory-only sdkconfig는 불변이다.
+- `python C:/cv/esp-idf-6.0.3/components/partition_table/gen_esp32part.py --offset 0x18000
+  --flash-size 16MB firmware/communicator/esp32/partitions.ota-template.csv build/ota-communicator-esp32-partitions.bin`
+  및 Controller16MB/Bridge8MB도 성공. CI의 같은 SDK parser/warning scan에 세 검사를 추가했다.
+  partition BIN은 생성만 했으며 flash/migration하지 않았다.
+- Windows Debug139/139(34.93s), Release139/139(28.78s). 로그는
+  build/ota-comm-bsp-debug.log와 build/ota-comm-bsp-release.log다. generator10개 시험도 통과했다.
+- BSP/SDK/metadata/STM 관련9개 CTest 통과. BSP 모형은 실제 metadata 코드를 실행하고
+  SDK만 대체한다. NULL·wrong board/role/target/scheme·offset·partition 위치/크기/type·
+  SDK 오류·전체168B 변조·version 불일치를 시험했다. 모형은 실제 RSA 검증이 아니다.
+- WSL Clang21 ASan/UBSan 통과, BSP 함수1/1·행29/29·분기32/32·region66/66.
+  build/ota-comm-bsp.profdata와 build/ota-comm-bsp-asan에 해당한다.
+- 실제 SDK fixture에서 BSP/SDK/metadata 심볼을 nm으로 확인했다. build/ota-comm-bsp-idf.log
+  compiler/linker/CMake warning/error0. unsigned fixture BIN262144B SHA256
+  `df141c306db9b3b5d60b0f73ad4d6d3fe8ec5af3cfff724475b5889640b934a5`,
+  ELF4155012B `63e4d15b3cb5f2f6743a66b03daf484f04b110c24d9f263c3e7da7003357fcf4`,
+  MAP3025942B `7ea16451eb3db1a0233b41cdda25398bc84af8c75a340de1ee807dae3f5a6ec4`.
+- generated board drift 없음, 문서328개/링크1351개·plan49개 오류0. firmware source SHA256
+  `421f40a151ec0de52f6d9ad928deac78a4f9c8b9dd148632c58a983a23c71fd1`.
+  T103 합성 fixture만 동기화했다. 생성기로 생긴 내용 동일 line-ending 변경은 Git 정규화한다.
+
+다음은 body 완료→BSP 검사를 단일 OTA owner에 연결하고 실제 signed descriptor 생성과
+schema/CLI/golden을 완성하는 작업이다. 정상 target 통합·영속 policy·독립2인 리뷰는 남아
+있다. physical/HIL·장치 RSA 실행은 NOT_RUN, 차량 TX는 NO-GO다. 사용자 파일을 보존했다.
+
 ## 2026-09-15 (codex, STM/ESP native metadata 공통 대조)
 
 직전 턴은 구현·push progress였다. `69508bf` clean에서 시작했으며 부모 CI

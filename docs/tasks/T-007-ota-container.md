@@ -28,7 +28,7 @@ STM native 검사도 추가했다. 공식 MCUboot imgtool v2.4.0 생성물의 �
 서명과 protected metadata/manifest를 대조한다. 실제 CNG 교차 시험을 유지하며 앞선 비암호 모형
 ASan/UBSan2284건과 native_stm.c coverage는 함수100%·행98.14%·분기94.74%다.
 byte 변이/절단 건수는 ECDSA DER 길이에 따라 달라진다. 현재 source의 전체 Windows
-Host Debug/Release는 각각138/138 통과다. 공통 metadata 모형 ASan/UBSan과
+Host Debug/Release는 각각139/139 통과다. 공통 metadata 모형 ASan/UBSan과
 함수6/6·행60/60·분기76/76, 기존 공식 imgtool/CNG STM 회귀도 재검증했다.
 
 ESP의 [read-only SDK adapter](../../tests/fixtures/idf-ota-image/README.md)를 추가했다.
@@ -36,11 +36,16 @@ ESP의 [read-only SDK adapter](../../tests/fixtures/idf-ota-image/README.md)를 
 생성했다. 수정 후 SDK 경고0, signed 모형 ASan/UBSan과 함수·행·분기100%다.
 서명 활성/비활성·0값·다른 scheme·FPGA host6변형도 검사한다. 반환 metadata는
 기존 STM 검사와 공통화한 portable C99 함수로 role/board/layout/epoch/ABI/u64 sequence와
-ESP version을 대조한다. 정상 firmware/BSP 연결은 남아 있으며 실제 RSA 실행은 NOT_RUN이다.
+ESP version을 대조한다. Communicator BSP에서 generated board/staging 계약을 확인하고
+SDK→metadata를 연결했다. 정상 firmware/body와 단일 Flash owner 연결은 남아 있으며
+실제 RSA 실행은 NOT_RUN이다. template staging의 encrypted flag와 복구 app label도
+공식 SDK partition 도구로 대조했다. factory-only 설정/실제 파티션은 변경하지 않았다.
+BSP 연결 모형 ASan/UBSan과 함수1/1·행29/29·분기32/32를 통과했고 실제 SDK
+fixture의 BSP→SDK/metadata 함수 compile/link와 ELF/MAP/BIN 경고0도 확인했다.
 
 version floor 비교는 body 시작 전에 연결했다. 낮은 sequence/CONFLICT를 거절하며
 실제 정상 앱 증거 없이 ALREADY_INSTALLED/REPAIR_REQUIRED를 추정하지 않는다.
-영속 policy/설치 상태 provider 연결, ESP native signature/metadata 검사의 BSP 연결,
+영속 policy/설치 상태 provider 연결, ESP native 검사의 정상 OTA owner/body 연결,
 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과 실제 target
 provider/통합·최종 독립 2인 리뷰는 남아 있다. Arm object compile을 최종
 ELF/MAP/BIN gate로 대체하지 않는다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
@@ -54,7 +59,7 @@ PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. �
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
 [ADR-009](../adr/009-ota-native-image-alignment.md)의 SDK 재사용 정렬을 revision2로 구현했다.
-다음은 SDK/metadata 검사기의 BSP 연결, 정식 schema/CLI 및 실제 policy/target 연결이다.
+다음은 BSP 검사의 OTA owner/body 연결, 정식 schema/CLI 및 실제 policy/target 연결이다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 

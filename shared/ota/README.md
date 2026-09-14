@@ -292,7 +292,11 @@ sequence는 서명이 유효해도 거부한다. 성공은 영속 floor/REPAIR/a
 ESP SDK native 서명·전체 hash 성공 뒤, 같은 불변 이미지의 반환 metadata를 전달해야 한다.
 이 함수에 웹 입력 metadata만 주어 얻은 OK는 서명 증거가 아니다. `secure_version`을
 u64 release_sequence나 제조 epoch로 변환하지 않으며 epoch는 위 custom 필드에서 대조한다.
-실제 BSP의 단일 owner/Flash 불변 보장·body/provider orchestration은 후속 연결이다.
+Communicator의 [BSP 연결](../../firmware/communicator/esp32/bsp/ota.h)은 generated board ID와
+고정 `bundle_stage`의 주소/크기를 검사한 뒤 SDK→metadata를 호출한다. 입력은 인증된
+COMM_ESP descriptor와 신뢰된 provisioning identity이며 외부 partition pointer/주소를
+받지 않는다. template staging의 `encrypted` flag와 BSP 위치/크기도 generator가 소유한다.
+실제 OTA task의 단일 owner/Flash 불변 보장·body orchestration과 다른 장치 연결은 남아 있다.
 `ctest --test-dir build/host-debug -R ota-native --output-on-failure`로 공통 경계와
 기존 공식 imgtool/CNG STM 회귀시험을 실행한다.
 

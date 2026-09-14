@@ -54,6 +54,13 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-comm-ota-tests firmware/communicator/esp32/bsp/ota.c tests/ota/test_comm_ota.c)
+    target_include_directories(canview-comm-ota-tests PRIVATE firmware/communicator/esp32/bsp
+        firmware/platform/esp32s3 tests/ota shared/ota/src shared/interface)
+    target_compile_definitions(canview-comm-ota-tests PRIVATE CANVIEW_ESP_IMAGE_SDK_TEST=1)
+    target_link_libraries(canview-comm-ota-tests PRIVATE canview_ota canview_warnings)
+    add_test(NAME ota-comm-bsp COMMAND canview-comm-ota-tests)
+    set_tests_properties(ota-comm-bsp PROPERTIES TIMEOUT 30)
     add_executable(canview-ota-metadata-tests tests/ota/test_native_metadata.c)
     target_include_directories(canview-ota-metadata-tests PRIVATE shared/ota/src shared/interface)
     target_link_libraries(canview-ota-metadata-tests PRIVATE canview_ota canview_warnings)

@@ -42,7 +42,8 @@ typedef struct
     esp_image_segment_header_t segments[16];
     uint32_t segment_data[16];
 } esp_image_metadata_t;
-typedef struct { uint32_t magic_word; uint8_t unused[252]; } esp_app_desc_t;
+typedef struct { uint32_t magic_word; uint8_t unused0[12]; char version[32]; uint8_t unused1[208]; } esp_app_desc_t;
+const esp_partition_t *esp_partition_find_first(uint8_t type, uint8_t subtype, const char *label);
 const esp_partition_t *esp_partition_verify(const esp_partition_t *partition);
 bool esp_efuse_is_flash_encryption_enabled(void);
 uint32_t esp_image_bootloader_offset_get(void);

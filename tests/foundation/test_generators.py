@@ -24,6 +24,25 @@ BOARDS = load_script("generate_boards")
 
 
 class GeneratorTests(unittest.TestCase):
+    def test_staging_sdk_contract(self):
+        board = next(b for b in json.loads(BOARDS.SOURCE.read_bytes())["boards"] if b["id"] == "comm-r2-n16r8")
+        generated = BOARDS.outputs()
+        header = generated[board["path"] + "/bsp/board_pins.h"]
+        self.assertIn(f'#define CANVIEW_BOARD_OTA_STAGING_OFFSET ({board["ota"]["data_offset"]}U)', header)
+        self.assertIn(f'#define CANVIEW_BOARD_OTA_STAGING_BYTES ({board["ota"]["staging_size"]}U)', header)
+        rows = list(csv.reader(line for line in generated[board["path"] + "/partitions.ota-template.csv"].splitlines()
+                               if line and not line.startswith("#")))
+        stage = next(row for row in rows if row[0] == "bundle_stage")
+        self.assertEqual(stage[1:3], ["0x40", "3"])
+        self.assertEqual(int(stage[3], 0), board["ota"]["data_offset"])
+        self.assertEqual(int(stage[4], 0), board["ota"]["staging_size"])
+        self.assertEqual(stage[5], "encrypted")
+        for candidate in json.loads(BOARDS.SOURCE.read_bytes())["boards"]:
+            if candidate["kind"] == "esp32s3":
+                template = generated[candidate["path"] + "/partitions.ota-template.csv"]
+                self.assertIn("recovery_app,app,test,", template)
+                self.assertNotIn("\nrecovery,", template)
+
     def test_generated_files_exact(self):
         self.assertEqual(TRANSPORT.OUTPUT.read_text(encoding="utf-8"),
                          TRANSPORT.render(BOARDS.canonical(TRANSPORT.SOURCE)))

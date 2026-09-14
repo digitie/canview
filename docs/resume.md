@@ -19,7 +19,9 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 protected metadata(board/role/layout/epoch/ABI/u64 sequence)를 대조한다. SDK/부트로더
 target 연결은 아직 없다. ESP native의 read-only SDK adapter는 실제 ESP-IDF
 서명 설정으로 compile/link했다. 반환 metadata의 role/board/layout/epoch/ABI/u64
-sequence와 ESP version 대조는 기존 STM 검사와 공통화했다. 정상 BSP/body 연결은 남아 있다.
+sequence와 ESP version 대조는 기존 STM 검사와 공통화했다. Communicator BSP는 고정
+bundle_stage와 generated board 계약을 검사하고 SDK→metadata를 연결한다.
+정상 OTA task/body와 Flash 단일 owner 연결은 남아 있다.
 
 body 시작 전에 신뢰된 로컬 snapshot으로 구·신 ABI 네 조합, MCU별 boot/recovery,
 hardware capability와 config 읽기 범위를 검사한다. 미확인 snapshot은 거부하며
@@ -40,15 +42,18 @@ chunk로 검사한다. prefix buffer와 native image byte열은 그대로이며 
 floor C3847건과 STM native 시험도 유지한다. 앞선 STM native의 비암호 모형
 ASan/UBSan2284건과 함수100%·행98.14%·분기94.74%는 해당 이전 source의 기록이다.
 실제 CNG native 시험은 ECDSA DER 길이에 따라 건수가 달라진다.
-현재 source의 Windows Host Debug/Release는 각각138/138을 통과했다.
+현재 source의 Windows Host Debug/Release는 각각139/139을 통과했다.
+BSP 연결 모형 ASan/UBSan과 함수1/1·행29/29·분기32/32, 실제 SDK fixture
+ELF/MAP/BIN 경고0을 확인했다. 이는 장치에서 native 서명을 실행한 결과가 아니다.
 공통 metadata의 모형 ASan/UBSan, 함수6/6·행60/60·분기76/76도 통과했다.
 기존 공식 imgtool/CNG STM 회귀를 재실행했고, SDK fixture에서 공통 함수까지
-실제 ESP32-S3 compile/link와 경고0을 확인했다. 정상 BSP 연결은 아직 아니다.
+실제 ESP32-S3 compile/link와 경고0을 확인했다. BSP 연결도 SDK fixture에 추가했지만
+정상 OTA app 경로는 아직 아니다.
 새 ESP SDK adapter의 signed 모형 ASan/UBSan과 함수1/1·행54/54·분기70/70을 확인했다.
 실제 SDK fixture ELF/MAP/BIN도 생성했고 경고0을 확인했다. 이것은 SDK 연결/compile
 증거이며 장치에서 RSA를 실행하거나 정상 firmware 설치를 검증한 결과는 아니다.
 Cortex-M4 body object compile은 통과했지만 OTA target 통합의 증거는 아니다.
-마지막 확인된 성공 CI는 `8749529`의 `34901848402`이며, 그 결과를 이후
+마지막 확인된 성공 CI는 `69508bf`의 `34903724621`이며, 그 결과를 이후
 수정 source에 적용하지 않는다. target artifact/hash의 별도 대조도 아직 하지 않았다.
 
 [CBOR checkpoint 리뷰](reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
@@ -57,9 +62,10 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-SDK adapter와 공통 metadata 검사기를 BSP/body provider에 연결한다.
-SDK 단일 owner·Flash 불변 보장과 generated staging
-암호화 flag도 실제 연결에서 확인한다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
+Communicator BSP 검증을 body 완료 뒤의 단일 OTA owner 경로에 연결한다.
+검증 중 Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
+staging 위치/크기와 암호화 flag는 generator로 연결했고 공식 SDK partition parser로
+세 보드 template을 검사했다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
 실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
 floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통합 완료가 아니다.

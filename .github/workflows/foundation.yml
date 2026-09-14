@@ -303,6 +303,13 @@ jobs:
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
             Invoke-TargetCommand "ota-image-sdk-set-target" { idf.py -C tests/fixtures/idf-ota-image set-target esp32s3 }
             Invoke-TargetCommand "ota-image-sdk-build" { idf.py -C tests/fixtures/idf-ota-image build }
+            foreach ($otaBoard in @('communicator/esp32', 'controller', 'diagnostic-bridge')) {
+              $otaName = $otaBoard.Replace('/', '-')
+              $otaFlash = if ($otaBoard -eq 'diagnostic-bridge') { '8MB' } else { '16MB' }
+              Invoke-TargetCommand "ota-template-$otaName" {
+                python "$env:IDF_PATH/components/partition_table/gen_esp32part.py" --offset 0x18000 --flash-size $otaFlash "firmware/$otaBoard/partitions.ota-template.csv" "build/ota-$otaName-partitions.bin"
+              }
+            }
             $otaSdkConfig = Get-Content tests/fixtures/idf-ota-image/sdkconfig -Raw
             foreach ($required in @('CONFIG_SECURE_SIGNED_ON_UPDATE=y', 'CONFIG_SECURE_SIGNED_APPS_RSA_SCHEME=y')) {
               if ($otaSdkConfig -notmatch "(?m)^$required`r?$") { throw "OTA SDK signed verifier is not compiled: $required" }
