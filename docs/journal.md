@@ -1,5 +1,57 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, ESP native SDK read-only adapter 실제 빌드)
+
+`8749529` clean에서 시작했다. 앞선 정렬 구현 턴은 progress이며 동일 CI
+`34901848402`는 작업 시작 시5개 job 성공/target-firmware-windows 실행 중이었고,
+커밋 직전 재확인에서6개 job 모두 성공했다. 관찰 timeout으로 재시작하지 않았다.
+이 결과는 `8749529`에만 해당한다. T-007/PR #35는 계속 IN_PROGRESS/Draft다.
+
+`firmware/platform/esp32s3/ota_image.c`는 BSP가 준 실제 partition의 내부 Flash·범위·
+정렬·signature sector 길이를 검사한다. SDK의 DATA hash 모드로 signature sector까지
+전체 file hash를 대조하고 `esp_image_verify()` 뒤 app/custom descriptor를 읽는다.
+SDK를 재사용하므로 자체 SHA/RSA/ESP image parser와 Flash writer를 추가하지 않았다.
+signature 비활성·0값·다른 scheme·FPGA 및 bootloader alias는 fail-closed다.
+실제 Flash 암호화가 켜졌는데 staging이 암호화되지 않았으면 거절한다.
+
+문서화 스킬의 경계·소유권 계약을 [SDK fixture README](../tests/fixtures/idf-ota-image/README.md)에
+기록했다. SDK 타입은 platform/BSP에만 있다. 단일 task/Flash 불변은 caller 계약이며
+아직 정상 app orchestration에 연결되지 않았다. raw signed metadata와 CANView 정책
+대조·body provider·generated staging 암호화 flag 확인은 다음 작업이다.
+
+- SDK compile/link fixture의 실제 ELF/MAP/BIN 생성. BIN262144B,
+  ELF4141676B, MAP3019229B. `nm`으로 adapter, 전체 file hash, image verifier와
+  `esp_secure_boot_verify_sbv2_signature_block` 심볼을 확인했다.
+- `CONFIG_SECURE_SIGNED_ON_UPDATE=y`/RSA scheme의 실제 sdkconfig를 확인했다.
+  자동 signing은 꺼져 있으므로 이 BIN은 서명된 CANView 배포 이미지가 아니다.
+- 최초 SDK 빌드에서 deprecated `esp_flash_encryption_enabled()` 경고를 발견했다.
+  `esp_efuse_is_flash_encryption_enabled()`로 교체하고 재빌드 log의
+  compiler/linker/CMake warning/error0을 확인했다. 경고를 억제하지 않았다.
+- 최초 `-B ../../../build/idf-ota-image`는 기대와 달리 `F:/build/idf-ota-image`에
+  생성됐다. 이후 현재 checkout의 절대 `build/idf-ota-image` 경로로 다시 빌드했다.
+  앞선 디렉터리는 삭제/재사용하지 않았으며 아래 증거는 checkout 안의 후속 빌드다.
+- Host unsigned 시험의 사용하지 않는 `external_chip` 변수로 strict compile이
+  실패했다. 해당 변수의 선언을 실제 사용하는 signed 시험 scope로 옮긴 뒤 재검증했다.
+- Windows Debug137/137(28.42s), Release137/137(23.91s). 로그는
+  `build/ota-esp-sdk-debug.log`, `build/ota-esp-sdk-release.log`다. 새6개 SDK 설정
+  모형은 실제 adapter의 bounds·hash/SDK/read 실패·출력0·호출 순서를 검사한다.
+- WSL Clang21 signed SDK 모형 ASan/UBSan 통과. adapter 함수1/1·행54/54·분기70/70.
+  `build/ota-esp-sdk.profdata`는 해당 모형 실행이며 실제 RSA 실행 증거가 아니다.
+- SDK 로그 `build/ota-esp-idf-build-fixed.log`, BIN SHA-256
+  `ac04f8f05241f0d7caf1aaa968a7517ce3007929abacdf027fdf89a2dea7b6df`,
+  ELF `b639a8736dd1f67ca8a8b5ba8c24602a7dde776d9c173f73964bbf3c259635da`,
+  MAP `7acdd68d9f7f41864bcc685ce98e3bbcfb8ffafb5a8589bd9c702b4874af1e14`.
+  local dirty source의 compile fixture이며 CI/production artifact로 재사용하지 않는다.
+- firmware source SHA-256은
+  `f6652e2099743ab2431633ceb308bbd12605015d175b4d25f55dde6f34e2d468`.
+  T103 합성 fixture 식별자만 동기화했다. physical evidence를 수정하지 않았다.
+- CI에 실제 SDK fixture build·서명 설정 확인·ELF/MAP/BIN manifest/hash·로그 warning
+  검사를 연결했다. 기존 target18개에 probe3개를 더 보존한다. 이 새 CI는 아직 미실행이다.
+
+SDK API는 실제 빌드했으나 board에서 signature를 실행하지 않았다. physical/HIL,
+Flash/boot selector/provisioning은 NOT_RUN, 차량 TX는 NO-GO다. 최종 독립2인 review,
+정식 schema/CLI/golden, metadata 정책·정상 target integration은 미완료로 남긴다.
+
 ## 2026-09-15 (codex, OTA revision2 정렬과 순차 padding 검사)
 
 `4d99222` clean worktree에서 시작했다. PR #35는 OPEN/Draft이며 그 기준선의

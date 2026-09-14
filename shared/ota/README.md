@@ -87,6 +87,11 @@ Linux는 portable 경계 시험만 실행하며 Windows CNG 시험 성공으로 
 
 ## Typed manifest 검사 후보
 
+ESP native 검증의 SDK adapter와 실제 compile/link fixture는
+[SDK fixture 계약](../../tests/fixtures/idf-ota-image/README.md)에 있다. SDK 타입은
+platform/BSP 경계에만 두며 이 portable 모듈에 포함하지 않는다. 반환한 signed
+metadata의 CANView 정책 대조와 body/설치 provider 연결은 아직 남아 있다.
+
 `canview_ota_manifest_check()`는 기존 prefix/서명 검사를 호출한 뒤 고정 구조체를
 채운다. 범용 객체 tree나 heap 없이 필드를 순서대로 읽고 입력 pointer를 보존하지
 않는다. 실패 시 결과 전체를0으로 만든다. verify callback의 독립 context/out
