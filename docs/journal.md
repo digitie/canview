@@ -1,5 +1,41 @@
 # CANView 작업 일지
 
+## 2026-09-15 (codex, OTA schema와 서명 전 manifest 작성 도구)
+
+직전 턴은 BSP 구현·push progress다. `7b36478` clean에서 시작했고 CI `34905471810`은
+이번 재확인까지 in_progress였다. 동일 실행을 재시작하지 않았다. T-007은 IN_PROGRESS다.
+
+T-007 수용 범위와 기존 C/Python을 다시 대조했다. 정상 OTA app/owner 확대 전에 누락된
+schema와 packager 입력을 완성하는 순서로 조정했다. 기존 byte 계약을 바꾸지 않고
+schema/cvota-v2.schema.json과 protocol/schema/ota-container-v2.yaml에 기록했다.
+JSON 이름→CBOR integer key는 schema의 x-cbor-key를 재사용한다. JSON 표준 parser와
+기존 typed validator를 쓰며 범용 JSON Schema 엔진/새 암호 구현을 만들지 않았다.
+
+tools/ota/manifest_json.py는 최대32KiB UTF-8 JSON을 검증하고 서명 전 CBOR만 생성한다.
+duplicate/unknown field, float/NaN, 잘린 입력, 잘못된 hex/type/range/ABI/target 조합을
+거부한다. u64를 Python 정수로 보존하며 출력 파일은 exclusive create로 기존 파일을
+덮어쓰지 않는다. 실제 signing/native image 검증과 전체 cvota packager는 아직 남아 있다.
+UNSIGNED_MANIFEST 출력에 header·dummy signature·image bytes를 넣지 않는다.
+
+- 최초 직접 시험에서 테스트의 read_text가 Windows cp949를 사용해 한글 schema 읽기에
+  실패했다. UTF-8을 명시하고 같은 직접 명령과 CTest를 재실행해 통과했다.
+- `python -B tests/ota/test_manifest_json.py build/host-debug/canview-ota-manifest-probe.exe -v`
+  4개 unittest 통과. 각 JSON prefix 절단, role3종×sequence6종의 C 대조, schema
+  매핑/enum/header/native layout 상수와 CLI 기존 출력 보존·실패 입력 비노출을 확인했다.
+- 로컬 기존 jsonschema4.26.0의 Draft202012Validator.check_schema, 역할3종 positive,
+  newline/role/signature negative 통과. runtime/CI dependency를 추가하지 않았다.
+  새 CTest는 mapping drift와 기존 Python/C validator 대조이며 metaschema 엔진 실행은 아니다.
+- Windows strict build warning/error0, Debug140/140(30.64s), Release140/140(24.27s).
+  build/ota-schema-debug.log, build/ota-schema-release.log와 각 -build.log에 기록했다.
+- 문서328개/링크1353개·plan49개 오류0, generated board check 통과. firmware source SHA256
+  `33e89e01de8b93e58ec5aac7580fa50ab97c9e2743a5611e88296bf283608ae6`.
+  protocol schema/README 추가를 반영해 T103 합성 fixture만 동기화했다.
+
+문서화 스킬에 따라 schema/도구 책임과 검증 한계를 기존 README/OTA 정본에 연결했다.
+이번 변경에 firmware C/SDK 경로 수정은 없으며 target/sanitizer를 새로 실행한 것으로
+집계하지 않는다. 이후 전체 target CI·native signing/golden·prefix 수신/owner/영속 policy와
+독립2인 리뷰가 남았다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다. 사용자 파일은 보존했다.
+
 ## 2026-09-15 (codex, Communicator OTA BSP 읽기 검증 연결)
 
 직전 턴은 구현·push progress다. `ba10e46` clean에서 시작했다. CI `34904547650`은

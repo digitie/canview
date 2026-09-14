@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "status": "IMPLEMENTATION_CANDIDATE_NOT_RELEASE_APPROVAL",
+  "description": "기존 CVOTA002 C/Python 계약. JSON은 YAML의 부분집합으로 저장한다. 정수는 little-endian, CBOR 정수와 raw 서명은 각 표준 표현을 따른다.",
+  "json_manifest_schema": "schema/cvota-v2.schema.json",
+  "header": {
+    "size": 24,
+    "fields": [
+      ["magic", 0, 8, "CVOTA002"], ["version", 8, 2, 2], ["header_size", 10, 2, 24],
+      ["manifest_size", 12, 4, null], ["signature_size", 16, 2, 64],
+      ["image_count", 18, 2, null], ["total_size", 20, 4, null]
+    ]
+  },
+  "limits": {"manifest_bytes": 16384, "cbor_depth": 8, "cbor_items": 2048, "header_image_count": 3, "chunk_bytes": 16384, "image_alignment": 65536, "text_bytes": 64, "abi_pairs": 16},
+  "roles": {"COMMUNICATOR": 1, "CONTROLLER": 2, "BRIDGE": 3},
+  "targets": {"COMM_ESP": 1, "COMM_STM": 2, "CONTROLLER": 3, "BRIDGE": 4},
+  "role_targets": {"1": [1, 2], "2": [3], "3": [4]},
+  "image_max_bytes": {"1": 4194304, "2": 184320, "3": 4194304, "4": 2621440},
+  "image_signatures": {"ESP_SECURE_BOOT_V2": 1, "MCUBOOT_P256": 2},
+  "manifest_signature": {"algorithm": "ECDSA-P256-SHA256", "encoding": "r[32] || s[32], big-endian", "bytes": 64, "signed_bytes": "정규 CBOR manifest 전체. header/image/padding은 서명 대상이 아니므로 서명된 length/hash와 반드시 대조한다."},
+  "cbor": {"root": "map", "keys": "오름차순 unsigned integer, duplicate/unknown key 금지", "encoding": "최소 길이 definite-length, tag/float/negative/indefinite 금지", "field_mapping": "JSON schema의 x-cbor-key와 x-cbor-hex"},
+  "body": {"layout": "각 image 시작을 이전 끝에서64KiB 올림. prefix는24B+manifest+64B. 사이 padding은0, 마지막 image 뒤 padding 금지.", "offset_source": "서명된 image length와 고정 정렬만 사용한다. 입력 offset/Flash 주소/경로/URL은 없다.", "approval": "구조/hash/서명 성공과 Flash writer/PREPARED/boot selector/설치 승인은 별개다."},
+  "native_metadata": {
+    "magic": "CVIMG001", "version": 1, "size": 168,
+    "fields": [["magic",0,8],["version",8,2],["size",10,2],["role",12,4],["target",16,4],["security_epoch",20,4],["abi",24,4],["reserved_zero",28,4],["release_sequence",32,8],["board_revision",40,64],["layout_id",104,64]],
+    "strings": "1..63 printable ASCII, NUL과 잔여0",
+    "esp": "SDK .rodata_custom_desc. app.version은 별도32B/NUL 문자열이며 u64 sequence와 다르다.",
+    "stm": "MCUboot protected TLV tag0xA0. version은 native header와 major.minor.revision+build로 대조한다."
+  }
+}

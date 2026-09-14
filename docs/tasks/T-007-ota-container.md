@@ -28,7 +28,7 @@ STM native 검사도 추가했다. 공식 MCUboot imgtool v2.4.0 생성물의 �
 서명과 protected metadata/manifest를 대조한다. 실제 CNG 교차 시험을 유지하며 앞선 비암호 모형
 ASan/UBSan2284건과 native_stm.c coverage는 함수100%·행98.14%·분기94.74%다.
 byte 변이/절단 건수는 ECDSA DER 길이에 따라 달라진다. 현재 source의 전체 Windows
-Host Debug/Release는 각각139/139 통과다. 공통 metadata 모형 ASan/UBSan과
+Host Debug/Release는 각각140/140 통과다. 공통 metadata 모형 ASan/UBSan과
 함수6/6·행60/60·분기76/76, 기존 공식 imgtool/CNG STM 회귀도 재검증했다.
 
 ESP의 [read-only SDK adapter](../../tests/fixtures/idf-ota-image/README.md)를 추가했다.
@@ -54,12 +54,21 @@ PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. �
 
 ## 구현 접근
 
+기존 C/Python 계약을 `schema/cvota-v2.schema.json`과
+`protocol/schema/ota-container-v2.yaml`에 기록했다. JSON→CBOR 작성 도구는 기존
+typed 검사기를 재사용하며 아직 서명된 전체 package를 만들지 않는다. native signing
+도구와 연결하는 packager·signed golden이 다음 작업이다. owner/app 확장 전에 이 필수
+산출물을 완성하며 정상 target·영속 policy·review gate를 생략하지 않는다.
+JSON 변환은 역할3종/u64 경계에서 기존 C typed parser와 대조했고 malformed 입력과
+CLI 출력 보존을 시험했다. JSON Schema metaschema는 로컬 jsonschema4.26.0으로 확인했다.
+CI의 새 CTest는 추가 dependency 없이 schema mapping·기존 validator·C 대조를 검사한다.
+
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
 [ADR-009](../adr/009-ota-native-image-alignment.md)의 SDK 재사용 정렬을 revision2로 구현했다.
-다음은 BSP 검사의 OTA owner/body 연결, 정식 schema/CLI 및 실제 policy/target 연결이다.
+다음은 native image signing과 결합한 packager, 이어 BSP 검사의 OTA owner/body와 실제 policy/target 연결이다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 
@@ -84,7 +93,8 @@ OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 �
 
 ## 예상 변경 파일
 
-아래는 이 task가 생성·확정할 미래 산출물이다. 경로가 아직 없다는 사실을 검증 통과로 해석하지 않는다.
+아래 schema 파일은 생성했지만 최종 리뷰 전 구현 후보다. 파일 존재만으로 수용 기준
+또는 실제 target 연결이 완료됐다고 해석하지 않는다.
 
 ```text
 schema/cvota-v2.schema.json

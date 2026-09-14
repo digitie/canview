@@ -5,6 +5,29 @@
 완전한 `.cvota` verifier가 아니다.
 SDK/HAL/RTOS·heap·전역 가변 상태·ISR·Flash writer 의존성은 없다.
 
+## Schema와 서명 전 JSON 입력
+
+[wire 계약](../../protocol/schema/ota-container-v2.yaml)은 기존 C/Python의 CVOTA002
+header·정렬·enum·native metadata 배정을 기록한다. [JSON schema](../../schema/cvota-v2.schema.json)는
+packager 작성 입력이며 wire JSON이 아니다. `x-cbor-key` 순서로 integer-key map을 만들고
+package_id/sha256의 소문자 hex를 CBOR byte string으로 변환한다. JSON schema는 기본
+구조·범위를 기술하며 ABI 교차 제약·중복 target·총길이는 기존 typed 검사기가 맡는다.
+JSON 숫자는 정수 literal만 허용한다. 소수/지수 표현과 NaN/Infinity를 거부하며
+u64를 문자열이나 JavaScript Number로 변환하지 않는다.
+
+서명 전 CBOR는 다음 명령으로 생성한다. Python 표준 JSON parser와 기존 typed
+검사를 재사용하며 새 JSON Schema 엔진이나 암호 구현을 추가하지 않았다.
+
+```powershell
+python -B tools/ota/manifest_json.py input.json output.cbor
+```
+
+입력은 최대32KiB UTF-8이며 duplicate/unknown key, 경로/URL/Flash 주소 필드를 허용하지
+않는다. 출력은 최대16KiB CBOR이고 기존 파일을 덮어쓰지 않는다. 성공 메시지의
+`UNSIGNED_MANIFEST`는 인증·native image/hash 검증이나 완전한 `.cvota` 생성이 아니다.
+다음 packager 단계에서 실제 native image 검증·서명과 결합해야 한다. 현재 schema도
+최종 독립 리뷰 전 구현 후보이며 배포 승인을 뜻하지 않는다.
+
 ## Head 검사
 
 - 입력은 호출 동안만 빌리고 저장하지 않는다. output과 입력은 겹치면 안 된다.
@@ -270,7 +293,7 @@ reader·SDK provider·T-107 bootloader 연결은 아직 없다. vector/부팅 �
 vendor protected TLV(tag `0x00A0`)를 사용한다. 내부168B metadata 후보는 다음과 같다.
 ESP에는 SDK의 `.rodata_custom_desc`에서 같은 정보를 읽고 공통 검사기로 대조한다.
 실제 이미지에 descriptor를 생성·삽입하는 packager/target 연결은 아직 없다.
-아래 배정은 최종 machine-readable schema/ADR 동결 전이다.
+아래 배정은 wire schema에 기록했으며 최종 독립 리뷰 전 구현 후보다.
 
 | offset | 내용 |
 |---|---|

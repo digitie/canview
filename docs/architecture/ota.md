@@ -200,6 +200,11 @@ staging 시작도64KiB 정렬이어야 한다. prefix buffer를64KiB로 키우�
 
 정규화된 CBOR manifest의 정확한 byte열을 서명하고, duplicate key·unknown critical field·길이 overflow·중첩 제한 초과를 거절한다. 컨테이너 header의 lengths와 signed lengths를 비교한다. 역할/board/layout/호환성 검증 뒤에만 비활성 슬롯을 지우고, 전체 image 검증 전에는 부팅 표시를 변경하지 않는다. unsigned CRC는 전송 손상 검사일 뿐 인증이 아니다.
 
+기존 revision2 byte 배정은 [wire schema](../../protocol/schema/ota-container-v2.yaml),
+packager 작성용 JSON 표현은 [JSON schema](../../schema/cvota-v2.schema.json)에 기록한다.
+작성용 JSON은 차량 wire/API가 아니며 서명 전 CBOR 변환 성공도 package 인증이 아니다.
+schema 파일 존재와 최종 독립 리뷰·native image/target 통합 완료를 구분한다.
+
 ESP는 production Secure Boot V2 + Flash Encryption, STM은 부트로더 내 공개키로 ECDSA-P256/SHA-256 image 검증을 기본으로 한다. manifest 서명은 ECDSA-P256으로 별도 검증한다. STM은 ESP의 검증 결과만 신뢰하지 않고 자기 signed protected TLV의 board/role/ABI와 image hash·서명을 다시 검사한다. Flash 주소는 bootloader의 enum→고정 map으로만 결정한다. private signing key를 장치·웹·Git에 넣지 않는다. dev와 production root는 분리하고 Bridge 서명키로 Communicator 이미지를 허용하지 않는다.
 
 `test` 복구 앱과 ESP 표준 hardware anti-rollback은 함께 사용할 수 없다. 따라서 이번 availability 우선 baseline은 `CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK=n`이며 OTA에서 eFuse security epoch/키 폐기를 변경하지 않는다. 같은 security epoch 내에서 이전 정상 앱 복귀를 허용하고, 일반 웹의 자의적 downgrade는 signed manifest 정책으로 제한한다. 이는 물리 공격까지 막는 단조 hardware anti-rollback 보장이 아니다. 강한 anti-rollback이 요구되면 test 복구 구조·키 관리까지 별도 재설계해야 한다. [v6.0.3 test Kconfig](https://github.com/espressif/esp-idf/blob/v6.0.3/components/bootloader/Kconfig.projbuild), [v6.0.3 rollback Kconfig](https://github.com/espressif/esp-idf/blob/v6.0.3/components/bootloader/Kconfig.app_rollback)

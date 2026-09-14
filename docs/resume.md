@@ -42,7 +42,9 @@ chunk로 검사한다. prefix buffer와 native image byte열은 그대로이며 
 floor C3847건과 STM native 시험도 유지한다. 앞선 STM native의 비암호 모형
 ASan/UBSan2284건과 함수100%·행98.14%·분기94.74%는 해당 이전 source의 기록이다.
 실제 CNG native 시험은 ECDSA DER 길이에 따라 건수가 달라진다.
-현재 source의 Windows Host Debug/Release는 각각139/139을 통과했다.
+현재 source의 Windows Host Debug/Release는 각각140/140을 통과했다.
+schema field/enum/limit drift와 JSON→CBOR→C typed parser 대조, 서명 전 CLI의
+bounded 입력·기존 출력 보존 시험을 추가했다. 이 출력은 완전한 package가 아니다.
 BSP 연결 모형 ASan/UBSan과 함수1/1·행29/29·분기32/32, 실제 SDK fixture
 ELF/MAP/BIN 경고0을 확인했다. 이는 장치에서 native 서명을 실행한 결과가 아니다.
 공통 metadata의 모형 ASan/UBSan, 함수6/6·행60/60·분기76/76도 통과했다.
@@ -62,8 +64,11 @@ PASS는 `6d83962` 범위에만 해당한다. 이후 서명/manifest 구현과 �
 
 ## 다음 한 작업
 
-Communicator BSP 검증을 body 완료 뒤의 단일 OTA owner 경로에 연결한다.
-검증 중 Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
+schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `.cvota` packager에
+연결한다. C/Python의 기존 byte 계약은 유지했다. 작성 도구의 UNSIGNED_MANIFEST 출력은
+서명된 package가 아니며 최종 signed golden/독립 리뷰도 아직 없다.
+그 뒤 Communicator BSP 검증을 body 완료 뒤의 단일 OTA owner 경로에 연결하고
+Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
 staging 위치/크기와 암호화 flag는 generator로 연결했고 공식 SDK partition parser로
 세 보드 template을 검사했다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
 본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과

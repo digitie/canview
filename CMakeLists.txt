@@ -115,6 +115,9 @@ if(BUILD_TESTING)
     add_test(NAME ota-envelope-boundaries COMMAND canview-ota-envelope-tests)
     set_tests_properties(ota-envelope-boundaries PROPERTIES TIMEOUT 30)
     add_executable(canview-ota-manifest-probe tests/ota/manifest_probe.c)
+    add_test(NAME ota-manifest-json COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/ota/test_manifest_json.py $<TARGET_FILE:canview-ota-manifest-probe>)
+    set_tests_properties(ota-manifest-json PROPERTIES TIMEOUT 60)
     target_include_directories(canview-ota-manifest-probe PRIVATE shared/ota/src shared/interface)
     target_link_libraries(canview-ota-manifest-probe PRIVATE canview_ota canview_warnings)
     add_test(NAME ota-manifest-differential COMMAND ${Python3_EXECUTABLE} -X utf8 -B
