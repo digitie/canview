@@ -14,11 +14,11 @@ typedef struct
 } model_pwr_t;
 typedef struct
 {
-    volatile uint32_t ACR, SR, OPTR, WRP1AR, WRP1BR, WRP2AR, WRP2BR, CR, KEYR;
+    volatile uint32_t ACR, SR, OPTR, WRP1AR, WRP1BR, WRP2AR, WRP2BR, CR, KEYR, ECCR;
 } model_flash_t;
 typedef struct
 {
-    volatile uint32_t MEMRMP;
+    volatile uint32_t MEMRMP, CFGR2;
 } model_syscfg_t;
 extern model_syscfg_t model_syscfg;
 extern uint16_t model_flash_size_kib;
@@ -49,6 +49,13 @@ extern uint16_t model_flash_size_kib;
 #define FLASH_ACR_ICRST UINT32_C(0x800)
 #define FLASH_ACR_DCRST UINT32_C(0x1000)
 #define FLASH_OPTR_RDP UINT32_C(0xff)
+#define FLASH_ECCR_ECCIE UINT32_C(0x1000000)
+#define FLASH_ECCR_ECCC2 UINT32_C(0x10000000)
+#define FLASH_ECCR_ECCD2 UINT32_C(0x20000000)
+#define FLASH_ECCR_ECCC UINT32_C(0x40000000)
+#define FLASH_ECCR_ECCD UINT32_C(0x80000000)
+#define RCC_CIFR_LSECSSF UINT32_C(0x200)
+#define SYSCFG_CFGR2_SPF UINT32_C(0x100)
 #define FLASH_OPTR_DBANK UINT32_C(0x400000)
 #define FLASH_OPTR_BFB2 UINT32_C(0x100000)
 #define FLASH_OPTR_NRST_MODE UINT32_C(0x30000000)
@@ -179,12 +186,18 @@ extern uint32_t model_ipsr, model_control;
 #define SCB (&model_scb)
 #define __get_IPSR() (model_ipsr)
 #define __get_CONTROL() (model_control)
+#if defined(CANVIEW_STM_FLASH_READ_TEST)
+void canview_stm_read_test_barrier(void);
+#define __DSB() canview_stm_read_test_barrier()
+#else
 #define __DSB() ((void)0)
+#endif
 #define __ISB() ((void)0)
 uint32_t canview_stm_flash_test_load(uint32_t address);
 void canview_stm_flash_test_store(uint32_t address, uint32_t value);
 void canview_stm_flash_test_key(uint32_t value);
 void canview_stm_flash_test_clear(uint32_t value);
+void canview_stm_flash_test_ecc_clear(uint32_t value);
 void canview_stm_flash_test_start(void);
 void canview_stm_flash_test_poll(void);
 __attribute__((noreturn)) void canview_stm_flash_test_fatal(void);

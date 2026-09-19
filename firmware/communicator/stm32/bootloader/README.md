@@ -125,6 +125,35 @@ NMI와 정상/오류 cleanup을 검사한다. Arm post-build의 `check_stm32_fla
 실제 object의 두 함수·section 크기·외부 relocation0·직접 branch 범위를 확인한다.
 Debug480B/Release364B다. 이 검사는 최종 ELF의 SRAM 주소나 실제 Flash 실행을 증명하지 않는다.
 
+## G474 guarded Flash read — backend 연결 전
+
+`platform/stm32g474/flash_read.c`와 [C 계약](../interface/canview_stm_flash_read.h)은
+primary/secondary에서1..256B를 읽는다. 임시 buffer에만 읽고 ECC가 없을 때만
+호출자 buffer를 갱신한다. 단일 boot privileged MSP owner가 DMA와 다른 Flash 사용자를
+멈춘 상태에서 호출하며 ISR/RTOS/reentry는 금지한다. RDP0와 기존 BSP guard, lock,
+status/cache/ECC 상태를 먼저 확인하고 기존 오류를 임의로 지우지 않는다.
+
+- `.canview_flash_read_ram`의 read/NMI/reset 세 함수와 literal을 SRAM1/2에 복사해야 한다.
+  stack의512B 정렬 임시 vector를 VTOR에 설치하고 PRIMASK/cache를 보존·복원한다.
+  출력도 SRAM1/2여야 한다. 최종 linker 배치·복사와 전체 call-chain stack 검사는 아직이다.
+- RM0440 Rev9 p137의 DBANK1 ECCC/ECCD W1C 계약을 사용한다. 고정 CMSIS의 interrupt
+  enable 이름은 `FLASH_ECCR_ECCIE`다. ECCC도 보수적으로 INCOMPLETE 처리한다.
+  ECCD NMI는 현재 read의 실패 flag만 세우고 ECC flag를 clear한다. parsing, erase,
+  logging, queue, allocation과 watchdog feed는 하지 않는다.
+- NMI가 공유하는 armed/failed flag만 volatile이며 전역 mutable context는 없다.
+  NMI는 임시 VTOR에서 context를 얻는다. load는 유한하고 ECCD 전달 대기는 최대31회다.
+  다른 NMI/HardFault, clock/parity 동시 오류, flag clear 실패·전달 timeout은 reset 요청
+  후 fail-stop이다. 실행 시간과 실제 NMI latency는 미측정으로 HIL 대상이다.
+- ECCR 주소/은행 정보를 복구 erase 주소로 사용하지 않는다. 읽기 실패를 안전한 이미지
+  선택·recovery로 연결하는 책임은 상위 backend/MCUboot에 남는다. 현재 단일 Flash 명령의
+  program 사전 read를 이 함수가 자동 보호하지 않으며, 두 경로의 연결은 아직 미완료다.
+
+`ctest --preset host-debug -R 'stm32-flash-(read|ram)' --output-on-failure`는 전체 슬롯
+98816개32bit word, byte alignment4개×length256개, per-load ECC195개, NMI 지연31개,
+RDP256개, 범위/overflow·동시 fault·clear 실패·출력 불변을 검사한다. 실제 Arm post-build는
+세 SRAM 함수/외부 relocation0/branch 범위를 검사한다. 모형은 실제 ECC 주입이나
+예외 복귀 timing을 증명하지 않으며 physical ECC/reset/HIL은 NOT_RUN이다.
+
 ## SRAM reset 전제와 ECC errata
 
 [ES0430 Rev9, 2024-06](https://www.st.com/resource/en/errata_sheet/es0430-stm32g471xx473xx474xx483xx484xx-device-errata-stmicroelectronics.pdf)

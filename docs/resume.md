@@ -55,7 +55,11 @@ ES0430의 첫 SRAM write 손실에 대비해 기존 SDK SystemInit 앞에 최소
 ecbce7d의 parity 누락을 수정했고 실제 BIN 명령열·분기·CCM0을 검사한다. SDK 원본은 유지한다.
 ECC 오류 주소만 신뢰한 자동 erase는 금지하며 세부 근거는 위 포트 설명에 둔다.
 
-다음은 ECC-safe read와 Flash backend/SRAM linker 연결, 신뢰된 BSP identity 공급,
+bounded ECC guarded read C와 register 오류 주입 시험을 추가했다. 오류 시 출력 불변과
+임시 NMI/vector/cache 복원을 검사하지만 실제 backend에 아직 연결하지 않았다.
+세부 전제와 physical NOT_RUN은 위 포트 설명에 둔다.
+
+다음은 Flash backend/SRAM linker 연결, 신뢰된 BSP identity 공급,
 bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 

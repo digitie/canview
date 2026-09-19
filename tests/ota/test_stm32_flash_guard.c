@@ -31,9 +31,13 @@ int main(void)
 {
     valid_profile();
     CHECK(canview_boot_flash_check() == 0);
-    const model_flash_t original = model_flash;
-    const model_rcc_t original_rcc = model_rcc;
-    const model_syscfg_t original_syscfg = model_syscfg;
+    /* 단일-thread 모형 byte snapshot. MS volatile aggregate의 atomic copy는 불필요하다. */
+    unsigned char original[sizeof(model_flash)];
+    unsigned char original_rcc[sizeof(model_rcc)];
+    unsigned char original_syscfg[sizeof(model_syscfg)];
+    (void)memcpy(original, &model_flash, sizeof(original));
+    (void)memcpy(original_rcc, &model_rcc, sizeof(original_rcc));
+    (void)memcpy(original_syscfg, &model_syscfg, sizeof(original_syscfg));
     CHECK(canview_boot_flash_check() == 0);
     CHECK(memcmp(&original, &model_flash, sizeof(original)) == 0);
     CHECK(memcmp(&original_rcc, &model_rcc, sizeof(original_rcc)) == 0);

@@ -1,5 +1,50 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 bounded ECC guarded read)
+
+f3283fb에서 이어 기존 G474 platform에1..256B guarded read C를 추가했다.
+오류가 없는 staging 결과만 출력에 복사하며 ECCC/ECCD는 실패로 반환한다.
+임시 NMI는 현재 read 실패/flag clear만 담당하고 erase/복구 정책을 수행하지 않는다.
+다른 예외, 동시 clock/parity fault, clear 실패·NMI 전달 timeout은 SRAM reset/fail-stop이다.
+API 소유권·SRAM/stack/RTOS 제한은 기존 bootloader README에 통합했다.
+
+- 전체 슬롯98816word, alignment4×length256, per-load ECC195, NMI 지연31,
+  read 전후 비활성 NMI2, fatal14경로와 RDP256값·출력/보호 register 불변을 시험했다.
+- Windows Clang23.1 Host Debug156/156(93.40초), Release156/156(75.27초) 성공.
+  최종 test helper 변경 뒤 read/validator2/2도 두 구성에서 재실행했다.
+  로그: `build/t107-ecc-host-*-build-verified.log`, `build/t107-ecc-host-*-test-verified.log`.
+- Board drift0, 문서386개/링크1469개·task49개 오류0. 기본 사용자 checkout과 SDK,
+  기존 build/evidence는 보존했다.
+- 실제 Arm bench/primary Debug/Release clean ELF/MAP/BIN 생성 후 최종 register 모형
+  대조도 재실행했다. BIN51760/39768/51768/39776B, compiler/linker/CMake warning/error0.
+  read SRAM object528/436B, 외부 relocation0. 최대 개별 stack1352/1320B는 전체
+  boot call-chain budget이 아니다. 실제 CMSIS/model103개+DMAMUX2개를 대조했다.
+  로그: `build/t107-ecc-arm-*-final.log`, `build/t107-ecc-arm-*-verified.log`.
+- 공식 imgtool actual/최대 payload 서명·변조 거절 성공. signed52607/40616B,
+  최대184135/184134B, trailer2376B/reserve4096B. `build/t107-ecc-primary-*-imgtool.log`.
+- Clang21.1.8 ASan/UBSan MCUboot/command/read3/3(53.14초), 최종 test helper 변경 뒤
+  read1/1 재성공. 새 read C의 host 모형 coverage는 region272/function5/line114/branch68
+  모두100%다. 실제 MMIO·AIRCR reset·SRAM 주소 검사는 이 수치에 포함하지 않는다.
+  로그: `build/t107-ecc-sanitize-coverage-final.log`,
+  `build/t107-ecc-gcc-sanitize-coverage-verified.log`.
+- GNU15.2 Release guard/read/validator3/3 성공. SRAM 검사기는 기존 command 검사를
+  재사용하며 read 세 함수와 cbz/cbnz 영역 밖 변이도 거절한다.
+- 첫 Clang compile의 미초기화 context 주소 인자 진단은 uintptr 주소 전달로 수정했다.
+  첫 Arm compile의 RM/CMSIS enable 이름 차이는 실제 `FLASH_ECCR_ECCIE`로 수정했다.
+  register 모형 확장으로 Windows aggregate snapshot이 `__atomic_load`를 요구한 것은
+  테스트용 byte snapshot으로 고쳤다. GCC longjmp loop 진단은 setjmp를 별도 test helper로
+  분리해 해결했다. 경고 억제·추가 atomic library·SDK 원본 변경은 하지 않았다.
+- 중간 전체 host 실행 중 barrier fault 시험을 추가해 합성 source identity가 바뀌었다.
+  그 실행의 python-unit 실패는 성공으로 쓰지 않고, digest를 갱신해 고정 source에서
+  전체 host를 재실행했다. 최종 fixture digest는
+  `c83d2035a06e14f5bacf71cac85647f8586a286cbba74813acce7128ff933270`이다.
+
+기존 f3283fb CI35434965672는6/6 success/completed를 확인했다. 새 candidate CI와
+최종 artifact/hash 감사·독립2인 T-107 review를 대신하지 않는다. Flash IO backend,
+최종 SRAM linker/copy, trusted BSP identity, boot executable/handoff, T-205 정책은
+미완료다. Physical ECC/NMI latency·전원/reset/HIL/provisioning은 NOT_RUN이며 차량
+TX는 NO-GO, PR37/T-107은 Draft/IN_PROGRESS를 유지한다.
+
 ## 2026-09-19 (codex, T-107 startup parity 누락 수정)
 
 ecbce7d의 후속 source 검토에서 P1 수준의 전제 누락을 발견했다. 고정 CubeG4

@@ -106,6 +106,10 @@ ES0430 Rev9의 SRAM reset errata를 반영한 앱 startup wrapper와 실제 BIN 
 
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.
 
+bounded ECC guarded read의 C/register 모형·Arm archive를 추가했다.1..256B staging과
+read 전용 NMI는 [포트 설명](../../firmware/communicator/stm32/bootloader/README.md#g474-guarded-flash-read--backend-연결-전)을 따른다.
+실제 IO backend·복구 정책·SRAM linker와 물리 ECC/NMI 검증이 남아 AC는 체크하지 않는다.
+
 ## 고정 결정
 
 [OTA §5·7·9](../architecture/ota.md)의 DBANK=1, 2 KiB page, 8B write/ECC, swap using offset, 별도 MCUboot trailer를 유지한다. MCUboot 정확한 version/commit과 라이선스를 고정한다. BFB2 bank 전환·scratch 재설계는 하지 않는다.
