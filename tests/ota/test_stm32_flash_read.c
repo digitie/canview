@@ -18,6 +18,7 @@ uint32_t model_ipsr, model_control;
 static uint32_t mask, loads, clears, polls, fault_at, fault_flags, delivery_delay, exception_index;
 static uint32_t concurrent_clock_fault, concurrent_parity_fault;
 static uint32_t barriers, barrier_fault_at;
+static uint32_t load_error_flags;
 static bool ram_available, sticky, fatal_expected, nested;
 static jmp_buf fatal_jump;
 #define CHECK(test) do { if (!(test)) { \
@@ -42,7 +43,7 @@ static void critical_check(void)
     for (size_t index = 3U; index < 128U; ++index) { REQUIRE(table[index] == table[1]); }
     REQUIRE((FLASH->ACR & (FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_ICRST | FLASH_ACR_DCRST)) == 0U);
     REQUIRE(FLASH->CR == (FLASH_CR_LOCK | FLASH_CR_OPTLOCK));
-    REQUIRE(FLASH->KEYR == 0U && FLASH->SR == 0U);
+    REQUIRE(FLASH->KEYR == 0U && (FLASH->SR & ~load_error_flags) == 0U);
 }
 
 static void exception(void)
@@ -77,6 +78,7 @@ uint32_t canview_stm_flash_test_load(uint32_t address)
     }
     if (++loads == fault_at)
     {
+        FLASH->SR |= load_error_flags;
         FLASH->ECCR |= fault_flags;
         RCC->CIFR |= concurrent_clock_fault;
         SYSCFG->CFGR2 |= concurrent_parity_fault;
@@ -127,6 +129,7 @@ static void reset_model(void)
     concurrent_clock_fault = concurrent_parity_fault = 0U;
     barriers = 0U;
     barrier_fault_at = UINT32_MAX;
+    load_error_flags = 0U;
     exception_index = 2U;
     ram_available = true;
     sticky = fatal_expected = nested = false;
@@ -249,7 +252,26 @@ int main(void)
         CHECK(canview_stm_flash_read(CANVIEW_STM_PRIMARY_ADDRESS, output, 4U) == CANVIEW_INCOMPLETE);
         CHECK(polls == delay && returned_clean() == 0);
     }
-    for (uint32_t failure = 0U; failure < 12U; ++failure)
+    for (uint32_t index = 1U; index <= 65U; ++index)
+    {
+        reset_model();
+        fault_at = index;
+        load_error_flags = FLASH_SR_RDERR;
+        delivery_delay = UINT32_MAX; /* SR 단독 오류에는 ECC NMI를 만들지 않는다. */
+        memset(output, 0x5a, sizeof(output));
+        CHECK(canview_stm_flash_read(CANVIEW_STM_PRIMARY_ADDRESS + 1U, output, 256U) == CANVIEW_INCOMPLETE);
+        CHECK(loads == index && FLASH->SR == FLASH_SR_RDERR && clears == 0U && mask == 0U);
+        CHECK(SCB->VTOR == ORIGINAL_VECTOR && FLASH->ACR == ORIGINAL_CACHE);
+        for (size_t byte = 0U; byte < sizeof(output); ++byte) { CHECK(output[byte] == 0x5aU); }
+    }
+    reset_model();
+    fault_at = 1U;
+    load_error_flags = FLASH_SR_RDERR;
+    delivery_delay = UINT32_MAX;
+    CHECK(canview_stm_flash_read(CANVIEW_STM_POLICY_A_ADDRESS - 1U, output, 1U) == CANVIEW_INCOMPLETE);
+    CHECK(FLASH->SR == FLASH_SR_RDERR && loads == 1U);
+    for (size_t byte = 0U; byte < sizeof(output); ++byte) { CHECK(output[byte] == 0x5aU); }
+    for (uint32_t failure = 0U; failure < 13U; ++failure)
     {
         reset_model();
         fault_at = 1U;
@@ -267,6 +289,12 @@ int main(void)
         if (failure == 9U) { fault_flags = FLASH_ECCR_ECCC; sticky = true; }
         if (failure == 10U) { fault_flags = FLASH_ECCR_ECCC | FLASH_ECCR_ECCC2; }
         if (failure == 11U) { fault_flags = FLASH_ECCR_ECCC | FLASH_ECCR_ECCD2; }
+        if (failure == 12U)
+        {
+            fault_flags = 0U;
+            load_error_flags = FLASH_SR_BSY;
+            delivery_delay = UINT32_MAX;
+        }
         memset(output, 0x5a, sizeof(output));
         CHECK(expect_fatal_read(output) == 0);
         CHECK(loads == 1U && mask == 1U);

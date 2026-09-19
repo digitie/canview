@@ -96,6 +96,10 @@ static READ_RAM canview_status_t read_execute(uint32_t address, uint8_t *stage,
             if (++polls >= READ_NMI_POLL_LIMIT) { read_fault_reset(); }
             NMI_POLL();
         }
+        const uint32_t status = FLASH->SR;
+        /* RDERR 등 load 중 발생한 오류도 성공 데이터로 전달하지 않는다. SR은 보존한다. */
+        if ((status & FLASH_SR_BSY) != 0U) { read_fault_reset(); }
+        if ((status & ~(uint32_t)FLASH_SR_EOP) != 0U) { context->failed = 1U; }
         const uint32_t flags = FLASH->ECCR;
         if ((flags & READ_ECC_RESERVED) != 0U) { read_fault_reset(); }
         if ((flags & FLASH_ECCR_ECCC) != 0U)

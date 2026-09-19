@@ -11,7 +11,8 @@
   제공하며 boot/policy/config/reserved 영역은 open할 수 없다.
 - `flash_map.c`는 descriptor 주소·범위·정렬을 검사하고 동기식 IO 세 함수에 전달한다.
   가짜 descriptor/NULL/zero/overflow/잘못된 image·slot·sector capacity를 거절한다.
-  실패 시 출력은 그대로다. getter는 성공한 open으로 얻은 descriptor만 받는 upstream
+  입력 검증 실패 시 출력은 그대로다. IO 오류의 출력·부분 변경은 아래 backend 계약을 따른다.
+  getter는 성공한 open으로 얻은 descriptor만 받는 upstream
   내부 API이며 외부 요청 API가 아니다. close는 해제할 자원이 없는 no-op이다.
 - IO는 boot 단일 owner 전용이며 ISR/task/callback 재진입을 허용하지 않는다.
   buffer는 호출 반환까지 유효하다. 기존 앱·UART·CAN에는 연결하지 않는다.
@@ -84,8 +85,8 @@ Guard 단위시험은 option16개·size65536개·WRP65536개 조합과 register 
 MCUboot 모형에도 같은 guard C를 연결해 실패 시 backend write/erase 미호출을 검사한다.
 모형의 추가 register 상수19개는 실제 Arm 빌드에서 vendor CMSIS와 compile-time 대조한다.
 
-미구현/미검증은 실제 BSP identity 공급, 생산 보호 profile 승인/실측, 실제 G474
-Flash backend 연결·최종 SRAM 배치·ECC 복구·erase stall·watchdog, 쓰기 도중 torn word/page,
+미구현/미검증은 실제 BSP identity 공급, 생산 보호 profile 승인/실측, G474
+Flash IO의 최종 boot 연결·SRAM 배치·ECC 복구·erase stall·watchdog, 쓰기 도중 torn word/page,
 boot handoff, T-205 CONFIRM_INTENT/floor 연결이다. 모형의 직접 confirm은 제품 정책
 API가 아니다. Physical/HIL·Flash·option-byte/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.
 
@@ -93,7 +94,7 @@ API가 아니다. Physical/HIL·Flash·option-byte/provisioning은 NOT_RUN, 차�
 
 `platform/stm32g474/flash_command.c`는 새 framework 없이 한 page erase와 한8B program만
 구현한다. [C 계약](../interface/canview_stm_flash_command.h)의 boot 전용 동기 호출이며
-MCUboot read/write/erase backend에는 아직 연결하지 않았다. 상위 owner는 DMA·주변장치를
+MCUboot IO primitive 연결은 아래 `flash_io.c`이며 최종 boot 실행은 아직이다. 상위 owner는 DMA·주변장치를
 정지하고 IWDG/DWT를 먼저 준비해야 한다. ISR·RTOS·callback 재진입은 허용하지 않는다.
 
 - BSP guard와 RDP0(0xAA), lock/option lock, 오류/진행 중 명령을 확인한다. 다른 RDP는
@@ -127,6 +128,9 @@ Debug480B/Release364B다. 이 검사는 최종 ELF의 SRAM 주소나 실제 Flas
 
 ## G474 guarded Flash read — backend 연결 전
 
+이 절의 read primitive는 이제 아래 IO adapter에서 호출한다. 최종 boot ELF 연결과
+실기 수용을 완료했다는 뜻은 아니다.
+
 `platform/stm32g474/flash_read.c`와 [C 계약](../interface/canview_stm_flash_read.h)은
 primary/secondary에서1..256B를 읽는다. 임시 buffer에만 읽고 ECC가 없을 때만
 호출자 buffer를 갱신한다. 단일 boot privileged MSP owner가 DMA와 다른 Flash 사용자를
@@ -138,6 +142,8 @@ status/cache/ECC 상태를 먼저 확인하고 기존 오류를 임의로 지우
   출력도 SRAM1/2여야 한다. 최종 linker 배치·복사와 전체 call-chain stack 검사는 아직이다.
 - RM0440 Rev9 p137의 DBANK1 ECCC/ECCD W1C 계약을 사용한다. 고정 CMSIS의 interrupt
   enable 이름은 `FLASH_ECCR_ECCIE`다. ECCC도 보수적으로 INCOMPLETE 처리한다.
+  각 load 이후 RDERR 등 SR 오류도 확인해 INCOMPLETE로 반환하고 SR은 보존한다.
+  예상 밖 BSY는 Flash 호출자로 돌아가지 않고 SRAM reset/fail-stop으로 처리한다.
   ECCD NMI는 현재 read의 실패 flag만 세우고 ECC flag를 clear한다. parsing, erase,
   logging, queue, allocation과 watchdog feed는 하지 않는다.
 - NMI가 공유하는 armed/failed flag만 volatile이며 전역 mutable context는 없다.
@@ -146,13 +152,38 @@ status/cache/ECC 상태를 먼저 확인하고 기존 오류를 임의로 지우
   후 fail-stop이다. 실행 시간과 실제 NMI latency는 미측정으로 HIL 대상이다.
 - ECCR 주소/은행 정보를 복구 erase 주소로 사용하지 않는다. 읽기 실패를 안전한 이미지
   선택·recovery로 연결하는 책임은 상위 backend/MCUboot에 남는다. 현재 단일 Flash 명령의
-  program 사전 read를 이 함수가 자동 보호하지 않으며, 두 경로의 연결은 아직 미완료다.
+  program 사전 read를 이 함수가 자동 보호하지 않는다. IO adapter는 명령 전 guarded read를
+  수행하지만 그 이후 새로 생기는 하드웨어 fault의 reset/fail-stop 경계는 여전히 남는다.
 
 `ctest --preset host-debug -R 'stm32-flash-(read|ram)' --output-on-failure`는 전체 슬롯
 98816개32bit word, byte alignment4개×length256개, per-load ECC195개, NMI 지연31개,
 RDP256개, 범위/overflow·동시 fault·clear 실패·출력 불변을 검사한다. 실제 Arm post-build는
 세 SRAM 함수/외부 relocation0/branch 범위를 검사한다. 모형은 실제 ECC 주입이나
 예외 복귀 timing을 증명하지 않으며 physical ECC/reset/HIL은 NOT_RUN이다.
+
+## MCUboot IO primitive 연결 — boot executable 연결 전
+
+`platform/stm32g474/flash_io.c`는 기존 세 IO 함수만 구현한다. BSP 범위 검사를 재사용해
+primary 또는 secondary 한 슬롯 안의 요청만 받고, boot/policy/config 쓰기를 열지 않는다.
+read는256B 이하, write는8B, erase는2KiB 단위로 기존 primitive를 호출한다.
+별도 journal·swap 알고리즘·heap·가변 전역 상태를 만들지 않는다.
+
+- write는 guarded read로 erased 값을 확인하고 all-FF input은 program하지 않는다.
+  명령 성공 뒤 guarded read-back을 대조한다. 실패하면 자동 retry/erase 없이 반환한다.
+  이전 boot에서 torn word가 FF/ECC처럼 보일 때의 재개 결정은 상위 MCUboot/복구 책임이다.
+- erase는 한 page 명령 뒤256B씩 전체 page read-back이 FF인지 확인한다.
+  검증된 program/page 완료에서만 기존 progress hook을 호출한다. 이 hook 호출은
+  무조건 watchdog feed가 아니며 target 시간·진행 판정 구현은 아직이다.
+- 큰 read가 실패하면 앞선 chunk가 destination에 남을 수 있으므로 호출자는 전체 출력을
+  버려야 한다. 실패한 write/erase도 이전 단위의 효과가 남을 수 있다. API 단위 원자성을
+  약속하지 않으며, 기존 MCUboot swap/trailer와 상위 재개 정책이 이를 소유한다.
+- `stm32-flash-io`는 fake primitive로 chunk/단위 순서, 중복·FF skip, 모든 read-back
+  위치의 오류, 잘못된 성공 데이터, 보호 영역 불변을 검사한다. 기존 `stm32-mcuboot-model`은
+  별도 host backend를 사용하므로 이 adapter의 실제 `boot_go` 통합 증거로 재분류하지 않는다.
+
+Arm archive에서 실제 read/명령/IO를 컴파일하지만 최종 SRAM linker/copy·전체 stack·
+boot executable과 T-205 정책은 미완료다. SRAM 검사는 매 target build에 실행하며,
+실제 Arm assembler로 만든 조건부 간접 분기·`blx lr` negative object도 거절한다.
 
 ## SRAM reset 전제와 ECC errata
 

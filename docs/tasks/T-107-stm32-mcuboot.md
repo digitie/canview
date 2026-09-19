@@ -110,6 +110,10 @@ bounded ECC guarded read의 C/register 모형·Arm archive를 추가했다.1..25
 read 전용 NMI는 [포트 설명](../../firmware/communicator/stm32/bootloader/README.md#g474-guarded-flash-read--backend-연결-전)을 따른다.
 실제 IO backend·복구 정책·SRAM linker와 물리 ECC/NMI 검증이 남아 AC는 체크하지 않는다.
 
+이어 IO primitive adapter와 [중간 독립 리뷰](../reviews/adversarial/2026-09-19-T-107-ecc.md)를 추가했다.
+post-load RDERR P1과 SRAM 검사기 P2 두 건은 수정·원 reviewer 재확인 대상으로 유지한다.
+IO의 단위별 read-back/부분 실패 계약은 위 포트 설명에 두며 최종 boot 실행은 아직이다.
+
 ## 고정 결정
 
 [OTA §5·7·9](../architecture/ota.md)의 DBANK=1, 2 KiB page, 8B write/ECC, swap using offset, 별도 MCUboot trailer를 유지한다. MCUboot 정확한 version/commit과 라이선스를 고정한다. BFB2 bank 전환·scratch 재설계는 하지 않는다.

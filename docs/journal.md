@@ -1,5 +1,49 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 ECC 리뷰 수정과 Flash IO primitive 연결)
+
+481a805의 독립 A/B 원문과 전달 manifest를 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-ecc.md)에
+보존했다. A-01 P1은 post-load RDERR를 성공으로 전달하는 결함이며 회귀시험의 반환값
+assertion 실패로 재현했다. 매 load 뒤 SR을 검사하고 오류·출력 불변을 보존하도록 수정했다.
+예상 밖 BSY는 SRAM fail-stop이다. 최소1B·65 load 위치의 RDERR와 BSY를 추가 시험한다.
+최초 모형 assertion의 Windows CRT abort는 timeout됐고 해당 test process만 종료했다.
+오류 주입 자체를 허용하도록 모형을 고친 뒤 실제 반환값 반례를 재현했다.
+
+B-01 P2는 조건부 간접 분기·blx lr를 거절하고 실제 Arm negative object로 회귀했다.
+B-02 P2는 archive POST_BUILD 대신 의존하는 항상 실행 검사 target으로 수정했다.
+소스 변경 없는 build와 script-only 변경 build 모두 기존 실제 object 검사를 재실행했다.
+경고 억제나 별도 범용 stamp framework는 만들지 않았다. 원 A/B post-fix 확인 전에는
+finding을 닫지 않는다. 최초 BLOCK/CONDITIONAL 원문도 수정하지 않는다.
+
+병행한 다음 구현은 `flash_io.c`의 기존 MCUboot read/write/erase 세 함수다.
+BSP 범위를 재검사하고 bounded read,8B program/FF skip,2KiB erase와 read-back을 연결했다.
+실패에 자동 retry/erase를 하지 않고 이전 단위의 부분 변경 가능성을 API에 명시했다.
+상위 swap/recovery·최종 boot 연결·watchdog 시간 정책은 여전히 별도다.
+
+- Windows Host Debug157/157(126.61초), Release157/157(71.02초) 성공.
+  `build/t107-io-post-host-*-{build,test}.log`.
+- 실제 Arm primary Debug/Release clean ELF/MAP/BIN과 IO archive 생성 성공.
+  BIN51768/39776B, read SRAM564/456B, compiler/linker/CMake warning/error0.
+  63개 C object stack·103 CMSIS/model+2 DMAMUX 상수 대조. 앱 image는 이전과 같으며
+  bootloader image로 표시하지 않는다. `build/t107-io-ecc-post-*-clean.log`.
+- 실제 Arm negative object는 bx lr 정상, bxne/blxne r3·blx lr 거절을 확인한다.
+  compiler/assembler stderr도 비어 있어야 한다. 무변경/검사 script 변경 재실행은
+  `build/t107-ecc-recheck-no-source-change.log`, `build/t107-ecc-recheck-script-only.log`.
+- ASan/UBSan read/IO2/2, GNU15.2 read/IO/validator3/3 성공. host 모형 coverage:
+  read region284/function5/line117/branch72 모두100%; IO region95/function6/line68 모두100%,
+  branch57/58(98.28%). IO에서 BSP가 성공했지만 다른 주소를 반환하는 불가능한 분기는
+  별도 fault 주입하지 않았다. target MMIO/주소 검사와 실제 HIL coverage는 아니다.
+  `build/t107-ecc-io-post-sanitize-coverage.log`.
+- 481a805 CI35436057000 6/6 success. artifact27개 bytes/SHA256, source11개 commit blob의
+  Windows CRLF checkout hash와 manifest source/run identity 일치. target log34개 warning/error0.
+  `build/t107-ecc-ci-35436057000/`. 이 CI는 수정 전 candidate의 근거이며 P1 closure를 대신하지 않는다.
+- 합성 fixture source digest는 `d526c819b6088ea80bbaaca8e8b372ab36fc0f8f5521940086f09e55a93be578`.
+  사용자 checkout·SDK·이전 evidence를 보존했으며 물리 장치/option-byte/키는 변경하지 않았다.
+
+T-107/PR37은 IN_PROGRESS/Draft, 원 reviewer 재검토·새 CI가 남는다. boot executable,
+SRAM 최종 linker/copy·trusted BSP identity·T-205와 physical ECC/reset/전원/HIL은 미완료다.
+Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO이며 이전 reviewer 면제를 적용하지 않는다.
+
 ## 2026-09-19 (codex, T-107 bounded ECC guarded read)
 
 f3283fb에서 이어 기존 G474 platform에1..256B guarded read C를 추가했다.

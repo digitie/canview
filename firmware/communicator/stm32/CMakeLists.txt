@@ -218,7 +218,7 @@ if(CANVIEW_MCUBOOT_ROOT)
     add_subdirectory(bootloader)
     add_library(canview_boot_flash_command OBJECT platform/stm32g474/flash_command.c)
     add_library(canview_boot_flash_read OBJECT platform/stm32g474/flash_read.c)
-    add_library(canview_boot_flash_guard STATIC platform/stm32g474/flash_guard.c
+    add_library(canview_boot_flash_guard STATIC platform/stm32g474/flash_guard.c platform/stm32g474/flash_io.c
         $<TARGET_OBJECTS:canview_boot_flash_command> $<TARGET_OBJECTS:canview_boot_flash_read>)
     foreach(flash_target canview_boot_flash_guard canview_boot_flash_command canview_boot_flash_read)
         target_link_libraries(${flash_target} PRIVATE canview_boot_config canview_warnings)
@@ -227,12 +227,18 @@ if(CANVIEW_MCUBOOT_ROOT)
             "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
         target_compile_definitions(${flash_target} PRIVATE STM32G474xx)
     endforeach()
-    add_custom_command(TARGET canview_boot_flash_guard POST_BUILD
+    add_custom_target(canview_boot_flash_ram_check
         COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/ota/check_stm32_flash_ram.py"
             --object $<TARGET_OBJECTS:canview_boot_flash_command> --objdump "${CMAKE_OBJDUMP}"
         COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/ota/check_stm32_flash_ram.py"
             --kind read --object $<TARGET_OBJECTS:canview_boot_flash_read> --objdump "${CMAKE_OBJDUMP}"
-        COMMENT "Checking SRAM command code/literal closure (final placement/HIL still required)")
+        COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tests/ota/test_stm32_flash_ram.py"
+            --cc "${CMAKE_C_COMPILER}" --objdump "${CMAKE_OBJDUMP}"
+        DEPENDS canview_boot_flash_command canview_boot_flash_read
+            "${CANVIEW_ROOT}/tools/ota/check_stm32_flash_ram.py"
+            "${CANVIEW_ROOT}/tests/ota/test_stm32_flash_ram.py"
+        COMMENT "Checking SRAM command/read closure and actual Arm negative objects")
+    add_dependencies(canview_boot_flash_guard canview_boot_flash_ram_check)
     foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard canview_boot_flash_command canview_boot_flash_read)
         target_compile_options(${boot_target} PRIVATE ${MCU_OPTIONS}
             -ffunction-sections -fdata-sections -fstack-usage

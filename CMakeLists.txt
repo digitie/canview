@@ -104,6 +104,14 @@ if(BUILD_TESTING)
         CANVIEW_STM_REGISTER_TEST=1 CANVIEW_STM_FLASH_READ_TEST=1)
     target_link_libraries(canview-stm-flash-read-tests PRIVATE canview_warnings)
     add_test(NAME stm32-flash-read COMMAND canview-stm-flash-read-tests)
+    set_tests_properties(stm32-flash-read PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm-flash-io-tests tests/ota/test_stm32_flash_io.c
+        firmware/communicator/stm32/platform/stm32g474/flash_io.c)
+    target_include_directories(canview-stm-flash-io-tests PRIVATE
+        firmware/communicator/stm32/interface firmware/communicator/stm32/bootloader/include
+        firmware/communicator/stm32/bsp shared/interface)
+    target_link_libraries(canview-stm-flash-io-tests PRIVATE canview_stm_flash_layout canview_warnings)
+    add_test(NAME stm32-flash-io COMMAND canview-stm-flash-io-tests)
     add_test(NAME stm32-flash-ram-validator COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/ota/test_stm32_flash_ram.py)
     add_executable(canview-stm-flash-layout-tests tests/ota/test_stm32_flash_layout.c)

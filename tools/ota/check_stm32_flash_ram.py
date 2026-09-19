@@ -34,7 +34,8 @@ def validate(headers: str, symbols: str, relocations: str, assembly: str, kind: 
         if not match:
             continue
         instruction, operand = match.groups()
-        if instruction in ("blx", "bx") and operand.strip() != "lr":
+        indirect = re.fullmatch(r"(blx|bx)(?:eq|ne|cs|cc|hs|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le)?(?:\.[nw])?", instruction)
+        if indirect and (indirect[1] != "bx" or operand.strip() != "lr"):
             raise ValueError("SRAM 간접 branch/call")
         if instruction in ("cbz", "cbnz"):
             target = re.fullmatch(r"r(?:[0-9]|1[0-5]),\s*([0-9a-f]+)\s+<[^>]+>", operand)
