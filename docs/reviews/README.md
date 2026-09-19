@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 PSA 두 번째 post-fix | `6f078ac` → `1b06afd` | 원 A/B | [기록](adversarial/2026-09-19-T-007-psa-post2.md), 양쪽 정적 PASS·공통 P2 FIXED·신규 finding 없음; 전체 T007/CI/정상 owner 승인 아님 |
 | 2026-09-19 | T-007 PSA post-fix | `70c7a38` → `6f078ac` | 동일 A/B | [기록](adversarial/2026-09-19-T-007-psa-post.md), P3 FIXED·A/B 공통 신규 P2 시험 전제 수정 및 제한 C mutant 검출, 재확인 대기 |
 | 2026-09-19 | T-007 PSA provider | `6209eac` → `70c7a38` | C 수명·경계 / PSA·SDK·시험 | [기록](adversarial/2026-09-19-T-007-psa.md), A PASS·B CONDITIONAL; 시험 상수 P3 수정·GCC 음성 시험 보강, 원 reviewer 재확인 대기 |
 | 2026-09-19 | T-007 signed golden post-fix | `bd9a1a6` → `262bf09` | 동일 A/B | [기록](adversarial/2026-09-19-T-007-signed-golden-post.md), A/B 정적 PASS; 동일 P2 FIXED·신규 finding 없음, 이후 PSA/전체 task 승인 아님 |
