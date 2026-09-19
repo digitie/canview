@@ -2,15 +2,16 @@
 
 ## 현재 작업
 
-2026-09-15, [T-007 OTA-01](tasks/T-007-ota-container.md)은 `IN_PROGRESS`다.
+2026-09-19, [T-007 OTA-01](tasks/T-007-ota-container.md)은 `IN_PROGRESS`다.
 
-사용자는 현재 작업을 완료·merge한 뒤 일시중지를 요청했다. 다음 task를 시작하지 않는다.
-"지금 작업까지만 머지" 요청에 따라 현재 PR #35 구현분의 review/CI closure를 마무리한다.
-전체 T-007의 남은 기능은 추가하지 않는다. 현재 구현분 검증 후 merge하고 일시중지한다.
+사용자가 "이어서 완주까지 진행"으로 재개를 명시했다. PR #35의 기반 구현을
+반복하지 않고 T-007의 남은 signed package·C 수신·target 연결을 계속한다.
+기본 checkout의 사용자 파일과 기존 SDK/evidence를 보존해 같은 worktree를 재사용한다.
 
 - worktree: `F:/dev/canview-wt/t007-ota-container`
-- branch: `codex/t007-ota-container`
-- [PR #35](https://github.com/digitie/canview/pull/35): Draft
+- branch: `codex/t007-ota-packager`
+- 기준: [PR #35](https://github.com/digitie/canview/pull/35) merge
+  `6cf1b8e57840a27b83c407d1325a92f869cf2f5d`, `origin/main` 확인
 - [단순한 구현 우선](../AGENTS.md#2-작업-원칙): 고정 manifest와 순차 image만 사용한다.
   기존 SDK/부트로더를 재사용하고 범용 package framework를 만들지 않는다.
 
@@ -76,13 +77,13 @@ A `01a0a229-5363-7f61-a607-ecae1f0a4ff8`, B `01a0a229-545f-7fc0-a90a-240470bb120
 원본은 보존했고 P0/P1 없음, P2 두 건과 공통 문서 P3를 수정했다.
 `63197e3` [post-fix 재검토](reviews/adversarial/2026-09-15-T-007-current-post.md)에서
 A 정적 PASS·B CONDITIONAL, 네 finding 모두 FIXED·새 finding 없음으로 확인됐다.
-원본을 보존하고 두 reviewer 실행을 종료했다. 같은 source의 CI34908276012는5/6 성공,
-target 실행 중이다. 내려받은 Host 로그140/140과 source identity를 확인했다.
-target artifact 감사와 review 기록 반영 후 CI 확인 전 merge하지 않으며 전체 T-007 미완료를 유지한다.
+원본을 보존하고 두 reviewer 실행을 종료했다. 최종 `12100ac`의 CI34909236819는6/6,
+target21개 hash/bytes·source7개·target logs26 warning/error0을 확인한 뒤 merge했다.
+최종 증거는 PR35 본문과 merge 확인 comment에 있다. 전체 T-007은 아직 미완료다.
 
-## 일시중지 후 재개할 작업
+## 다음 한 작업
 
-아래 구현은 사용자가 재개를 요청한 뒤에만 시작한다. 이번 PR merge 범위가 아니다.
+아래 구현을 새 Draft PR에서 진행한다. PR35의 부분 완료를 전체 완료로 확대하지 않는다.
 
 schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `.cvota` packager에
 연결한다. C/Python의 기존 byte 계약은 유지했다. 작성 도구의 UNSIGNED_MANIFEST 출력은

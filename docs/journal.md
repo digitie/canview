@@ -1,5 +1,14 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, 명시적 재개와 T-007 후속 구현)
+
+사용자가 "이어서 완주까지 진행"을 요청했다. PR35 MERGED, 열린 PR 없음과
+origin/main `6cf1b8e57840a27b83c407d1325a92f869cf2f5d`를 Git/GitHub로 확인했다.
+기본 checkout은 기존 branch/사용자 파일을 보존했다. clean T-007 worktree에서
+`codex/t007-ota-packager`를 origin/main 기준으로 만들고 로컬 SDK/evidence를 재사용한다.
+이전 source 재구현 없이 signed package 작성·검사와 C 수신 연결부터 진행한다.
+물리/HIL NOT_RUN, 차량 CAN TX NO-GO, 전체 T-007 IN_PROGRESS를 유지한다.
+
 ## 2026-09-15 (codex, 현재 PR merge 후 일시중지 범위 확정)
 
 사용자의 "지금 작업까지만 머지하고 작업 일시중지", "완료시키고 머지 후 일시중지"를

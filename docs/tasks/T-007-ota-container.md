@@ -56,9 +56,9 @@ PASS는 이후 구현이나 전체 task의 최종 검토 결과가 아니다. �
 반복 cleanup의 최초 오류 보존 P2와 staging64KiB 생성기 검사 P2, 이전 README 문구 P3를
 수정했고 [원 reviewer 재확인](../reviews/adversarial/2026-09-15-T-007-current-post.md)에서
 네 finding 모두 FIXED·새 finding 없음, A 정적 PASS·B CONDITIONAL이다.
-post-fix CI/target artifact 감사는 남았다. 사용자의 "지금 작업까지만 머지" 요청에 따라
-현재 PR #35 구현분의 검증을 마친 뒤 merge하고 일시중지한다. 전체 task의 미완료
-수용 기준은 유지하며 추가 기능과 다음 task는 재개 요청 전 시작하지 않는다.
+PR #35는 최종 CI34909236819 6/6·target21개 hash/bytes·source7개·target logs26 경고0
+확인 뒤 `6cf1b8e`로 merge했다. 당시 일시중지했으며2026-09-19 사용자의 명시적 요청으로
+남은 구현을 재개한다. 전체 task의 미완료 수용 기준은 유지한다.
 
 ## 구현 접근
 
