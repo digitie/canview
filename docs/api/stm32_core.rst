@@ -27,3 +27,15 @@ SDK startup과 BSP safe output 이후 main 단일 owner에서만 호출한다.
 
 .. doxygenfile:: canview_boot_runtime.h
    :project: canview
+
+Boot handoff
+------------
+
+서명과 영속 정책 승인 뒤 고정 primary로 진입하는 MCU 의존 경계다.
+임의 주소·secondary 진입은 받지 않으며 이 API 자체는 부팅 승인 수단이 아니다.
+실제 앱 진입과 NMI/reset timing은 NOT_RUN이다.
+
+.. _canview__boot__handoff_8h:
+
+.. doxygenfile:: canview_boot_handoff.h
+   :project: canview

@@ -92,6 +92,15 @@ def validate_copy(sections, symbols, image):
     return address("_edata") - address("_sdata")
 
 
+def validate_handoff(symbols, image):
+    # 고정 Arm GCC naked trampoline: LR=-1, MSP=r0, ISB, PRIMASK=0, BX r1.
+    # MSP 변경 뒤 C epilogue/stack 접근 또는 복귀 명령을 허용하지 않는다.
+    offset = layout.symbol_address(symbols, "boot_branch") - 0x08000000
+    expected = bytes.fromhex("6ff0000e80f30888bff36f8f62b60847")
+    if offset < 0 or image[offset:offset + len(expected)] != expected:
+        raise ValueError("boot handoff trampoline 명령 오류")
+
+
 def inspect(elf, compiler):
     def run(tool, *flags):
         exe = compiler.with_name(f"arm-none-eabi-{tool}{compiler.suffix}")
@@ -105,10 +114,11 @@ def inspect(elf, compiler):
         ram.validate(headers, run("objdump", "-t"), run("objdump", "-r", "-j", section),
                      run("objdump", "-d", "-j", section), kind, linked=True)
     copied = validate_copy(sections, symbols, image)
+    validate_handoff(symbols, image)
     assembly = run("objdump", "-d", "--disassemble=flash_ram_sync")
     if not 0 <= assembly.find("dsb\t") < assembly.find("isb\t"):
         raise ValueError("SRAM DSB/ISB 동기화 누락/순서 오류")
-    print(f"PASS: Arm SRAM link/copy {copied}B, image {len(image)}/65536B; boot_go/handoff/HIL NOT_RUN")
+    print(f"PASS: Arm SRAM link/copy {copied}B, handoff trampoline 16B, image {len(image)}/65536B; boot_go/physical handoff/HIL NOT_RUN")
     return sections, symbols, image
 
 

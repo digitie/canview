@@ -1,5 +1,30 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, 승인 뒤 primary handoff primitive)
+
+기존 ECC read/runtime과 BSP 주소 계약으로 고정 primary의 MSP/Thumb reset PC를
+검사하는 C99 진입부를 추가했다. 첫32bit fetch까지 authenticated payload 안인지
+확인하며, 잘못된 길이/read/runtime/MPU/lazy FPU는 cleanup 전에 거절한다. SysTick/
+NVIC cleanup 뒤16B naked trampoline으로 MSP를 바꾼다. 새로운 OTA format이나
+approval bool은 만들지 않았다. 소유권·전제는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#승인-뒤-primary-진입)에 둔다.
+
+`build/t107-handoff-final-arm-{debug,release}.log`의 실제 Arm 비배포 link 시험은
+ELF/MAP/BIN5284/3924B, SRAM copy1048/824B, warning0이다. 최초 명령열128bit
+개별 변조·truncation과 기존 startup/linker negative를 통과했다. 앱 primary binary는
+51768/39776B다. link 시험은 길이0 거절만 호출하며 실제 boot_go/정책을 우회하지 않는다.
+최종 loader나 physical handoff 성공을 주장하지 않는다.
+
+Linux GCC strict C99와 Clang ASan/UBSan, handoff C의 function/region/line/branch100%
+(`build/t107-handoff-sanitize-coverage.log`), Doxygen/Sphinx strict API74개를 확인했다.
+coverage는 host 대역 호출 경로이며 실제 assembly/interrupt timing은 포함하지 않는다.
+Windows 전체 host 회귀와 독립 리뷰 결과는 후속 closure에 남긴다. physical/HIL은
+NOT_RUN, 차량 TX는 NO-GO다. default dirty checkout·SDK·기존 evidence를 보존했다.
+
+이전 runtime c0f1b81의 CI35441935530 전체 success를 확인했다. 내려받은
+`build/t107-handoff-base-ci-35441935530`의33개 artifact 크기/SHA256,15개 source의
+LF/CRLF hash,34개 target log warning/error0을 대조했다. 새 handoff 기준선 CI와는
+구분하며 CI manifest에 boot runtime/handoff source provenance를 추가했다.
+
 ## 2026-09-19 (codex, boot bounded progress와 IWDG)
 
 T-107의 HSI16/DWT/IWDG runtime을 C99로 구현했다. 기존 BSP safe output과 SDK startup을

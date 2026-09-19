@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* 실제 Arm link 검증 전용. boot_go/정책/handoff가 없는 비배포 image다. */
+/* 실제 Arm link 검증 전용. boot_go/정책 승인이 없는 비배포 image다. */
 #include "canview_stm_flash_command.h"
 #include "canview_stm_flash_read.h"
 #include "canview_boot_runtime.h"
+#include "canview_boot_handoff.h"
 #include "canview_boot_flash.h"
 #include "canview_board.h"
 #include <stddef.h>
@@ -22,6 +23,8 @@ int main(void)
     }
     canview_boot_progress();
     if (!canview_boot_runtime_ready()) { return (int)CANVIEW_TIMEOUT; }
+    /* 잘못된 길이로 거절만 확인한다. 미검증 image로 진입하지 않는다. */
+    if (canview_boot_handoff(0U) != CANVIEW_INVALID_ARGUMENT) { return (int)CANVIEW_AUTH_FAILED; }
     zeroed = initialized;
     const canview_status_t status = canview_stm_flash_read(
         UINT32_C(0x08010200), &initialized, sizeof(initialized));

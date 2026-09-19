@@ -185,7 +185,23 @@ void canview_stm_test_set_stack_pointer(uintptr_t stack_pointer);
 void canview_stm_test_corrupt_stack(void);
 
 /* Boot Flash command용 register event hook. 제품 target에서는 컴파일하지 않는다. */
-typedef struct { volatile uintptr_t VTOR; } model_scb_t;
+typedef struct { volatile uintptr_t VTOR; volatile uint32_t ICSR; } model_scb_t;
+typedef struct { volatile uint32_t CTRL, LOAD, VAL; } model_systick_t;
+typedef struct { volatile uint32_t ICER[8], ICPR[8]; } model_nvic_t;
+typedef struct { volatile uint32_t CTRL; } model_mpu_t;
+typedef struct { volatile uint32_t FPCCR; } model_fpu_t;
+extern model_systick_t model_systick;
+extern model_nvic_t model_nvic;
+extern model_mpu_t model_mpu;
+extern model_fpu_t model_fpu;
+#define SysTick (&model_systick)
+#define NVIC (&model_nvic)
+#define MPU (&model_mpu)
+#define FPU (&model_fpu)
+#define FPU_FPCCR_LSPACT_Msk UINT32_C(1)
+#define SCB_ICSR_PENDSTCLR_Msk UINT32_C(0x02000000)
+#define SCB_ICSR_PENDSVCLR_Msk UINT32_C(0x08000000)
+__attribute__((noreturn)) void canview_stm_handoff_test_branch(uint32_t stack, uint32_t entry);
 extern model_scb_t model_scb;
 extern uint32_t model_ipsr, model_control;
 extern uint32_t model_basepri, model_faultmask;

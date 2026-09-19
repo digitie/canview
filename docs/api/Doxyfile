@@ -5,6 +5,7 @@ OUTPUT_LANGUAGE = Korean
 INPUT = shared/protocol/include/canview_wire.h shared/app/include/canview_app.h shared/interface firmware/communicator/stm32/interface/canview_stm_core.h firmware/communicator/stm32/interface/canview_stm_queue.h firmware/communicator/stm32/interface/canview_stm_fdcan_capture.h firmware/communicator/stm32/interface/canview_stm_uart.h firmware/communicator/stm32/platform/stm32g474/fdcan_capture.h firmware/communicator/stm32/platform/stm32g474/uart_dma.h firmware/interface/canview_esp_core.h firmware/interface/canview_esp_pool.h firmware/interface/canview_esp_runtime.h
 FILE_PATTERNS = *.h
 INPUT += firmware/communicator/stm32/bootloader/include/canview_boot_runtime.h
+INPUT += firmware/communicator/stm32/bootloader/include/canview_boot_handoff.h
 RECURSIVE = NO
 EXTRACT_ALL = YES
 EXTRACT_STATIC = NO

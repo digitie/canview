@@ -266,13 +266,33 @@ DWT cycle counter, IWDG만 사용한다. API·실패 계약은
   전에 IWDG가 reset한다는 전제, debug halt/freeze, HSI/LSI 오차, Flash stall과 전체
   MCUboot 실행 시간은 실제 보드에서 확인해야 한다. 이 조건을 만족할 때까지 배포하지 않는다.
 - 성공한 `boot_go`만으로 앱에 진입하지 않는다. 최종 caller가 정책/서명/vector와
-  runtime readiness를 확인해야 하며 handoff는 아직 미구현이다. 실패 시 safe output을
+  runtime readiness를 확인해야 한다. 아래 handoff primitive만 구현됐고 최종 연결은 남았다. 실패 시 safe output을
   유지하고 무조건 feed하지 않는다. runtime 자체가 recovery 정책이나 TX gate가 아니다.
 
 `stm32-boot-runtime`은 같은 C의 초기화·중복 호출·partial init·ISR/context·clock 설정
 변이·timeout·wrap·counter 정지·deadline·feed rate·fault latch를 register 모형에서 검사한다.
 Arm link 시험은 기존 BSP safe output을 먼저 호출하고 runtime을 실제 SDK와 링크한다.
 Host 모형은 IWDG 전기 동작·실제 reset/전원/HIL을 증명하지 않는다. 모두 NOT_RUN이다.
+
+## 승인 뒤 primary 진입
+
+`canview_boot_handoff()`는 기존 ECC read로 고정 primary의 첫8B를 읽고,
+authenticated payload 길이·정확한 MSP(0x20018000)·Thumb reset PC의 payload 내부
+범위를 검사한다. runtime readiness는 read 전후 확인하고 MPU/lazy FPU 활성은 거절한다.
+추가 image format이나 승인 flag를 만들지 않는다. 서명과 T-205 영속 정책 판정은
+caller 책임이며, 현재 link 시험은 길이0의 거절만 호출한다. 최종 bootloader가 아니다.
+
+성공 경로는 IRQ를 막고 SysTick/NVIC enable·pending과 PendSV를 정리한 후 VTOR를
+바꾼다. BSP가 HSI16/IWDG/safe output을 유지하며 caller가 DMA/Flash 변경을 금지한다.
+마지막16B만 assembly로 LR=-1, MSP 교체, ISB, IRQ mask 해제, reset PC branch를 수행한다.
+MSP 교체 이후 C stack 접근이 없음을 실제 Arm BIN 명령열과128개 bit 변이로 검사한다.
+앱은 NVIC와 clock을 다시 초기화한다. NMI는 mask할 수 없으므로 VTOR/MSP 전환 도중
+NMI·reset timing의 실기 확인이 남는다. 이 source 검사가 해당 physical gate를 닫지 않는다.
+
+`stm32-boot-handoff`는 실제 handoff C에 runtime/read 오류를 주입하여 길이·vector
+경계, MSP32bit 변이, read 실패, 전후 readiness/MPU/FPU, 실패 시 register 보존,
+성공 시 cleanup 순서와 branch 인수를 확인한다. 대역은 서명·floor 승인이나
+실제 interrupt controller를 모사하지 않는다. physical handoff/HIL은 NOT_RUN이다.
 
 ## SRAM reset 전제와 ECC errata
 

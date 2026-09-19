@@ -428,6 +428,8 @@ jobs:
               "firmware/communicator/stm32/ld/STM32G474CEUx_PRIMARY.ld",
               "firmware/communicator/stm32/ld/STM32G474CEUx_BOOT.ld",
               "firmware/communicator/stm32/platform/stm32g474/startup_flash_ram.c",
+              "firmware/communicator/stm32/platform/stm32g474/boot_runtime.c",
+              "firmware/communicator/stm32/platform/stm32g474/boot_handoff.c",
               "tools/ota/check_stm32_boot_ram.py",
               "tests/ota/test_stm32_boot_ram.py",
               "tools/ota/validate_stm32_map.py",

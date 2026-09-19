@@ -15,6 +15,19 @@ import check_stm32_boot_ram as boot
 
 
 class BootRamTests(unittest.TestCase):
+    def test_handoff_mutations(self):
+        _, symbols, image = self.evidence
+        boot.validate_handoff(symbols, image)
+        offset = boot.layout.symbol_address(symbols, "boot_branch") - 0x08000000
+        for byte in range(16):
+            for bit in range(8):
+                bad = bytearray(image)
+                bad[offset + byte] ^= 1 << bit
+                with self.subTest(byte=byte, bit=bit), self.assertRaises(ValueError):
+                    boot.validate_handoff(symbols, bad)
+        with self.assertRaises(ValueError):
+            boot.validate_handoff(symbols, image[:offset + 15])
+
     def test_copy_mutations(self):
         sections, symbols, image = self.evidence
         self.assertGreater(boot.validate_copy(sections, symbols, image), 0)
@@ -50,7 +63,7 @@ class BootRamTests(unittest.TestCase):
         commands = json.loads((build / "compile_commands.json").read_text(encoding="utf-8"))
         objects = [str((Path(c["directory"]) / c["output"]).resolve()) for c in commands
                    if "canview-boot-ram-link-test.dir" in c["output"]]
-        self.assertEqual(len(objects), 9)
+        self.assertEqual(len(objects), 10)
         source = (ROOT / "firmware/communicator/stm32/ld/STM32G474CEUx_BOOT.ld").read_text(encoding="utf-8")
         cases = [(source, None),
                  (source.replace("LENGTH = 64K", "LENGTH = 1K"), "overflowed"),
