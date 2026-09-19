@@ -39,7 +39,8 @@ def check_container(data: bytes, identity: tuple, public_key) -> dict:
     """외부 신뢰 identity/root로 manifest, 모든 padding·길이·SHA256을 검사한다.
 
     입력 안의 공개키/identity를 신뢰하지 않는다. 반환은 MANIFEST_AND_HASHES_MATCHED이며
-    native image 서명·로컬 호환성/floor·Flash 승인과 별개다. host RAM 상한은 MAX_BUNDLE이다.
+    native image 서명·로컬 호환성/floor·Flash 승인과 별개다. 단일 입력 bytes 길이 상한은
+    MAX_BUNDLE이다. 임시 복사·decoded 객체·암호 provider를 포함한 peak RAM 보장은 아니다.
     """
     if type(data) is not bytes:
         raise CborError(Status.MALFORMED)

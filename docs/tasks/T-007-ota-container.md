@@ -27,8 +27,8 @@ typed 교차1437/1440건과 CBOR11989건·서명 prefix232건, floor C3847건도
 STM native 검사도 추가했다. 공식 MCUboot imgtool v2.4.0 생성물의 전체 hash·P256
 서명과 protected metadata/manifest를 대조한다. 실제 CNG 교차 시험을 유지하며 앞선 비암호 모형
 ASan/UBSan2284건과 native_stm.c coverage는 함수100%·행98.14%·분기94.74%다.
-byte 변이/절단 건수는 ECDSA DER 길이에 따라 달라진다. 현재 source의 전체 Windows
-Host Debug/Release는 각각140/140 통과다. 공통 metadata 모형 ASan/UBSan과
+byte 변이/절단 건수는 ECDSA DER 길이에 따라 달라진다. 이전 PR35 최종 source
+`12100ac`의 Windows Host Debug/Release는 각각140/140 통과다. 공통 metadata 모형 ASan/UBSan과
 함수6/6·행60/60·분기76/76, 기존 공식 imgtool/CNG STM 회귀도 재검증했다.
 
 ESP의 [read-only SDK adapter](../../tests/fixtures/idf-ota-image/README.md)를 추가했다.
@@ -72,6 +72,12 @@ host CLI 및 C 고정 buffer prefix 부분 수신을 추가했다. 실제 P256/S
 JSON 변환은 역할3종/u64 경계에서 기존 C typed parser와 대조했고 malformed 입력과
 CLI 출력 보존을 시험했다. JSON Schema metaschema는 로컬 jsonschema4.26.0으로 확인했다.
 CI의 새 CTest는 추가 dependency 없이 schema mapping·기존 validator·C 대조를 검사한다.
+
+이번 checkpoint `63c8727`의 Windows Debug/Release는 각각142/142, 별도 Linux Git
+checkout의 ASan/UBSan은137/137 통과다. 새 prefix_feed의 행93.33%·분기96%,
+init/finish의 행·분기100%는 collector 전용 실행 결과다. 전체 envelope.c·target/HIL
+coverage로 확대하지 않는다. 독립 A/B 정적 리뷰에서 P0/P1/P2는 없으며 B의 P3 두 건
+(이전 시험 귀속·host RAM 설명)은 수정 후 원 reviewer 재확인 중이다. 전체 task는 미완료다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.

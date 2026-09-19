@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 prefix·packager checkpoint | `6cf1b8e` → `63c8727` | C bounds·ownership / 암호·근거·CI | [기록](adversarial/2026-09-19-T-007-prefix-packager.md), A 정적 PASS/B CONDITIONAL; P3 표현2건 수정·재확인 전, 전체 task 미완료 |
 | 2026-09-15 | T-007 현재 구현분 post-fix | `21909e5` → `63197e3`, 16파일 delta | 동일 A/B | [기록](adversarial/2026-09-15-T-007-current-post.md), A 정적 PASS·B CONDITIONAL; 네 finding FIXED·새 finding 없음, 현재 구현분 CI/target artifact 확인 대기 |
 | 2026-09-15 | T-007 현재 구현분 독립 리뷰 | `d229772` → `21909e5`, 82파일 | C runtime·native / schema·generator·build | [기록](adversarial/2026-09-15-T-007-current.md), A/B CONDITIONAL·P0/P1 없음; P2 두 건/P3 공통 문구 수정·원 reviewer 재확인 대기, 전체 T-007 미완료 |
 | 2026-09-13 | T-007 CBOR·단순화 원칙 checkpoint 정적 리뷰 | `490d2f8` → `6d83962`, 16파일 | C memory·자원 / oracle·CMake·문서·digest | [기록](adversarial/2026-09-13-T-007-cbor.md), A/B static PASS·finding0; 전체 T-007/서명/target/merge 승인 아님 |

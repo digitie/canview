@@ -1,5 +1,27 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-007 prefix·packager checkpoint)
+
+`63c87272fe9f2b00b76893055bfcc8a9ca71cf26`을 Draft PR36에 push했다. C99 고정 buffer
+prefix 조립과 host detached P256 서명 조립/검사만 추가했으며 native 설치 승인은 아니다.
+기존 SDK/cryptography와 parser를 재사용한다. 실제 CNG 교차90개(collector 경로45개),
+Windows Debug/Release142/142 및 Linux 독립 checkout ASan/UBSan137/137이 통과했다.
+최초 Debug141/142는 합성 T103 fixture digest mismatch였으며 실제 계산한 source digest
+`8e128a30cfe2b153bcd0e1f17267078fe22dc12c2c4cbe374c85018bab325fe1`로 fixture5행과
+helper 기대값만 갱신했다. 실제 capture evidence는 변경하지 않았다.
+Release 최초 재실행은 실행 중 HEAD 변경에 따른 identity mismatch, WSL 최초 실행은
+Windows worktree의 `.git` 경로 해석 실패로 완료 gate를 통과하지 못했다. 고정 commit과
+Linux native Git checkout으로 재실행해 위 결과를 확인했다. 검사 기준은 완화하지 않았다.
+
+로그는 로컬 `build/t007-packager-debug.log`, `build/t007-packager-release-rerun.log`,
+`build/t007-packager-sanitize-nativegit.log`에 보존했다. 새 collector coverage의
+prefix_feed 행93.33%·분기96%, init/finish100%를 확인했다. 최초 llvm-cov 호출은
+PowerShell 인자 분리로 실패했고 `-instr-profile=...` 전체를 인용한 재실행이 성공했다.
+전체 envelope.c coverage나 MCU timing 성공으로 집계하지 않는다.
+CI35416056122의 host5개 job은 통과했고 target job은 진행 중이다.
+독립 A 정적 PASS/B CONDITIONAL의 원문을 보존했다. B의 P3 두 표현을 수정했으며
+원 reviewer 재확인 전이다. 전체 T-007 IN_PROGRESS·physical/HIL NOT_RUN·차량 TX NO-GO다.
+
 ## 2026-09-19 (codex, 명시적 재개와 T-007 후속 구현)
 
 사용자가 "이어서 완주까지 진행"을 요청했다. PR35 MERGED, 열린 PR 없음과

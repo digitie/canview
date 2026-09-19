@@ -53,7 +53,11 @@ chunk로 검사한다. prefix buffer와 native image byte열은 그대로이며 
 floor C3847건과 STM native 시험도 유지한다. 앞선 STM native의 비암호 모형
 ASan/UBSan2284건과 함수100%·행98.14%·분기94.74%는 해당 이전 source의 기록이다.
 실제 CNG native 시험은 ECDSA DER 길이에 따라 건수가 달라진다.
-현재 source의 Windows Host Debug/Release는 각각140/140을 통과했다.
+이전 PR35 최종 source `12100ac`의 Windows Host Debug/Release는 각각140/140을 통과했다.
+이번 checkpoint `63c8727`은 Debug/Release 각각142/142, 독립 Linux checkout의
+ASan/UBSan137/137을 통과했다. CI35416056122는 host5개 job 통과·target job 진행 중이다.
+새 prefix_feed coverage는 행93.33%·분기96%, init/finish는 행·분기100%다. 이 수치는
+새 collector 시험의 함수별 결과이며 envelope.c 전체나 MCU 실행시간 측정값이 아니다.
 schema field/enum/limit drift와 JSON→CBOR→C typed parser 대조, 서명 전 CLI의
 bounded 입력·기존 출력 보존 시험을 추가했다. 이 출력은 완전한 package가 아니다.
 BSP 연결 모형 ASan/UBSan과 함수1/1·행29/29·분기32/32, 실제 SDK fixture
