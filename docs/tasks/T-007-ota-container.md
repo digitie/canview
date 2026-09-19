@@ -77,7 +77,8 @@ CI의 새 CTest는 추가 dependency 없이 schema mapping·기존 validator·C 
 checkout의 ASan/UBSan은137/137 통과다. 새 prefix_feed의 행93.33%·분기96%,
 init/finish의 행·분기100%는 collector 전용 실행 결과다. 전체 envelope.c·target/HIL
 coverage로 확대하지 않는다. 독립 A/B 정적 리뷰에서 P0/P1/P2는 없으며 B의 P3 두 건
-(이전 시험 귀속·host RAM 설명)은 수정 후 원 reviewer 재확인 중이다. 전체 task는 미완료다.
+(이전 시험 귀속·host RAM 설명)은 ec44647의 [원 reviewer 재확인](../reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)에서
+모두 FIXED·A/B 정적 PASS다. 이후 metadata 추가분과 전체 task의 완료 승인은 아니다.
 
 SDK fixture에 합성 native metadata168B와 `UINT64_MAX`를 실제 custom descriptor로
 넣었다. ESP-IDF6.0.3 ELF/MAP/BIN 생성·경고0, BIN offset288의 값·168개 변이·4개

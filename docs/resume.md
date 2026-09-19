@@ -26,6 +26,9 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 않는다. 실제 CNG body 경로90개 교차 사례가 통과했다. native signed golden과 정상
 target 연결은 여전히 남아 있으며 T-007 전체 완료·배포 승인으로 표시하지 않는다.
 
+prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
+정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사는 별도 리뷰 중이다.
+
 별도 STM native 검사기는 공식 MCUboot v2.4.0 image의 전체 hash/P256 서명과
 protected metadata(board/role/layout/epoch/ABI/u64 sequence)를 대조한다. SDK/부트로더
 target 연결은 아직 없다. ESP native의 read-only SDK adapter는 실제 ESP-IDF
