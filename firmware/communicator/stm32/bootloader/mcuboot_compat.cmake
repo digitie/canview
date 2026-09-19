@@ -1,0 +1,43 @@
+# GCC는 함수 반환값의 top-level volatile을 무시한다. 경고 억제 대신 해당 반환형만
+# 무수식 타입으로 만든다. FIH 객체/멤버/매크로의 volatile과 MEDIUM 보호는 유지한다.
+# SDK 원본은 수정하지 않는다. 고정 pin에서만 build 디렉터리 사본을 생성한다.
+set(canview_bootutil_source "${CMAKE_CURRENT_BINARY_DIR}/adapted/bootutil")
+file(COPY "${CANVIEW_MCUBOOT_ROOT}/boot/bootutil" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/adapted")
+file(GLOB_RECURSE fih_sources "${canview_bootutil_source}/*.c" "${canview_bootutil_source}/*.h")
+set(fih_ret_count 0)
+set(fih_int_count 0)
+foreach(fih_source IN LISTS fih_sources)
+    file(READ "${fih_source}" fih_text)
+    # 소문자 함수 이름만. FIH_DECLARE 내부의 FIH_SET 변수 선언은 변경하지 않는다.
+    set(ret_pattern "fih_ret([ \t\r\n]+[a-z_][A-Za-z_0-9]*[ \t\r\n]*\\()")
+    set(int_pattern "fih_int([ \t\r\n]+[a-z_][A-Za-z_0-9]*[ \t\r\n]*\\()")
+    string(REGEX MATCHALL "${ret_pattern}" ret_matches "${fih_text}")
+    string(REGEX MATCHALL "${int_pattern}" int_matches "${fih_text}")
+    list(LENGTH ret_matches ret_length)
+    list(LENGTH int_matches int_length)
+    math(EXPR fih_ret_count "${fih_ret_count} + ${ret_length}")
+    math(EXPR fih_int_count "${fih_int_count} + ${int_length}")
+    string(REGEX REPLACE "${ret_pattern}" "int\\1" fih_text "${fih_text}")
+    string(REGEX REPLACE "${int_pattern}" "canview_fih_result\\1" fih_text "${fih_text}")
+    if(fih_source MATCHES "/fault_injection_hardening.h$")
+        string(REPLACE "typedef volatile struct {" "typedef volatile struct canview_fih_value {" fih_text "${fih_text}")
+        string(REPLACE "} fih_int;" "} fih_int;\ntypedef struct canview_fih_value canview_fih_result;" fih_text "${fih_text}")
+        string(REPLACE "typedef int fih_int;" "typedef int fih_int;\ntypedef int canview_fih_result;" fih_text "${fih_text}")
+    endif()
+    file(WRITE "${fih_source}" "${fih_text}")
+endforeach()
+if(NOT fih_ret_count EQUAL 35 OR NOT fih_int_count EQUAL 4)
+    message(FATAL_ERROR "MCUboot FIH return-only adaptation drift: ${fih_ret_count}/${fih_int_count}")
+endif()
+
+# 고정 P-256 num_words 경로를 GCC가 증명하지 못하는 임시 배열을 명시 초기화한다.
+# 산술/곡선/서명 판정은 바꾸지 않는다. 원본 세 선언이 달라지면 configure를 거절한다.
+file(READ "${CANVIEW_MCUBOOT_ROOT}/ext/tinycrypt/lib/source/ecc.c" ecc_text)
+string(REGEX MATCHALL "uECC_word_t t5\\[NUM_ECC_WORDS\\]" ecc_matches "${ecc_text}")
+list(LENGTH ecc_matches ecc_count)
+if(NOT ecc_count EQUAL 3)
+    message(FATAL_ERROR "MCUboot TinyCrypt temporary initialization drift")
+endif()
+string(REPLACE "uECC_word_t t5[NUM_ECC_WORDS];" "uECC_word_t t5[NUM_ECC_WORDS] = {0};" ecc_text "${ecc_text}")
+set(canview_ecc_source "${CMAKE_CURRENT_BINARY_DIR}/adapted/ecc.c")
+file(WRITE "${canview_ecc_source}" "${ecc_text}")

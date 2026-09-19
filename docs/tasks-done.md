@@ -2,6 +2,23 @@
 
 완료·종료 task를 newest-first로 이동해 기록한다. 설계 감사와 문서 구조 정리는 구현 task 완료 이력과 분리해 PR·journal에 기록한다.
 
+## 2026-09-19 T-007
+
+| ID | 상태 | 우선순위 | 작업 | 선행 |
+|---|---|---:|---|---|
+| [T-007](tasks/T-007-ota-container.md) | DONE | P0 | OTA-01 서명 컨테이너와 packager | T-001 |
+
+PR [#36](https://github.com/digitie/canview/pull/36)은
+`c60641f218ca5a9966781cc1e8d417df26bb2712`로 origin/main에 merge됐다.
+최종 HEAD e1df406의 CI35427174458은6/6, target ELF/MAP/BIN21개 bytes/SHA256·
+source7개 일치, target logs28개 warning/error0이다. Manifest SHA256:
+`dc2d83a51dfb76dddb0b389ebdd9d5fffa1714092e6a91163d95d85c2a69966b`.
+Host Debug/Release150/150, 최신 소프트웨어 candidate ASan/UBSan139/139와 C 변이5개,
+strict docs 및 [두 독립 전체 감사](reviews/adversarial/2026-09-19-T-007-final-acceptance.md)를 확인했다.
+원 CONDITIONAL의 남은 CI/산출물 조건을 위 근거로 닫았으며 원문을 PASS로 바꾸지 않았다.
+실제 Flash writer·영속 정책·physical/HIL·총 자원 실측은 후속 owner gate로 남고,
+차량 TX는 NO-GO다. 제품 전체 OTA 설치 완료를 뜻하지 않는다.
+
 ## 2026-09-08 T-500
 
 | ID | 상태 | 우선순위 | 작업 | 선행 |

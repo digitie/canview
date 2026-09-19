@@ -20,6 +20,16 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-107 fail-stop post-fix | `6b394ac` → `5a37907` | 원 A/B | [기록](adversarial/2026-09-19-T-107-failstop-post.md), A source/local PASS·원 A P2 FIXED; B 서비스 중단 INCOMPLETE/BLOCK·두 P2 원 reviewer 확인 전 OPEN |
+| 2026-09-19 | T-107 fail-stop 중간 source | `e9f474b` → `6b394ac` | runtime·FIH / build·mutation·CI | [기록](adversarial/2026-09-19-T-107-failstop.md), 양쪽 CONDITIONAL·P2 검사기/CI 보강, `5a37907` 재검토 대기 |
+| 2026-09-19 | T-107 handoff CI 조건 종결 | `1e66a04`, CI35443737495 | 원 B 독립 증거 감사 | [기록](adversarial/2026-09-19-T-107-handoff-ci.md), B PASS·원 A PASS; 전체 task/merge 미승인 |
+| 2026-09-19 | T-107 handoff 중간 source | `965ada0` → `1e66a04` | Cortex-M/runtime / build·security·evidence | [기록](adversarial/2026-09-19-T-107-handoff.md), A PASS/B CONDITIONAL·신규 finding0; candidate CI 감사·전체 task/merge 미승인 |
+| 2026-09-19 | T-107 boot runtime 중간 source | `ce3fe1f` → `c0f1b81` | watchdog/reset / build·시험·evidence | [기록](adversarial/2026-09-19-T-107-runtime.md), 양쪽 PASS·신규 finding0; 비배포·전체 loader/task/merge 미승인 |
+| 2026-09-19 | T-107 SRAM linker/copy 중간 source | `d20e9e3` → `43b52b8` | startup/runtime / linker·CI·검사기 | [기록](adversarial/2026-09-19-T-107-sram.md), 양쪽 PASS·신규 finding0; 전체 loader/task/merge 미승인 |
+| 2026-09-19 | T-107 BSP trust post-fix | `6c14950` → `5b153e0` | 원 A/B | [기록](adversarial/2026-09-19-T-107-trust-post.md), 양쪽 source PASS·상대 DER 경로 P2 FIXED; 전체 task/merge 미승인 |
+| 2026-09-19 | T-107 BSP trust 중간 source | `06383d6` → `6c14950` | C/runtime / 보안·CMake·oracle | [기록](adversarial/2026-09-19-T-107-trust.md), A PASS/B CONDITIONAL·상대 DER 경로 P2 수정·원 reviewer 재확인 대기; 전체 task/merge 미승인 |
+| 2026-09-19 | T-107 ECC post-fix·IO source | `481a805` → `122924c` | 원 A/B | [기록](adversarial/2026-09-19-T-107-ecc-post.md), 양쪽 PASS·P1/P2 세 건 FIXED; 전체 task/boot/merge 미승인 |
+| 2026-09-19 | T-107 guarded read 중간 source 리뷰 | `f3283fb` → `481a805` | NMI/runtime / SDK·검사기·build | [기록](adversarial/2026-09-19-T-107-ecc.md), A BLOCK/B CONDITIONAL; P1 RDERR와 P2 검사기2건 수정·원 reviewer 재확인 대기, 전체 task/merge 미승인 |
 | 2026-09-19 | T-007 전체 수용·증거 closure | PR base → `77b84cf` | C/target / native/시험/CI | [기록](adversarial/2026-09-19-T-007-final-acceptance.md), 양쪽 CONDITIONAL의 최신 CI 조건 확인·추가 결함 없음·closure CI/merge 대기 |
 | 2026-09-19 | T-007 stage post-fix2 | `82c5193` → `77b84cf` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post2.md), 양쪽 정적 PASS·B-STAGE-01 FIXED·전체 수용/CI 별도 |
 | 2026-09-19 | T-007 stage post-fix·정적 예산 | `569cc83` → `82c5193` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post.md), A PASS/B CONDITIONAL·identity oracle 잔존 P2 OPEN; 정적 예산 기록 부족 FIXED·실측 NOT_RUN |

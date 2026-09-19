@@ -42,7 +42,6 @@ py -3 tools/validate_document_links.py
 |---|---|---:|---|---|
 | [T-005](tasks/T-005-canonical-model.md) | BLOCKED | P0 | 공통 quality, evidence, time과 owner model | T-002 |
 | [T-006](tasks/T-006-vehicle-profile-generator.md) | BLOCKED | P0 | vehicle profile schema와 분리 generator | T-001, T-005 |
-| [T-007](tasks/T-007-ota-container.md) | IN_PROGRESS | P0 | OTA-01 서명 컨테이너와 packager | T-001 |
 
 ### Communicator hardware·STM32
 
@@ -57,7 +56,7 @@ py -3 tools/validate_document_links.py
 | [T-104](tasks/T-104-stm32-uart-control.md) | IN_PROGRESS | P0 | STM32 UART DMA, link state와 idempotency | T-004, T-102 |
 | [T-105](tasks/T-105-stm32-safety-profile.md) | BLOCKED | P0 | STM32 generated safety profile runtime | T-006, T-103, T-104 |
 | [T-106](tasks/T-106-stm32-command-executor.md) | BLOCKED | P0 | STM32 command executor와 송신 build gate | T-101, T-105, T-503, T-505a, T-500 |
-| [T-107](tasks/T-107-stm32-mcuboot.md) | BLOCKED | P0 | OTA-03 G474 MCUboot와 보호 Flash map | T-007, T-102 |
+| [T-107](tasks/T-107-stm32-mcuboot.md) | IN_PROGRESS | P0 | OTA-03 G474 MCUboot와 보호 Flash map | T-007, T-102 |
 | [T-108](tasks/T-108-ota-recovery-uart.md) | BLOCKED | P0 | OTA-04 ESP와 STM recovery UART | T-007, T-107, T-204 |
 
 ### Communicator ESP32

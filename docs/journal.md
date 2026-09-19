@@ -1,5 +1,598 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, MCUboot 전체 링크와 libc 실패 경로)
+
+전체 `boot_go` 링크 probe에서 newlib assert가 stdio/미구현 syscall을 끌어와
+fatal warning으로 실패했다. `bootloader/fail_stop.c`에서 두 실패 ABI만 기존
+FIH panic으로 연결했다. assert 조건과 MEDIUM 보호는 유지하고 새 오류 framework나
+성공을 반환하는 syscall 대역을 추가하지 않았다. Host 모형 libc는 변경하지 않는다.
+
+명시적 trust가 있는 기존 Arm 비배포 SRAM 시험에 bootutil/crypto/identity를 링크하고
+symbol/실제 panic 분기/heap·출력 부재를 검사한다. wrapper 누락의 실제 링크 실패와
+검사기 입력 변이도 시험한다. 상세 전제는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#boot-sram-배치와-sdk-초기화-복사)에 둔다.
+최종 boot entry·정책 승인·runtime 실행 근거는 아니며 T-107은 IN_PROGRESS다.
+Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다. 기본 dirty checkout과 SDK/evidence는 보존했다.
+
+`build/t107-failstop-final-arm-{debug,release}.log`의 실제 Arm 링크는37184/29116B,
+SRAM copy1076/852B이며 compiler/linker/CMake warning0이다. Host 새 실패 경로와
+runtime/handoff3/3, GNU strict C99, Clang ASan/UBSan, fail-stop C의 function2/2·
+region4/4·line10/10 coverage100%를 확인했다(조건 분기는0개, FIH assembly coverage 아님).
+최초 WSL 명령의 include 인자 전달 실패는 원 로그에 보존했고 명시 인자 재실행은
+`build/t107-failstop-sanitize-coverage-retry.log`에 있다. Doxygen/Sphinx strict API74개,
+문서409/1514·task49 errors0, 합성 T-103 fixture13/13도 통과했다.
+전체 host Debug/Release 회귀·독립 리뷰·새 CI는 후속 검증으로 남긴다.
+
+## 2026-09-19 (codex, 승인 뒤 primary handoff primitive)
+
+기존 ECC read/runtime과 BSP 주소 계약으로 고정 primary의 MSP/Thumb reset PC를
+검사하는 C99 진입부를 추가했다. 첫32bit fetch까지 authenticated payload 안인지
+확인하며, 잘못된 길이/read/runtime/MPU/lazy FPU는 cleanup 전에 거절한다. SysTick/
+NVIC cleanup 뒤16B naked trampoline으로 MSP를 바꾼다. 새로운 OTA format이나
+approval bool은 만들지 않았다. 소유권·전제는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#승인-뒤-primary-진입)에 둔다.
+
+`build/t107-handoff-final-arm-{debug,release}.log`의 실제 Arm 비배포 link 시험은
+ELF/MAP/BIN5284/3924B, SRAM copy1048/824B, warning0이다. 최초 명령열128bit
+개별 변조·truncation과 기존 startup/linker negative를 통과했다. 앱 primary binary는
+51768/39776B다. link 시험은 길이0 거절만 호출하며 실제 boot_go/정책을 우회하지 않는다.
+최종 loader나 physical handoff 성공을 주장하지 않는다.
+
+Linux GCC strict C99와 Clang ASan/UBSan, handoff C의 function/region/line/branch100%
+(`build/t107-handoff-sanitize-coverage.log`), Doxygen/Sphinx strict API74개를 확인했다.
+coverage는 host 대역 호출 경로이며 실제 assembly/interrupt timing은 포함하지 않는다.
+Windows 전체 host 회귀와 독립 리뷰 결과는 후속 closure에 남긴다. physical/HIL은
+NOT_RUN, 차량 TX는 NO-GO다. default dirty checkout·SDK·기존 evidence를 보존했다.
+
+이전 runtime c0f1b81의 CI35441935530 전체 success를 확인했다. 내려받은
+`build/t107-handoff-base-ci-35441935530`의33개 artifact 크기/SHA256,15개 source의
+LF/CRLF hash,34개 target log warning/error0을 대조했다. 새 handoff 기준선 CI와는
+구분하며 CI manifest에 boot runtime/handoff source provenance를 추가했다.
+
+## 2026-09-19 (codex, boot bounded progress와 IWDG)
+
+T-107의 HSI16/DWT/IWDG runtime을 C99로 구현했다. 기존 BSP safe output과 SDK startup을
+재사용하고 앱 PLL/RTOS/새 timer 계층은 넣지 않았다. nominal30초 boot budget·100ms
+최소 feed 간격, context/config 검사와 fault latch의 전제는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#boot-시간원과-watchdog--최종-loader-연결-전)에 둔다.
+초기 초안의 WINR 쓰기를 없애 공식 SDK의 PR/RLR→SR 대기→reload 순서로 맞췄다.
+Window가 reset값이 아니면 거절한다. API 문서와 실제 코드의 소유권을 함께 갱신했다.
+
+새 register 시험은 lifecycle/partial init/멈춘 시간/단일 wrap/역행/deadline/context/
+설정 변이와 feed 제한을 검사했다. Windows Clang Debug와 Linux GCC가 통과했고,
+Clang ASan/UBSan·coverage는 line95.65%, branch98.75%, function100%다.
+ready 직후 deadline이 넘어가는 두 번째 방어 검사 한 분기는 host 미재현이다.
+`build/t107-runtime-sanitize-coverage.log`에 수치를 보존했다. 실제 IWDG reset이나
+debug freeze·LSI 편차·실기 swap 총 시간은 검증하지 않았다.
+
+`build/t107-runtime-final-primary-{debug,release}.log`에서 실제 Arm SRAM link 시험
+ELF/MAP/BIN4956/3660B, copy1048/824B, compiler/linker/CMake warning0을 확인했다.
+제품 runtime은 실제 SDK와 링크하지만 boot_go/정책/handoff가 없는 비배포 시험이다.
+`build/t107-runtime-docs.log`의 Doxygen/Sphinx strict·public API73개, board drift0,
+문서401/1498·task49 errors0도 확인했다. 전체 host D/R 회귀와 새 독립 리뷰는 진행 중이다.
+
+이전 기준선 ce3fe1f의 CI35440849349는 success/completed다. 내려받은 target artifact
+33개 size/SHA256, 해당 Git source15개 LF/CRLF 정규화 hash, target logs34개 warning/error0을
+별도 대조했다. `build/t107-runtime-base-ci-35440849349`가 증거 위치다. 새 후보 CI 결과로
+대체하지 않는다. Physical/HIL·Flash·option-byte·production provisioning은 NOT_RUN,
+차량 TX는 NO-GO이며 T-107은 IN_PROGRESS다. 사용자 checkout/SDK는 변경하지 않았다.
+
+## 2026-09-19 (codex, boot SRAM linker와 SDK 복사 연결)
+
+T-107의 code/read SRAM section을 boot64KiB linker에 배치하고 기존 Cube Reset_Handler
+word-copy를 재사용했다. 별도 복사 알고리즘 없이 preinit DSB/ISB만 C로 추가했다.
+비배포 `canview-boot-ram-link-test`의 실제 Arm Debug3956B/Release2804B ELF/MAP/BIN,
+copy1048/824B와 primary 앱51768/39776B를 확인했다. 최종 loader는 아직 아니며
+부팅 정책·watchdog·handoff·전체 call-chain stack·실기 Flash/HIL은 미완료다.
+
+`build/t107-sram-primary-{debug,release}.log`에서 warning0과 실제 SRAM 함수/branch,
+ELF/BIN copy span, SDK copy/bss/preinit·VTOR 명령 및 negative linker 시험을 확인했다.
+추가592 startup/VTOR bit 변이와 preinit32bit, 주소/크기/누락 거절을 실행했다.
+primary map 기존 unit6개도 통과했다. host 전체 회귀와 독립 리뷰는 이어서 수행한다.
+
+첫 시도는 신규 object 전에 앱 stack 검사가 실행되는 의존성 누락으로 실패했다.
+다음 link에서 기존 syscall 구현 누락과 NOLOAD stack segment 배치 문제를 발견해
+기존 syscall을 재사용하고 stack을 load segment에서 제외했다. 경고 억제는 없다.
+초기 bit 시험은 동일 값을 담은 다른 SDK literal 선택 두 건을 허용했다. 고정 SDK
+literal pool 순서까지 대조하도록 보강한 뒤 모두 거절했다. 실패 로그도 보존했다.
+SDK SystemInit의 primary VTOR macro를 source-global에서 target-local로 옮겼고,
+boot의 실제 VTOR 명령도 검사한다. 사용자 checkout·SDK 원본은 변경하지 않았다.
+
+## 2026-09-19 (codex, BSP trust 리뷰 경로 결함 수정)
+
+`6c14950`을 commit/push하고 독립 A/B 원본을 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-trust.md)에
+보존했다. A PASS/B CONDITIONAL, B-BOOT-TRUST-01 P2는 fresh configure 상대 DER
+입력의 자동 절대경로 변환이다. 유효 파일을 준비한 회귀로 Windows/WSL에서 실제
+기대 거절 실패를 재현한 뒤 STRING cache로 수정했다. 첫 직접 PowerShell 명령은
+인수 분리 오류로 실패했으므로 증거로 사용하지 않고 Python argv 경로로 재현했다.
+Windows 전체 trust1/1·GNU4개+통합·fixture13개를 다시 통과했고 원 reviewer 재확인 대기다.
+
+추가로 Doxygen1.18/Sphinx strict와71 API 계약 통과(`build/t107-trust-docs.log`),
+Debug key-only 재생성 회귀1/1(`build/t107-trust-key-only-retest.log`)를 확인했다.
+이전 CI35437256268/35437911211은 각각 전체 성공이며 target artifact27개 byte/hash,
+source11개와 target log34개 warning/error0을 감사했다. source 첫 raw hash 대조는
+로컬 LF/CI CRLF 차이로 실패해 동일 git blob의 LF/CRLF 해시를 대조했고 전부 CI CRLF와
+일치했다. binary는 줄바꿈 변환 없이 byte-exact 비교했다. 로컬 evidence는
+`build/t107-trust-base-ci-35437256268`, `build/t107-io-ci-35437911211`이다.
+현재 candidate의 CI나 새 identity의 Arm CI를 이 이전 성공으로 대체하지 않는다.
+
+최종 boot 연결·물리 gate는 그대로 미완료다. PR37 Draft/T-107 IN_PROGRESS,
+HIL/provisioning NOT_RUN, 차량 TX NO-GO를 유지한다.
+
+## 2026-09-19 (codex, T-107 명시적 BSP identity·공개키)
+
+기존 MCUboot 공개키 ABI와 identity 계약에 const BSP 공급자를 추가했다. 표준91B
+P-256 공개 SPKI DER와 명시적 제조 epoch/manifest root ID/STM ABI만 build 입력으로
+받으며 새 container·키 형식·범용 framework는 만들지 않았다. OTA 전체 board ID와
+하위 STM32 pin profile ID는 구별한다. 설정과 제한은 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#bsp-identity와-공개키-빌드-입력)에 둔다.
+
+- 최초728bit 변이 시험에서 cryptography UnsupportedAlgorithm의 오류 변환 누락을
+  발견했다. 입력 자체는 실패했지만 약속한 ValueError가 아니었다. 변환을 보강했고
+  첫 실패 로그 `build/t107-trust-test.log`는 보존했다.
+- Python4개 시험의 하위 경계/728bit 변이, 실제 C null·출력 불변·반복 복사,
+  CMake 누락4/path3/DER/u32 오류·기존 build 입력 교체 검사가 통과했다.
+  Windows `build/t107-trust-retest.log`, WSL GNU `build/t107-trust-gcc.log`.
+- Host Debug/Release는 이번 관련157/157이 각각81.42/67.16초에 통과했다.
+  `build/t107-trust-host-{debug,release}-{config,build,test}.log`.
+  기존 장시간 MCUboot108시나리오/11240cut은 이번 실행에서 제외했으며 직전
+  `06383d6` 실행 결과와 구별한다. 이번 변경은 해당 모형의 제품 IO를 바꾸지 않았다.
+- 새 C 공급자 Clang ASan/UBSan, line/region/function/branch100%를 확인했다.
+  `build/t107-trust-sanitize-coverage.log`. 메모리 전용 개인키에서 얻은 공개 DER만
+  로컬 `build/t107-trust-test-public.der`로 보존했고 Git에 넣지 않았다.
+- 실제 Arm primary-debug/release에서 identity archive compile와 기존 앱
+  ELF/MAP/BIN51768/39776B를 확인했다. `build/t107-trust-primary-*-{config,build}.log`.
+  위 Arm·sanitizer configure/build 로그의 compiler/linker/CMake warning/error0이다.
+  이 archive는 부트로더 final binary가 아니다. 최종 link/WRP·실기 boot는 미완료다.
+- source digest를 `d677a131843fb58f982f5abd88654a792827eeac04d13f5679748a548f3ef6f5`로
+  재계산해 합성 capture fixture를 갱신했다. board drift0, 문서392/1482targets 오류0,
+  task49 오류0이다. physical evidence로 바꾸지 않았다.
+
+독립 리뷰·새 CI는 이어 수행한다. T-107/PR37은 IN_PROGRESS/Draft이며 SRAM linker/copy,
+boot executable/handoff·watchdog 시간·T-205 floor 연결이 남았다. Production 입력 승인,
+Flash/provisioning·HIL은 NOT_RUN, 차량 TX는 NO-GO다. 사용자 checkout·SDK는 보존했다.
+
+## 2026-09-19 (codex, ECC finding closure와 제품 IO의 MCUboot 모형 통합)
+
+`122924c`를 commit/push하고 원 A/B의 [post-fix 원본과 disposition](reviews/adversarial/2026-09-19-T-107-ecc-post.md)을
+보존했다. 양쪽 source PASS, A-01 P1·B-01/B-02 P2는 FIXED다. 과거 원본 verdict는 바꾸지 않았다.
+전체 task나 boot 실행 승인은 아니며 아래 후속 모형 변경은 해당 리뷰 candidate 밖이다.
+
+기존 `mcuboot_model.c`의 별도 IO 구현을 없애고 제품 `flash_io.c`를 실제 boot_go에 link했다.
+모형은 bounded read와 한8B program/한2KiB erase만 대체한다. FF skip·read-back은 제품 C를
+그대로 실행한다. 기존 API 단위 cut 대신 작은 image의 모든 primitive 전후를 중단한다.
+swap5610/revert5630, 합계11240 cut에서 이전 정상 image 복귀와 중복 program0을 확인했다.
+명령 내부 torn word/page, 실제 ECC/NMI나 시간은 여전히 NOT_RUN이다.
+
+- Windows Debug 통합시험1/1 319.41초, Release1/1 44.41초. 각각108 image/identity/IO 시나리오.
+  Debug 결과는 실행 도구 stdout, Release는 `build/t107-io-model-release-test.log`에 남았다.
+- 나머지156개를 별도 실행해 Debug156/156 29.11초, Release156/156 27.95초 성공.
+  따라서 두 구성 모두 전체157개를 검증했으며 단일 CTest run이라고 주장하지 않는다.
+  로그 `build/t107-io-model-{debug,release}-other-retest.log`.
+- 최초 나머지 시험은 README를 포함하는 source hash 불일치로 python-unit이 실패했다.
+  hash 산식을 완화하지 않고 합성 fixture/기대값을 재계산해 위 재시험했다.
+  digest `220c06d99eeb4aa2b106787647513d9b161f24b24204e4fb5eaad771a846c1de`.
+- WSL Clang21.1.8 ASan/UBSan Debug의 exhaustive cut은240초 timeout으로 실패했다.
+  새 `/tmp/canview-t107-io-model-sanitize` RelWithDebInfo에서 sanitizer·FIH/assert를 유지하고
+  같은108시나리오/11240cut을 다시 실행해1/1 234.02초 성공했다. timeout 실패를 성공으로
+  바꾸지 않는다. `build/t107-io-model-sanitize.log`, `build/t107-io-model-sanitize-optimized.log`.
+- GNU15.2 Release에서도 동일 통합1/1 44.32초 성공. 첫 기존 build에는 MCUboot root가
+  없어 target 미존재로 실패했고, pinned SDK/Python을 명시한 재configure 뒤 실행했다.
+  `build/t107-io-model-gcc.log`, `build/t107-io-model-gcc-retest.log`.
+- 이번 delta는 시험 연결·문서이며 제품 C는122924c와 동일하다. 새 target binary나 새 coverage를
+  생성했다고 주장하지 않는다. 제품 IO의 이전 unit coverage와 Arm 검증 근거는 직전 항목에 있다.
+- PR37 body는 현재 scope/test/review/미완료 gate 중심으로 줄이고 상세 이력은 이 journal에 보존했다.
+  `122924c` CI35437256268은 현재5/6 성공, target job 진행 중으로 아직 전체 성공이 아니다.
+
+다음은 최종 SRAM linker/copy·trusted BSP identity/공개키·boot executable/handoff와 시간 정책이다.
+T-107 IN_PROGRESS / PR37 Draft 유지. Physical/HIL NOT_RUN, 차량 TX NO-GO. 사용자 checkout·SDK와
+이전 evidence를 보존했으며 실제 Flash/option-byte/provisioning 변경은 하지 않았다.
+
+## 2026-09-19 (codex, T-107 ECC 리뷰 수정과 Flash IO primitive 연결)
+
+481a805의 독립 A/B 원문과 전달 manifest를 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-ecc.md)에
+보존했다. A-01 P1은 post-load RDERR를 성공으로 전달하는 결함이며 회귀시험의 반환값
+assertion 실패로 재현했다. 매 load 뒤 SR을 검사하고 오류·출력 불변을 보존하도록 수정했다.
+예상 밖 BSY는 SRAM fail-stop이다. 최소1B·65 load 위치의 RDERR와 BSY를 추가 시험한다.
+최초 모형 assertion의 Windows CRT abort는 timeout됐고 해당 test process만 종료했다.
+오류 주입 자체를 허용하도록 모형을 고친 뒤 실제 반환값 반례를 재현했다.
+
+B-01 P2는 조건부 간접 분기·blx lr를 거절하고 실제 Arm negative object로 회귀했다.
+B-02 P2는 archive POST_BUILD 대신 의존하는 항상 실행 검사 target으로 수정했다.
+소스 변경 없는 build와 script-only 변경 build 모두 기존 실제 object 검사를 재실행했다.
+경고 억제나 별도 범용 stamp framework는 만들지 않았다. 원 A/B post-fix 확인 전에는
+finding을 닫지 않는다. 최초 BLOCK/CONDITIONAL 원문도 수정하지 않는다.
+
+병행한 다음 구현은 `flash_io.c`의 기존 MCUboot read/write/erase 세 함수다.
+BSP 범위를 재검사하고 bounded read,8B program/FF skip,2KiB erase와 read-back을 연결했다.
+실패에 자동 retry/erase를 하지 않고 이전 단위의 부분 변경 가능성을 API에 명시했다.
+상위 swap/recovery·최종 boot 연결·watchdog 시간 정책은 여전히 별도다.
+
+- Windows Host Debug157/157(126.61초), Release157/157(71.02초) 성공.
+  `build/t107-io-post-host-*-{build,test}.log`.
+- 실제 Arm primary Debug/Release clean ELF/MAP/BIN과 IO archive 생성 성공.
+  BIN51768/39776B, read SRAM564/456B, compiler/linker/CMake warning/error0.
+  63개 C object stack·103 CMSIS/model+2 DMAMUX 상수 대조. 앱 image는 이전과 같으며
+  bootloader image로 표시하지 않는다. `build/t107-io-ecc-post-*-clean.log`.
+- 실제 Arm negative object는 bx lr 정상, bxne/blxne r3·blx lr 거절을 확인한다.
+  compiler/assembler stderr도 비어 있어야 한다. 무변경/검사 script 변경 재실행은
+  `build/t107-ecc-recheck-no-source-change.log`, `build/t107-ecc-recheck-script-only.log`.
+- ASan/UBSan read/IO2/2, GNU15.2 read/IO/validator3/3 성공. host 모형 coverage:
+  read region284/function5/line117/branch72 모두100%; IO region95/function6/line68 모두100%,
+  branch57/58(98.28%). IO에서 BSP가 성공했지만 다른 주소를 반환하는 불가능한 분기는
+  별도 fault 주입하지 않았다. target MMIO/주소 검사와 실제 HIL coverage는 아니다.
+  `build/t107-ecc-io-post-sanitize-coverage.log`.
+- 481a805 CI35436057000 6/6 success. artifact27개 bytes/SHA256, source11개 commit blob의
+  Windows CRLF checkout hash와 manifest source/run identity 일치. target log34개 warning/error0.
+  `build/t107-ecc-ci-35436057000/`. 이 CI는 수정 전 candidate의 근거이며 P1 closure를 대신하지 않는다.
+- 합성 fixture source digest는 `d526c819b6088ea80bbaaca8e8b372ab36fc0f8f5521940086f09e55a93be578`.
+  사용자 checkout·SDK·이전 evidence를 보존했으며 물리 장치/option-byte/키는 변경하지 않았다.
+
+T-107/PR37은 IN_PROGRESS/Draft, 원 reviewer 재검토·새 CI가 남는다. boot executable,
+SRAM 최종 linker/copy·trusted BSP identity·T-205와 physical ECC/reset/전원/HIL은 미완료다.
+Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO이며 이전 reviewer 면제를 적용하지 않는다.
+
+## 2026-09-19 (codex, T-107 bounded ECC guarded read)
+
+f3283fb에서 이어 기존 G474 platform에1..256B guarded read C를 추가했다.
+오류가 없는 staging 결과만 출력에 복사하며 ECCC/ECCD는 실패로 반환한다.
+임시 NMI는 현재 read 실패/flag clear만 담당하고 erase/복구 정책을 수행하지 않는다.
+다른 예외, 동시 clock/parity fault, clear 실패·NMI 전달 timeout은 SRAM reset/fail-stop이다.
+API 소유권·SRAM/stack/RTOS 제한은 기존 bootloader README에 통합했다.
+
+- 전체 슬롯98816word, alignment4×length256, per-load ECC195, NMI 지연31,
+  read 전후 비활성 NMI2, fatal14경로와 RDP256값·출력/보호 register 불변을 시험했다.
+- Windows Clang23.1 Host Debug156/156(93.40초), Release156/156(75.27초) 성공.
+  최종 test helper 변경 뒤 read/validator2/2도 두 구성에서 재실행했다.
+  로그: `build/t107-ecc-host-*-build-verified.log`, `build/t107-ecc-host-*-test-verified.log`.
+- Board drift0, 문서386개/링크1469개·task49개 오류0. 기본 사용자 checkout과 SDK,
+  기존 build/evidence는 보존했다.
+- 실제 Arm bench/primary Debug/Release clean ELF/MAP/BIN 생성 후 최종 register 모형
+  대조도 재실행했다. BIN51760/39768/51768/39776B, compiler/linker/CMake warning/error0.
+  read SRAM object528/436B, 외부 relocation0. 최대 개별 stack1352/1320B는 전체
+  boot call-chain budget이 아니다. 실제 CMSIS/model103개+DMAMUX2개를 대조했다.
+  로그: `build/t107-ecc-arm-*-final.log`, `build/t107-ecc-arm-*-verified.log`.
+- 공식 imgtool actual/최대 payload 서명·변조 거절 성공. signed52607/40616B,
+  최대184135/184134B, trailer2376B/reserve4096B. `build/t107-ecc-primary-*-imgtool.log`.
+- Clang21.1.8 ASan/UBSan MCUboot/command/read3/3(53.14초), 최종 test helper 변경 뒤
+  read1/1 재성공. 새 read C의 host 모형 coverage는 region272/function5/line114/branch68
+  모두100%다. 실제 MMIO·AIRCR reset·SRAM 주소 검사는 이 수치에 포함하지 않는다.
+  로그: `build/t107-ecc-sanitize-coverage-final.log`,
+  `build/t107-ecc-gcc-sanitize-coverage-verified.log`.
+- GNU15.2 Release guard/read/validator3/3 성공. SRAM 검사기는 기존 command 검사를
+  재사용하며 read 세 함수와 cbz/cbnz 영역 밖 변이도 거절한다.
+- 첫 Clang compile의 미초기화 context 주소 인자 진단은 uintptr 주소 전달로 수정했다.
+  첫 Arm compile의 RM/CMSIS enable 이름 차이는 실제 `FLASH_ECCR_ECCIE`로 수정했다.
+  register 모형 확장으로 Windows aggregate snapshot이 `__atomic_load`를 요구한 것은
+  테스트용 byte snapshot으로 고쳤다. GCC longjmp loop 진단은 setjmp를 별도 test helper로
+  분리해 해결했다. 경고 억제·추가 atomic library·SDK 원본 변경은 하지 않았다.
+- 중간 전체 host 실행 중 barrier fault 시험을 추가해 합성 source identity가 바뀌었다.
+  그 실행의 python-unit 실패는 성공으로 쓰지 않고, digest를 갱신해 고정 source에서
+  전체 host를 재실행했다. 최종 fixture digest는
+  `c83d2035a06e14f5bacf71cac85647f8586a286cbba74813acce7128ff933270`이다.
+
+기존 f3283fb CI35434965672는6/6 success/completed를 확인했다. 새 candidate CI와
+최종 artifact/hash 감사·독립2인 T-107 review를 대신하지 않는다. Flash IO backend,
+최종 SRAM linker/copy, trusted BSP identity, boot executable/handoff, T-205 정책은
+미완료다. Physical ECC/NMI latency·전원/reset/HIL/provisioning은 NOT_RUN이며 차량
+TX는 NO-GO, PR37/T-107은 Draft/IN_PROGRESS를 유지한다.
+
+## 2026-09-19 (codex, T-107 startup parity 누락 수정)
+
+ecbce7d의 후속 source 검토에서 P1 수준의 전제 누락을 발견했다. 고정 CubeG4
+`stm32g4xx_hal_flash.h:408`의 SRAM parity 대상은 CCM뿐 아니라 SRAM1 첫32KiB다.
+ES0430 Rev9 §2.2.7은 parity 활성 영역에서 dummy initialization을 요구한다.
+이전 read-only wrapper는 미초기화 parity에 의한 NMI를 고려하지 않았으므로
+직전 항목의 BIN/모형 성공을 parity 활성 startup 수용 근거로 사용하지 않는다.
+독립 reviewer finding은 아니며, 독립2인 task review를 대체하지 않는다.
+
+전용4B NOLOAD dummy를 SRAM1 시작에 예약했다.44B naked wrapper가 그 word에
+zero write/DSB를 두 번 실행한다. 첫 write 소실을 허용하고 두 번째로 초기화하며,
+앱 data는0x20000004부터 배치한다. 나머지 세 cut은 기존 read를 사용한다.
+SDK 원본과 option byte는 변경하지 않는다. 새 gate는 dummy/data 주소와 실제 BIN
+명령열까지 확인하며 linker도 dummy 주소/크기를 ASSERT한다.
+
+- 단위12개 성공. 실제 opcode 접근 모형에서 parity on/off와 네 cut의 첫 write
+  손실32조합 성공. 이전 read-only 명령열은 parity 활성 오류로 재현된다.
+  512개 bit 변이·두 base의 잘림772개·symbol/CCM 오류 거절도 유지했다.
+- Windows Clang23.1 Host Debug155/155(85.59초), Release155/155(67.71초) 성공.
+  host build warning/error0. `build/t107-parity-host-{debug,release}-{build,test}.log`.
+- 실제 Arm bench Debug/Release·primary Debug/Release clean build의 ELF/MAP/BIN 성공.
+  BIN은51760/39768/51768/39776B, wrapper44B/dummy4B/CCM0B이며 compiler/linker/CMake
+  warning/error0이다. `build/t107-parity-arm-{debug,release,primary-debug,primary-release}.log`.
+- 공식 imgtool 실제/최대 payload 서명·변조 검증 성공. 실제 signed52607/40614B,
+  최대184136/184134B, trailer2376B/reserve4096B다.
+  로그: `build/t107-parity-primary-{debug,release}-imgtool.log`.
+- Board drift0, 문서386개/링크1467개와 task49개 오류0. 합성 fixture source digest는
+  `dfd9478aa1290553b0bb0766cb8217ddc4f1b6e6e8d30bc9a038acbf01449bc1`이다.
+
+이 변경은 target-only startup이므로 host sanitizer/coverage 수치로 실행을 주장하지
+않는다.32조합은 SRAM 접근 모형이며 실제 cold/warm reset·parity/전원 fault/HIL은
+NOT_RUN이다. T-107/PR37은 IN_PROGRESS/Draft, ECC-safe read·Flash backend·boot executable과
+독립2인 task review·최종 CI/artifact 감사는 미완료다. 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, T-107 SRAM reset startup 전제)
+
+4839f38/PR37 Draft에서 이어 진행했다. ECC 검토 중 ES0430 Rev9 §2.2.7과 고정
+CubeG4 startup의 첫 SystemInit 호출을 대조해, SRAM 첫 write 이전 dummy read가
+없음을 확인했다. SDK를 복사/수정하지 않고 linker wrap과32B naked 진입부로 보완했다.
+스택을 쓰는 C prologue보다 앞서 실행해야 하는 이 부분만 최소 assembly다.
+§2.2.3에 따른 ECCR 단독 주소 기반 자동 erase 금지도 포트 설명에 기록했다.
+
+- 실제 bench Debug/Release와 primary Debug/Release ELF/MAP/BIN 생성 성공.
+  BIN 크기는 각각51748/39752/51756/39760B이며 CCM section0B다. 새 gate는 실제
+  vector/MSP/reset 명령/read4회/tail branch를 대조한다. Primary Debug는 clean build도
+  재실행했다. 로그: `build/t107-startup-arm-{debug,release,primary-debug,primary-release}.log`.
+- gate 단위11개 성공. 새 startup 시험은416개 단일 bit 변이, 두 image base의
+  잘림748개, symbol 누락/중복/주소·CCM 사용을 거절한다. 이는 물리 SRAM fault 주입이 아니다.
+- 공식 imgtool로 primary 실제/최대 payload를 다시 서명·검증했다. 실제 signed 크기
+  52594/40599B, 최대184134/184135B로180KiB 안이며 trailer2376B/reserve4096B다.
+  로그: `build/t107-startup-primary-{debug,release}-imgtool.log`. 임시 개인키는 보관하지 않는다.
+- Windows Clang23.1 Host Debug155/155(69.93초), Release155/155(68.68초) 성공.
+  로그: `build/t107-startup-host-{debug,release}-{build,test}.log`.
+- WSL ASan/UBSan MCUboot/Flash command 회귀2/2(31.74초) 성공.
+  로그: `build/t107-startup-sanitize.log`. Target-only startup assembly는 host sanitizer와
+  C coverage 대상이 아니며 실제 Arm BIN 대조로 검증한다.
+- Arm4개·host2개·sanitizer build log의 compiler/linker/CMake warning/error0.
+  board drift0, 문서386개/링크1467개와 task49개 오류0. 합성 fixture digest는
+  `e4ed1868ba2f85f2b2a054e5352e9a432dfd59bf37c691edf35654921237aa89`다.
+- 보조 조회에서 PowerShell에 shell brace 구문을 잘못 사용한 parse 오류와 imgtool
+  검사 스크립트 경로 오기가 있었다. 파일 변경 없이 수정해 실제 `tests/ota/` 경로로
+  위 검증을 실행했다. SDK 원본은 clean이며 이전 evidence/사용자 checkout은 보존했다.
+
+4839f38 CI35433675129는 확인 시 in_progress였으며 성공으로 표시하지 않는다.
+T-107은 IN_PROGRESS/PR Draft다. 다음은 ECC-safe read/Flash backend·최종 SRAM
+배치/복사와 boot executable이다. 신규 독립2인 리뷰·최종 CI/artifact 감사는 아직이며
+physical reset/ECC/Flash/HIL/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, T-107 SRAM 단일 Flash 명령)
+
+9bc5bd0/PR37 Draft와 clean worktree에서 이어 구현했다. 이전 guard 구현은 실제
+진척이며 CI35432704415도 success/completed를 확인했다. 새 candidate의 CI·최종
+artifact 감사나 독립2인 리뷰가 완료됐다는 뜻은 아니다.
+
+- 기존 platform 경계에 단일 page erase/8B program C를 추가했다. 고정 guard,
+  RDP0/lock·status 검사, 슬롯 범위·정렬·enum/all-FF/duplicate 거절, cache/lock/
+  PRIMASK/VTOR 복원을 구현한다. option-byte 변경이나 watchdog feed/disable은 없다.
+- 고정 HAL의 program/erase/cache 순서를 사용하되 tick 의존 busy 대기는 SRAM
+  DWT/유한 poll로 대체했다. NMI/HardFault와 busy timeout은 SRAM reset/fail-stop이다.
+  실제 ECC-safe read·persistent ECC recovery·상위 Flash backend는 미연결이다.
+  임시 vector/실행 전제와 reset loop 위험은 bootloader README에 명시했다.
+- Windows Clang23.1 Host Debug155/155(70.74초), Release155/155(55.10초) 성공.
+  로그: `build/t107-command-host-{debug,release}-{build,test}.log`.
+- WSL Clang21.1.8 ASan/UBSan2/2(13.84초), 새 C의 host 모형 coverage 실행1/1(3.53초).
+  region309/309, function4/4, line119/119, branch66/66=100%. target 전용 register
+  쓰기와 SRAM 주소 검사는 이 coverage에 포함되지 않는다.
+  로그: `build/t107-command-sanitize-coverage-final.log`.
+- 실제 Arm primary Debug/Release 앱 ELF/MAP/BIN 및 새 명령 archive 생성 성공.
+  object busy section은480B/364B, 두 내부 함수·literal, 외부 relocation0이며 자동
+  post-build 검사와10개 거절 mutation을 추가했다. 상수96개+DMAMUX2개는 SDK 대조
+  성공이다. 앱 BIN은51724B/39728B다. 최종 boot SRAM map/복사와 부트로더 BIN은 아직 없다.
+  로그: `build/t107-command-arm-primary-{debug,release}.log`.
+- 네 host/Arm build log의 compiler/linker/CMake warning/error scan0, board drift0,
+  문서386개/링크1466개 오류0, task49개 오류0. source digest
+  `cbfbc07fb98a615ed3953df599892bebc527381949763ad56cd32faaf341ad19`를 합성 fixture에
+  반영했으며 실제 HIL로 승격하지 않았다.
+
+다음은 ECC-safe read/Flash backend·SRAM linker/startup 연결과 boot executable이다.
+RDP 생산 정책/T-507, physical Flash/ECC·stall·watchdog·전원 fault/HIL은 NOT_RUN,
+차량 TX는 NO-GO다. T-107 AC와 리뷰·최종 CI/artifact gate는 열려 있고 merge하지 않았다.
+
+## 2026-09-19 (codex, T-107 G474 읽기 전용 Flash 보호 guard)
+
+eaa5751 다음 단위다. 시작 시 해당 HEAD/remote와 clean 상태, CI35432132535의
+in_progress를 확인했다. 이전 turn은 실제 C 구현·commit/push가 있는 진행으로 분류한다.
+드라이버/architecture/cstyle/documentation 기준에 따라 MCU register 접근은 기존
+platform 경계에 두고 공용 MCUboot adapter는 필수 preflight 함수만 호출한다.
+
+- `flash_guard.c`는512KiB·DBANK1·BFB2off·bank remap 없음·양방향 NRST,
+  WRP1A page0..31과 나머지 WRP 비활성, SYSCFG clock·busy/option 오류를 확인한다.
+  매 write/erase 전달 전에 실제 값을 새로 읽고 실패하면 backend IO를 호출하지 않는다.
+  option-byte/Flash 상태 register에 쓰지 않는다. 생산용 RDP/PCROP·복구 조합 승인과
+  샘플 qualification은 T-507에 남아 있으며 guard 성공을 그 승인으로 해석하지 않는다.
+- Host 모형에도 실제 guard source를 link했다. 정상 boot_go108개 image/identity/IO
+  시나리오와 swap/revert258개 API 중단 경로를 유지한다. Guard 단위시험은 옵션16개,
+  크기65536개, WRP65536개 조합과 register 불변을 확인한다.
+- WSL Clang21.1.8 ASan/UBSan2/2(18.59초), coverage2/2(7.00초) 성공.
+  guard 자체의 region95/95·function2/2·line32/32·branch20/20은100%다.
+  전체 firmware나 물리 Flash coverage 주장이 아니다. 로그는
+  `build/t107-guard-sanitize-coverage.log`다.
+- 실제 Arm primary-debug/primary-release clean build에서 기존 앱 ELF/MAP/BIN과
+  새 guard archive를 생성했다. compiler/linker/CMake warning0, CMSIS/model 상수73개
+  (신규19개 포함)와 기존 DMAMUX2개 대조 성공. 로그는
+  `build/t107-guard-arm-primary-{debug,release}.log`다. Bootloader 최종 binary는 아직 없다.
+- Windows Clang23.1 전체 Host Debug153/153(70.00초), Release153/153(53.83초) 성공.
+  `build/t107-guard-host-{debug,release}-{build,test}.log`를 보존한다. 두 host build 로그도
+  compiler/linker/CMake warning0이다. 새 guard는 SDK 없는 host matrix에도 포함된다.
+- board generation, 문서386개/로컬 링크1464개, task49개 정합 검사 성공.
+  합성 capture fixture의 source digest만 갱신했으며 실제 HIL로 승격하지 않았다.
+
+다음은 실제 Flash program/erase·ECC/NMI·SRAM critical path와 bootloader executable다.
+현재 guard는 이 실행부를 대체하지 않는다. T-107 AC·독립2인 리뷰·최종 CI/artifact
+감사는 열어 두며 PR37은 Draft다. Physical/HIL/Flash/provisioning은 NOT_RUN,
+차량 TX는 NO-GO, Diagnostic Bridge는 read-only다.
+
+## 2026-09-19 (codex, T-107 MCUboot protected metadata hook)
+
+430d73a 뒤의 작은 C 구현 단위다. Embedded architecture/cstyle/documentation 기준에
+따라 기존 T-007 metadata parser와 MCUboot hook/loader 상태 API를 재사용했다.
+새 암호 구현·swap 엔진·범용 framework는 추가하지 않았다.
+
+- `image_hooks.c`는 고정 header/protected TLV/일반 TLV 구조와180KiB 경계를 검사한다.
+  신뢰된 identity 공급 계약의 board/role/layout/제조 epoch/ABI와 대조한 뒤에도
+  FIH_BOOT_HOOK_REGULAR를 반환해 native hash/P-256 검증을 이어간다.
+  실제 BSP 공급자는 미구현이며 합성 identity는 host model 안에만 있다.
+- 시험 중 일반 TLV info length만 변조한 image가 upstream 서명 검증을 통과했다.
+  고정 T-007 profile과 같은 SHA256/keyhash/ECDSA 순서·길이 대조로 이를 거절했다.
+  최초 hook 연결에서는 offset copy 후처리 symbol 누락으로 link가 실패했고,
+  upstream 기본값0의 no-op hook을 연결했다. 경고/검증기를 억제하지 않았다.
+- 공식 imgtool의 임시 메모리 키를 사용한108개 image/identity/IO 시나리오와
+  swap120/revert138 API 경계 중단을 실제 C boot_go로 실행했다.
+  정상 키로 재서명한 잘못된 metadata, 잘린 TLV, 길이 합 overflow/초과,
+  identity 공급 실패와 각 read 실패를 포함한다. 실제 torn word/page 시험은 아니다.
+- WSL Clang21.1.8 ASan/UBSan23.85초 PASS. 새 profile의 hook coverage는
+  line113/113·function8/8=100%, region155/158=98.10%, branch75/82=91.46%다.
+  미실행 방어 분기에는 불변 슬롯 open 실패와 upstream 상태 offset 손상 및 FIH
+  macro 경로가 포함된다. 전체 firmware coverage100%로 표시하지 않는다.
+  로그는 `build/t107-identity-sanitize-final.log`, `build/t107-identity-coverage-final.log`다.
+- 실제 Arm primary Debug/Release clean build에서 기존 앱 ELF/MAP/BIN과 변경된
+  bootutil archive를 생성했다. 앱 크기51724/39728B, vector0x08010200 검사 성공.
+  로그 `build/t107-identity-arm-primary-{debug,release}-final.log`를 보존한다.
+- Windows Clang23.1 전체 Host Debug152/15286.73초, Release152/15258.55초 성공.
+  `build/t107-identity-host-{debug,release}-{build,test}.log`를 보존한다.
+  두 host build와 두 Arm clean build 로그의 compiler/linker/CMake warning/error는0이다.
+- board generation, 문서386개/로컬 링크1463개, task49개 정합 검사 성공.
+  합성 capture fixture source digest만 갱신했으며 physical evidence로 승격하지 않았다.
+
+아직 T-107 IN_PROGRESS다. 실제 G474 Flash/profile/ECC/SRAM/watchdog와 bootloader
+실행 파일, BSP identity 공급, T-205 floor/activation/confirmation 연결 및 독립2인
+리뷰·최종 CI/artifact 감사가 남았다. Physical/HIL·provisioning은 NOT_RUN,
+차량 TX는 NO-GO이며 PR37은 Draft를 유지한다.
+
+## 2026-09-19 (codex, T-107 MCUboot C boot_go·swap/revert 첫 연결)
+
+a2f1f9c 다음 단위다. 해당 commit CI35429702531 success/completed를 확인했다.
+새 source 단위는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md)의
+얇은 C Flash adapter·공식 bootutil/TinyCrypt/ASN1 연결과 host 모형이다. 드라이버 설계
+기준에 따라 BSP map을 재사용하고 실제 register/HAL IO를 portable 영역에 넣지 않았다.
+SDK 원본 pin6d3b3d2/clean 유지, 개인키는 공식 imgtool 시험의 메모리 전용이다.
+
+- `stm32-mcuboot-model`은30개 image 시나리오와 swap120/revert138 API 경계 중단을
+  실행했다. 정상·최대 크기·truncated/header/TLV/서명 변조·미신뢰 key·confirm 및
+  이전 정상본 복귀를 확인했다. Flash 모형은 FF doubleword도 중복 program을 거절한다.
+- Windows Clang23.1 Debug/Release에서 실행. Arm15.3.Rel1/CubeG4 v1.6.3의
+  primary-debug/primary-release clean build도 기존 앱 ELF/MAP/BIN과 새 library를 생성했다.
+  로그 `build/t107-mcuboot-arm-primary-{debug,release}-clean.log`, compiler/linker/CMake warning0.
+  Boot library는 아직 앱에 link하지 않으며 final bootloader ELF/BIN은 없다.
+- 전체 Host Debug152/15269.96초, Release152/15249.33초 성공.
+  `build/t107-mcuboot-host-{debug,release}-{build,test}.log`를 보존했다.
+  board generation·문서386개/로컬 링크1461개·task49개 정합 검사도 성공했다.
+- Arm 첫 빌드는 FIH 반환형 top-level volatile 경고로 실패했고 Release에서는
+  TinyCrypt t5 초기화 경고도 발견했다. 경고 억제/보호 profile 하향 없이 build 사본에서
+  반환35+4곳 및 임시 배열3개만 변환했다. Python이64개 source 파일과 원본을 대조하고,
+  C `_Generic` assertion이 FIH 전역/지역/멤버의 volatile과 반환 layout을 검사한다.
+  Host는 Arm panic loop만 abort로 대체하며 double-variable/CFI를 유지한다.
+- Clang21.1.8 ASan/UBSan18.70초 PASS. 별도 coverage 실행6.03초,
+  `flash_map.c` region117/function15/line101/branch66 모두100%.
+  로그 `build/t107-mcuboot-sanitizer-coverage-final.log`.
+- WSL 보조 환경은 `/tmp/canview-t107-mcuboot-sdk-native`의 같은 pin clean clone,
+  `/tmp/canview-t107-model-clean`의 Python3.14.4·cryptography48.0.0/cffi2.1.1/
+  pycparser3.0/cbor2 6.1.4/intelhex2.3.0/click8.5.0이며 pip check 성공.
+  최초 Python 선택에서 click이 없었고 system-site venv는 무관한 dependency 충돌을
+  보여 별도 clean venv로 재실행했다. Windows wheel lock 검증과는 별도 보조 결과다.
+- 처음 WSL shell 변수 전달/Arm 로그 상대 경로 오류는 검증 PASS가 아니며,
+  명시적인 경로로 재실행했다. 사용자 checkout·SDK·기존 evidence는 변경/삭제하지 않았다.
+- CI Windows host에 MCUboot root를 명시하고 target primary 두 구성에 같은 root를
+  연결했다. 새 CI·artifact 감사·독립 task 리뷰2건은 후속 gate다. T-107 AC는 열려 있다.
+- board/role/ABI TLV·profile·실제 Flash/ECC/NMI/stall/watchdog·boot handoff·
+  T-205 confirmation/floor는 미완료. Physical/HIL·실제 option-byte/provisioning·
+  torn word/page는 NOT_RUN, 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, T-107 실제 primary 앱 image 연결)
+
+179ab64 다음 단위로 primary-debug/primary-release preset과 primary linker를 추가했다.
+기존 bench section/RAM/stack 내용은 application-sections.ld로 추출해 공유하며,
+primary vector0x08010200/payload179KiB를 고정한다. SDK SystemInit 공식 macro로 VTOR를
+설정한다. ISR 설계 기준에 따라 SDK startup 순서와 실제 disassembly를 확인했으며
+ISR에 새 parsing/Flash/heap 처리를 넣지 않았다. Bootloader handoff 실기 검증은 아니다.
+
+- 실제 Arm15.3.Rel1/CubeG4 v1.6.3의 primary-debug BIN51724B,
+  primary-release BIN39728B; ELF/MAP/BIN과 기존 bench 두 빌드 모두 성공.
+- `cmake --preset primary-debug/primary-release`, 같은 이름 build preset.
+  로그 `build/t107-{primary-debug,primary-release,debug,release}-layout-build.log`와
+  `build/t107-primary-{debug,release}-final-layout-build.log`. compiler/linker/CMake warning0.
+- `arm-none-eabi-objdump -d --disassemble=SystemInit`의 release 실제 명령은
+  SCB base0xE000ED00 +8에0x08010200을 store한다. Vendor 원본 변경 없음.
+- `tools/ota/validate_stm32_map.py`는 실제 ELF bytes/load span과 BIN의 byte 대조,
+  map Flash geometry·vector/Reset_Handler/stack·중첩·gap을 확인한다.
+  실제 bench ELF를 넣었을 때 primary geometry 오류로 거절하는 것도 확인했다.
+- `build/ota-native-clean/Scripts/python.exe -B tests/ota/check_stm32_primary_image.py
+  --binary firmware/communicator/stm32/build/<primary-mode>/canview-communicator-stm32.bin
+  --mcuboot C:/cv/mcuboot-2.4.0`: 실제 BIN·최대 payload183296B를 공식 imgtool로
+  임시 서명/검증하고 byte 변조 거절. 고정 SDK pin6d3b3d2/clean 확인.
+  이번 기록 실행에서 actual signed52563/40567B, 최대 padding 사례184135B,
+  trailer2376B/page reserve4096B. signed180KiB·secondary 추가2048B 안에 들어간다.
+  ECDSA DER 길이는 실행별로 달라질 수 있으므로 수치는 해당 실행값이며 deterministic
+  production 서명 artifact 주장이 아니다. 개인키는 메모리, 임시 signed file은 자동 정리.
+  로그 `build/t107-primary-{debug,release}-imgtool.log`.
+- map 검사기 mutation6개 unittest 및 기존 core gate8개 성공.
+  Host Debug151/15119.28초, Release151/15117.52초;
+  `build/t107-primary-host-{debug,release}-test.log`.
+- `CANVIEW_STM_IMAGE_LAYOUT=INVALID`는 명시 configure 오류로 거절.
+  첫 명령의 따옴표 없는 -D toolchain 인자는 PowerShell에서 분리돼 실패했으며
+  그 실패를 negative PASS로 쓰지 않았다. 인자를 인용해 재실행한
+  `build/t107-invalid-layout-quoted.log`에서 의도한 거절을 확인했다.
+- CI YAML과6개 PowerShell run script syntax 검사 성공. Primary2개 build·공식 imgtool
+  확인·artifact6개와 source provenance4개를 기존 target job에 추가했다.
+  서명 시험은 별도 임시 venv와 기존 hash lock을 써 ESP-IDF 환경을 변경하지 않는다.
+- 합성 fixture source digest는 `f18dc0834ec5ddccd06b05a27e5d3c684d61482f36942a1da83073ef7f15fada`.
+  실제 capture는 변경하지 않았다. Board/doc385개1456targets/task49개 검사 오류0.
+
+부트로더64KiB image·actual Flash API/profile/ECC·swap/revert·confirmation·독립2인
+task 리뷰는 아직 남아 있다. 이번 commit의 CI 완료/artifact 감사도 아직이다.
+T-107 IN_PROGRESS, 실제 Flash/HIL NOT_RUN, 차량 TX NO-GO를 유지한다.
+
+## 2026-09-19 (codex, T-107 C Flash 배치 첫 구현 단위)
+
+PR37은 Draft이며 BSP `flash_layout.c/.h`, portable interface와 CTest를 추가했다.
+전체512KiB의 모든 byte offset을 READ/PROGRAM/ERASE 단위로 검사하고, 문서의
+literal map·null/zero/invalid enum/UINT32_MAX/끝 경계·실패 출력 불변을 확인한다.
+BOOT/RESERVED의 변경 요청은 항상 거절한다. Library만 추가했으며 현재 앱이나
+실제 Flash IO에 연결하지 않았다. 범위 성공은 쓰기 권한이 아니다.
+
+최초 Arm build는 새 library의 CAPTURE_ONLY forced include 누락으로 post-build
+검증이 실패했다. 기존 compile 계약을 적용하고 재실행해 통과했으며 검증기를
+완화하지 않았다. 작업 중 source digest 변경과 겹친 최초 Release python-unit도
+실패했다. 합성 fixture/expected digest를 `0f722a0b1c609f97ac8fec65e1a7f49be4a3b3e1482a5d9fea4b0db72b0ea703`로
+맞춘 뒤 고정 source에서 Debug/Release 전체를 다시 실행했다. 실제 capture는 변경하지 않았다.
+
+- `ctest --preset host-debug --parallel 4`:151/151,19.41초.
+- `ctest --preset host-release --parallel 4`:151/151,18.56초.
+- 로그: `build/t107-host-{debug,release}-postfix-test.log`.
+- STM32 `cmake --build --preset debug/release`:ELF/MAP/BIN 생성,
+  새 BSP Arm object도 strict C99 컴파일. post-fix 로그의 compiler/linker/CMake warning0.
+  Debug text51712/data4/bss+stack79808; Release text39712/data4/bss+stack79808.
+- 로그: `build/t107-arm-{debug,release}-postfix-build.log`; 실패 로그도 보존했다.
+- WSL Ubuntu26.04 Clang21.1.8, 새 두 C 파일을 `-std=c99 -Wall -Wextra -Wpedantic
+  -Werror -Wconversion -Wshadow -Wstrict-prototypes -Wmissing-prototypes`로 컴파일해
+  `-fsanitize=address,undefined` 실행 성공. 출력 binary는 `/tmp/canview-t107-flash-asan`.
+- 동일 source의 `-fprofile-instr-generate -fcoverage-mapping` 실행 후 llvm-profdata/cov:
+  production `flash_layout.c` 42regions/2functions/46lines/32branches 모두100%.
+  profile은 `/tmp/canview-t107-flash.profdata`; 전체 firmware coverage 주장 아님.
+- Board 생성물 PASS, 문서385개/1456targets 오류0, task49개 오류0(아래 문서 추가 전 검사).
+
+MCUboot2.4.0 pin6d3b3d2의 PORTING.md·bootutil CMake·imgtool trailer와 offset status
+source를 읽었다. imgtool trailer 계산과 offset bootutil의 실제 상태 수가 다르므로
+별도 port의 sector/trailer 경계를 직접 연결해 검증해야 하며 현재 완료로 표시하지 않는다.
+DBANK/WRP/NRST·실제 Flash/ECC·swap/revert·bootloader binary·2인 리뷰는 남아 있다.
+
+도구는 기존 t104 worktree의 검증된 LLVM23.1.0/CMake4.4.3/Ninja1.13.2,
+Arm15.3.Rel1, `C:/cv/STM32CubeG4-1.6.3`을 재사용했다. 처음 현재 worktree의 환경
+script를 호출해 중복 LLVM 압축 해제가 시작됐으나, 해당 실행 PID/명령/부모를 확인해
+그 두 process만 중단했다. 현재 worktree `.tools/llvm-23.1.0` 부분 추출물은 사용하지
+않으며 삭제하지 않았다. 기존 SDK·evidence·사용자 checkout은 보존했다.
+
+Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO, T-107은 IN_PROGRESS다.
+
+## 2026-09-19 (codex, PR36 merge와 T-107 source 시작)
+
+e1df406 CI35427174458을 재시작 없이 기다려6/6 성공을 확인했다.
+target21개 bytes/SHA256·source7개·target logs28개 warning/error0,
+manifest `dc2d83a51dfb76dddb0b389ebdd9d5fffa1714092e6a91163d95d85c2a69966b`를
+다운로드해 대조했다. 최신 CI host artifact도 Debug/Release150/150이며
+host simulation report의 commit은 e1df406, physical_hil은 NOT_RUN이다.
+로컬 closure HEAD는 Debug150/15055.01초·Release150/15014.70초,
+board 생성물·문서385개/1456 targets·task49개 검사 오류0이다.
+
+PR36 ready 후 match-head-commit을 지정해 merge했다.
+2026-09-19T06:58:42Z merge `c60641f218ca5a9966781cc1e8d417df26bb2712`,
+origin/main 일치와 e1df406 ancestry를 확인했다. PR body와
+[최종 comment](https://github.com/digitie/canview/pull/36#issuecomment-5740075821)에 증거를 기록했다.
+T-007 DONE을 archive로 이동한다. 전체 목표나 물리 gate의 완료는 아니다.
+
+다음은 STM32 core/OTA 순서의 T-107이다. T-102 PR29 source merge50410ba는
+확인했지만 물리 수용은 열려 있다. 사용자가 승인한 G1 이전 source 범위로
+codex/t107-stm32-mcuboot를 origin/main에서 만들고 기존 worktree 경로·SDK·
+빌드 증거를 보존했다. 기본 checkout의 사용자 untracked 파일은 건드리지 않았다.
+먼저 고정 map과 negative 시험을 구현한다. 실제 Flash/option-byte/provisioning은
+실행하지 않았고 physical/HIL NOT_RUN·차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, T-007 전체 소프트웨어 수용 closure)
 
 77b84cf의 [최종 독립 A/B 감사](reviews/adversarial/2026-09-19-T-007-final-acceptance.md)는

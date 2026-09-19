@@ -1,6 +1,6 @@
 # T-007 OTA-01 서명 컨테이너와 packager
 
-- 상태: `IN_PROGRESS`
+- 상태: `DONE`
 - 우선순위: `P0`
 - Gate: `G0 / OTA-01`
 - 선행: `T-001`
@@ -17,7 +17,11 @@ T-001은 완료됐으며 상세 과거 구현·검증 이력은 [journal](../jou
 Windows Debug/Release150/150, Linux ASan/UBSan139/139, C mutant5개와 strict docs도
 통과했다. 원문 판정을 PASS로 변경하지 않는다. 아래 AC는 T-007 계약 범위에서
 수용하며 실제 writer·영속 policy·물리 gate는 아래 기존 소유권에 유지한다.
-Closure 기록의 CI와 PR36 merge 전이므로 IN_PROGRESS다.
+Closure `e1df406`의 CI35427174458도6/6 성공이며 target21개 bytes/hash·source7개·
+target logs28개 경고/오류0을 다시 대조했다. PR36은2026-09-19
+`c60641f218ca5a9966781cc1e8d417df26bb2712`로 merge됐고 origin/main 및
+검토 HEAD의 ancestry를 확인했다. [최종 merge 증거](https://github.com/digitie/canview/pull/36#issuecomment-5740075821)를
+보존한다. T-007은 DONE이며 제품 전체 설치·physical/HIL의 완료는 아니다.
 
 ## 과거 구현·검증 이력
 

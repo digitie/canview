@@ -26,6 +26,13 @@ find_package(Python3 3.12 REQUIRED COMPONENTS Interpreter)
 add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_subdirectory(shared/ota)
+include(firmware/communicator/stm32/bsp/flash_layout.cmake)
+set(CANVIEW_MCUBOOT_ROOT "$ENV{MCUBOOT_ROOT}" CACHE PATH "Pinned clean MCUboot checkout")
+if(CANVIEW_MCUBOOT_ROOT)
+    add_subdirectory(firmware/communicator/stm32/bootloader)
+else()
+    message(STATUS "MCUboot C model NOT_RUN: set CANVIEW_MCUBOOT_ROOT to the pinned clean checkout")
+endif()
 add_library(canview_stm_build_provider STATIC
     firmware/communicator/stm32/tests/build_id_fixture.c
     firmware/communicator/stm32/bsp/build_metadata.c)
@@ -54,6 +61,95 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    if(CANVIEW_MCUBOOT_ROOT)
+        add_executable(canview-stm-boot-fail-stop-tests tests/ota/test_stm32_boot_fail_stop.c)
+        target_include_directories(canview-stm-boot-fail-stop-tests PRIVATE
+            firmware/communicator/stm32/bootloader "$<TARGET_PROPERTY:bootutil,SOURCE_DIR>/include")
+        target_link_libraries(canview-stm-boot-fail-stop-tests PRIVATE
+            canview_boot_fail_stop canview_boot_config canview_warnings)
+        add_test(NAME stm32-boot-fail-stop COMMAND canview-stm-boot-fail-stop-tests)
+        set_tests_properties(stm32-boot-fail-stop PROPERTIES TIMEOUT 30)
+        add_executable(canview-mcuboot-model tests/ota/mcuboot_model.c
+            firmware/communicator/stm32/platform/stm32g474/flash_io.c
+            firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+        target_compile_definitions(canview-mcuboot-model PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+        target_include_directories(canview-mcuboot-model PRIVATE firmware/communicator/stm32/bsp
+            firmware/communicator/stm32/tests firmware/communicator/stm32/interface)
+        target_link_libraries(canview-mcuboot-model PRIVATE bootutil canview_boot_flash_map)
+        set_target_properties(canview-mcuboot-model PROPERTIES C_STANDARD 11)
+        target_compile_options(canview-mcuboot-model PRIVATE -Wall -Wextra -Werror)
+        add_test(NAME stm32-mcuboot-model COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_mcuboot_model.py
+            --probe $<TARGET_FILE:canview-mcuboot-model> --mcuboot ${CANVIEW_MCUBOOT_ROOT}
+            --bootutil $<TARGET_PROPERTY:bootutil,SOURCE_DIR>)
+        set_tests_properties(stm32-mcuboot-model PROPERTIES TIMEOUT 600)
+        add_test(NAME stm32-boot-trust COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_stm32_boot_trust.py
+            --cmake ${CMAKE_COMMAND} --compiler ${CMAKE_C_COMPILER}
+            --ninja ${CMAKE_MAKE_PROGRAM} --mcuboot ${CANVIEW_MCUBOOT_ROOT})
+        set_tests_properties(stm32-boot-trust PROPERTIES TIMEOUT 180)
+    endif()
+    add_executable(canview-stm-boot-handoff-tests tests/ota/test_stm32_boot_handoff.c
+        firmware/communicator/stm32/platform/stm32g474/boot_handoff.c)
+    target_include_directories(canview-stm-boot-handoff-tests PRIVATE
+        firmware/communicator/stm32/bootloader/include firmware/communicator/stm32/tests
+        firmware/communicator/stm32/interface firmware/communicator/stm32/bsp shared/interface)
+    target_compile_definitions(canview-stm-boot-handoff-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-boot-handoff-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-boot-handoff COMMAND canview-stm-boot-handoff-tests)
+    set_tests_properties(stm32-boot-handoff PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm-boot-runtime-tests tests/ota/test_stm32_boot_runtime.c
+        firmware/communicator/stm32/platform/stm32g474/boot_runtime.c)
+    target_include_directories(canview-stm-boot-runtime-tests PRIVATE
+        firmware/communicator/stm32/bootloader/include firmware/communicator/stm32/tests
+        firmware/communicator/stm32/bsp shared/interface)
+    target_compile_definitions(canview-stm-boot-runtime-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-boot-runtime-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-boot-runtime COMMAND canview-stm-boot-runtime-tests)
+    set_tests_properties(stm32-boot-runtime PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm-flash-guard-tests tests/ota/test_stm32_flash_guard.c
+        firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+    target_include_directories(canview-stm-flash-guard-tests PRIVATE
+        firmware/communicator/stm32/bootloader/include firmware/communicator/stm32/tests
+        firmware/communicator/stm32/bsp)
+    target_compile_definitions(canview-stm-flash-guard-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-flash-guard-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-flash-guard COMMAND canview-stm-flash-guard-tests)
+    add_executable(canview-stm-flash-command-tests tests/ota/test_stm32_flash_command.c
+        firmware/communicator/stm32/platform/stm32g474/flash_command.c
+        firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+    target_include_directories(canview-stm-flash-command-tests PRIVATE
+        firmware/communicator/stm32/interface firmware/communicator/stm32/bootloader/include
+        firmware/communicator/stm32/tests firmware/communicator/stm32/bsp shared/interface)
+    target_compile_definitions(canview-stm-flash-command-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-flash-command-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-flash-command COMMAND canview-stm-flash-command-tests)
+    set_tests_properties(stm32-flash-command PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm-flash-read-tests tests/ota/test_stm32_flash_read.c
+        firmware/communicator/stm32/platform/stm32g474/flash_read.c
+        firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+    target_include_directories(canview-stm-flash-read-tests PRIVATE
+        firmware/communicator/stm32/interface firmware/communicator/stm32/bootloader/include
+        firmware/communicator/stm32/tests firmware/communicator/stm32/bsp shared/interface)
+    target_compile_definitions(canview-stm-flash-read-tests PRIVATE
+        CANVIEW_STM_REGISTER_TEST=1 CANVIEW_STM_FLASH_READ_TEST=1)
+    target_link_libraries(canview-stm-flash-read-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-flash-read COMMAND canview-stm-flash-read-tests)
+    set_tests_properties(stm32-flash-read PROPERTIES TIMEOUT 30)
+    add_executable(canview-stm-flash-io-tests tests/ota/test_stm32_flash_io.c
+        firmware/communicator/stm32/platform/stm32g474/flash_io.c)
+    target_include_directories(canview-stm-flash-io-tests PRIVATE
+        firmware/communicator/stm32/interface firmware/communicator/stm32/bootloader/include
+        firmware/communicator/stm32/bsp shared/interface)
+    target_link_libraries(canview-stm-flash-io-tests PRIVATE canview_stm_flash_layout canview_warnings)
+    add_test(NAME stm32-flash-io COMMAND canview-stm-flash-io-tests)
+    add_test(NAME stm32-flash-ram-validator COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/ota/test_stm32_flash_ram.py)
+    add_executable(canview-stm-flash-layout-tests tests/ota/test_stm32_flash_layout.c)
+    target_include_directories(canview-stm-flash-layout-tests PRIVATE firmware/communicator/stm32/bsp)
+    target_link_libraries(canview-stm-flash-layout-tests PRIVATE canview_stm_flash_layout canview_warnings)
+    add_test(NAME stm32-flash-layout COMMAND canview-stm-flash-layout-tests)
+    set_tests_properties(stm32-flash-layout PROPERTIES TIMEOUT 30)
     add_executable(canview-ota-stage-probe tests/ota/stage_probe.c)
     target_include_directories(canview-ota-stage-probe PRIVATE shared/ota/src shared/interface)
     target_link_libraries(canview-ota-stage-probe PRIVATE canview_ota canview_warnings)

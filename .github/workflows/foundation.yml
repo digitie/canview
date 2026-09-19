@@ -32,19 +32,19 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $mcubootHead = git -C $env:MCUBOOT_ROOT rev-parse HEAD
           if ($LASTEXITCODE -or $mcubootHead -ne $mcubootPin.gitCommit) { throw 'MCUboot commit mismatch' }
-          cmake --preset host-debug
+          cmake --preset host-debug "-DCANVIEW_MCUBOOT_ROOT=$env:MCUBOOT_ROOT"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build --preset host-debug
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ctest --preset host-debug
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          cmake --preset host-release
+          cmake --preset host-release "-DCANVIEW_MCUBOOT_ROOT=$env:MCUBOOT_ROOT"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build --preset host-release
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ctest --preset host-release
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          cmake --preset host-coverage
+          cmake --preset host-coverage "-DCANVIEW_MCUBOOT_ROOT=$env:MCUBOOT_ROOT"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           cmake --build --preset host-coverage
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -159,6 +159,24 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.14'
+      - name: Prepare pinned MCUboot image validation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $signVenv = Join-Path $env:RUNNER_TEMP 'canview-stm-sign'
+          python -m venv $signVenv
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $signPython = Join-Path $signVenv 'Scripts/python.exe'
+          & $signPython -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota.lock
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mcubootPin = (Get-Content tools/toolchain-versions.json -Raw | ConvertFrom-Json).sdk.mcuboot
+          $mcubootRoot = Join-Path $env:RUNNER_TEMP 'canview-target-mcuboot'
+          git clone --depth 1 --branch $mcubootPin.version $mcubootPin.repository $mcubootRoot
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mcubootHead = git -C $mcubootRoot rev-parse HEAD
+          if ($LASTEXITCODE -or $mcubootHead -ne $mcubootPin.gitCommit) { throw 'MCUboot commit mismatch' }
+          "CANVIEW_STM_SIGN_PYTHON=$signPython" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CANVIEW_STM_MCUBOOT_ROOT=$mcubootRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install pinned Arm GNU archive
         shell: pwsh
         run: |
@@ -284,13 +302,37 @@ jobs:
                 throw "ESP-IDF app binary mismatch in $descriptionPath`: expected $ExpectedBinary, found $($description.app_bin)"
               }
             }
+            $bootTestPublic = Join-Path $logRoot 'boot-test-public.der'
+            Invoke-TargetCommand "stm32-boot-test-public" {
+              & $env:CANVIEW_STM_SIGN_PYTHON -B tests/ota/make_stm32_test_public_key.py --output $bootTestPublic
+            }
+            $bootTestTrust = @("-DCANVIEW_MCUBOOT_ROOT=$env:CANVIEW_STM_MCUBOOT_ROOT",
+              "-DPython3_EXECUTABLE=$env:CANVIEW_STM_SIGN_PYTHON", "-DCANVIEW_BOOT_PUBLIC_DER=$bootTestPublic",
+              '-DCANVIEW_BOOT_SECURITY_EPOCH=0', '-DCANVIEW_BOOT_MANIFEST_KEY_ID=4294967295', '-DCANVIEW_BOOT_STM_ABI=2')
             Push-Location firmware/communicator/stm32
             try {
               Invoke-TargetCommand "stm32-debug-configure" { cmake --preset debug }
               Invoke-TargetCommand "stm32-debug-build" { cmake --build --preset debug --clean-first }
               Invoke-TargetCommand "stm32-release-configure" { cmake --preset release }
               Invoke-TargetCommand "stm32-release-build" { cmake --build --preset release --clean-first }
+              Invoke-TargetCommand "stm32-primary-debug-configure" { cmake --preset primary-debug @bootTestTrust }
+              Invoke-TargetCommand "stm32-primary-debug-build" { cmake --build --preset primary-debug --clean-first }
+              Invoke-TargetCommand "stm32-primary-release-configure" { cmake --preset primary-release @bootTestTrust }
+              Invoke-TargetCommand "stm32-primary-release-build" { cmake --build --preset primary-release --clean-first }
             } finally { Pop-Location }
+            foreach ($primaryMode in @('primary-debug', 'primary-release')) {
+              # 별도 명시 검사: trust 연결이 누락돼 SRAM-only로 내려가도 CI를 성공시키지 않는다.
+              Invoke-TargetCommand "stm32-$primaryMode-full-boot-link" {
+                & $env:CANVIEW_STM_SIGN_PYTHON -B tests/ota/test_stm32_boot_ram.py --full-boot `
+                  --elf "firmware/communicator/stm32/build/$primaryMode/canview-boot-ram-link-test.elf" `
+                  --compiler (Join-Path $armRoot 'bin/arm-none-eabi-gcc.exe')
+              }
+              Invoke-TargetCommand "stm32-$primaryMode-imgtool" {
+                & $env:CANVIEW_STM_SIGN_PYTHON -B tests/ota/check_stm32_primary_image.py `
+                  --binary "firmware/communicator/stm32/build/$primaryMode/canview-communicator-stm32.bin" `
+                  --mcuboot $env:CANVIEW_STM_MCUBOOT_ROOT
+              }
+            }
             Assert-TargetArtifact "stm32 debug" "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin"
             Assert-TargetArtifact "stm32 release" "firmware/communicator/stm32/build/release/canview-communicator-stm32.bin"
             foreach ($project in @('firmware/communicator/esp32', 'firmware/diagnostic-bridge', 'firmware/controller')) {
@@ -334,6 +376,19 @@ jobs:
             Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
             Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
             $artifactPaths = @(
+            # 비배포 SRAM link 시험 산출물. final bootloader로 분류하지 않는다.
+            "firmware/communicator/stm32/build/primary-debug/canview-boot-ram-link-test.bin",
+            "firmware/communicator/stm32/build/primary-debug/canview-boot-ram-link-test.elf",
+            "firmware/communicator/stm32/build/primary-debug/canview-boot-ram-link-test.map",
+            "firmware/communicator/stm32/build/primary-release/canview-boot-ram-link-test.bin",
+            "firmware/communicator/stm32/build/primary-release/canview-boot-ram-link-test.elf",
+            "firmware/communicator/stm32/build/primary-release/canview-boot-ram-link-test.map",
+            "firmware/communicator/stm32/build/primary-debug/canview-communicator-stm32.bin",
+            "firmware/communicator/stm32/build/primary-debug/canview-communicator-stm32.elf",
+            "firmware/communicator/stm32/build/primary-debug/canview-communicator-stm32.map",
+            "firmware/communicator/stm32/build/primary-release/canview-communicator-stm32.bin",
+            "firmware/communicator/stm32/build/primary-release/canview-communicator-stm32.elf",
+            "firmware/communicator/stm32/build/primary-release/canview-communicator-stm32.map",
             "firmware/communicator/stm32/build/debug/canview-communicator-stm32.bin",
             "firmware/communicator/stm32/build/debug/canview-communicator-stm32.elf",
             "firmware/communicator/stm32/build/debug/canview-communicator-stm32.map",
@@ -382,6 +437,20 @@ jobs:
               "$($env:GITHUB_REPOSITORY)#$($env:GITHUB_RUN_ID)"
             }
             $provenanceFiles = @(
+              "firmware/communicator/stm32/ld/application-sections.ld",
+              "firmware/communicator/stm32/ld/STM32G474CEUx_PRIMARY.ld",
+              "firmware/communicator/stm32/ld/STM32G474CEUx_BOOT.ld",
+              "firmware/communicator/stm32/platform/stm32g474/startup_flash_ram.c",
+              "firmware/communicator/stm32/platform/stm32g474/boot_runtime.c",
+              "firmware/communicator/stm32/platform/stm32g474/boot_handoff.c",
+              "firmware/communicator/stm32/bootloader/fail_stop.c",
+              "firmware/communicator/stm32/bootloader/fail_stop.h",
+              "firmware/communicator/stm32/bootloader/CMakeLists.txt",
+              "tools/ota/check_stm32_boot_ram.py",
+              "tests/ota/test_stm32_boot_ram.py",
+              "tests/ota/make_stm32_test_public_key.py",
+              "tools/ota/validate_stm32_map.py",
+              "tests/ota/check_stm32_primary_image.py",
               "firmware/communicator/esp32/sdkconfig.defaults",
               "firmware/diagnostic-bridge/sdkconfig.defaults",
               "firmware/controller/sdkconfig.defaults",
@@ -409,6 +478,14 @@ jobs:
                              "firmware/diagnostic-bridge", "firmware/controller")
                 espIdf = "6.0.3"
                 target = "esp32s3"
+                stm32BootLink = [ordered]@{
+                  scope = "non-deployable-full-boot-link-test"
+                  publicDerSha256 = (Get-FileHash -LiteralPath $bootTestPublic -Algorithm SHA256).Hash.ToLowerInvariant()
+                  securityEpoch = 0
+                  manifestKeyId = 4294967295
+                  stmAbi = 2
+                  physicalExecution = "NOT_RUN"
+                }
               }
               sourceProvenance = @($provenanceDigests)
               toolchainProvenance = $toolchainProvenance
@@ -425,6 +502,12 @@ jobs:
           name: target-firmware-images
           if-no-files-found: error
           path: |
+            firmware/communicator/stm32/build/primary-debug/*.bin
+            firmware/communicator/stm32/build/primary-debug/*.elf
+            firmware/communicator/stm32/build/primary-debug/*.map
+            firmware/communicator/stm32/build/primary-release/*.bin
+            firmware/communicator/stm32/build/primary-release/*.elf
+            firmware/communicator/stm32/build/primary-release/*.map
             firmware/communicator/stm32/build/debug/*.bin
             firmware/communicator/stm32/build/release/*.bin
             firmware/communicator/stm32/build/debug/*.elf

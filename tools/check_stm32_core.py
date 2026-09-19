@@ -12,8 +12,74 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def check_build_id(note, symbols, image):
+def check_startup_ram(symbols, image, image_base):
+    """고정 GCC startup BIN: 첫 cut dummy 초기화/나머지 read와 CCM 미사용.
+
+    범용 disassembler가 아니라 승인한 작은 instruction sequence를 fail-closed로
+    대조한다. SDK/toolchain이 sequence를 바꾸면 명시적인 재검토가 필요하다.
+    """
+    names = ("Reset_Handler", "__wrap_SystemInit", "SystemInit", "_estack",
+             "_sccmram", "_eccmram", "startup_sram_dummy", "_sdata")
+    addresses = {}
+    for name in names:
+        matches = [line.split() for line in symbols.splitlines()
+                   if line.split() and line.split()[-1] == name]
+        if len(matches) != 1 or len(matches[0]) != 3:
+            raise RuntimeError(f"startup symbol 누락/중복: {name}")
+        addresses[name] = int(matches[0][0], 16)
+    if (addresses["_sccmram"] != 0x10000000 or addresses["_eccmram"] != 0x10000000
+            or addresses["_estack"] != 0x20018000
+            or addresses["startup_sram_dummy"] != 0x20000000
+            or addresses["_sdata"] != 0x20000004):
+        raise RuntimeError("startup SRAM stack/CCM 미사용 계약 위반")
+
+    def read(address, size):
+        offset = address - image_base
+        if offset < 0 or offset + size > len(image):
+            raise RuntimeError("startup instruction/literal이 BIN 범위 밖")
+        return image[offset:offset + size]
+
+    def branch_target(address, link):
+        first, second = struct.unpack("<HH", read(address, 4))
+        if first & 0xF800 != 0xF000 or second & 0xD000 != (0xD000 if link else 0x9000):
+            raise RuntimeError("startup BL/B.W opcode 불일치")
+        sign = (first >> 10) & 1
+        i1 = 1 ^ ((second >> 13) & 1) ^ sign
+        i2 = 1 ^ ((second >> 11) & 1) ^ sign
+        offset = ((sign << 24) | (i1 << 23) | (i2 << 22)
+                  | ((first & 0x3FF) << 12) | ((second & 0x7FF) << 1))
+        if sign:
+            offset -= 1 << 25
+        return address + 4 + offset
+
+    reset = addresses["Reset_Handler"]
+    wrapper = addresses["__wrap_SystemInit"]
+    if struct.unpack("<II", read(image_base, 8)) != (addresses["_estack"], reset | 1):
+        raise RuntimeError("startup vector가 검사한 stack/Reset_Handler와 불일치")
+    # Reset_Handler는 literal MSP load, mov sp,r0, BL wrapper 이외 선행 명령 금지.
+    first, second = struct.unpack("<HH", read(reset, 4))
+    if first & 0xFF00 != 0x4800 or second != 0x4685:
+        raise RuntimeError("SRAM read 전 startup stack/data 쓰기 가능")
+    literal = ((reset + 4) & ~3) + (first & 0xFF) * 4
+    if struct.unpack("<I", read(literal, 4))[0] != addresses["_estack"]:
+        raise RuntimeError("startup MSP literal 불일치")
+    if branch_target(reset + 4, True) != wrapper:
+        raise RuntimeError("startup SRAM wrapper 우회")
+    # 첫 cut: dummy=0, DSB, dummy=0, DSB. 나머지 cut: ldr 후 다음 주소로 이동.
+    expected = bytes.fromhex("4ff00052 0023 1360 bff34f8f 1360 bff34f8f "
+                             "02f50042 1368 02f50042 1368 02f58042 1368 bff34f8f")
+    if read(wrapper, len(expected)) != expected:
+        raise RuntimeError("startup SRAM dummy/read/order/opcode 불일치")
+    if branch_target(wrapper + len(expected), False) != addresses["SystemInit"]:
+        raise RuntimeError("startup SDK SystemInit tail branch 불일치")
+    read(addresses["SystemInit"], 2)
+    return True
+
+
+def check_build_id(note, symbols, image, image_base=0x08000000):
     """GNU SHA-1 note와 BSP symbol이 실제 flash BIN의 같은 16 byte를 가리키는지 검사한다."""
+    if image_base not in (0x08000000, 0x08010200):
+        raise RuntimeError("지원하지 않는 STM32 image base")
     if (len(note) != 36 or note[:16] != struct.pack("<III4s", 4, 20, 3, b"GNU\0")
             or not any(note[16:32])):
         raise RuntimeError("STM32 GNU SHA-1 build ID note 누락/손상")
@@ -21,7 +87,7 @@ def check_build_id(note, symbols, image):
                if line.split() and line.split()[-1] == "canview_stm_link_build_id"]
     if len(matches) != 1 or len(matches[0]) != 3:
         raise RuntimeError("STM32 build ID BSP symbol 누락/중복")
-    offset = int(matches[0][0], 16) - 0x08000000 - 16
+    offset = int(matches[0][0], 16) - image_base - 16
     if offset < 0 or image[offset:offset + len(note)] != note:
         raise RuntimeError("STM32 build ID ELF/symbol/BIN 불일치")
     return note[16:32].hex()
@@ -275,6 +341,8 @@ def main():
     parser.add_argument("--elf", required=True, type=Path)
     parser.add_argument("--compiler", required=True, type=Path)
     parser.add_argument("--sdk", required=True, type=Path)
+    parser.add_argument("--image-base", type=lambda value: int(value, 0),
+                        choices=(0x08000000, 0x08010200), default=0x08000000)
     args = parser.parse_args()
     tool_dir = args.compiler.parent
     suffix = args.compiler.suffix
@@ -282,13 +350,14 @@ def main():
     text, data, bss = check_memory(size)
     symbols = run([str(tool_dir / f"arm-none-eabi-nm{suffix}"), "--defined-only", str(args.elf)])
     check_symbols(symbols)
+    check_startup_ram(symbols, args.elf.with_suffix(".bin").read_bytes(), args.image_base)
     with tempfile.TemporaryDirectory(prefix="canview-build-id-") as temporary:
         note_path = Path(temporary) / "build-id.bin"
         subprocess.run([str(tool_dir / f"arm-none-eabi-objcopy{suffix}"),
                         "--dump-section", f".note.gnu.build-id={note_path}", str(args.elf),
                         str(Path(temporary) / "copy.elf")], check=True)
         build_id = check_build_id(note_path.read_bytes(), symbols,
-                                  args.elf.with_suffix(".bin").read_bytes())
+                                  args.elf.with_suffix(".bin").read_bytes(), args.image_base)
     commands = json.loads((args.elf.parent / "compile_commands.json").read_text(encoding="utf-8"))
     check_compile_contract(commands, ROOT / "firmware/communicator/stm32/interface/canview_build_mode.h")
     stacks = stack_evidence(args.elf.parent, commands, lambda output: run(
@@ -317,7 +386,8 @@ def main():
                    input=source, text=True, encoding="utf-8", check=True)
     print(f"PASS: STM32 core text={text} data={data} bss+reserved-stack={bss}; "
           f"max individual stack frame={max_frame}; {len(stacks)} C object stack files; "
-          f"{len(constants)} CMSIS/model + 2 DMAMUX/LL constants; ELF/BIN build ID={build_id}")
+          f"{len(constants)} CMSIS/model + 2 DMAMUX/LL constants; "
+          f"startup SRAM dummy/read/CCM0 PASS; ELF/BIN build ID={build_id}")
     return 0
 
 

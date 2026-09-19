@@ -1,56 +1,111 @@
 # resume.md
 
-## 현재 상태
+## 현재 작업
 
-2026-09-19, [T-007 OTA-01](tasks/T-007-ota-container.md)의 소프트웨어 수용 근거를
-충족했다. 아직 PR merge 전이므로 상태는 IN_PROGRESS다. 사용자 요청에 따라
-merge를 확인한 뒤 다음 미완료 firmware task를 계속한다.
+2026-09-19, [T-107 OTA-03](tasks/T-107-stm32-mcuboot.md)을 source-only로 시작했다.
+사용자의 G1 이전 firmware 구현 승인에 따라 C source·host·실제 Arm target을
+진행하며 외부 하드웨어 수용 기준은 열어 둔다.
 
-- worktree: `F:/dev/canview-wt/t007-ota-container`
-- branch: `codex/t007-ota-packager`
-- Draft PR: [#36](https://github.com/digitie/canview/pull/36)
-- 검토·검증 candidate: `77b84cf07cd868f0f0b858a00a0ae8c9b3eb9ef4`
-- PR base: `6cf1b8e57840a27b83c407d1325a92f869cf2f5d` ([PR35](https://github.com/digitie/canview/pull/35))
+- branch: `codex/t107-stm32-mcuboot`
+- Draft PR: [37](https://github.com/digitie/canview/pull/37)
+- worktree: `F:/dev/canview-wt/t007-ota-container` (기존 SDK·evidence 보존 목적 재사용)
+- 시작 commit: `c60641f218ca5a9966781cc1e8d417df26bb2712`
+- T-107은 IN_PROGRESS, 아직 bootloader/Flash 구현·검증 완료가 아니다.
 
-[최종 전체 감사와 실행 근거](reviews/adversarial/2026-09-19-T-007-final-acceptance.md)에
-두 reviewer 원문, AC별 대응, CI/artifact 감사와 후속 owner를 모았다.
-양쪽 verdict는 CONDITIONAL이며 추가 소프트웨어 결함 없이 최신 CI/산출물 확인만
-남겼다. 해당77b CI35426085834는6/6 성공이고, target21개 bytes/SHA256·source7개·
-target logs28개 warning/error0을 직접 확인했다. 원 verdict를 PASS로 덮어쓰지 않는다.
-
-Windows Debug/Release 각150/150, 최신 Linux ASan/UBSan139/139,
-stage 실제 C mutant5개, strict docs71API와 일반 native CLI가 통과했다.
-상세 명령·이전 실패·coverage 귀속은 위 report와 [journal](journal.md)에 보존한다.
+T-007 [PR36](https://github.com/digitie/canview/pull/36)은 위 commit으로 merge돼
+origin/main과 검토 HEAD ancestry를 확인했다. 최종 CI35427174458 6/6,
+target21개 bytes/hash·source7개·target logs28개 warning/error0이다.
+[완료 archive](tasks-done.md), [최종 감사](reviews/adversarial/2026-09-19-T-007-final-acceptance.md),
+[merge 증거](https://github.com/digitie/canview/pull/36#issuecomment-5740075821)를 따른다.
+T-007을 다시 구현하지 않는다.
 
 ## 다음 한 작업
 
-Review closure 기록을 commit/push하고 그 HEAD의 CI·target artifact 귀속을 다시
-확인한다. 성공하면 PR36 ready/merge, origin/main과 merge commit 확인, T-007 DONE
-archive 갱신 순서로 진행한다. 다음 task 선정은 merge 확인 후 [backlog](tasks.md)와
-상세 task의 의존성으로 결정한다. 앞선 구현을 다시 작성하지 않는다.
+현재 [fail-stop post-fix 리뷰](reviews/adversarial/2026-09-19-T-107-failstop-post.md)는
+A source/local PASS, B 서비스 cybersecurity flag로 INCOMPLETE/BLOCK이다.
+B는 일부 명령을 실행했지만 최종 판정을 반환하지 않았다. 두 B P2는 수정 구현 후
+원 reviewer 확인 전 OPEN이며 PR37은 Draft다. 요청 재표현·대체 reviewer로 우회하지
+않고 서비스 승인/오탐 확인 후 원 B 재검토가 필요하다. 최신 CI·artifact 수용도 미완료다.
+아래는 이미 진행한 구현의 범위이며 최종 loader/task 완료 선언이 아니다.
 
-현재 C 계약은 작은 서명 manifest와 순차 image만 사용한다. 새로운 범용 package
-framework는 만들지 않는다. [단순한 구현 우선](../AGENTS.md#2-작업-원칙)을 유지한다.
-[OTA 모듈](../shared/ota/README.md), [T-007 소유권 표](tasks/T-007-ota-container.md#계약과-설치-구현의-소유권)를
-기준으로 실제 ESP writer는 T-204, STM boot/Flash는 T-107, 영속 정책은 T-205에서 구현한다.
+고정 map의 C99 BSP 조회·범위 검사와 전체 byte offset 거절 시험을 추가했다.
+Host Debug/Release151/151, 새 C 파일 ASan/UBSan·분기 coverage100%, 기존 STM32
+Debug/Release target 빌드가 통과했다. 자세한 범위·제한은 [STM32 README](../firmware/communicator/stm32/README.md#t-107-flash-배치-구현-중)를 따른다.
+primary-debug/primary-release 앱 linker를 추가해 실제 vector0x08010200 ELF/MAP/BIN과
+SDK SystemInit VTOR relocation, 공식 imgtool의 실제 앱/최대 payload 서명 크기를 확인했다.
+기본 bench linker는 공유 section으로 유지한다. CI에는 primary 두 빌드·서명 검사와
+artifact6개를 추가했다. a2f1f9c CI35429702531은 success/completed를 확인했지만
+artifact 감사는 아직이다.
 
-## 안전 경계와 미실행 gate
+[MCUboot C 포트](../firmware/communicator/stm32/bootloader/README.md)의 첫 연결을 추가했다.
+실제 boot_go/P-256/offset swap/revert를 host Flash 모형에서 실행하며, 두 슬롯만 여는
+C adapter와 8B 중복 write 거절, swap/revert API cut258곳을 검증한다. Arm 두 primary
+구성에서 같은 bootutil/crypto/adapter archive를 컴파일한다. FIH MEDIUM·volatile
+객체는 유지하고 고정 SDK build 사본의 반환형/임시 배열 경고 원인만 수정한다.
 
-- 실제 board flash, HIL, 전원/rail/reset/brownout, 장치 암호 실행, 총 stack/heap/WCET,
-  차량 evidence와 provisioning은 NOT_RUN이다.
-- 실제 Flash 보호 map/read-back 및 PREPARED/selector enforcement는 후속 owner gate다.
-  T-007 stage의 정상 모형·실패 순서 시험을 실제 Flash 실행으로 표시하지 않는다.
-- 차량 CAN TX는 NO-GO, Diagnostic Bridge는 read-only다.
-- T-007 소프트웨어 수용은 전체 제품 OTA 설치나 차량 release 승인이 아니다.
-- PR33 Reviewer A 면제는 그 PR 한 건뿐이다. [이슈34](https://github.com/digitie/canview/issues/34)는
-  OPEN이며 다른 PR의 리뷰 면제로 사용하지 않는다.
+board/role/layout/epoch/ABI protected TLV hook을 추가했다. 기존 metadata parser와
+MCUboot 상태 API를 재사용하며 정상 metadata도 native signature 검증을 생략하지 않는다.
+잘못된 signed metadata·identity 공급 실패·IO 오류와 일반 TLV 길이 변이를 거절한다.
+합성 identity는 host 시험 전용이며 floor 정책은 아직 미구현이다.
 
-## 환경·보존
+G474 고정 배치의 읽기 전용 guard를 MCUboot write/erase 직전에 연결했다.
+DBANK/WRP/NRST·Flash 크기·bank remap·busy/option 오류를 매번 확인한다.
+같은 C를 host register 모형과 actual Arm archive로 빌드한다. 생산 보호 profile의
+승인/실측과 실제 Flash IO는 별도 미완료이며 option byte를 자동 변경하지 않는다.
+
+단일 Flash 명령 C를 추가해 SRAM code/literal 분리와 register 오류·timeout·NMI 경로를
+검사했다. 아직 MCUboot IO backend와 최종 boot linker/startup에는 연결하지 않았다.
+자세한 호출 전제·RDP0 제한·reset loop 위험은 위 포트 설명에 기록했다.
+
+ES0430의 첫 SRAM write 손실에 대비해 기존 SDK SystemInit 앞에 최소 wrapper를
+추가했다. 첫 cut은 parity를 고려한 전용 dummy 이중 초기화, 나머지는 read다.
+ecbce7d의 parity 누락을 수정했고 실제 BIN 명령열·분기·CCM0을 검사한다. SDK 원본은 유지한다.
+ECC 오류 주소만 신뢰한 자동 erase는 금지하며 세부 근거는 위 포트 설명에 둔다.
+
+bounded ECC guarded read C와 register 오류 주입 시험을 추가했다. 오류 시 출력 불변과
+임시 NMI/vector/cache 복원을 검사한다. 이어 read/write/erase IO primitive adapter를
+추가했고 제품 IO를 실제 boot_go host 모형에 연결했다.108시나리오·11240 primitive 전후
+cut을 Windows D/R·GNU·ASan/UBSan에서 확인했다. boot executable 연결은 아직이다.
+세부 전제와 physical NOT_RUN은 위 포트 설명에 둔다.
+
+481a805의 중간 독립 리뷰에서 A가 post-load RDERR 누락 P1, B가 SRAM 검사기/증분
+검사 의존성 P2 두 건을 보고했다. 원문은 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-ecc.md)에
+보존했다. [122924c 재검토](reviews/adversarial/2026-09-19-T-107-ecc-post.md)에서
+원 A/B 모두 source PASS, 세 finding FIXED를 확인했다. 전체 task/merge 승인은 아니다.
+
+명시적 공개 DER/제조 상수로 생성하는 const BSP identity 공급자를 추가했다.
+기본 키/epoch/ABI를 두지 않고 누락·오류 입력을 거절한다. 실제 제조 승인이나
+loader link 완료는 아니다. 설정과 시험 경계는 위 포트 설명을 따른다.
+Boot SRAM linker와 SDK 초기화 복사를 비배포 Arm link 시험에 연결했다.
+기존 SDK 복사를 재사용하며 자세한 검증/제한은 위 포트 설명에 둔다.
+Boot HSI16/DWT/IWDG runtime과 bounded progress를 C로 구현해 기존 safe output 뒤의
+비배포 Arm link 시험에 연결했다. 고정 primary vector 검사·SysTick/NVIC cleanup·
+MSP 진입 primitive도 구현했다. assert/abort 실패는 기존 FIH panic에 연결해 전체
+MCUboot/crypto를 비배포 Arm 시험 ELF에 링크했다. 다음은 실제 bootloader executable의 서명 성공 경로와
+T-205 영속 정책을 연결하는 일이다. 진입 함수 자체를 부팅 승인으로 취급하지 않는다.
+Physical/HIL과 torn word/page는 NOT_RUN이다.
+모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
+
+[T-102](tasks/T-102-stm32-platform.md) source/review PR29의 merge50410ba는 확인했다.
+T-102 전체 수용은 물리 측정과 T-107 map 연결 등이 남아 IN_PROGRESS다.
+이 상태를 DONE으로 바꿔 선행을 충족한 척하지 않는다.
+T-107의 상세 수용 기준도 유지하며 장비 없이 확인할 수 없는 항목은 NOT_RUN이다.
+
+## 유지할 경계
+
+- 작은 구현과 기존 SDK/MCUboot 기능을 먼저 사용한다. 새 범용 framework를 만들지 않는다.
+- 실제 option-byte/eFuse·production key·Flash/provisioning을 변경하지 않는다.
+- Physical/HIL·전원/reset/rail·실제 ECC/erase stall·총 자원 실측·차량 evidence는 NOT_RUN.
+- 차량 TX는 NO-GO, Bridge는 read-only. Bootloader는 CAN/ARM을 활성화하지 않는다.
+- T-205의 영속 정책/journal이 MCUboot trailer를 대체하지 않는다.
+- PR33 Reviewer A 면제는 그 PR 한 건뿐이며 [이슈34](https://github.com/digitie/canview/issues/34)는 OPEN이다.
+
+## 환경·기록
 
 Windows PowerShell과 [고정 도구](development/windows.md)를 사용한다.
-기존 t104 worktree의 foundation 환경을 재사용하되 현재 source를 빌드한다.
-WSL은 보조 sanitizer/coverage다. 기본 `F:/dev/canview` 및 다른 worktree의 사용자
-변경·SDK·evidence를 보존하고 강제 정리하지 않는다.
+MCUboot pin은 tools/toolchain-versions.json의 v2.4.0/6d3b3d2이며 기존 설치
+`C:/cv/mcuboot-2.4.0`을 검증해 재사용한다. 사용자 checkout·다른 worktree·SDK·
+이전 build/evidence는 보존한다. WSL은 보조 host sanitizer/coverage다.
 
-Branch/검증/merge 절차는 [workflow](runbooks/agent-workflow.md),
-과거 구현·실패·merge 이력은 [journal](journal.md)과 [review archive](reviews/README.md)에 있다.
+절차는 [workflow](runbooks/agent-workflow.md), 실제 명령·실패·merge 이력은
+[journal](journal.md)과 [review archive](reviews/README.md)에 둔다.
