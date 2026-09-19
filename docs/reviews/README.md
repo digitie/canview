@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-107 fail-stop 중간 source | `e9f474b` → `6b394ac` | runtime·FIH / build·mutation·CI | [기록](adversarial/2026-09-19-T-107-failstop.md), 양쪽 CONDITIONAL·P2 검사기/CI 보강, `5a37907` 재검토 대기 |
 | 2026-09-19 | T-107 handoff CI 조건 종결 | `1e66a04`, CI35443737495 | 원 B 독립 증거 감사 | [기록](adversarial/2026-09-19-T-107-handoff-ci.md), B PASS·원 A PASS; 전체 task/merge 미승인 |
 | 2026-09-19 | T-107 handoff 중간 source | `965ada0` → `1e66a04` | Cortex-M/runtime / build·security·evidence | [기록](adversarial/2026-09-19-T-107-handoff.md), A PASS/B CONDITIONAL·신규 finding0; candidate CI 감사·전체 task/merge 미승인 |
 | 2026-09-19 | T-107 boot runtime 중간 source | `ce3fe1f` → `c0f1b81` | watchdog/reset / build·시험·evidence | [기록](adversarial/2026-09-19-T-107-runtime.md), 양쪽 PASS·신규 finding0; 비배포·전체 loader/task/merge 미승인 |
