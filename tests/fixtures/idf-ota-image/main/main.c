@@ -3,6 +3,7 @@
 #include "ota_image.h"
 #include "native_metadata.h"
 #include "ota.h"
+#include "ota_crypto.h"
 
 _Static_assert(CANVIEW_ESP_IMAGE_CUSTOM_BYTES == CANVIEW_OTA_NATIVE_METADATA_BYTES, "custom metadata size drift");
 _Static_assert(sizeof(((esp_app_desc_t *)0)->version) == CANVIEW_OTA_ESP_VERSION_BYTES, "SDK version size drift");
@@ -10,6 +11,11 @@ _Static_assert(sizeof(((esp_app_desc_t *)0)->version) == CANVIEW_OTA_ESP_VERSION
 void app_main(void);
 void app_main(void)
 {
+    if (canview_esp_ota_crypto_init(NULL, NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
+    if (canview_esp_ota_crypto_close(NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
+    if (canview_esp_ota_manifest_verify(NULL, NULL, 0U, NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
+    const canview_ota_hash_t hash = canview_esp_ota_hash_provider(NULL);
+    if (hash.start(NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
     if (canview_comm_ota_image_check(NULL, NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
     canview_esp_image_info_t info;
     /* NULL negative만 호출한다. 실제 검증 경로의 symbol도 linker가 해석해야 한다. */

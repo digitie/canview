@@ -54,6 +54,13 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-ota-psa-tests firmware/platform/esp32s3/ota_crypto.c tests/ota/test_esp_ota_crypto.c)
+    target_include_directories(canview-ota-psa-tests PRIVATE firmware/platform/esp32s3 tests/ota
+        shared/ota/src shared/interface)
+    target_compile_definitions(canview-ota-psa-tests PRIVATE CANVIEW_OTA_PSA_TEST=1)
+    target_link_libraries(canview-ota-psa-tests PRIVATE canview_warnings)
+    add_test(NAME ota-psa-provider COMMAND canview-ota-psa-tests)
+    set_tests_properties(ota-psa-provider PROPERTIES TIMEOUT 30)
     add_executable(canview-comm-ota-tests firmware/communicator/esp32/bsp/ota.c tests/ota/test_comm_ota.c)
     target_include_directories(canview-comm-ota-tests PRIVATE firmware/communicator/esp32/bsp
         firmware/platform/esp32s3 tests/ota shared/ota/src shared/interface)

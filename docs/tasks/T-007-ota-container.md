@@ -96,7 +96,15 @@ STM4건·공식 ESP RSA10건을 로컬에서 확인했다. 최초 STM3건에는 
 서명 결과를 무시하는 실제 C 변이 실행파일이 이 시험에서 실패하는 것도 확인했다.
 정상 제품 signing CLI·OTA owner/
 영속 policy·실제 target 통합은 여전히 남아 있다. host native 암호 실행을 장치 실행이나
-설치 승인으로 표시하지 않는다. 이 추가분의 독립 리뷰·전체 CI는 진행 중이다.
+설치 승인으로 표시하지 않는다. 262bf09의 [원 A/B 재검토](../reviews/adversarial/2026-09-19-T-007-signed-golden-post.md)는
+정적 PASS이고 CI35418535641은6/6 통과했다. 해당 CI artifact 감사는 남아 있다.
+
+ESP-IDF6.0.3의 PSA API를 재사용하는 BSP용 C manifest/SHA256 provider를 추가했다.
+공개키만 volatile import하며 단일 owner·재진입 차단·partial hash cleanup·destroy 재시도와
+입력 상한/중첩을 검사한다. Windows Debug/Release144/144와 모형 ASan/UBSan,
+함수11/11·행149/149·분기114/118을 확인했다. 실제 SDK fixture의 ELF/MAP/BIN은
+경고0이며 PSA symbol까지 링크했다. 실제 암호 실행이나 정상 firmware owner 연결이
+아니고 provider 추가분의 독립 리뷰도 남아 있다. production root/provisioning은 하지 않았다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.

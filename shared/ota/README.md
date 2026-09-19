@@ -307,6 +307,24 @@ recovery 실행이나 과거 transaction 성공은 설치 증거가 아니다. �
 로 순수 비교와 body 연결을 검사한다. 영속 A/B·실제 앱 검사 provider·전원 차단 검증은
 아직 남아 있으며 host snapshot 모형을 물리/HIL 결과로 표시하지 않는다.
 
+## ESP-IDF 암호 provider
+
+[PSA adapter](../../firmware/platform/esp32s3/ota_crypto.h)는 기존 manifest callback과
+body SHA256 함수표에 ESP-IDF6.0.3의 PSA Crypto를 연결한다. BSP가 공급하는 역할별
+신뢰 P256 공개키를 volatile/VERIFY_MESSAGE 전용으로 import한다. 입력 package의
+공개키나 개인키·영속 key 생성은 처리하지 않는다. context마다 key1개/hash operation1개를
+소유하며 크기는 manifest/chunk16KiB, raw signature64B, digest32B로 제한한다.
+
+한 task가 직렬 호출하며 ISR/동시 호출은 금지한다. 입력은 호출 중만 빌리고, context와
+겹치는 입력/출력과 SDK 재진입은 거절한다. setup/update/finish 실패 후에는 reset을
+완료해야 재사용할 수 있다. body_reset 성공 뒤 crypto_close로 key를 해제한다.
+abort/destroy 실패 시 handle을 지우지 않고 close 재시도 동안 새 검증/hash를 차단한다.
+SDK 내부 자원 부족은 실패로 전파하며 portable core에 SDK header를 넣지 않는다.
+
+`ota-psa-provider` CTest는 실제 adapter의 실패·수명·재진입 **모형**이다. 실제 SDK
+fixture에서도 compile/link하지만 모형 PASS를 실제 PSA 암호 실행으로 표시하지 않는다.
+정상 OTA owner/BSP root provider 연결과 MCU 실행은 아직 남아 있다. 설치/Flash 권한은 없다.
+
 ## STM native image 검사
 
 `canview_ota_stm_image_check()`는 MCUboot v2.4.0의 비압축·비암호화 P256 image를

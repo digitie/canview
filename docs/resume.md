@@ -30,7 +30,14 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 공식 espsecure5.4.0/MCUboot imgtool v2.4.0과 실제 SDK ESP BIN을 사용하고 시험
 개인키는 저장하지 않았다. digest·재조립·CNG C 수신12건·native STM4건·공식 ESP RSA10건이
 로컬 통과했다. A-SG-01 P2의 서명 음성 경로를 보강하고 C 변이 검출도 확인했다.
-추가분의 독립 리뷰 closure·전체 CI와 정상 제품 signing/target 통합은 남아 있다.
+262bf09 수정본은 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-signed-golden-post.md)에서
+정적 PASS이며 CI35418535641도6/6 통과했다. 해당 CI의 artifact 감사는 남아 있다.
+
+현재 추가분은 BSP용 C PSA 암호 어댑터다. 기존 ESP-IDF6.0.3의 P256 manifest 검증과
+SHA256을 재사용하고 volatile 공개키/hash 자원의 실패·재진입·cleanup 재시도를 검사한다.
+Windows Debug/Release144/144, 모형 ASan/UBSan·행100%/분기96.61%, 실제 SDK fixture
+ELF/MAP/BIN 생성·경고0을 확인했다. 이 추가분의 독립 리뷰와 정상 OTA owner 연결은
+남아 있다. 실제 장치 암호 실행·provisioning·Flash/HIL 성공을 뜻하지 않는다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
 정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서
@@ -109,7 +116,7 @@ target21개 hash/bytes·source7개·target logs26 warning/error0을 확인한 �
 
 schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `.cvota` packager에
 연결한다. C/Python의 기존 byte 계약은 유지했다. 작성 도구의 UNSIGNED_MANIFEST 출력은
-서명된 package가 아니다. 별도의 합성 signed golden을 추가했으며 새 독립 리뷰는 남아 있다.
+서명된 package가 아니다. 별도의 합성 signed golden은 원 A/B 정적 재검토까지 닫았다.
 그 뒤 Communicator BSP 검증을 body 완료 뒤의 단일 OTA owner 경로에 연결하고
 Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
 staging 위치/크기와 암호화 flag는 generator로 연결했고 공식 SDK partition parser로

@@ -1,5 +1,31 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, ESP-IDF PSA C 암호 provider)
+
+`firmware/platform/esp32s3/ota_crypto.c`에 공식 PSA API 어댑터를 추가했다.
+자체 암호 구현이나 범용 framework 없이 volatile P256 공개키 한 개와 SHA256 operation
+한 개를 단일 owner가 관리한다. 실패한 hash setup/update/finish 뒤 reset, abort/destroy 실패
+뒤 handle 보존과 재시도를 시험했다. 입력 상한·중첩·NULL과 SDK 호출8단계×오류5종,
+각 호출 중 재진입도 검사했다. 모형 암호 결과를 실제 암호 검증으로 표시하지 않는다.
+
+Windows Debug/Release는 각각144/144 통과했다. 로그는
+`build/t007-psa-{debug,release}-{build,test}.log`다. WSL Clang ASan/UBSan 모형 시험도
+통과했고 `build/t007-psa-sanitize-coverage.log`의 adapter coverage는 함수11/11,
+행149/149, 분기114/118(96.61%)이다. 전체 OTA나 target coverage로 확대하지 않는다.
+
+ESP-IDF6.0.3 `idf.py -C tests/fixtures/idf-ota-image -B build/idf-ota-image build`로
+실제 ELF/MAP/BIN을 생성했다. `build/t007-psa-sdk-build.log`의 실제 진단은 경고/오류0,
+nm으로 adapter와 psa_import_key/verify_message/hash/abort/destroy symbol을 확인했다.
+262144B BIN SHA256은 `37c90183bac8c3f7d8a90c1862d3e5ed47c123aa35dfd34e1d7ca606718449b9`다.
+합성 descriptor offset288/168개 변이/4개 절단 검사는 통과했고, 이전 signed golden은
+그 입력 source에 고정된 artifact이므로 새 unsigned BIN으로 덮어쓰지 않았다.
+synthetic HIL fixture의 source digest만 현재 source로 갱신했다. physical evidence가 아니다.
+
+앞선 signed golden 원 A/B 재검토 raw와 통합 report는6209eac에 보존했다.
+262bf09의 CI35418535641은6/6 성공했으나 그 artifact 감사는 아직 하지 않았다.
+PSA 추가분은 독립 리뷰 전이다. 정상 OTA owner·trusted root·영속 policy 통합은 남아 있고
+장치 암호 실행·Flash·physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, signed golden STM 서명 거절 경로 보강)
 
 `bd9a1a6`의 새 golden CTest를 포함해 로컬 Debug/Release는 각각143/143 통과했다.
