@@ -1,5 +1,28 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, PR36 merge와 T-107 source 시작)
+
+e1df406 CI35427174458을 재시작 없이 기다려6/6 성공을 확인했다.
+target21개 bytes/SHA256·source7개·target logs28개 warning/error0,
+manifest `dc2d83a51dfb76dddb0b389ebdd9d5fffa1714092e6a91163d95d85c2a69966b`를
+다운로드해 대조했다. 최신 CI host artifact도 Debug/Release150/150이며
+host simulation report의 commit은 e1df406, physical_hil은 NOT_RUN이다.
+로컬 closure HEAD는 Debug150/15055.01초·Release150/15014.70초,
+board 생성물·문서385개/1456 targets·task49개 검사 오류0이다.
+
+PR36 ready 후 match-head-commit을 지정해 merge했다.
+2026-09-19T06:58:42Z merge `c60641f218ca5a9966781cc1e8d417df26bb2712`,
+origin/main 일치와 e1df406 ancestry를 확인했다. PR body와
+[최종 comment](https://github.com/digitie/canview/pull/36#issuecomment-5740075821)에 증거를 기록했다.
+T-007 DONE을 archive로 이동한다. 전체 목표나 물리 gate의 완료는 아니다.
+
+다음은 STM32 core/OTA 순서의 T-107이다. T-102 PR29 source merge50410ba는
+확인했지만 물리 수용은 열려 있다. 사용자가 승인한 G1 이전 source 범위로
+codex/t107-stm32-mcuboot를 origin/main에서 만들고 기존 worktree 경로·SDK·
+빌드 증거를 보존했다. 기본 checkout의 사용자 untracked 파일은 건드리지 않았다.
+먼저 고정 map과 negative 시험을 구현한다. 실제 Flash/option-byte/provisioning은
+실행하지 않았고 physical/HIL NOT_RUN·차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, T-007 전체 소프트웨어 수용 closure)
 
 77b84cf의 [최종 독립 A/B 감사](reviews/adversarial/2026-09-19-T-007-final-acceptance.md)는

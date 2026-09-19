@@ -1,10 +1,26 @@
 # T-107 OTA-03 G474 MCUboot와 보호 Flash map
 
-- 상태: `BLOCKED`
+- 상태: `IN_PROGRESS`
 - 우선순위: `P0`
 - Gate: `G1/G2 / OTA-03`
 - 선행: `T-007`, `T-102`
 - 외부 선행: STM32G474CEU6 샘플·SWD와 전원 fault 장비
+
+## 2026-09-19 source-only 시작
+
+T-007 PR36은 `c60641f`로 merge됐다. T-102 source/review PR29의 merge
+`50410ba`도 확인했다. T-102 전체는 물리 계측과 이 task의 보호 Flash map 연결이
+남아 IN_PROGRESS이며, 완료됐다고 간주하지 않는다.
+사용자의 G1 이전 firmware 구현·하드웨어 없이 가능한 작업 진행 승인에 따라
+C source와 host/실제 Arm target 검증부터 진행한다. 외부 선행과 아래 수용 기준은
+삭제하거나 완료 체크하지 않는다.
+
+Branch는 `codex/t107-stm32-mcuboot`다. SDK와 evidence 보존을 위해 기존
+`F:/dev/canview-wt/t007-ota-container` 경로를 새 branch로 재사용한다.
+첫 구현은 정본의 고정 Flash map·공식 imgtool 경계와 잘못된 profile/주소/정렬의
+거절 시험이다. 이어 실제 MCUboot CMake port·보호 Flash API·swap/revert로 연결한다.
+기존 전체 Flash linker를 OTA 지원 완료로 표시하거나 host 모형을 실제 ECC/전원
+복구 근거로 대체하지 않는다. Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
 
 ## 목표
 
