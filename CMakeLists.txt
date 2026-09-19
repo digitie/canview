@@ -142,6 +142,15 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/tests/ota/test_body.py $<TARGET_FILE:canview-ota-body-probe>)
     set_tests_properties(ota-body-lifecycle PROPERTIES TIMEOUT 60)
     if(WIN32)
+        add_executable(canview-ota-idf-receiver tests/ota/idf_receiver_host.c tests/ota/cng_provider.c
+            tests/fixtures/idf-ota-image/main/receiver.c)
+        target_compile_definitions(canview-ota-idf-receiver PRIVATE CANVIEW_OTA_FIXTURE_CNG=1)
+        target_include_directories(canview-ota-idf-receiver PRIVATE tests/fixtures/idf-ota-image/main tests/ota
+            shared/ota/src shared/interface)
+        target_link_libraries(canview-ota-idf-receiver PRIVATE canview_ota canview_warnings bcrypt)
+        add_test(NAME ota-idf-receiver COMMAND canview-ota-idf-receiver
+            ${PROJECT_SOURCE_DIR}/tests/fixtures/ota-signed-golden/communicator.cvota)
+        set_tests_properties(ota-idf-receiver PROPERTIES TIMEOUT 60)
         add_executable(canview-ota-envelope-probe tests/ota/envelope_crypto_probe.c tests/ota/cng_provider.c)
         target_include_directories(canview-ota-envelope-probe PRIVATE shared/ota/src shared/interface)
         target_link_libraries(canview-ota-envelope-probe PRIVATE canview_ota canview_warnings bcrypt)

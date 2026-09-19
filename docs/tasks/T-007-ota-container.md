@@ -108,8 +108,22 @@ ESP-IDF6.0.3의 PSA API를 재사용하는 BSP용 C manifest/SHA256 provider를 
 아니다. [독립 리뷰](../reviews/adversarial/2026-09-19-T-007-psa.md)는 A 정적 PASS·B CONDITIONAL이다.
 모형 권한 상수 P3는 [원 B 재검토](../reviews/adversarial/2026-09-19-T-007-psa-post.md)에서 FIXED다.
 원 A/B가 공통 발견한 중첩 시험 전제 P2를 정상 초기화된 union context로 수정했고
-해당 조건만 제거한 C mutant를 검출했다. 새 수정본의 원 reviewer 재확인은 남아 있다.
+해당 조건만 제거한 C mutant를 검출했다. 1b06afd의 [원 A/B 재확인](../reviews/adversarial/2026-09-19-T-007-psa-post2.md)은
+양쪽 정적 PASS·P2 FIXED다. 전체 T-007 완료와는 구분한다.
 production root/provisioning은 하지 않았다.
+
+이후 기존 C parser/body+PSA를 실제 IDF 수신 fixture에 연결했다. 읽기 전용 합성
+golden의 정상·서명/본문 변조·identity 불일치를 검사하며 Flash를 호출하지 않는다.
+동일 흐름의 실제 CNG4건과 Windows Debug/Release145/145가 통과했다.
+SDK ELF/MAP/BIN 생성·경고0, metadata168개 변이와4개 절단 거절을 확인했다.
+prefix16488B/body856B/PSA108B는 static이며 자체 receiver frame624B다.
+이는 SDK 전체 호출 chain이나 장치 실행시간 근거가 아니다. fixture stack16384B를
+예약했지만 high-water/heap/시간·HIL은 NOT_RUN이고 독립 리뷰는 남아 있다.
+
+[전체 수용 감사](../reviews/adversarial/2026-09-19-T-007-acceptance.md)의 d87516a A/B
+판정은 BLOCK이다. 일반 native-aware CLI·target/예산 및 AC3 경계 검증은 OPEN이다.
+진행 기록의 정상 owner/영속 policy 요구와 architecture §12의 T-204/T-205/T-107
+책임이 충돌하므로 별도 대응이 필요하다. 아래5개 acceptance는 아직 체크하지 않는다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.

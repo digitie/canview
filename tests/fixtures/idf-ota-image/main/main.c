@@ -4,6 +4,12 @@
 #include "native_metadata.h"
 #include "ota.h"
 #include "ota_crypto.h"
+#include "receiver.h"
+#include "esp_log.h"
+
+/* SDK EMBED_FILES가 생성한 read-only 공개 합성 package. 제품 업데이트 입력이 아니다. */
+extern const uint8_t _binary_communicator_cvota_start[];
+extern const uint8_t _binary_communicator_cvota_end[];
 
 _Static_assert(CANVIEW_ESP_IMAGE_CUSTOM_BYTES == CANVIEW_OTA_NATIVE_METADATA_BYTES, "custom metadata size drift");
 _Static_assert(sizeof(((esp_app_desc_t *)0)->version) == CANVIEW_OTA_ESP_VERSION_BYTES, "SDK version size drift");
@@ -29,4 +35,12 @@ void app_main(void)
     {
         return;
     }
+    const uintptr_t start = (uintptr_t)_binary_communicator_cvota_start;
+    const uintptr_t end = (uintptr_t)_binary_communicator_cvota_end;
+    if (end < start || !canview_ota_fixture_receiver_test(_binary_communicator_cvota_start, (size_t)(end - start)))
+    {
+        ESP_LOGE("ota-fixture", "PSA/container self-test failed; no Flash operation");
+        return;
+    }
+    ESP_LOGI("ota-fixture", "PSA/container 4 cases matched; native/install NOT_VERIFIED");
 }

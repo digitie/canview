@@ -1,5 +1,34 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, 실제 SDK C parser/body 수신 연결·전체 수용 감사)
+
+기존8개 portable C 파일을 IDF component로 등록하고 read-only signed golden을
+fixture BIN에 넣었다. manifest P256/SHA256은 실제 SDK PSA를 사용하며 native
+image 검증/Flash/설치 승인 경로는 아니다. 같은 receiver.c를 실제 Windows CNG로
+실행해 정상·서명/본문 변조·identity 불일치4건을 검사했다. Debug/Release145/145다.
+Windows host driver의 fopen deprecation 실패는 fopen_s로 수정했으며 경고를 억제하지 않았다.
+
+SDK build는 `build/t007-idf-receiver-sdk-build.log`, host는
+`build/t007-receiver-{debug,release}-{configure,build,test}.log`에 남겼다.
+SDK ELF/MAP/BIN과 parser/body/PSA symbol을 확인했다. BIN SHA256은
+`17bc7bf232acc156c94690a3f331fdb955a21129afc9d383da78cec241c046bc`이며 unsigned fixture다.
+metadata168개 변이+4개 절단을 거절했다. 기존 보존 golden은 과거 provenance 입력을
+계속 사용하며 새 fixture로 재서명하지 않았다.
+
+DWARF sizeof prefix/body/PSA=16488/856/108B이며 함수 static이다. 자체 `.su`에서
+app_main480B·receiver624B·manifest_check880B를 확인했다. SDK 전체 stack은 아니다.
+fixture sdkconfig.defaults의 main stack을16384B로 예약하고 기존 ignored sdkconfig의
+같은 항목도 갱신해 재빌드했다. watchdog은 변경하지 않았다. MCU timing/high-water/
+heap/실제 PSA/Flash/HIL은 NOT_RUN이다. 새 firmware component/모듈 README 때문에
+합성 T103 source identity를 `8ac453bbece8b1f635ed989bb57b6807f8087d382be5318a43ada718e55e63f6`로
+갱신했으며 실제 physical evidence를 변경하지 않았다.
+
+d87516a의 [독립 전체 수용 감사](reviews/adversarial/2026-09-19-T-007-acceptance.md)는
+A/B BLOCK이다. 원문2개와 공통 request를 보존했다. Native 일반 검사·task 책임 충돌·
+target/예산은 OPEN, README의 구현된 prefix/golden 상태 문구는 수정 후보다.
+다음은 기존 공식 도구를 이용한 일반 native-aware CLI 연결이며 새 framework는 없다.
+기본 checkout의 사용자 dirt는 그대로 보존했다. PR36 Draft·차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, PSA ready 중첩 시험·golden artifact 감사)
 
 6f078ac의 원 A/B [재검토 원문](reviews/adversarial/2026-09-19-T-007-psa-post.md)을

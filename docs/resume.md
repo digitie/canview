@@ -41,8 +41,18 @@ ELF/MAP/BIN 생성·경고0을 확인했다. [독립 리뷰](reviews/adversarial
 A 정적 PASS·B P3 시험 상수 오류를 반영했고 GCC 시험 크기 경고도 수정했다.
 6f078ac의 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-psa-post.md)는 P3 FIXED,
 공통 P2 중첩 시험 전제 오류를 발견했다. ready context와 제한 C mutant로 보강했다.
-이 수정본의 원 reviewer 재확인·CI와 정상 OTA owner 연결은 남아 있다.
+1b06afd의 [원 A/B 재확인](reviews/adversarial/2026-09-19-T-007-psa-post2.md)은
+양쪽 정적 PASS·P2 FIXED다. CI와 정상 OTA owner 연결은 별도 gate다.
 실제 장치 암호 실행·provisioning·Flash/HIL 성공을 뜻하지 않는다.
+
+현재 추가분은 기존 C parser/body를 [IDF 공용 component와 수신 fixture](../tests/fixtures/idf-ota-image/README.md)에
+연결한 것이다. 동일 C 수신 흐름의 실제 CNG4건, Windows Debug/Release145/145,
+실제 SDK ELF/MAP/BIN·경고0·metadata172개 음성 사례를 확인했다. SDK 경로의 장치
+실행은 NOT_RUN이며 이번 변경의 독립 리뷰는 아직 남아 있다.
+[전체 T-007 수용 감사](reviews/adversarial/2026-09-19-T-007-acceptance.md)는 d87516a에서
+A/B BLOCK이다. 다음 필수 작업은 일반 CLI의 native 서명/metadata 검사 연결이다.
+T-007 진행 문구와 architecture §12의 후속 writer/policy 소유권 충돌도 명시적으로
+정리해야 한다. AC3와 target/자원 gate를 축소하거나 완료로 체크하지 않는다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
 정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서

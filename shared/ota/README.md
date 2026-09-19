@@ -128,7 +128,9 @@ Windows host 교차 시험만 Microsoft CNG의 실제 P256/SHA-256을 사용한�
 `cryptography==48.0.0`으로 메모리에서 임시 개인키를 생성·서명하고 CNG가 검증한다.
 개인키는 파일/Git/장치에 저장하지 않는다. 합성 image는 부팅 가능하거나 image
 자체 서명이 검증된 firmware가 아니다. board/epoch/호환성은 아래 typed manifest와
-preflight가 검사한다. 부팅·Flash writer 연결과 영속 signed golden fixture는 남아 있다.
+preflight가 검사한다. 부팅·Flash writer 연결은 남아 있다. 별도의 보존
+[signed golden](../../tests/fixtures/ota-signed-golden/README.md)은 실제 SDK ESP BIN과
+공식 ESP/STM signing 도구를 사용하며 위 임의 bytes 시험과 구분한다.
 CNG provider는 장치 firmware에 링크하지 않는다.
 
 Windows x64 CPython3.14에서는 먼저 `python -m pip install --only-binary=:all:
@@ -243,8 +245,9 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 
 `HASHES_MATCHED`는 **native image signature/protected metadata·최신 version floor 재검증,
 설치 직전 로컬 상태 재확인, Flash read-back, 설치 또는 PREPARED 승인과 별개**다.
-이 모듈에는 writer·boot selector callback 자체가 없다. prefix의 부분 수신 조립,
-전체 signed packager/검사 CLI/golden, 실제 ESP/STM provider와 정상 target 통합은 남아 있다.
+이 모듈에는 writer·boot selector callback 자체가 없다. prefix 부분 수신과 outer 조립/
+검사 CLI·보존 signed golden은 구현되어 있다. 일반 native-aware packager/검사 연결,
+실제 ESP/STM provider와 정상 target owner 통합은 남아 있다.
 schema와 서명 전 JSON 작성 도구는 위 절의 구현을 사용한다.
 
 ## 로컬 호환성 사전 검사

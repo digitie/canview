@@ -3,7 +3,9 @@
 [T-007](../../../docs/tasks/T-007-ota-container.md)의 read-only adapter를 실제
 ESP-IDF6.0.3/RSA 서명 검증 설정으로 compile/link한다. 정상 장치 firmware나
 서명된 CANView OTA 배포 이미지가 아니다. 이 fixture는 Flash 쓰기·키 생성·
-provisioning을 하지 않으며 `app_main()`도 NULL negative만 호출한다.
+provisioning을 하지 않는다. `app_main()`은 adapter NULL negative 이후 공개 합성
+golden을 기존 C prefix/manifest/body와 실제 SDK PSA provider로 검증하도록 연결한다.
+이 경로의 장치 실행은 `NOT_RUN`이며 compile/link와 구분한다.
 
 ## 실행
 
@@ -57,8 +59,8 @@ Flash 내용을 불변으로 유지해야 한다. adapter 자체는 mutex나 wri
 반환하는 custom168B는 서명된 원본 byte열이며 CANView role/board/layout/ABI/u64
 sequence 대조는 [공통 portable 검사기](../../../shared/ota/src/native_metadata.h)가 맡는다.
 이 fixture는 SDK version/custom 배열 크기의 drift도 compile-time에 검사하고 공통
-검사기와 Communicator BSP 연결을 실제 target에 compile/link한다. NULL negative만
-호출하므로 SDK→정책의 장치 실행이나 정상 app integration/영속 floor 완료 증거는 아니다.
+검사기와 Communicator BSP 연결을 실제 target에 compile/link한다. Native Flash adapter는
+NULL negative만 호출하므로 SDK→정책의 장치 실행이나 정상 app integration/영속 floor 완료 증거는 아니다.
 
 Communicator BSP는 generated board ID·고정 bundle_stage 주소/크기를 검사하고 SDK 성공
 뒤 공통 metadata를 대조한다. [BSP 모형 시험](../../ota/test_comm_ota.c)은 SDK를 모형으로
@@ -78,3 +80,26 @@ Host의 [SDK 모형 시험](../../ota/test_esp_image_sdk.c)은 호출 순서·�
 SDK 근거는 고정 commit `76f5dedd9950a3012fee8fb7d5586df21fc67802`의
 [전체 file hash](https://github.com/espressif/esp-idf/blob/76f5dedd9950a3012fee8fb7d5586df21fc67802/components/bootloader_support/src/bootloader_common.c)와
 [native verifier](https://github.com/espressif/esp-idf/blob/76f5dedd9950a3012fee8fb7d5586df21fc67802/components/bootloader_support/src/esp_image_format.c)다.
+
+## 전체 컨테이너 수신 fixture
+
+[공용 IDF component](../../../firmware/components/canview_ota_parser/CMakeLists.txt)는
+기존 portable C99 parser를 그대로 사용한다. [receiver.c](main/receiver.c)는
+31B prefix 부분 수신 뒤 manifest 서명/identity/floor 검사, 최대16KiB body chunk의
+실제 SHA256을 수행한다. 정상·manifest 서명 변조·body 마지막 byte 변조·local identity
+불일치의4개 기대 결과를 비교한다. 동일 C 흐름은 Windows `ota-idf-receiver`에서
+실제 CNG로 실행한다. CNG 성공을 SDK PSA 장치 실행 성공으로 바꾸지 않는다.
+
+읽기 전용 linker 영역에 보존 golden394310B를 넣는다. 공개 합성 root와 합성 floor0는
+시험 전용이며 제품 신뢰 root/영속 policy가 아니다. Native 서명 검증이나 설치 승인을
+반환하지 않고 Flash·PREPARED·boot selector를 호출하지 않는다. 기존 signed golden의
+입력 SDK BIN은 provenance에 고정되어 있으며 이 fixture 변경 때 자동 재서명하지 않는다.
+
+`app_main`은 단일 service/self-test 실행이며 추가 task/ISR/queue를 만들지 않는다.
+SDK 기본 priority1, fixture 전용 stack16384B를 사용한다. 실제 ELF DWARF에서
+prefix16488B/body856B/PSA context108B를 확인했으며 모두 함수 static storage다.
+`-fstack-usage`는 자체 함수의 정적 frame 근거일 뿐 SDK 암호 호출 체인의 총 stack이나
+WCET 증거가 아니다. SDK 내부 key/hash 할당은 실패 가능하며 provider가 오류와 cleanup을
+처리한다. Main stack high-water, heap 최저 여유,4개 검증 시간, watchdog 지연은
+장치가 없어 `NOT_RUN`이다. 기본 watchdog 설정은 끄거나 완화하지 않는다.
+16384B는 시험용 예약량이며 측정으로 충분함을 입증한 값은 아니다.
