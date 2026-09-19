@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-107 SRAM linker/copy 중간 source | `d20e9e3` → `43b52b8` | startup/runtime / linker·CI·검사기 | [기록](adversarial/2026-09-19-T-107-sram.md), 양쪽 PASS·신규 finding0; 전체 loader/task/merge 미승인 |
 | 2026-09-19 | T-107 BSP trust post-fix | `6c14950` → `5b153e0` | 원 A/B | [기록](adversarial/2026-09-19-T-107-trust-post.md), 양쪽 source PASS·상대 DER 경로 P2 FIXED; 전체 task/merge 미승인 |
 | 2026-09-19 | T-107 BSP trust 중간 source | `06383d6` → `6c14950` | C/runtime / 보안·CMake·oracle | [기록](adversarial/2026-09-19-T-107-trust.md), A PASS/B CONDITIONAL·상대 DER 경로 P2 수정·원 reviewer 재확인 대기; 전체 task/merge 미승인 |
 | 2026-09-19 | T-107 ECC post-fix·IO source | `481a805` → `122924c` | 원 A/B | [기록](adversarial/2026-09-19-T-107-ecc-post.md), 양쪽 PASS·P1/P2 세 건 FIXED; 전체 task/boot/merge 미승인 |
