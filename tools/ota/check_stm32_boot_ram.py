@@ -116,7 +116,8 @@ def validate_boot_closure(symbols, wrappers):
     for assembly in wrappers:
         # wrapper는 기존 FIH panic으로만 분기한다. call/branch 대상 변조를 거절한다.
         branches = re.findall(r"\s(b(?:l|lx|x|eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le)?(?:\.[nw])?)\s+([^\n]+)", assembly)
-        if len(branches) != 1 or not re.fullmatch(r"[0-9a-f]+ <fih_panic_loop>", branches[0][1].strip()):
+        if (len(branches) != 1 or branches[0][0] not in ("b", "b.w", "b.n", "bl", "bl.w") or
+                not re.fullmatch(r"[0-9a-f]+ <fih_panic_loop>", branches[0][1].strip())):
             raise ValueError("newlib wrapper의 FIH panic 경로 오류")
 
 

@@ -35,6 +35,12 @@ class BootRamTests(unittest.TestCase):
                     wrappers[0] + "\n 8001238: 4770 bx lr"):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 boot.validate_boot_closure(symbols, [bad, wrappers[1]])
+        for mnemonic in ("beq", "bne", "bcs", "bcc", "bmi", "bpl", "bvs", "bvc",
+                         "bhi", "bls", "bge", "blt", "bgt", "ble", "blx", "bx"):
+            for suffix in ("", ".w", ".n"):
+                bad = wrappers[0].replace(" bl ", f" {mnemonic}{suffix} ")
+                with self.subTest(branch=mnemonic + suffix), self.assertRaises(ValueError):
+                    boot.validate_boot_closure(symbols, [bad, wrappers[1]])
 
     def test_handoff_mutations(self):
         _, symbols, image = self.evidence
