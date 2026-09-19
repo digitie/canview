@@ -1,5 +1,25 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, SDK metadata와 prefix checkpoint artifact 감사)
+
+`624848a`에서 C const custom descriptor를 실제 ESP-IDF6.0.3 시험 image에 넣었다.
+자동 서명/키/provisioning/Flash 동작 없이 ELF/MAP/BIN 경고0을 확인했고
+`tests/ota/check_sdk_metadata.py`로 offset288의168B·u64최대값과168개 byte 변이·4개
+절단 거절을 확인했다. BIN SHA256은 `e9dc9177c696a13bdba0631c1da2b3ec125b688862ab2c04921c05c0675d3735`,
+로그는 로컬 `build/t007-sdk-metadata-build.log`다. 이는 합성 descriptor 위치/값
+증거이며 native 서명·정상 device firmware·boot·HIL 성공이 아니다.
+
+앞선63c8727의 CI35416056122는6/6 성공했다. 내려받은 target21개 ELF/MAP/BIN의
+bytes/SHA256을 manifest와 대조했고 source7개도 해당 Git object의 Windows CRLF
+byte열과 일치했다. Manifest SHA256은
+`5a72e85918d474e679b1eb5fff255fef4a24bdd6aa225658a0cdacaa6fdb21d4`다.
+26개 target log에 실제 warning/error 진단은0개다. 최초 넓은 `error` 검색은 SDK의
+`error.c.obj` 컴파일 행5개를 검출했다. 내용을 읽어 source filename임을 확인했고
+warning 전체·error 진단·CMake/fatal/FAILED 패턴으로 재검사했다. 진단을 억제하지 않았다.
+Windows CI Debug/Release LastTest.log도 각각142개 성공·실패0·CNG90교차를 확인했다.
+이전63c8727 검증을 이후metadata/새HEAD 검증으로 확대하지 않는다. 이후21cb047의
+CI35416950979는 진행 중이다. 전체 T-007·native signing/golden·정상 owner 연결은 남아 있다.
+
 ## 2026-09-19 (codex, T-007 prefix·packager checkpoint)
 
 `63c87272fe9f2b00b76893055bfcc8a9ca71cf26`을 Draft PR36에 push했다. C99 고정 buffer

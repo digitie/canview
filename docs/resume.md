@@ -27,7 +27,8 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 target 연결은 여전히 남아 있으며 T-007 전체 완료·배포 승인으로 표시하지 않는다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
-정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사는 별도 리뷰 중이다.
+정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서
+finding0·PASS다. 실제 native signing/golden·정상 제품 target 연결의 완료 승인은 아니다.
 
 별도 STM native 검사기는 공식 MCUboot v2.4.0 image의 전체 hash/P256 서명과
 protected metadata(board/role/layout/epoch/ABI/u64 sequence)를 대조한다. SDK/부트로더
@@ -58,7 +59,9 @@ ASan/UBSan2284건과 함수100%·행98.14%·분기94.74%는 해당 이전 source
 실제 CNG native 시험은 ECDSA DER 길이에 따라 건수가 달라진다.
 이전 PR35 최종 source `12100ac`의 Windows Host Debug/Release는 각각140/140을 통과했다.
 이번 checkpoint `63c8727`은 Debug/Release 각각142/142, 독립 Linux checkout의
-ASan/UBSan137/137을 통과했다. CI35416056122는 host5개 job 통과·target job 진행 중이다.
+ASan/UBSan137/137을 통과했다. 같은63c8727의 CI35416056122는6/6 통과했고 target21개
+bytes/hash·source7개·target logs26개 warning/error0을 확인했다. 이후 metadata를 포함한
+21cb047의 CI35416950979는 별도 진행 중이며 이전 artifact를 새 candidate 증거로 재사용하지 않는다.
 새 prefix_feed coverage는 행93.33%·분기96%, init/finish는 행·분기100%다. 이 수치는
 새 collector 시험의 함수별 결과이며 envelope.c 전체나 MCU 실행시간 측정값이 아니다.
 schema field/enum/limit drift와 JSON→CBOR→C typed parser 대조, 서명 전 CLI의

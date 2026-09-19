@@ -84,6 +84,8 @@ SDK fixture에 합성 native metadata168B와 `UINT64_MAX`를 실제 custom descr
 넣었다. ESP-IDF6.0.3 ELF/MAP/BIN 생성·경고0, BIN offset288의 값·168개 변이·4개
 절단 거절을 로컬에서 확인했다. 자동 서명·Flash·production identity는 사용하지 않았다.
 다음 native signing/golden의 입력이며 정상 제품 firmware 연결 완료가 아니다.
+624848a의 [독립 A/B 정적 리뷰](../reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)는
+finding0·PASS다. 실제 native signing/golden과 정상 OTA 통합 검증은 남아 있다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
