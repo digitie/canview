@@ -21,6 +21,13 @@ T-007을 다시 구현하지 않는다.
 
 ## 다음 한 작업
 
+현재 [fail-stop post-fix 리뷰](reviews/adversarial/2026-09-19-T-107-failstop-post.md)는
+A source/local PASS, B 서비스 cybersecurity flag로 INCOMPLETE/BLOCK이다.
+B는 일부 명령을 실행했지만 최종 판정을 반환하지 않았다. 두 B P2는 수정 구현 후
+원 reviewer 확인 전 OPEN이며 PR37은 Draft다. 요청 재표현·대체 reviewer로 우회하지
+않고 서비스 승인/오탐 확인 후 원 B 재검토가 필요하다. 최신 CI·artifact 수용도 미완료다.
+아래는 이미 진행한 구현의 범위이며 최종 loader/task 완료 선언이 아니다.
+
 고정 map의 C99 BSP 조회·범위 검사와 전체 byte offset 거절 시험을 추가했다.
 Host Debug/Release151/151, 새 C 파일 ASan/UBSan·분기 coverage100%, 기존 STM32
 Debug/Release target 빌드가 통과했다. 자세한 범위·제한은 [STM32 README](../firmware/communicator/stm32/README.md#t-107-flash-배치-구현-중)를 따른다.
