@@ -208,6 +208,19 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMENT "Generating HEX/BIN, reporting image size, and checking FDCAN RAM layout"
 )
 
+# T-107 중간 단위: 실제 Arm bootutil/crypto/adapter archive compile 검증.
+# 아직 boot executable이나 기존 app에 link하지 않는다.
+set(CANVIEW_MCUBOOT_ROOT "$ENV{MCUBOOT_ROOT}" CACHE PATH "Pinned clean MCUboot checkout")
+if(CANVIEW_MCUBOOT_ROOT)
+    add_subdirectory(bootloader)
+    foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map)
+        target_compile_options(${boot_target} PRIVATE ${MCU_OPTIONS}
+            -ffunction-sections -fdata-sections -fstack-usage
+            -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")
+        target_compile_definitions(${boot_target} PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
+    endforeach()
+endif()
+
 if(CANVIEW_STM_IMAGE_LAYOUT STREQUAL "MCUBOOT_PRIMARY")
     set_property(TARGET ${TARGET_NAME} APPEND PROPERTY LINK_DEPENDS
         "${CANVIEW_ROOT}/tools/ota/validate_stm32_map.py")

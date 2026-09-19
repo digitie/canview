@@ -61,6 +61,19 @@ artifact/hash manifest에 추가했다. 이 변경의 CI·독립 task 리뷰는 
 체크하지 않는다. Bootloader64KiB image·Flash IO/profile·ECC·swap/revert·confirmation이
 남아 있고 actual Flash/HIL은 NOT_RUN이다.
 
+## 2026-09-19 MCUboot C 포트 첫 실행
+
+[포트 설명](../../firmware/communicator/stm32/bootloader/README.md)에 source/host/Arm
+경계와 재현을 기록했다. 직접 swap 알고리즘을 만들지 않고 고정 upstream boot_go를
+사용하며 BSP map 뒤에 동기식 IO 세 함수만 둔다. Host 모형에서 실제 P-256 검증,
+test-swap/revert/confirm, malformed/미신뢰 image와 API 경계 cut258곳을 시험한다.
+FIH MEDIUM 객체/검사는 보존하고 GCC 반환형 qualifier 및 TinyCrypt 임시 배열의
+경고 원인만 build 사본에 수정한다. SDK 원본은 clean으로 유지한다.
+
+Arm archive compile은 bootloader final binary가 아니다. 아래 AC는 계속 열어 둔다.
+다음은 board/role/ABI protected TLV와 G474 profile/실제 Flash·ECC driver 및
+bootloader executable 연결이다. 물리 검증과 production provisioning은 NOT_RUN이다.
+
 ## 목표
 
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.

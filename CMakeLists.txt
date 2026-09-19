@@ -27,6 +27,12 @@ add_subdirectory(shared/protocol)
 add_subdirectory(shared/app)
 add_subdirectory(shared/ota)
 include(firmware/communicator/stm32/bsp/flash_layout.cmake)
+set(CANVIEW_MCUBOOT_ROOT "$ENV{MCUBOOT_ROOT}" CACHE PATH "Pinned clean MCUboot checkout")
+if(CANVIEW_MCUBOOT_ROOT)
+    add_subdirectory(firmware/communicator/stm32/bootloader)
+else()
+    message(STATUS "MCUboot C model NOT_RUN: set CANVIEW_MCUBOOT_ROOT to the pinned clean checkout")
+endif()
 add_library(canview_stm_build_provider STATIC
     firmware/communicator/stm32/tests/build_id_fixture.c
     firmware/communicator/stm32/bsp/build_metadata.c)
@@ -55,6 +61,18 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    if(CANVIEW_MCUBOOT_ROOT)
+        add_executable(canview-mcuboot-model tests/ota/mcuboot_model.c)
+        target_include_directories(canview-mcuboot-model PRIVATE firmware/communicator/stm32/bsp)
+        target_link_libraries(canview-mcuboot-model PRIVATE bootutil canview_boot_flash_map)
+        set_target_properties(canview-mcuboot-model PROPERTIES C_STANDARD 11)
+        target_compile_options(canview-mcuboot-model PRIVATE -Wall -Wextra -Werror)
+        add_test(NAME stm32-mcuboot-model COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_mcuboot_model.py
+            --probe $<TARGET_FILE:canview-mcuboot-model> --mcuboot ${CANVIEW_MCUBOOT_ROOT}
+            --bootutil $<TARGET_PROPERTY:bootutil,SOURCE_DIR>)
+        set_tests_properties(stm32-mcuboot-model PROPERTIES TIMEOUT 60)
+    endif()
     add_executable(canview-stm-flash-layout-tests tests/ota/test_stm32_flash_layout.c)
     target_include_directories(canview-stm-flash-layout-tests PRIVATE firmware/communicator/stm32/bsp)
     target_link_libraries(canview-stm-flash-layout-tests PRIVATE canview_stm_flash_layout canview_warnings)

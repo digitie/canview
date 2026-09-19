@@ -1,5 +1,44 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 MCUboot C boot_go·swap/revert 첫 연결)
+
+a2f1f9c 다음 단위다. 해당 commit CI35429702531 success/completed를 확인했다.
+새 source 단위는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md)의
+얇은 C Flash adapter·공식 bootutil/TinyCrypt/ASN1 연결과 host 모형이다. 드라이버 설계
+기준에 따라 BSP map을 재사용하고 실제 register/HAL IO를 portable 영역에 넣지 않았다.
+SDK 원본 pin6d3b3d2/clean 유지, 개인키는 공식 imgtool 시험의 메모리 전용이다.
+
+- `stm32-mcuboot-model`은30개 image 시나리오와 swap120/revert138 API 경계 중단을
+  실행했다. 정상·최대 크기·truncated/header/TLV/서명 변조·미신뢰 key·confirm 및
+  이전 정상본 복귀를 확인했다. Flash 모형은 FF doubleword도 중복 program을 거절한다.
+- Windows Clang23.1 Debug/Release에서 실행. Arm15.3.Rel1/CubeG4 v1.6.3의
+  primary-debug/primary-release clean build도 기존 앱 ELF/MAP/BIN과 새 library를 생성했다.
+  로그 `build/t107-mcuboot-arm-primary-{debug,release}-clean.log`, compiler/linker/CMake warning0.
+  Boot library는 아직 앱에 link하지 않으며 final bootloader ELF/BIN은 없다.
+- 전체 Host Debug152/15269.96초, Release152/15249.33초 성공.
+  `build/t107-mcuboot-host-{debug,release}-{build,test}.log`를 보존했다.
+  board generation·문서386개/로컬 링크1461개·task49개 정합 검사도 성공했다.
+- Arm 첫 빌드는 FIH 반환형 top-level volatile 경고로 실패했고 Release에서는
+  TinyCrypt t5 초기화 경고도 발견했다. 경고 억제/보호 profile 하향 없이 build 사본에서
+  반환35+4곳 및 임시 배열3개만 변환했다. Python이64개 source 파일과 원본을 대조하고,
+  C `_Generic` assertion이 FIH 전역/지역/멤버의 volatile과 반환 layout을 검사한다.
+  Host는 Arm panic loop만 abort로 대체하며 double-variable/CFI를 유지한다.
+- Clang21.1.8 ASan/UBSan18.70초 PASS. 별도 coverage 실행6.03초,
+  `flash_map.c` region117/function15/line101/branch66 모두100%.
+  로그 `build/t107-mcuboot-sanitizer-coverage-final.log`.
+- WSL 보조 환경은 `/tmp/canview-t107-mcuboot-sdk-native`의 같은 pin clean clone,
+  `/tmp/canview-t107-model-clean`의 Python3.14.4·cryptography48.0.0/cffi2.1.1/
+  pycparser3.0/cbor2 6.1.4/intelhex2.3.0/click8.5.0이며 pip check 성공.
+  최초 Python 선택에서 click이 없었고 system-site venv는 무관한 dependency 충돌을
+  보여 별도 clean venv로 재실행했다. Windows wheel lock 검증과는 별도 보조 결과다.
+- 처음 WSL shell 변수 전달/Arm 로그 상대 경로 오류는 검증 PASS가 아니며,
+  명시적인 경로로 재실행했다. 사용자 checkout·SDK·기존 evidence는 변경/삭제하지 않았다.
+- CI Windows host에 MCUboot root를 명시하고 target primary 두 구성에 같은 root를
+  연결했다. 새 CI·artifact 감사·독립 task 리뷰2건은 후속 gate다. T-107 AC는 열려 있다.
+- board/role/ABI TLV·profile·실제 Flash/ECC/NMI/stall/watchdog·boot handoff·
+  T-205 confirmation/floor는 미완료. Physical/HIL·실제 option-byte/provisioning·
+  torn word/page는 NOT_RUN, 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, T-107 실제 primary 앱 image 연결)
 
 179ab64 다음 단위로 primary-debug/primary-release preset과 primary linker를 추가했다.

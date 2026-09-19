@@ -27,10 +27,18 @@ Debug/Release target 빌드가 통과했다. 자세한 범위·제한은 [STM32 
 primary-debug/primary-release 앱 linker를 추가해 실제 vector0x08010200 ELF/MAP/BIN과
 SDK SystemInit VTOR relocation, 공식 imgtool의 실제 앱/최대 payload 서명 크기를 확인했다.
 기본 bench linker는 공유 section으로 유지한다. CI에는 primary 두 빌드·서명 검사와
-artifact6개를 추가했으며 새 CI 완료·artifact 감사는 아직이다.
-다음은 BSP를 실제 MCUboot2.4.0 bootloader/Flash API에 연결하는 작업이다.
-Profile/중복 write/ECC·swap/revert는 아직 구현·검증하지 않았다. Primary 앱 빌드를
-OTA loader·실기 부팅 완료로 표시하지 않는다.
+artifact6개를 추가했다. a2f1f9c CI35429702531은 success/completed를 확인했지만
+artifact 감사는 아직이다.
+
+[MCUboot C 포트](../firmware/communicator/stm32/bootloader/README.md)의 첫 연결을 추가했다.
+실제 boot_go/P-256/offset swap/revert를 host Flash 모형에서 실행하며, 두 슬롯만 여는
+C adapter와 8B 중복 write 거절, swap/revert API cut258곳을 검증한다. Arm 두 primary
+구성에서 같은 bootutil/crypto/adapter archive를 컴파일한다. FIH MEDIUM·volatile
+객체는 유지하고 고정 SDK build 사본의 반환형/임시 배열 경고 원인만 수정한다.
+
+다음은 board/role/ABI protected TLV, G474 profile 검사와 실제 Flash/ECC driver,
+bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
+모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 
 [T-102](tasks/T-102-stm32-platform.md) source/review PR29의 merge50410ba는 확인했다.
 T-102 전체 수용은 물리 측정과 T-107 map 연결 등이 남아 IN_PROGRESS다.

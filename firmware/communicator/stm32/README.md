@@ -89,9 +89,11 @@ bootloader와 예약 영역의 program/erase는 항상 거절한다. 성공 시�
 
 Host와 Arm은 동일 BSP C99 library를 컴파일한다. `stm32-flash-layout` CTest는
 문서의 literal 배치, 전체 영역의 모든 byte offset, 경계 길이와 `UINT32_MAX`를
-검사한다. 이 library는 아직 실제 Flash IO나 기존 앱에 연결되지 않았다.
+검사한다. [MCUboot C 포트](bootloader/README.md)는 이 library로 두 슬롯만 검사하고
+host Flash 모형을 통해 공식 boot_go/swap/revert를 실행한다. 실제 Flash IO나 기존 앱에는
+아직 연결되지 않았다.
 범위 검사 성공은 쓰기 권한이 아니며, DBANK/WRP/NRST 확인, 중복 doubleword 거절,
-서명·활성 슬롯 보존, ECC/NMI·bank stall, MCUboot swap/revert는 후속 연결이 필요하다.
+서명·활성 슬롯 보존의 target 검증, ECC/NMI·bank stall은 후속 연결이 필요하다.
 실제 option-byte·Flash는 변경하지 않는다. 별도 범용 Flash framework는 만들지 않는다.
 
 ## 현재 기반 범위 안내
