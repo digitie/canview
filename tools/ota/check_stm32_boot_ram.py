@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import struct
 import subprocess
 import sys
@@ -101,7 +102,25 @@ def validate_handoff(symbols, image):
         raise ValueError("boot handoff trampoline 명령 오류")
 
 
-def inspect(elf, compiler):
+def validate_boot_closure(symbols, wrappers):
+    if len(wrappers) != 2:
+        raise ValueError("newlib wrapper 두 경로가 모두 필요함")
+    names = {line.split()[-1] for line in symbols.splitlines() if line.split()}
+    required = {"boot_go", "fih_panic_loop", "__wrap___assert_func", "__wrap_abort"}
+    if not required <= names:
+        raise ValueError("MCUboot/fail-stop link closure 누락")
+    forbidden = re.compile(r"(?:__assert_func|abort|_?sbrk(?:_r)?|_?fstat(?:_r)?|_?isatty(?:_r)?|"
+                           r"_?getpid(?:_r)?|_?kill(?:_r)?|_?(?:malloc|calloc|realloc|free)(?:_r)?|.*printf.*)")
+    if any(forbidden.fullmatch(name) for name in names):
+        raise ValueError("boot fail-stop에 libc 출력/heap/syscall 유입")
+    for assembly in wrappers:
+        # wrapper는 기존 FIH panic으로만 분기한다. call/branch 대상 변조를 거절한다.
+        branches = re.findall(r"\s(b(?:l|lx|x|eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le)?(?:\.[nw])?)\s+([^\n]+)", assembly)
+        if len(branches) != 1 or not re.fullmatch(r"[0-9a-f]+ <fih_panic_loop>", branches[0][1].strip()):
+            raise ValueError("newlib wrapper의 FIH panic 경로 오류")
+
+
+def inspect(elf, compiler, full_boot=False):
     def run(tool, *flags):
         exe = compiler.with_name(f"arm-none-eabi-{tool}{compiler.suffix}")
         return subprocess.check_output([str(exe), *flags, str(elf)], encoding="utf-8", timeout=30)
@@ -115,6 +134,9 @@ def inspect(elf, compiler):
                      run("objdump", "-d", "-j", section), kind, linked=True)
     copied = validate_copy(sections, symbols, image)
     validate_handoff(symbols, image)
+    if full_boot:
+        validate_boot_closure(symbols, [run("objdump", "-d", f"--disassemble={name}")
+            for name in ("__wrap___assert_func", "__wrap_abort")])
     assembly = run("objdump", "-d", "--disassemble=flash_ram_sync")
     if not 0 <= assembly.find("dsb\t") < assembly.find("isb\t"):
         raise ValueError("SRAM DSB/ISB 동기화 누락/순서 오류")
@@ -126,8 +148,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--elf", type=Path, required=True)
     parser.add_argument("--compiler", type=Path, required=True)
+    parser.add_argument("--full-boot", action="store_true")
     args = parser.parse_args()
-    inspect(args.elf, args.compiler)
+    inspect(args.elf, args.compiler, args.full_boot)
 
 
 if __name__ == "__main__":

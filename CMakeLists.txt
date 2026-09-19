@@ -62,6 +62,13 @@ target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
     if(CANVIEW_MCUBOOT_ROOT)
+        add_executable(canview-stm-boot-fail-stop-tests tests/ota/test_stm32_boot_fail_stop.c)
+        target_include_directories(canview-stm-boot-fail-stop-tests PRIVATE
+            firmware/communicator/stm32/bootloader "$<TARGET_PROPERTY:bootutil,SOURCE_DIR>/include")
+        target_link_libraries(canview-stm-boot-fail-stop-tests PRIVATE
+            canview_boot_fail_stop canview_boot_config canview_warnings)
+        add_test(NAME stm32-boot-fail-stop COMMAND canview-stm-boot-fail-stop-tests)
+        set_tests_properties(stm32-boot-fail-stop PROPERTIES TIMEOUT 30)
         add_executable(canview-mcuboot-model tests/ota/mcuboot_model.c
             firmware/communicator/stm32/platform/stm32g474/flash_io.c
             firmware/communicator/stm32/platform/stm32g474/flash_guard.c)

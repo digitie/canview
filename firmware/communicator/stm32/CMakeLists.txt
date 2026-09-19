@@ -239,7 +239,7 @@ if(CANVIEW_MCUBOOT_ROOT)
             "${CANVIEW_ROOT}/tests/ota/test_stm32_flash_ram.py"
         COMMENT "Checking SRAM command/read closure and actual Arm negative objects")
     add_dependencies(canview_boot_flash_guard canview_boot_flash_ram_check)
-    set(boot_targets bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard canview_boot_flash_command canview_boot_flash_read)
+    set(boot_targets bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard canview_boot_flash_command canview_boot_flash_read canview_boot_fail_stop)
     if(TARGET canview_boot_identity)
         list(APPEND boot_targets canview_boot_identity)
     endif()
@@ -262,6 +262,17 @@ if(CANVIEW_MCUBOOT_ROOT)
     target_include_directories(canview-boot-ram-link-test SYSTEM PRIVATE
         "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
     target_link_libraries(canview-boot-ram-link-test PRIVATE canview_boot_flash_guard canview_stm_flash_layout)
+    set(boot_full_link_check_options "")
+    if(TARGET canview_boot_identity)
+        # 기존 비배포 시험에서 boot_go 전체 closure도 GC 없이 확인한다.
+        # main은 boot_go를 실행하거나 앱을 승인하지 않는다.
+        target_link_libraries(canview-boot-ram-link-test PRIVATE
+            "-Wl,--start-group" bootutil canview_boot_flash_map canview_boot_identity
+            canview_boot_fail_stop canview_boot_flash_guard canview_stm_flash_layout "-Wl,--end-group")
+        target_link_options(canview-boot-ram-link-test PRIVATE -Wl,--undefined=boot_go
+            -Wl,--undefined=__wrap___assert_func -Wl,--undefined=__wrap_abort)
+        set(boot_full_link_check_options --full-boot)
+    endif()
     target_compile_definitions(canview-boot-ram-link-test PRIVATE
         STM32G474xx CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1
         USER_VECT_TAB_ADDRESS VECT_TAB_OFFSET=0U)
@@ -287,6 +298,7 @@ if(CANVIEW_MCUBOOT_ROOT)
     add_custom_target(canview_boot_ram_link_check
         COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tests/ota/test_stm32_boot_ram.py"
             --elf $<TARGET_FILE:canview-boot-ram-link-test> --compiler "${CMAKE_C_COMPILER}"
+            ${boot_full_link_check_options}
         DEPENDS canview-boot-ram-link-test
         COMMENT "Checking linked SRAM copy/startup and actual linker negative cases (not final bootloader)")
     # 기존 앱의 compile-database stack 검사가 새 object보다 먼저 실행되지 않게 한다.

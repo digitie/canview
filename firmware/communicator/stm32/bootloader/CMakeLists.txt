@@ -53,6 +53,13 @@ if(NOT CMAKE_CROSSCOMPILING)
         CANVIEW_UPSTREAM_FIH_SOURCE="${canview_bootutil_source}/src/fault_injection_hardening.c")
 endif()
 target_link_libraries(bootutil PUBLIC canview_boot_config canview_boot_crypto)
+add_library(canview_boot_fail_stop STATIC fail_stop.c)
+target_include_directories(canview_boot_fail_stop PRIVATE "${canview_bootutil_source}/include")
+target_link_libraries(canview_boot_fail_stop PRIVATE canview_boot_config canview_warnings)
+# target loader 전용. host의 assert/abort 및 libc 진단은 바꾸지 않는다.
+if(CMAKE_CROSSCOMPILING)
+    target_link_options(canview_boot_fail_stop INTERFACE -Wl,--wrap=__assert_func -Wl,--wrap=abort)
+endif()
 target_sources(bootutil PRIVATE image_hooks.c "${canview_boot_repo}/shared/ota/src/native_metadata.c")
 target_include_directories(bootutil PRIVATE ../bsp
     "${canview_boot_repo}/shared/ota/src" "${canview_boot_repo}/shared/interface")

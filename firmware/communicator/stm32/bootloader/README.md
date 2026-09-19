@@ -232,7 +232,7 @@ Arm archive에서 실제 read/명령/IO를 컴파일하고 아래 SRAM link 시�
 RX/RW ELF segment는 분리하지만 MPU 보호를 설정했다는 뜻은 아니다.
 
 `canview-boot-ram-link-test.elf/.map/.bin`은 실제 제품 Flash C와 SDK startup을
-이 배치에 link하는 **비배포 시험 image**다. safe output과 watchdog은 연결했지만 boot_go, 정책, handoff가 없으므로
+이 배치에 link하는 **비배포 시험 image**다. safe output과 watchdog은 연결했지만 boot_go 실행과 정책 승인 뒤 handoff는 없으므로
 장치에 flash하지 않으며 최종 bootloader binary나 runtime 수용으로 계산하지 않는다.
 App VTOR macro는 source-global이 아닌 target-local로 바꿔 boot0x08000000과
 primary0x08010200의 SystemInit 컴파일을 분리했다. SDK 원본은 변경하지 않았다.
@@ -243,6 +243,18 @@ startup/VTOR592bit·preinit32bit 변이와 비연속/정렬/누락 입력을 거
 linker의64KiB 초과·정렬·SRAM 크기·VMA gap·CCM 오류도 시험한다.
 CI는 시험 산출물6개를 기존 target evidence manifest에 별도 이름으로 보존한다.
 전체 MCUboot call-chain stack과 실제 SRAM 실행·ECC/reset/HIL은 아직 NOT_RUN이다.
+
+명시적 BSP trust가 설정됐으면 같은 시험 ELF에 `boot_go`·crypto·identity 전체 참조를
+유지해 실제 링크한다. 설정이 없으면 기존 SRAM 시험만 실행하며 전체 링크는 NOT_RUN이다.
+`bootloader/fail_stop.c`의 두 GNU/newlib ABI wrapper는 assert/abort 실패를 기존
+MCUboot `FIH_PANIC`으로만 연결한다. assert 조건·FIH MEDIUM은 제거하지 않으며
+출력·heap·가짜 syscall·새 복구 framework를 추가하지 않는다. 실패 뒤 watchdog feed나
+Flash 변경은 없다. IWDG가 실제 reset을 발생시키는지는 physical gate로 남는다.
+Host MCUboot 모형의 libc assert/abort는 대체하지 않는다.
+
+전체 링크 검사(`--full-boot`)는 필수 symbol, 두 wrapper의 실제 Arm panic 분기와
+출력/heap/syscall 부재를 검사한다. wrapper를 뺀 실제 link가 실패하는 negative도
+실행한다. 최종 부팅 entry·T-205 영속 정책·signature 성공 뒤 handoff는 여전히 미완료다.
 
 ## Boot 시간원과 watchdog — 최종 loader 연결 전
 

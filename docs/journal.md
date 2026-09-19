@@ -1,5 +1,27 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, MCUboot 전체 링크와 libc 실패 경로)
+
+전체 `boot_go` 링크 probe에서 newlib assert가 stdio/미구현 syscall을 끌어와
+fatal warning으로 실패했다. `bootloader/fail_stop.c`에서 두 실패 ABI만 기존
+FIH panic으로 연결했다. assert 조건과 MEDIUM 보호는 유지하고 새 오류 framework나
+성공을 반환하는 syscall 대역을 추가하지 않았다. Host 모형 libc는 변경하지 않는다.
+
+명시적 trust가 있는 기존 Arm 비배포 SRAM 시험에 bootutil/crypto/identity를 링크하고
+symbol/실제 panic 분기/heap·출력 부재를 검사한다. wrapper 누락의 실제 링크 실패와
+검사기 입력 변이도 시험한다. 상세 전제는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#boot-sram-배치와-sdk-초기화-복사)에 둔다.
+최종 boot entry·정책 승인·runtime 실행 근거는 아니며 T-107은 IN_PROGRESS다.
+Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다. 기본 dirty checkout과 SDK/evidence는 보존했다.
+
+`build/t107-failstop-final-arm-{debug,release}.log`의 실제 Arm 링크는37184/29116B,
+SRAM copy1076/852B이며 compiler/linker/CMake warning0이다. Host 새 실패 경로와
+runtime/handoff3/3, GNU strict C99, Clang ASan/UBSan, fail-stop C의 function2/2·
+region4/4·line10/10 coverage100%를 확인했다(조건 분기는0개, FIH assembly coverage 아님).
+최초 WSL 명령의 include 인자 전달 실패는 원 로그에 보존했고 명시 인자 재실행은
+`build/t107-failstop-sanitize-coverage-retry.log`에 있다. Doxygen/Sphinx strict API74개,
+문서409/1514·task49 errors0, 합성 T-103 fixture13/13도 통과했다.
+전체 host Debug/Release 회귀·독립 리뷰·새 CI는 후속 검증으로 남긴다.
+
 ## 2026-09-19 (codex, 승인 뒤 primary handoff primitive)
 
 기존 ECC read/runtime과 BSP 주소 계약으로 고정 primary의 MSP/Thumb reset PC를

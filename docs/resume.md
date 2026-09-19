@@ -73,7 +73,8 @@ Boot SRAM linker와 SDK 초기화 복사를 비배포 Arm link 시험에 연결�
 기존 SDK 복사를 재사용하며 자세한 검증/제한은 위 포트 설명에 둔다.
 Boot HSI16/DWT/IWDG runtime과 bounded progress를 C로 구현해 기존 safe output 뒤의
 비배포 Arm link 시험에 연결했다. 고정 primary vector 검사·SysTick/NVIC cleanup·
-MSP 진입 primitive도 구현했다. 다음은 실제 bootloader executable의 서명 성공 경로와
+MSP 진입 primitive도 구현했다. assert/abort 실패는 기존 FIH panic에 연결해 전체
+MCUboot/crypto를 비배포 Arm 시험 ELF에 링크했다. 다음은 실제 bootloader executable의 서명 성공 경로와
 T-205 영속 정책을 연결하는 일이다. 진입 함수 자체를 부팅 승인으로 취급하지 않는다.
 Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
