@@ -302,18 +302,31 @@ jobs:
                 throw "ESP-IDF app binary mismatch in $descriptionPath`: expected $ExpectedBinary, found $($description.app_bin)"
               }
             }
+            $bootTestPublic = Join-Path $logRoot 'boot-test-public.der'
+            Invoke-TargetCommand "stm32-boot-test-public" {
+              & $env:CANVIEW_STM_SIGN_PYTHON -B tests/ota/make_stm32_test_public_key.py --output $bootTestPublic
+            }
+            $bootTestTrust = @("-DCANVIEW_MCUBOOT_ROOT=$env:CANVIEW_STM_MCUBOOT_ROOT",
+              "-DPython3_EXECUTABLE=$env:CANVIEW_STM_SIGN_PYTHON", "-DCANVIEW_BOOT_PUBLIC_DER=$bootTestPublic",
+              '-DCANVIEW_BOOT_SECURITY_EPOCH=0', '-DCANVIEW_BOOT_MANIFEST_KEY_ID=4294967295', '-DCANVIEW_BOOT_STM_ABI=2')
             Push-Location firmware/communicator/stm32
             try {
               Invoke-TargetCommand "stm32-debug-configure" { cmake --preset debug }
               Invoke-TargetCommand "stm32-debug-build" { cmake --build --preset debug --clean-first }
               Invoke-TargetCommand "stm32-release-configure" { cmake --preset release }
               Invoke-TargetCommand "stm32-release-build" { cmake --build --preset release --clean-first }
-              Invoke-TargetCommand "stm32-primary-debug-configure" { cmake --preset primary-debug "-DCANVIEW_MCUBOOT_ROOT=$env:CANVIEW_STM_MCUBOOT_ROOT" }
+              Invoke-TargetCommand "stm32-primary-debug-configure" { cmake --preset primary-debug @bootTestTrust }
               Invoke-TargetCommand "stm32-primary-debug-build" { cmake --build --preset primary-debug --clean-first }
-              Invoke-TargetCommand "stm32-primary-release-configure" { cmake --preset primary-release "-DCANVIEW_MCUBOOT_ROOT=$env:CANVIEW_STM_MCUBOOT_ROOT" }
+              Invoke-TargetCommand "stm32-primary-release-configure" { cmake --preset primary-release @bootTestTrust }
               Invoke-TargetCommand "stm32-primary-release-build" { cmake --build --preset primary-release --clean-first }
             } finally { Pop-Location }
             foreach ($primaryMode in @('primary-debug', 'primary-release')) {
+              # 별도 명시 검사: trust 연결이 누락돼 SRAM-only로 내려가도 CI를 성공시키지 않는다.
+              Invoke-TargetCommand "stm32-$primaryMode-full-boot-link" {
+                & $env:CANVIEW_STM_SIGN_PYTHON -B tests/ota/test_stm32_boot_ram.py --full-boot `
+                  --elf "firmware/communicator/stm32/build/$primaryMode/canview-boot-ram-link-test.elf" `
+                  --compiler (Join-Path $armRoot 'bin/arm-none-eabi-gcc.exe')
+              }
               Invoke-TargetCommand "stm32-$primaryMode-imgtool" {
                 & $env:CANVIEW_STM_SIGN_PYTHON -B tests/ota/check_stm32_primary_image.py `
                   --binary "firmware/communicator/stm32/build/$primaryMode/canview-communicator-stm32.bin" `
@@ -435,6 +448,7 @@ jobs:
               "firmware/communicator/stm32/bootloader/CMakeLists.txt",
               "tools/ota/check_stm32_boot_ram.py",
               "tests/ota/test_stm32_boot_ram.py",
+              "tests/ota/make_stm32_test_public_key.py",
               "tools/ota/validate_stm32_map.py",
               "tests/ota/check_stm32_primary_image.py",
               "firmware/communicator/esp32/sdkconfig.defaults",
@@ -464,6 +478,14 @@ jobs:
                              "firmware/diagnostic-bridge", "firmware/controller")
                 espIdf = "6.0.3"
                 target = "esp32s3"
+                stm32BootLink = [ordered]@{
+                  scope = "non-deployable-full-boot-link-test"
+                  publicDerSha256 = (Get-FileHash -LiteralPath $bootTestPublic -Algorithm SHA256).Hash.ToLowerInvariant()
+                  securityEpoch = 0
+                  manifestKeyId = 4294967295
+                  stmAbi = 2
+                  physicalExecution = "NOT_RUN"
+                }
               }
               sourceProvenance = @($provenanceDigests)
               toolchainProvenance = $toolchainProvenance

@@ -113,11 +113,22 @@ def validate_boot_closure(symbols, wrappers):
                            r"_?getpid(?:_r)?|_?kill(?:_r)?|_?(?:malloc|calloc|realloc|free)(?:_r)?|.*printf.*)")
     if any(forbidden.fullmatch(name) for name in names):
         raise ValueError("boot fail-stop에 libc 출력/heap/syscall 유입")
-    for assembly in wrappers:
-        # wrapper는 기존 FIH panic으로만 분기한다. call/branch 대상 변조를 거절한다.
-        branches = re.findall(r"\s(b(?:l|lx|x|eq|ne|cs|cc|mi|pl|vs|vc|hi|ls|ge|lt|gt|le)?(?:\.[nw])?)\s+([^\n]+)", assembly)
-        if (len(branches) != 1 or branches[0][0] not in ("b", "b.w", "b.n", "bl", "bl.w") or
-                not re.fullmatch(r"[0-9a-f]+ <fih_panic_loop>", branches[0][1].strip())):
+    debug_prefixes = (
+        ["push{r7,lr}", "subsp,#16", "addr7,sp,#0", "strr0,[r7,#12]",
+         "strr1,[r7,#8]", "strr2,[r7,#4]", "strr3,[r7,#0]"],
+        ["push{r7,lr}", "addr7,sp,#0"],
+    )
+    for index, assembly in enumerate(wrappers):
+        # 고정 GCC Debug/Release 형태만 허용한다. 분기 개수만 세면 mov/pop PC 같은
+        # 복귀나 조건부 우회가 빠진다. compiler 형태 변경은 검토 없이 허용하지 않는다.
+        instructions = re.findall(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{4}\s+){1,2}([^\n]+)",
+                                  assembly, re.MULTILINE)
+        normalized = [re.sub(r"\s+", "", instruction) for instruction in instructions]
+        if (not normalized or normalized[:-1] not in (debug_prefixes[index], ["push{r3,lr}"]) or
+                not re.fullmatch(r"bl(?:\.w)?[0-9a-f]+<fih_panic_loop>", normalized[-1])):
+            raise ValueError("newlib wrapper의 FIH panic 경로 오류")
+        target = re.fullmatch(r"bl(?:\.w)?([0-9a-f]+)<fih_panic_loop>", normalized[-1])
+        if int(target[1], 16) != layout.symbol_address(symbols, "fih_panic_loop"):
             raise ValueError("newlib wrapper의 FIH panic 경로 오류")
 
 

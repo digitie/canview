@@ -19,7 +19,8 @@ class BootRamTests(unittest.TestCase):
         if not self.full_boot:
             self.skipTest("explicit BSP trust not configured; full boot link NOT_RUN")
         _, symbols, _ = self.evidence
-        wrappers = [" 8001234: f000 f800 bl 8002340 <fih_panic_loop>"] * 2
+        panic = boot.layout.symbol_address(symbols, "fih_panic_loop")
+        wrappers = [f" 8001232: b508 push {{r3, lr}}\n 8001234: f000 f800 bl {panic:x} <fih_panic_loop>"] * 2
         boot.validate_boot_closure(symbols, wrappers)
         for bad in ([], wrappers[:1], wrappers * 2):
             with self.assertRaises(ValueError):
@@ -41,6 +42,45 @@ class BootRamTests(unittest.TestCase):
                 bad = wrappers[0].replace(" bl ", f" {mnemonic}{suffix} ")
                 with self.subTest(branch=mnemonic + suffix), self.assertRaises(ValueError):
                     boot.validate_boot_closure(symbols, [bad, wrappers[1]])
+
+    def test_fail_stop_arm_mutations(self):
+        if not self.full_boot:
+            self.skipTest("explicit BSP trust not configured; full boot link NOT_RUN")
+        # 실제 assembler/ELF/disassembly로 복귀·우회 negative를 검증한다. CPU 실행은 아니다.
+        cases = ("push {r3, lr}\nbl fih_panic_loop",
+                 "cmp r0, #0\nbeq.w fih_panic_loop\nmov pc, lr",
+                 "mov pc, lr\nbl fih_panic_loop",
+                 "push {r3, lr}\npop {r3, pc}\nbl fih_panic_loop",
+                 "bx lr\nbl fih_panic_loop")
+        with tempfile.TemporaryDirectory(prefix="canview-fail-stop-arm-") as temp:
+            path = Path(temp)
+            for index, body in enumerate(cases):
+                for name in ("__wrap___assert_func", "__wrap_abort"):
+                    source = ".syntax unified\n.thumb\n.text\n"
+                    for symbol in ("__wrap___assert_func", "__wrap_abort", "boot_go", "fih_panic_loop"):
+                        code = body if symbol == name else (
+                            cases[0] if symbol.startswith("__wrap_") else "b .")
+                        source += (f".global {symbol}\n.type {symbol}, %function\n.thumb_func\n{symbol}:\n"
+                                   f"{code}\n.size {symbol}, .-{symbol}\n")
+                    (path / "probe.S").write_text(source, encoding="utf-8")
+                    result = subprocess.run([str(self.compiler), "-mcpu=cortex-m4", "-mthumb", "-nostdlib",
+                        "-Wl,-e,__wrap___assert_func", "-Wl,--fatal-warnings", str(path / "probe.S"),
+                        "-o", str(path / "probe.elf")], capture_output=True, text=True, timeout=30)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stderr, "")
+                    def dump(tool, *args):
+                        executable = self.compiler.with_name(f"arm-none-eabi-{tool}{self.compiler.suffix}")
+                        return subprocess.check_output([str(executable), *args, str(path / "probe.elf")],
+                                                       text=True, timeout=30)
+                    symbols = dump("nm", "--defined-only")
+                    wrappers = [dump("objdump", "-d", f"--disassemble={symbol}")
+                                for symbol in ("__wrap___assert_func", "__wrap_abort")]
+                    with self.subTest(case=index, wrapper=name):
+                        if index == 0:
+                            boot.validate_boot_closure(symbols, wrappers)
+                        else:
+                            with self.assertRaises(ValueError):
+                                boot.validate_boot_closure(symbols, wrappers)
 
     def test_handoff_mutations(self):
         _, symbols, image = self.evidence
