@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 합성 signed golden | `dfe3d8a` → `bd9a1a6` | 암호·CNG / SDK·CI·근거 | [기록](adversarial/2026-09-19-T-007-signed-golden.md), A/B CONDITIONAL; 동일 P2 서명 음성 경로를 보강하고 C 변이 검출, 원 reviewer 재확인 대기 |
 | 2026-09-19 | T-007 SDK 합성 descriptor | `ec44647` → `624848a` | C layout·linker / 고정 기대값·CI | [기록](adversarial/2026-09-19-T-007-sdk-metadata.md), A/B 정적 PASS·finding0; 실제 로컬 SDK BIN 위치/값 확인, native signing/golden·전체 task 미완료 |
 | 2026-09-19 | T-007 prefix·packager post-fix | `63c8727` → `ec44647` | 동일 A/B | [기록](adversarial/2026-09-19-T-007-prefix-packager-post.md), A/B 정적 PASS; B P3 두 건 FIXED·새 finding 없음, 이후 metadata·전체 task 승인 아님 |
 | 2026-09-19 | T-007 prefix·packager checkpoint | `6cf1b8e` → `63c8727` | C bounds·ownership / 암호·근거·CI | [기록](adversarial/2026-09-19-T-007-prefix-packager.md), A 정적 PASS/B CONDITIONAL; P3 표현2건 수정·재확인 전, 전체 task 미완료 |

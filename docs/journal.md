@@ -1,5 +1,26 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, signed golden STM 서명 거절 경로 보강)
+
+`bd9a1a6`의 새 golden CTest를 포함해 로컬 Debug/Release는 각각143/143 통과했다.
+빌드 로그의 compiler/linker/CMake 경고는0이다. 별도 clean detached checkout에서
+public-only golden 검증도 통과했다. 그 시험은 기존 동일 C 소스의 CNG 실행파일을
+재사용했으며 새 checkout의 전체 재빌드라고 주장하지 않는다. 시험 뒤 clean 상태를
+확인해 임시 worktree만 제거했다. 추적 파일은 commit에서 재생성할 수 있다.
+
+Reviewer A 원문 A-SG-01 P2를 수용했다. 최초 STM 음성 두 건은 내부 SHA256 또는
+root hash에서 거절돼 P256 verify 실패를 직접 입증하지 못했다. payload와 내부 SHA256
+TLV·whole hash를 갱신하되 원본 서명을 유지한 네 번째 사례를 추가했다. native probe
+호출 횟수도 정상3·내부 hash 실패2·root 실패0·P256 실패3으로 대조한다.
+실제 C 소스의 verify 반환을 무시해 OK로 바꾼 임시 변이 실행파일을 경고0으로 빌드했고
+시험이 `[0,12,12,0] != [0,12,12,12]`로 실패했다. 실제 repository verifier는 바꾸지 않았다.
+변이 로그 `build/t007-golden-mutant-test.log` SHA256은
+`71351ea9c7637624b0cd917ecf94a9fea602cf28d2afd52cc5f3ae4667a5c4b8`다.
+
+Host 초기 환경 로드는 현재 worktree의 도구 cache를 중복 추출하기 시작해 해당 두
+실행만 중단했다. 검증된 `t104-stm32-uart-control`의 고정 도구 환경을 재사용했다.
+기본 checkout의 사용자 파일은 변경하지 않았다. physical/HIL NOT_RUN·차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, 공식 native 서명 합성 golden)
 
 공식 espsecure5.4.0과 MCUboot imgtool v2.4.0을 재사용했다. 실제 ESP-IDF 합성

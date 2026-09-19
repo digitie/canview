@@ -40,8 +40,10 @@ python -B tests/ota/test_signed_golden.py --esp-sdk
 ```
 
 Windows Debug/Release CTest의 `ota-signed-golden`은 공개키만으로 digest·outer P256·
-u64·재조립, CNG C prefix/body12건, 공식 imgtool 정상 검증과 CNG native STM3건을
-검사한다. STM 변이는 whole hash를 다시 계산해도 native 서명에서 거절돼야 한다.
+u64·재조립, CNG C prefix/body12건, 공식 imgtool 정상 검증과 CNG native STM4건을
+검사한다. STM 내부 hash 거절(호출2회), root hash 거절(0회), 정상(3회)과
+payload·내부 SHA256 TLV·whole hash를 갱신하되 원본 서명을 유지한 변조(3회)를
+구분한다. 마지막 사례는 실제 P256 verifier까지 도달한 뒤 거절돼야 한다.
 target CI의 `ota-signed-golden-esp`는 공식 espsecure로 RSA 정상/잘못된 키/절단/
 본문·descriptor·서명 변조10건을 검사한다. 빌드 job에서 실행하지만 **host 암호 실행**이다.
 

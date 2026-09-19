@@ -91,9 +91,12 @@ finding0·PASS다. 실제 native signing/golden과 정상 OTA 통합 검증은 �
 [signed golden](../../tests/fixtures/ota-signed-golden/README.md)을 추가했다.
 실제 SDK ESP BIN의 RSA 서명과 합성 STM payload의 P256 서명, 별도 outer manifest
 P256를 보존하며 공개키만 저장한다. 고정 digest·정확한 재조립·CNG C 수신12건·native
-STM3건·공식 ESP RSA10건을 로컬에서 확인했다. 정상 제품 signing CLI·OTA owner/
+STM4건·공식 ESP RSA10건을 로컬에서 확인했다. 최초 STM3건에는 서명 거절 경로가
+없다는 A-SG-01 P2를 받아 내부 hash까지 갱신한 변조와 호출 횟수 검사를 추가했다.
+서명 결과를 무시하는 실제 C 변이 실행파일이 이 시험에서 실패하는 것도 확인했다.
+정상 제품 signing CLI·OTA owner/
 영속 policy·실제 target 통합은 여전히 남아 있다. host native 암호 실행을 장치 실행이나
-설치 승인으로 표시하지 않는다. 이 추가분의 독립 리뷰·전체 CI는 아직 진행 전이다.
+설치 승인으로 표시하지 않는다. 이 추가분의 독립 리뷰·전체 CI는 진행 중이다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.

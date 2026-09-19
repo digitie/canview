@@ -28,8 +28,9 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 
 현재 추가분은 [합성 signed golden](../tests/fixtures/ota-signed-golden/README.md)이다.
 공식 espsecure5.4.0/MCUboot imgtool v2.4.0과 실제 SDK ESP BIN을 사용하고 시험
-개인키는 저장하지 않았다. digest·재조립·CNG C 수신12건·native STM3건·공식 ESP RSA10건이
-로컬 통과했다. 추가분의 독립 리뷰·전체 CI와 정상 제품 signing/target 통합은 남아 있다.
+개인키는 저장하지 않았다. digest·재조립·CNG C 수신12건·native STM4건·공식 ESP RSA10건이
+로컬 통과했다. A-SG-01 P2의 서명 음성 경로를 보강하고 C 변이 검출도 확인했다.
+추가분의 독립 리뷰 closure·전체 CI와 정상 제품 signing/target 통합은 남아 있다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
 정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서

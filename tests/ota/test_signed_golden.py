@@ -32,10 +32,13 @@ def point(public):
     return numbers.x.to_bytes(32, "big") + numbers.y.to_bytes(32, "big")
 
 
-def run_probe(path, vectors, expected):
+def run_probe(path, vectors, expected, calls=None):
     result = subprocess.run([str(path)], input=b"".join(vectors), capture_output=True, timeout=60, check=True)
-    actual = [int(line.split()[0]) for line in result.stdout.splitlines()]
+    rows = [[int(value) for value in line.split()] for line in result.stdout.splitlines()]
+    actual = [row[0] for row in rows]
     assert actual == expected, (actual, expected, result.stderr)
+    if calls is not None:
+        assert [row[1] for row in rows] == calls, (rows, calls)
 
 
 def verify_esp(data, public):
@@ -97,13 +100,16 @@ def host_cases(package, checked, manifest_public, stm, stm_public, body_probe, s
     entry = checked["manifest"][8][1]
     spki = stm_public.public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
     key_hash = hashlib.sha256(spki).digest()
-    vectors, expected = [], []
+    vectors, expected, calls = [], [], []
     changed = bytearray(stm)
     changed[512] ^= 1
-    for blob, root_hash, status in ((stm, key_hash, 0), (bytes(changed), key_hash, 12), (stm, bytes(32), 12)):
-        # 변이한 whole hash를 다시 계산해도 C native verifier가 실제 P256 서명으로 거부해야 한다.
+    signed_size = 512 + 256 + 176
+    bad_signature = bytearray(changed)
+    # 내부 SHA256 TLV까지 갱신하되 원본 서명은 유지하여 P256 실패 경로에 도달시킨다.
+    bad_signature[signed_size + 8:signed_size + 40] = hashlib.sha256(bad_signature[:signed_size]).digest()
+    for blob, root_hash, status, count in ((stm, key_hash, 0, 3), (bytes(changed), key_hash, 12, 2),
+                                          (stm, bytes(32), 12, 0), (bytes(bad_signature), key_hash, 12, 3)):
         digest = hashlib.sha256(blob).digest()
-        signed_size = 512 + 256 + 176
         r, s = utils.decode_dss_signature(blob[signed_size + 80:])
         raw_signature = r.to_bytes(32, "big") + s.to_bytes(32, "big")
         header = struct.pack("<8IQ2I", len(blob), 0, 1, 2, 2, 2, 7, len(blob), entry[4], signed_size, 0)
@@ -112,8 +118,9 @@ def host_cases(package, checked, manifest_public, stm, stm_public, body_probe, s
                        IDENTITY[1].encode().ljust(64, b"\0") + IDENTITY[2].encode().ljust(64, b"\0") +
                        entry[3].encode().ljust(64, b"\0") + blob)
         expected.append(status)
-    run_probe(stm_probe, vectors, expected)
-    print("PASS: golden/CNG C prefix+body 12 cases; official imgtool verify; CNG native STM 3 cases")
+        calls.append(count)
+    run_probe(stm_probe, vectors, expected, calls)
+    print("PASS: golden/CNG C prefix+body 12 cases; official imgtool verify; CNG native STM 4 cases with call counts")
 
 
 def main():
