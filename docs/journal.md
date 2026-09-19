@@ -1,5 +1,25 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, 공식 native 서명 합성 golden)
+
+공식 espsecure5.4.0과 MCUboot imgtool v2.4.0을 재사용했다. 실제 ESP-IDF 합성
+BIN에 RSA3072/PSS 서명을 추가하고 별도의 STM 합성 payload/P256·outer manifest/P256를
+하나의394310B 컨테이너로 조립했다. SHA256은
+`68eb18e10bf35d351c1604500bf85f6e95aa41c6b49477ffbbdacd9477902655`다.
+세 시험 개인키는 메모리 전용이며 공개키·컨테이너·provenance만 보존했다.
+무작위 서명 재생성이 아니라 보존된 서명/image로 조립한 byte 일치를 재현 gate로 사용한다.
+
+첫 생성 시 ESP-IDF Python에 cbor2가 없어 실패했다. 제품 SDK 환경을 바꾸지 않고 기존
+OTA 시험 venv의 lock된 의존성에 esptool5.4.0을 추가해 생성했다. pip show의 CP949
+출력 오류는 도구 정보 출력 문제이며 이후 Python은 UTF-8로 실행했다.
+첫 CNG STM golden 시험은 시험 wire의 signed_size/hash/signature를0으로 전달해
+INVALID_ARGUMENT를 반환했다. 기존 probe의 입력 계약대로 실제 값을 전달한 뒤
+CNG 수신12건·native STM3건과 공식 imgtool 검증, ESP host RSA10건이 통과했다.
+firmware 검사를 완화하거나 실패를 성공으로 계산하지 않았다.
+
+정상 OTA owner·영속 policy·제품 signing CLI/target 통합은 남아 있다.
+장치 native 실행·Flash·physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, SDK metadata와 prefix checkpoint artifact 감사)
 
 `624848a`에서 C const custom descriptor를 실제 ESP-IDF6.0.3 시험 image에 넣었다.

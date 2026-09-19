@@ -19,3 +19,8 @@ shared/protocol/**/*.c text eol=lf
 
 # Diagnostic Bridge web assets are compressed byte-for-byte in every build.
 ui/diagnostic-web/*.html text eol=lf
+
+# 합성 OTA golden은 모든 host에서 동일한 byte열로 검증한다.
+tests/fixtures/ota-signed-golden/*.cvota binary
+tests/fixtures/ota-signed-golden/*.pem text eol=lf
+tests/fixtures/ota-signed-golden/*.json text eol=lf

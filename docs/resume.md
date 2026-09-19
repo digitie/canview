@@ -23,8 +23,13 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 
 이번 재개분은 외부 detached P256 서명을 사용하는 컨테이너 조립/검사 CLI와 C prefix
 부분 수신을 추가했다. 기존 parser/암호 라이브러리를 재사용하며 개인키는 처리하지
-않는다. 실제 CNG body 경로90개 교차 사례가 통과했다. native signed golden과 정상
-target 연결은 여전히 남아 있으며 T-007 전체 완료·배포 승인으로 표시하지 않는다.
+않는다. 실제 CNG body 경로90개 교차 사례가 통과했다. 정상 제품 target 연결은
+여전히 남아 있으며 T-007 전체 완료·배포 승인으로 표시하지 않는다.
+
+현재 추가분은 [합성 signed golden](../tests/fixtures/ota-signed-golden/README.md)이다.
+공식 espsecure5.4.0/MCUboot imgtool v2.4.0과 실제 SDK ESP BIN을 사용하고 시험
+개인키는 저장하지 않았다. digest·재조립·CNG C 수신12건·native STM3건·공식 ESP RSA10건이
+로컬 통과했다. 추가분의 독립 리뷰·전체 CI와 정상 제품 signing/target 통합은 남아 있다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
 정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서
@@ -103,14 +108,14 @@ target21개 hash/bytes·source7개·target logs26 warning/error0을 확인한 �
 
 schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `.cvota` packager에
 연결한다. C/Python의 기존 byte 계약은 유지했다. 작성 도구의 UNSIGNED_MANIFEST 출력은
-서명된 package가 아니며 최종 signed golden/독립 리뷰도 아직 없다.
+서명된 package가 아니다. 별도의 합성 signed golden을 추가했으며 새 독립 리뷰는 남아 있다.
 그 뒤 Communicator BSP 검증을 body 완료 뒤의 단일 OTA owner 경로에 연결하고
 Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
 staging 위치/크기와 암호화 flag는 generator로 연결했고 공식 SDK partition parser로
 세 보드 template을 검사했다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
 본문 streaming·prefix 부분 수신과 외부 서명 컨테이너 조립 CLI는 구현했다.
 SDK fixture에는 합성 native descriptor를 실제 BIN offset288에 넣고168개 byte 변이와
-4개 절단을 검사했다. 정식 native signing/golden과 정상 STM32/ESP32 provider/target
+4개 절단을 검사했다. 합성 native 서명 golden 이후 정상 제품 signing과 STM32/ESP32 provider/target
 연결은 남아 있다. 내부 key 배정은 미배포 후보다.
 floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통합 완료가 아니다.
 

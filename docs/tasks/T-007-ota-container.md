@@ -87,6 +87,14 @@ SDK fixture에 합성 native metadata168B와 `UINT64_MAX`를 실제 custom descr
 624848a의 [독립 A/B 정적 리뷰](../reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)는
 finding0·PASS다. 실제 native signing/golden과 정상 OTA 통합 검증은 남아 있다.
 
+공식 espsecure5.4.0/MCUboot imgtool v2.4.0을 연결한 합성
+[signed golden](../../tests/fixtures/ota-signed-golden/README.md)을 추가했다.
+실제 SDK ESP BIN의 RSA 서명과 합성 STM payload의 P256 서명, 별도 outer manifest
+P256를 보존하며 공개키만 저장한다. 고정 digest·정확한 재조립·CNG C 수신12건·native
+STM3건·공식 ESP RSA10건을 로컬에서 확인했다. 정상 제품 signing CLI·OTA owner/
+영속 policy·실제 target 통합은 여전히 남아 있다. host native 암호 실행을 장치 실행이나
+설치 승인으로 표시하지 않는다. 이 추가분의 독립 리뷰·전체 CI는 아직 진행 전이다.
+
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.

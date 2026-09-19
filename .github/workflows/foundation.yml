@@ -306,6 +306,9 @@ jobs:
             Invoke-TargetCommand "ota-image-sdk-metadata" {
               python -B tests/ota/check_sdk_metadata.py tests/fixtures/idf-ota-image/build/canview_ota_image_sdk_probe.bin
             }
+            Invoke-TargetCommand "ota-signed-golden-esp" {
+              python -B tests/ota/test_signed_golden.py --esp-sdk
+            }
             foreach ($otaBoard in @('communicator/esp32', 'controller', 'diagnostic-bridge')) {
               $otaName = $otaBoard.Replace('/', '-')
               $otaFlash = if ($otaBoard -eq 'diagnostic-bridge') { '8MB' } else { '16MB' }

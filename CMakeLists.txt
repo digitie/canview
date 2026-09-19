@@ -161,6 +161,11 @@ if(BUILD_TESTING)
         add_test(NAME ota-native-stm COMMAND ${Python3_EXECUTABLE} -X utf8 -B
             ${PROJECT_SOURCE_DIR}/tests/ota/test_native_stm.py $<TARGET_FILE:canview-ota-native-stm-probe>)
         set_tests_properties(ota-native-stm PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-signed-golden COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_signed_golden.py
+            --body-probe $<TARGET_FILE:canview-ota-body-crypto-probe>
+            --stm-probe $<TARGET_FILE:canview-ota-native-stm-probe>)
+        set_tests_properties(ota-signed-golden PROPERTIES TIMEOUT 90)
     endif()
     add_executable(canview-bridge-auth-tests tests/bridge_web/test_auth.c)
     target_link_libraries(canview-bridge-auth-tests PRIVATE canview_bridge_auth_host canview_warnings)
