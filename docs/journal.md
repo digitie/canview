@@ -1,5 +1,37 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 명시적 BSP identity·공개키)
+
+기존 MCUboot 공개키 ABI와 identity 계약에 const BSP 공급자를 추가했다. 표준91B
+P-256 공개 SPKI DER와 명시적 제조 epoch/manifest root ID/STM ABI만 build 입력으로
+받으며 새 container·키 형식·범용 framework는 만들지 않았다. OTA 전체 board ID와
+하위 STM32 pin profile ID는 구별한다. 설정과 제한은 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#bsp-identity와-공개키-빌드-입력)에 둔다.
+
+- 최초728bit 변이 시험에서 cryptography UnsupportedAlgorithm의 오류 변환 누락을
+  발견했다. 입력 자체는 실패했지만 약속한 ValueError가 아니었다. 변환을 보강했고
+  첫 실패 로그 `build/t107-trust-test.log`는 보존했다.
+- Python4개 시험의 하위 경계/728bit 변이, 실제 C null·출력 불변·반복 복사,
+  CMake 누락4/path3/DER/u32 오류·기존 build 입력 교체 검사가 통과했다.
+  Windows `build/t107-trust-retest.log`, WSL GNU `build/t107-trust-gcc.log`.
+- Host Debug/Release는 이번 관련157/157이 각각81.42/67.16초에 통과했다.
+  `build/t107-trust-host-{debug,release}-{config,build,test}.log`.
+  기존 장시간 MCUboot108시나리오/11240cut은 이번 실행에서 제외했으며 직전
+  `06383d6` 실행 결과와 구별한다. 이번 변경은 해당 모형의 제품 IO를 바꾸지 않았다.
+- 새 C 공급자 Clang ASan/UBSan, line/region/function/branch100%를 확인했다.
+  `build/t107-trust-sanitize-coverage.log`. 메모리 전용 개인키에서 얻은 공개 DER만
+  로컬 `build/t107-trust-test-public.der`로 보존했고 Git에 넣지 않았다.
+- 실제 Arm primary-debug/release에서 identity archive compile와 기존 앱
+  ELF/MAP/BIN51768/39776B를 확인했다. `build/t107-trust-primary-*-{config,build}.log`.
+  위 Arm·sanitizer configure/build 로그의 compiler/linker/CMake warning/error0이다.
+  이 archive는 부트로더 final binary가 아니다. 최종 link/WRP·실기 boot는 미완료다.
+- source digest를 `d677a131843fb58f982f5abd88654a792827eeac04d13f5679748a548f3ef6f5`로
+  재계산해 합성 capture fixture를 갱신했다. board drift0, 문서392/1482targets 오류0,
+  task49 오류0이다. physical evidence로 바꾸지 않았다.
+
+독립 리뷰·새 CI는 이어 수행한다. T-107/PR37은 IN_PROGRESS/Draft이며 SRAM linker/copy,
+boot executable/handoff·watchdog 시간·T-205 floor 연결이 남았다. Production 입력 승인,
+Flash/provisioning·HIL은 NOT_RUN, 차량 TX는 NO-GO다. 사용자 checkout·SDK는 보존했다.
+
 ## 2026-09-19 (codex, ECC finding closure와 제품 IO의 MCUboot 모형 통합)
 
 `122924c`를 commit/push하고 원 A/B의 [post-fix 원본과 disposition](reviews/adversarial/2026-09-19-T-107-ecc-post.md)을

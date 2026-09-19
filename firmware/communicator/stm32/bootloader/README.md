@@ -33,8 +33,8 @@
 - `image_hooks.c`는 기존 T-007 metadata 대조 함수를 재사용한다. header512/padding,
   단일 protected TLV0xA0/168B, 일반 SHA256/keyhash/ECDSA TLV 순서·길이와 전체180KiB
   경계를 검사한다. 별도 identity 공급 계약이 board/role/layout/제조 epoch/STM ABI의
-  기대값을 제공하며 이미지 값으로 덮어쓰지 않는다. 실제 BSP 공급자는 아직 미구현이고
-  합성 identity는 host 시험 파일에만 있다. 제품 loader에 기본 허용값은 없다.
+  기대값을 제공하며 이미지 값으로 덮어쓰지 않는다. 아래 BSP 공급자는 명시적 빌드
+  입력만 사용한다. 기존 MCUboot 모형의 합성 identity는 제품에 link하지 않는다.
 - Hook은 일치 시에도 FIH_SUCCESS가 아닌 FIH_BOOT_HOOK_REGULAR를 반환한다.
   따라서 MCUboot 원래 hash/P-256 검증은 필수다. swap/revert의 읽기 시작 위치는
   공식 loader 상태 API에서 얻으며 offset2048을 무조건 가정하지 않는다.
@@ -87,10 +87,43 @@ Guard 단위시험은 option16개·size65536개·WRP65536개 조합과 register 
 MCUboot 모형에도 같은 guard C를 연결해 실패 시 backend write/erase 미호출을 검사한다.
 모형의 추가 register 상수19개는 실제 Arm 빌드에서 vendor CMSIS와 compile-time 대조한다.
 
-미구현/미검증은 실제 BSP identity 공급, 생산 보호 profile 승인/실측, G474
+미구현/미검증은 BSP identity의 최종 boot 연결·제조 입력 승인, 생산 보호 profile 승인/실측, G474
 Flash IO의 최종 boot 연결·SRAM 배치·ECC 복구·erase stall·watchdog, 쓰기 도중 torn word/page,
 boot handoff, T-205 CONFIRM_INTENT/floor 연결이다. 모형의 직접 confirm은 제품 정책
 API가 아니다. Physical/HIL·Flash·option-byte/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## BSP identity와 공개키 빌드 입력
+
+`bsp/boot_identity.c`는 불변 role/board/layout와 제조 epoch, 별도 manifest root ID,
+지원 STM ABI를 복사해서 제공한다. heap·가변 전역·SDK 호출은 없고 null 실패는 출력을
+바꾸지 않는다. MCUboot의 기존 `bootutil_keys` ABI에 const P-256 SPKI DER 한 개를
+제공한다. 개인키를 firmware·생성 header·저장소에 넣지 않는다.
+
+OTA §6의 전체 보드 ID `comm-r2-n16r8`와 역할 결합 layout
+`communicator-ota-layout-v1`을 사용한다. STM32 pin profile의
+`comm-r2-stm32g474ceu6`는 하위 MCU 핀 계약이므로 OTA board ID로 대체하지 않는다.
+새 container나 키 저장 형식을 만들지 않고 표준 DER와 기존 identity를 재사용한다.
+
+Pinned MCUboot를 지정한 configure에 다음 네 입력을 **모두 명시**한다.
+
+- `CANVIEW_BOOT_PUBLIC_DER`: 신뢰된 P-256 공개 SPKI DER의 기존 절대 파일 경로
+- `CANVIEW_BOOT_SECURITY_EPOCH`: 제조 epoch의 unsigned decimal u32
+- `CANVIEW_BOOT_MANIFEST_KEY_ID`: 별도 manifest trust root ID의 unsigned decimal u32
+- `CANVIEW_BOOT_STM_ABI`: 지원 STM image ABI의 unsigned decimal u32
+
+`0`도 명시한 값과 누락을 구별한다. 모두 비어 있으면 BSP target은 생성하지 않고
+`NOT_CONFIGURED`를 표시한다. 일부만 입력하면 configure가 실패하고, 잘못된 DER나
+범위를 넘는 정수는 build가 실패한다. 승인된 실제 값 대신 시험 값을 제품 기본값으로
+저장하지 않는다. manifest key ID는 MCUboot 서명키 선택/검증을 대체하지 않는다.
+파일 경로의 진위·제조 승인·불변 Flash 보호는 빌드가 증명하지 않으며 T-507 gate다.
+
+`generate_stm32_boot_trust.py`는 최대92B만 읽고 canonical uncompressed91B DER,
+P-256 curve와 u32를 검사한다. 출력은 build 폴더에만 생성하며 key/상수 변경 시
+CMake가 다시 생성·컴파일한다. 생성 header의 공개 DER digest는 추적용이다.
+Host `stm32-boot-trust`는 실제 C BSP/생성기를 link해 null·복사 격리·경계·728bit 변이,
+누락·잘못된 path/DER/u32와 기존 build의 입력 교체를 시험한다. 시험 개인키는 메모리
+전용이며 `--public-output`은 추가 Arm compile용 공개 시험 artifact만 보존한다.
+아직 부트로더 실행 파일 연결·최종 map/WRP 검증·실기 boot를 완료한 것은 아니다.
 
 ## G474 단일 Flash 명령 — backend 연결 전
 

@@ -76,6 +76,11 @@ if(BUILD_TESTING)
             --probe $<TARGET_FILE:canview-mcuboot-model> --mcuboot ${CANVIEW_MCUBOOT_ROOT}
             --bootutil $<TARGET_PROPERTY:bootutil,SOURCE_DIR>)
         set_tests_properties(stm32-mcuboot-model PROPERTIES TIMEOUT 600)
+        add_test(NAME stm32-boot-trust COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_stm32_boot_trust.py
+            --cmake ${CMAKE_COMMAND} --compiler ${CMAKE_C_COMPILER}
+            --ninja ${CMAKE_MAKE_PROGRAM} --mcuboot ${CANVIEW_MCUBOOT_ROOT})
+        set_tests_properties(stm32-boot-trust PROPERTIES TIMEOUT 180)
     endif()
     add_executable(canview-stm-flash-guard-tests tests/ota/test_stm32_flash_guard.c
         firmware/communicator/stm32/platform/stm32g474/flash_guard.c)

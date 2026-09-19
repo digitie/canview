@@ -67,3 +67,4 @@ add_library(canview_boot_flash_map STATIC flash_map.c)
 target_include_directories(canview_boot_flash_map PRIVATE ../bsp)
 target_link_libraries(canview_boot_flash_map PUBLIC canview_boot_config canview_stm_flash_layout
     PRIVATE canview_warnings)
+include(trust.cmake)

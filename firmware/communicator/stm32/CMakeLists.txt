@@ -239,7 +239,11 @@ if(CANVIEW_MCUBOOT_ROOT)
             "${CANVIEW_ROOT}/tests/ota/test_stm32_flash_ram.py"
         COMMENT "Checking SRAM command/read closure and actual Arm negative objects")
     add_dependencies(canview_boot_flash_guard canview_boot_flash_ram_check)
-    foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard canview_boot_flash_command canview_boot_flash_read)
+    set(boot_targets bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard canview_boot_flash_command canview_boot_flash_read)
+    if(TARGET canview_boot_identity)
+        list(APPEND boot_targets canview_boot_identity)
+    endif()
+    foreach(boot_target IN LISTS boot_targets)
         target_compile_options(${boot_target} PRIVATE ${MCU_OPTIONS}
             -ffunction-sections -fdata-sections -fstack-usage
             -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")

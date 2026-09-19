@@ -39,7 +39,7 @@ C adapter와 8B 중복 write 거절, swap/revert API cut258곳을 검증한다. 
 board/role/layout/epoch/ABI protected TLV hook을 추가했다. 기존 metadata parser와
 MCUboot 상태 API를 재사용하며 정상 metadata도 native signature 검증을 생략하지 않는다.
 잘못된 signed metadata·identity 공급 실패·IO 오류와 일반 TLV 길이 변이를 거절한다.
-합성 identity는 host 시험 전용이며 실제 BSP 공급과 floor 정책은 아직 미구현이다.
+합성 identity는 host 시험 전용이며 floor 정책은 아직 미구현이다.
 
 G474 고정 배치의 읽기 전용 guard를 MCUboot write/erase 직전에 연결했다.
 DBANK/WRP/NRST·Flash 크기·bank remap·busy/option 오류를 매번 확인한다.
@@ -66,8 +66,11 @@ cut을 Windows D/R·GNU·ASan/UBSan에서 확인했다. boot executable 연결�
 보존했다. [122924c 재검토](reviews/adversarial/2026-09-19-T-107-ecc-post.md)에서
 원 A/B 모두 source PASS, 세 finding FIXED를 확인했다. 전체 task/merge 승인은 아니다.
 
-다음은 Flash IO/SRAM linker의 최종 연결, 신뢰된 BSP identity 공급,
-bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
+명시적 공개 DER/제조 상수로 생성하는 const BSP identity 공급자를 추가했다.
+기본 키/epoch/ABI를 두지 않고 누락·오류 입력을 거절한다. 실제 제조 승인이나
+loader link 완료는 아니다. 설정과 시험 경계는 위 포트 설명을 따른다.
+다음은 Flash IO/SRAM linker의 최종 연결과 bootloader executable/handoff다.
+Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 
 [T-102](tasks/T-102-stm32-platform.md) source/review PR29의 merge50410ba는 확인했다.
