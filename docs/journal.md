@@ -1,5 +1,29 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, native ESP 서명 블록 결합 회귀)
+
+7cb07be의 독립 A 리뷰가 A-NCLI-01 P2를 발견했다. espsecure의 외부 공개키 서명
+검증만으로는 block의 scheme·내장 key와 결합되지 않았다. scheme와 RSA n/e/rr/m
+필드를 각각 변경하고 block CRC·outer hash·outer 서명을 갱신한5건이 기존 코드에서
+거절되지 않는 것을 실행해 확인했다. 장치 검증 우회나 Flash 실행 증거는 아니다.
+
+새 암호 구현 대신 고정 공식 pre-calculated-signature helper로 실제 RSA 서명을
+검증하고 동일 block을 재구성해 byte 단위로 대조한다. 올바른 scheme/key/digest와
+서명이 서로 다른 block에 있어도 통과하지 않는다. CRC를 갱신한 서명 변이까지
+6개 필드 거절·정상3개 슬롯·교차 block 거절을 추가했다. 도구 버전·dirty checkout·
+timeout/실행 실패와 CLI 출력 미생성 시험도 보강했다. 총8개 unittest method 통과,
+로그는 build/t007-native-block-binding-test.log다. 원 리뷰어 재확인은 아직 남아 있다.
+
+T-007에는 상위 OTA 정본과 후속 T-204/T-107/T-205의 책임을 대응했다. 실제 writer
+부재를 금지 쓰기0회 성공으로 보지 않으며 AC3 연결 시험은 여전히 OPEN이다.
+문서 링크 검사에서 잘못 적은 T-508 파일명을 실제 경로로 수정했다.
+
+앞선 c7f5780의 CI35422223529는6/6 성공이다. target artifact21개 bytes/hash와
+source7개를 Windows CRLF로 재구성해 대조했고 target log28개 warning/error0이었다.
+manifest SHA256: `32c53499dca5b0916a5d8d916034cf38b79bbf3a975259af8c64ca230cbf7985`.
+실제 ESP host RSA10건도 통과했다. 이후 native source의 CI 결과로 재사용하지 않는다.
+Physical/HIL·device crypto·Flash·장치 timing/heap은 NOT_RUN, 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, 일반 native-aware CLI 연결)
 
 기존 container.py에 `--native`를 연결했다. Outer 검증 뒤 공식 espsecure5.4.0의

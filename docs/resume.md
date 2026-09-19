@@ -59,8 +59,8 @@ outer-valid/native-invalid·sequence 불일치·key 오류·출력 보존을 검
 새 Windows 의존성 lock은 별도 clean venv에 설치하고 캐시 없는 sdist 빌드 뒤
 Debug/Release147/147을 확인했다. 새 독립 리뷰/CI는 남아 있다.
 정상 writer·정책·장치 실행은 이 host 검사와 구분한다.
-T-007 진행 문구와 architecture §12의 후속 writer/policy 소유권 충돌도 명시적으로
-정리해야 한다. AC3와 target/자원 gate를 축소하거나 완료로 체크하지 않는다.
+T-007 상세 문서에 architecture §12와 후속 writer/policy 소유권을 대응했다.
+이는 검토 전 문서 후보이며 AC3와 target/자원 gate를 축소하거나 완료로 체크하지 않는다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
 정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서
@@ -135,20 +135,19 @@ target21개 hash/bytes·source7개·target logs26 warning/error0을 확인한 �
 
 ## 다음 한 작업
 
-아래 구현을 새 Draft PR에서 진행한다. PR35의 부분 완료를 전체 완료로 확대하지 않는다.
+PR36의 native CLI candidate `7cb07be`에 대한 [A/B 독립 리뷰](reviews/adversarial/2026-09-19-T-007-native.md)는
+CONDITIONAL이다. 공통 P2인 ESP block key/scheme 결합 오류를 실제 재현하고 공식
+helper 재사용으로 수정했다. 원 reviewer의 post-fix 재확인은 남아 있다.
+CI35423062379는 진행 중이다. 먼저 이 리뷰를 닫은 뒤 AC3 권한 경계 연결 시험과
+최종 target/예산 근거를 닫는다. 정본의 T-204/T-107 writer와 T-205 영속 정책 구현을
+T-007의 선행으로 되돌려 순환시키지 않는다. 계약·시험·실제 설치의 구분은
+[상세 task 소유권 표](tasks/T-007-ota-container.md#계약과-설치-구현의-소유권)를 따른다.
+실제 writer가 없다는 사실만으로 금지 쓰기0회 gate를 통과 처리하지 않는다.
 
-schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `.cvota` packager에
-연결한다. C/Python의 기존 byte 계약은 유지했다. 작성 도구의 UNSIGNED_MANIFEST 출력은
-서명된 package가 아니다. 별도의 합성 signed golden은 원 A/B 정적 재검토까지 닫았다.
-그 뒤 Communicator BSP 검증을 body 완료 뒤의 단일 OTA owner 경로에 연결하고
-Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
-staging 위치/크기와 암호화 flag는 generator로 연결했고 공식 SDK partition parser로
-세 보드 template을 검사했다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
-본문 streaming·prefix 부분 수신과 외부 서명 컨테이너 조립 CLI는 구현했다.
-SDK fixture에는 합성 native descriptor를 실제 BIN offset288에 넣고168개 byte 변이와
-4개 절단을 검사했다. 합성 native 서명 golden 이후 정상 제품 signing과 STM32/ESP32 provider/target
-연결은 남아 있다. 내부 key 배정은 미배포 후보다.
-floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통합 완료가 아니다.
+앞선 receiver candidate c7f5780의 CI35422223529는6/6 통과했다. 내려받은
+target21개 bytes/SHA256·source7개·target logs28개 warning/error0을 직접 대조했다.
+manifest SHA256은 `32c53499dca5b0916a5d8d916034cf38b79bbf3a975259af8c64ca230cbf7985`다.
+이전 candidate 결과를 이후 native CLI의 CI 성공으로 집계하지 않는다.
 
 시작 파일은 [상세 task](tasks/T-007-ota-container.md)와
 [현재 구현 계약](../shared/ota/README.md)이며, 설계 정본은

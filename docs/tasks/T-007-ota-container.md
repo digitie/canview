@@ -134,15 +134,16 @@ sdist 빌드 후 Debug/Release147/147을 확인했다. 새 독립 리뷰와
 
 [전체 수용 감사](../reviews/adversarial/2026-09-19-T-007-acceptance.md)의 d87516a A/B
 판정은 BLOCK이다. 일반 native-aware CLI·target/예산 및 AC3 경계 검증은 OPEN이다.
-진행 기록의 정상 owner/영속 policy 요구와 architecture §12의 T-204/T-205/T-107
-책임이 충돌하므로 별도 대응이 필요하다. 아래5개 acceptance는 아직 체크하지 않는다.
+진행 기록의 정상 owner/영속 policy 요구와 architecture §12의 책임 충돌은 아래
+소유권 대응으로 정리한다. 연결 시험과 원 reviewer 재확인이 남아 있으므로
+아래5개 acceptance는 아직 체크하지 않는다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
 [ADR-009](../adr/009-ota-native-image-alignment.md)의 SDK 재사용 정렬을 revision2로 구현했다.
-다음은 native image signing과 결합한 packager, 이어 BSP 검사의 OTA owner/body와 실제 policy/target 연결이다.
+다음은 native CLI 리뷰 closure와 AC3 권한 경계 연결 시험이다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 
@@ -164,6 +165,27 @@ OTA §7의 `.cvota`를 모든 역할이 같은 byte 계약으로 검증하게 �
 ## 범위 밖
 
 파티션 최초 설치, 웹/API, 실제 eFuse/option-byte 설정, 제품 서명키 생성/배포.
+
+## 계약과 설치 구현의 소유권
+
+정본 우선순위에 따라 [OTA §12](../architecture/ota.md#12-구현-모듈과-검증-수용-기준)와
+아래 상세 task의 기존 책임을 적용한다. 위 진행 이력의 “정상 owner·영속 policy가
+남았다”는 제품 전체의 미구현 상태이며, 그 구현을 모두 T-007에 추가하라는 뜻이 아니다.
+T-007에 의존하는 T-204/T-107의 완성품을 다시 T-007의 선행으로 요구하지 않는다.
+
+| 책임 | 구현·검증 owner와 시점 | T-007에서 유지할 경계 |
+|---|---|---|
+| schema·C/Python parser·packager·native metadata/서명 연결 | T-007, 이 task 완료 전 | bounded 입력, 정확한 u64, parser 결과는 쓰기/설치 권한이 아님 |
+| ESP 비활성 slot/staging writer·recovery·실제 Flash API | [T-204](T-204-esp-ota-recovery.md), OTA-02 완료 전 | AC3의 검증 전 erase 금지·enum 허용 대상만 수신, 금지 영역 쓰기0회 |
+| STM native bootloader·보호 map·실제 Flash | [T-107](T-107-stm32-mcuboot.md), OTA-03 완료 전 | AC3의 local map/identity 검사, 유일한 정상본·bootloader 보호 |
+| 영속 floor·단일 journal writer·PREPARED/activation/confirmation | [T-205](T-205-ota-policy-migration.md), OTA-06 완료 전 | 전체 native 검증 전 PREPARED/selector0회, 별도 사용자 승인과 로컬 재검사 |
+| 실제 전원 차단·Flash·stack high-water/시간 측정 | 해당 target task와 [T-508](T-508-ota-power-can-hil.md), 장치 qualification 전 | host/정적 예산을 실제 측정으로 표시하지 않음 |
+
+AC3 문구는 그대로 유지한다. T-007은 사전 검증 실패·금지 target·본문/native 검증 실패의
+연결 시험과 실제 SDK compile/link·산출물 근거를 제시해야 한다. writer가 아직 없다는
+이유만으로 쓰기0회 시험을 통과 처리하지 않는다. 후속 owner는 실제 API 연결에서 같은
+금지 조건을 다시 시험한다. 이 구분은 전체 설치 기능이나 물리 gate를 면제하지 않는다.
+현재 AC3 연결 시험·최종 target/예산·독립 재검토는 OPEN이며 task는 IN_PROGRESS다.
 
 ## 예상 변경 파일
 

@@ -22,6 +22,7 @@ METADATA_BYTES = 168
 STM_HEADER_BYTES = 512
 STM_PROTECTED_BYTES = 176
 PUBLIC_BYTES_MAX = 4096
+ESP_SIGNATURE_BLOCKS = 3
 
 
 def _require(condition, status=Status.AUTH_FAILED):
@@ -55,11 +56,28 @@ def _esp(data, public, identity, entry):
 
     _require(esptool.__version__ == ESPTOOL_VERSION, Status.UNSUPPORTED_VERSION)
     _public(public, "esp")
-    _require(len(data) >= 24 and 1 <= data[1] <= 16 and
+    _require(len(data) >= 2 * espsecure.SECTOR_SIZE and len(data) % espsecure.SECTOR_SIZE == 0 and
+             1 <= data[1] <= 16 and
              struct.unpack_from("<H", data, 12)[0] == ESP32S3FirmwareImage.ROM_LOADER.IMAGE_CHIP_ID)
     try:
         with contextlib.redirect_stdout(io.StringIO()):
-            espsecure.verify_signature_v2(False, None, io.BytesIO(public), io.BytesIO(data))
+            matched = False
+            for index in range(ESP_SIGNATURE_BLOCKS):
+                block = espsecure.validate_signature_block(data, index)
+                if block is None or block[1] != espsecure.SIG_BLOCK_VERSION_RSA:
+                    continue
+                signature = struct.unpack("<BBxx32s384sI384sI384sI16x", block)[7][::-1]
+                try:
+                    # 공식 helper는 서명을 실제 검증하고 supplied public key로 block을 재구성한다.
+                    # 같은 block 전체 비교로 scheme/key/digest/signature/CRC를 함께 결합한다.
+                    expected = espsecure.generate_signature_block_using_pre_calculated_signature(
+                        [io.BytesIO(signature)], [io.BytesIO(public)], data[:-espsecure.SECTOR_SIZE])
+                except esptool.FatalError:
+                    continue
+                if block == expected:
+                    matched = True
+                    break
+            _require(matched)
             image = ESP32S3FirmwareImage(io.BytesIO(data))
         _require(image.checksum == image.calculate_checksum())
         if image.append_digest:

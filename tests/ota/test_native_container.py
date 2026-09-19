@@ -8,9 +8,12 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+import zlib
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa, utils
@@ -76,6 +79,43 @@ class NativeContainerTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         self.check(package)
 
+    def test_esp_signature_block_binding(self):
+        for offset in (1, 36, 420, 424, 808, 812):
+            with self.subTest(block_offset=offset):
+                images = self.images.copy()
+                changed = bytearray(images[0])
+                start = len(changed) - 4096
+                changed[start + offset] ^= 1
+                struct.pack_into("<I", changed, start + 1196,
+                                 zlib.crc32(changed[start:start + 1196]) & 0xffffffff)
+                images[0] = bytes(changed)
+                package, identity = self.pack(copy.deepcopy(self.manifest), images)
+                check_container(package, identity, self.signer.public_key())
+                with self.assertRaises(ValueError):
+                    self.check(package)
+
+        block_bytes = 1216
+        original = self.images[0][-4096:-4096 + block_bytes]
+        for slot in range(3):
+            with self.subTest(valid_slot=slot):
+                sector = bytearray(b"\xff" * 4096)
+                sector[slot * block_bytes:(slot + 1) * block_bytes] = original
+                images = [self.images[0][:-4096] + sector, self.images[1]]
+                package, _ = self.pack(copy.deepcopy(self.manifest), images)
+                self.check(package)
+
+        # key가 맞는 block과 서명만 맞는 다른 block을 결합해 승인하면 안 된다.
+        sector = bytearray(b"\xff" * 4096)
+        for slot, offset in ((0, 812), (1, 36)):
+            block = bytearray(original)
+            block[offset] ^= 1
+            struct.pack_into("<I", block, 1196, zlib.crc32(block[:1196]) & 0xffffffff)
+            sector[slot * block_bytes:(slot + 1) * block_bytes] = block
+        images = [self.images[0][:-4096] + sector, self.images[1]]
+        package, _ = self.pack(copy.deepcopy(self.manifest), images)
+        with self.assertRaises(ValueError):
+            self.check(package)
+
     def test_outer_valid_native_metadata_mismatch(self):
         for index in (0, 1):
             for field, value in ((3, "2.0.0+0"), (4, 0), (4, (1 << 53) + 1), (4, (1 << 64) - 2), (6, 3)):
@@ -94,6 +134,24 @@ class NativeContainerTests(unittest.TestCase):
                                       (self.esp_public, self.stm_public, ROOT)):
             with self.assertRaises(ValueError):
                 check_native_container(self.package, self.identity, self.public, esp_key, stm_key, root)
+
+    def test_native_tool_failures(self):
+        # 모형 실패 주입은 실제 SDK 암호 실행 증거와 구분한다.
+        with mock.patch("esptool.__version__", "unsupported"):
+            with self.assertRaises(ValueError):
+                self.check(self.package, public=self.public)
+        for failure in (ImportError("missing verifier"),
+                        subprocess.TimeoutExpired("imgtool", 60),
+                        subprocess.CalledProcessError(1, "git")):
+            with self.subTest(failure=type(failure).__name__):
+                with mock.patch("native._mcuboot_checkout", side_effect=failure):
+                    with self.assertRaises(ValueError):
+                        self.check(self.package, public=self.public)
+        head = subprocess.CompletedProcess([], 0, stdout="6d3b3d2c38ab20c242e5b9abb04d050086383eb2\n")
+        dirty = subprocess.CompletedProcess([], 0, stdout=" M scripts/imgtool.py\n")
+        with mock.patch("native.subprocess.run", side_effect=[head, dirty]):
+            with self.assertRaises(ValueError):
+                self.check(self.package, public=self.public)
 
     def signed_esp(self, role, target, sequence):
         import espsecure
@@ -149,10 +207,40 @@ class NativeContainerTests(unittest.TestCase):
                 self.assertEqual(cli(command), 0)
             self.assertIn("NATIVE_SIGNATURES_AND_METADATA_MATCHED", captured.getvalue())
             self.assertIn("install NOT_VERIFIED", captured.getvalue())
+            self.assertEqual(cli(common + ["check", str(output)]), 0)
             before = output.read_bytes()
             self.assertEqual(cli(command), 1)
             self.assertEqual(output.read_bytes(), before)
             output.unlink()
+            self.assertEqual(cli([item for item in command if item != "--native"]), 1)
+            self.assertFalse(output.exists())
+            # Outer/native 입력은 정상인 채 실제 호출 경계에서 도구 고장을 주입한다.
+            for failure in (subprocess.TimeoutExpired("imgtool", 60), OSError("tool unavailable")):
+                with self.subTest(failure=type(failure).__name__):
+                    with mock.patch("native._mcuboot_checkout", return_value=MCUBOOT / "scripts/imgtool.py"), \
+                         mock.patch("native.subprocess.run", side_effect=failure):
+                        self.assertEqual(cli(command), 1)
+                    self.assertFalse(output.exists())
+            with mock.patch("native._mcuboot_checkout", return_value=MCUBOOT / "scripts/imgtool.py"), \
+                 mock.patch("native.subprocess.run", return_value=subprocess.CompletedProcess([], 1)):
+                self.assertEqual(cli(command), 1)
+            self.assertFalse(output.exists())
+            changed = bytearray(self.images[0])
+            start = len(changed) - 4096
+            changed[start + 36] ^= 1
+            struct.pack_into("<I", changed, start + 1196, zlib.crc32(changed[start:start + 1196]) & 0xffffffff)
+            paths[0].write_bytes(changed)
+            manifest[8][0][2] = hashlib.sha256(changed).digest()
+            manifest_path.write_text(json.dumps(named(manifest, SCHEMA)), encoding="utf-8")
+            signature_path.write_bytes(self.sign(manifest))
+            self.assertEqual(cli(command), 1)
+            self.assertFalse(output.exists())
+            output.write_bytes(before)
+            self.assertEqual(cli(command), 1)
+            self.assertEqual(output.read_bytes(), before)
+            output.unlink()
+            paths[0].write_bytes(self.images[0])
+            manifest = copy.deepcopy(self.manifest)
             manifest[8][1][4] -= 1
             manifest_path.write_text(json.dumps(named(manifest, SCHEMA)), encoding="utf-8")
             signature_path.write_bytes(self.sign(manifest))
