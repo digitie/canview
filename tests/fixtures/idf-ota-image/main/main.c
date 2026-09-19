@@ -7,6 +7,7 @@
 
 _Static_assert(CANVIEW_ESP_IMAGE_CUSTOM_BYTES == CANVIEW_OTA_NATIVE_METADATA_BYTES, "custom metadata size drift");
 _Static_assert(sizeof(((esp_app_desc_t *)0)->version) == CANVIEW_OTA_ESP_VERSION_BYTES, "SDK version size drift");
+_Static_assert(PSA_KEY_USAGE_VERIFY_MESSAGE == UINT32_C(0x00000800), "PSA verify-message usage drift");
 
 void app_main(void);
 void app_main(void)

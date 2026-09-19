@@ -6,6 +6,8 @@
 
 #define CHECK(c) do { if (!(c)) { (void)fprintf(stderr, "OTA PSA line %d\n", __LINE__); return 1; } } while (0)
 #define MOCK_KEY (17U)
+/* SDK fixture의 공식 헤더 compile-time 검사와 같은 독립 기대값이다. */
+typedef char verify_message_usage_matches[(PSA_KEY_USAGE_VERIFY_MESSAGE == UINT32_C(0x00000800)) ? 1 : -1];
 enum { MOCK_INIT = 1, MOCK_IMPORT, MOCK_VERIFY, MOCK_SETUP, MOCK_UPDATE, MOCK_FINISH, MOCK_ABORT, MOCK_DESTROY, MOCK_END };
 static uint32_t fault;
 static psa_status_t failure;
@@ -83,12 +85,14 @@ psa_status_t psa_hash_abort(psa_hash_operation_t *operation)
 int main(void)
 {
     canview_esp_ota_crypto_t context = {0};
+    /* 입력 배열 길이를 충족하면서 context와 겹치는 실제 backing storage. */
+    union { canview_esp_ota_crypto_t context; uint8_t bytes[CANVIEW_ESP_OTA_PUBLIC_KEY_BYTES]; } overlap = {0};
     canview_ota_hash_t hash = canview_esp_ota_hash_provider(&context);
     uint8_t digest[CANVIEW_OTA_DIGEST_BYTES];
     const uint8_t zeros[CANVIEW_OTA_DIGEST_BYTES] = {0};
     CHECK(canview_esp_ota_crypto_init(NULL, root) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_crypto_init(&context, NULL) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_esp_ota_crypto_init(&context, (const uint8_t *)&context) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_ota_crypto_init(&overlap.context, overlap.bytes) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_crypto_init(&context, (const uint8_t *)(UINTPTR_MAX - 3U)) == CANVIEW_INVALID_ARGUMENT);
     root[0] = 3U;
     CHECK(canview_esp_ota_crypto_init(&context, root) == CANVIEW_INVALID_ARGUMENT);
@@ -113,7 +117,7 @@ int main(void)
     CHECK(canview_esp_ota_manifest_verify(&context, message, 1U, NULL) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_manifest_verify(&context, message, sizeof(message) + 1U, signature) == CANVIEW_OVERSIZE);
     CHECK(canview_esp_ota_manifest_verify(&context, (const uint8_t *)&context, 1U, signature) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_esp_ota_manifest_verify(&context, message, 1U, (const uint8_t *)&context) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(canview_esp_ota_manifest_verify(&overlap.context, message, 1U, overlap.bytes) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_manifest_verify(&context, (const uint8_t *)(UINTPTR_MAX - 3U), 8U, signature) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_manifest_verify(&context, message, 1U, signature) == CANVIEW_OK);
     CHECK(canview_esp_ota_manifest_verify(&context, message, sizeof(message), signature) == CANVIEW_OK);

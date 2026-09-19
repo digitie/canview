@@ -20,7 +20,8 @@ typedef struct { uint32_t type; size_t bits; uint32_t usage; psa_algorithm_t alg
 #define PSA_ALG_ECDSA(hash) (UINT32_C(0x06000600) | ((hash) & UINT32_C(0xff)))
 #define PSA_ECC_FAMILY_SECP_R1 (0x12U)
 #define PSA_KEY_TYPE_ECC_PUBLIC_KEY(family) (0x4100U | (family))
-#define PSA_KEY_USAGE_VERIFY_MESSAGE (0x1000U)
+/* ESP-IDF6.0.3 tf-psa-crypto/include/psa/crypto_values.h: VERIFY_MESSAGE, SIGN_HASH와 다름. */
+#define PSA_KEY_USAGE_VERIFY_MESSAGE (0x0800U)
 #define PSA_KEY_LIFETIME_VOLATILE (0U)
 #define PSA_KEY_ATTRIBUTES_INIT {0}
 static inline int mbedtls_svc_key_id_is_null(mbedtls_svc_key_id_t key) { return key == 0U; }

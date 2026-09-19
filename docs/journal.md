@@ -1,5 +1,33 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, PSA 리뷰·GCC 시험 수정)
+
+70c7a38의 [독립 원문과 disposition](reviews/adversarial/2026-09-19-T-007-psa.md)을
+보존했다. A는 정적 PASS, B는 모형 VERIFY_MESSAGE=0x1000 오류 B-PSA-01 P3를
+보고했다. 공식 값0x0800으로 고치고 host·SDK fixture 양쪽에서 독립 기대값을
+compile-time 검사한다. 실제 제품 adapter는 처음부터 공식 macro를 사용했다.
+
+CI35419613785의 GCC job105834675834가 시험의 작은 context→큰 배열 인자를
+`-Werror=stringop-overread`로 거절했다.65B union backing으로 바꿔 합법적인 크기의
+중첩 입력을 시험한다. 경고나 음성 사례를 삭제하지 않았다. 완료 job 로그는
+`gh run view --log`가 전체 run 진행 중이라 거절해 jobs API의 logs endpoint로 받았다.
+원 로그는 `build/t007-psa-ci-gcc.log`다. 수정 후 GCC O3 strict와 Clang ASan/UBSan
+모형은 통과했고 행149/149·분기114/118도 유지했다.
+
+별도 실제 PSA Windows host 실행을 시도했으나 공식 TF-PSA-Crypto의 standalone
+CMake는 clang에 MSVC 옵션(/W3,/utf-8,/WX)을 넘겨 실패했다. 같은 고정 Clang의
+clang-cl로 바꾼 뒤에는 Espressif port의 `mbedtls/bignum.h`가 필요해 빌드 실패했다.
+SDK를 수정하거나 가짜 header/암호를 넣지 않았으며 이 추가 host 실행은 NOT_RUN이다.
+실패 로그는 `build/t007-psa-host-sdk{,-cl}-{configure,build}.log`에 보존했다.
+
+실제 ESP-IDF fixture 재빌드는 경고0으로 통과했다.262144B BIN SHA256은
+`fadfa94c32694baf02caa5d0e268665b796691aa4e72431e7395fc8768a5f18d`이고
+metadata168변이·4절단 시험도 통과했다. `build/t007-psa-post-sdk-build.log`가 근거다.
+최종 수정 source의 Windows Debug/Release144/144와 build 경고0도 재확인했다.
+로그는 `build/t007-psa-final-{debug,release}-{build,test}.log`다.
+이전 golden은 바꾸지 않았다. 원 reviewer 재검토·수정본 CI는 아직 남아 있다.
+physical/HIL NOT_RUN·vehicle TX NO-GO·정상 OTA owner 미연결을 유지한다.
+
 ## 2026-09-19 (codex, ESP-IDF PSA C 암호 provider)
 
 `firmware/platform/esp32s3/ota_crypto.c`에 공식 PSA API 어댑터를 추가했다.

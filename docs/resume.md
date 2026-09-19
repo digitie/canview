@@ -36,8 +36,10 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 현재 추가분은 BSP용 C PSA 암호 어댑터다. 기존 ESP-IDF6.0.3의 P256 manifest 검증과
 SHA256을 재사용하고 volatile 공개키/hash 자원의 실패·재진입·cleanup 재시도를 검사한다.
 Windows Debug/Release144/144, 모형 ASan/UBSan·행100%/분기96.61%, 실제 SDK fixture
-ELF/MAP/BIN 생성·경고0을 확인했다. 이 추가분의 독립 리뷰와 정상 OTA owner 연결은
-남아 있다. 실제 장치 암호 실행·provisioning·Flash/HIL 성공을 뜻하지 않는다.
+ELF/MAP/BIN 생성·경고0을 확인했다. [독립 리뷰](reviews/adversarial/2026-09-19-T-007-psa.md)의
+A 정적 PASS·B P3 시험 상수 오류를 반영했고 GCC 시험 크기 경고도 수정했다.
+원 reviewer 재검토·수정본 CI와 정상 OTA owner 연결은 남아 있다.
+실제 장치 암호 실행·provisioning·Flash/HIL 성공을 뜻하지 않는다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를
 정적 PASS로 닫았다. 이후624848a의 SDK metadata 삽입·BIN 검사도 [별도 A/B 정적 리뷰](reviews/adversarial/2026-09-19-T-007-sdk-metadata.md)에서

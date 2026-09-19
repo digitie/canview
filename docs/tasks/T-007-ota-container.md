@@ -104,7 +104,9 @@ ESP-IDF6.0.3의 PSA API를 재사용하는 BSP용 C manifest/SHA256 provider를 
 입력 상한/중첩을 검사한다. Windows Debug/Release144/144와 모형 ASan/UBSan,
 함수11/11·행149/149·분기114/118을 확인했다. 실제 SDK fixture의 ELF/MAP/BIN은
 경고0이며 PSA symbol까지 링크했다. 실제 암호 실행이나 정상 firmware owner 연결이
-아니고 provider 추가분의 독립 리뷰도 남아 있다. production root/provisioning은 하지 않았다.
+아니다. [독립 리뷰](../reviews/adversarial/2026-09-19-T-007-psa.md)는 A 정적 PASS·B CONDITIONAL이다.
+모형 권한 상수 P3와 GCC 음성 시험 storage 크기를 수정했고 원 reviewer 재확인은 남아 있다.
+production root/provisioning은 하지 않았다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
