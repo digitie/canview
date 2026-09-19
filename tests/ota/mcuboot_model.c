@@ -7,6 +7,8 @@
 #include <setjmp.h>
 #include "canview_boot_flash.h"
 #include "canview_boot_identity.h"
+#include "canview_stm_flash_read.h"
+#include "canview_stm_flash_command.h"
 #include "flash_layout.h"
 #include "flash_map_backend/flash_map_backend.h"
 #include "bootutil/bootutil.h"
@@ -95,56 +97,56 @@ static int range_valid(uint32_t address, uint32_t length)
         length != 0U && length <= CANVIEW_STM_POLICY_A_ADDRESS - address;
 }
 
-int canview_boot_flash_read(uint32_t address, void *destination, uint32_t length)
+canview_status_t canview_stm_flash_read(uint32_t address, void *destination, uint32_t length)
 {
-    if (destination == NULL || !range_valid(address, length) || length == fail_read_length ||
+    if (destination == NULL || !range_valid(address, length) || length > CANVIEW_STM_FLASH_READ_MAX ||
+        length == fail_read_length ||
         address == fail_read_address)
     {
-        return -1;
+        return CANVIEW_INCOMPLETE;
     }
     memcpy(destination, &model.bytes[address - CANVIEW_STM_FLASH_BASE], length);
-    return 0;
+    return CANVIEW_OK;
 }
 
-int canview_boot_flash_write(uint32_t address, const void *source, uint32_t length)
+canview_status_t canview_stm_flash_command(canview_stm_flash_operation_t operation,
+    uint32_t address, uint32_t low, uint32_t high)
 {
-    uint32_t offset;
-    uint32_t index;
-    if (source == NULL || !range_valid(address, length) || address % 8U != 0U || length % 8U != 0U)
+    const uint32_t length = operation == CANVIEW_STM_FLASH_PROGRAM ?
+        CANVIEW_STM_FLASH_WRITE_BYTES : CANVIEW_STM_FLASH_PAGE_BYTES;
+    if ((operation != CANVIEW_STM_FLASH_PROGRAM && operation != CANVIEW_STM_FLASH_ERASE) ||
+        !range_valid(address, length) || address % length != 0U)
     {
-        return -1;
+        return CANVIEW_INVALID_ARGUMENT;
     }
-    offset = address - CANVIEW_STM_FLASH_BASE;
-    for (index = offset / 8U; index < (offset + length) / 8U; ++index)
+    const uint32_t offset = address - CANVIEW_STM_FLASH_BASE;
+    if (operation == CANVIEW_STM_FLASH_PROGRAM)
     {
-        if (model.programmed[index] != 0U)
+        if (model.programmed[offset / CANVIEW_STM_FLASH_WRITE_BYTES] != 0U)
         {
             ++model.duplicate_writes;
-            return -1;
+            return CANVIEW_INCOMPLETE;
         }
+        mutation_boundary();
+        model.programmed[offset / CANVIEW_STM_FLASH_WRITE_BYTES] = 1U;
+        for (uint32_t index = 0U; index < 4U; ++index)
+        {
+            model.bytes[offset + index] = (uint8_t)(low >> (index * 8U));
+            model.bytes[offset + index + 4U] = (uint8_t)(high >> (index * 8U));
+        }
+        ++model.writes;
     }
-    mutation_boundary();
-    memset(&model.programmed[offset / 8U], 1, length / 8U);
-    memcpy(&model.bytes[offset], source, length);
-    ++model.writes;
-    mutation_boundary();
-    return 0;
-}
-
-int canview_boot_flash_erase(uint32_t address, uint32_t length)
-{
-    uint32_t offset;
-    if (!range_valid(address, length) || address % 2048U != 0U || length % 2048U != 0U)
+    else
     {
-        return -1;
+        if (low != 0U || high != 0U) { return CANVIEW_INVALID_ARGUMENT; }
+        mutation_boundary();
+        memset(&model.bytes[offset], UINT8_MAX, length);
+        memset(&model.programmed[offset / CANVIEW_STM_FLASH_WRITE_BYTES], 0,
+            length / CANVIEW_STM_FLASH_WRITE_BYTES);
+        ++model.erases;
     }
-    offset = address - CANVIEW_STM_FLASH_BASE;
     mutation_boundary();
-    memset(&model.bytes[offset], UINT8_MAX, length);
-    memset(&model.programmed[offset / 8U], 0, length / 8U);
-    ++model.erases;
-    mutation_boundary();
-    return 0;
+    return CANVIEW_OK;
 }
 
 static int load_file(const char *path, uint8_t *destination, size_t capacity, size_t *length)
@@ -240,7 +242,7 @@ static int cut_sweep(int reverting)
         CHECK(boot_version(1) == 0);
         CHECK(model.duplicate_writes == 0U);
     }
-    printf("deterministic API pre/post cut points=%lu PASS\n", (unsigned long)total);
+    printf("deterministic 8B program/2KiB erase pre/post cut points=%lu PASS\n", (unsigned long)total);
     return 0;
 }
 
@@ -319,8 +321,10 @@ static int adapter_tests(void)
     CHECK(flash_area_write(area, 0U, data, 8U) != 0);
     CHECK(flash_area_erase(area, 0U, 2048U) == 0);
     memset(data, UINT8_MAX, sizeof(data));
+    const uint32_t prior_writes = model.writes;
     CHECK(flash_area_write(area, 0U, data, 8U) == 0);
-    CHECK(flash_area_write(area, 0U, data, 8U) != 0); /* 모두 ff라도 ECC 재프로그램 금지 */
+    CHECK(flash_area_write(area, 0U, data, 8U) == 0); /* IO가 FF program 자체를 생략한다. */
+    CHECK(model.writes == prior_writes && model.programmed[area->fa_off / 8U] == 0U);
     return 0;
 }
 
@@ -348,7 +352,7 @@ int main(int argc, char **argv)
     CHECK(load_image(argv[4], CANVIEW_STM_SECONDARY_IMAGE) == 0);
     if (strcmp(argv[1], "identity-missing") == 0) { identity_fault = 1; }
     if (strcmp(argv[1], "identity-role") == 0) { identity_fault = 2; }
-    if (strcmp(argv[1], "read-header") == 0) { fail_read_length = 512U; }
+    if (strcmp(argv[1], "read-header") == 0) { fail_read_address = CANVIEW_STM_PRIMARY_ADDRESS; }
     if (strcmp(argv[1], "read-metadata") == 0) { fail_read_length = 176U; }
     if (strcmp(argv[1], "read-tlv") == 0) { fail_read_length = 4U; }
     if (strcmp(argv[1], "read-tlv-body") == 0)

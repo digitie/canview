@@ -63,10 +63,11 @@ include(CTest)
 if(BUILD_TESTING)
     if(CANVIEW_MCUBOOT_ROOT)
         add_executable(canview-mcuboot-model tests/ota/mcuboot_model.c
+            firmware/communicator/stm32/platform/stm32g474/flash_io.c
             firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
         target_compile_definitions(canview-mcuboot-model PRIVATE CANVIEW_STM_REGISTER_TEST=1)
         target_include_directories(canview-mcuboot-model PRIVATE firmware/communicator/stm32/bsp
-            firmware/communicator/stm32/tests)
+            firmware/communicator/stm32/tests firmware/communicator/stm32/interface)
         target_link_libraries(canview-mcuboot-model PRIVATE bootutil canview_boot_flash_map)
         set_target_properties(canview-mcuboot-model PROPERTIES C_STANDARD 11)
         target_compile_options(canview-mcuboot-model PRIVATE -Wall -Wextra -Werror)
@@ -74,7 +75,7 @@ if(BUILD_TESTING)
             ${PROJECT_SOURCE_DIR}/tests/ota/test_mcuboot_model.py
             --probe $<TARGET_FILE:canview-mcuboot-model> --mcuboot ${CANVIEW_MCUBOOT_ROOT}
             --bootutil $<TARGET_PROPERTY:bootutil,SOURCE_DIR>)
-        set_tests_properties(stm32-mcuboot-model PROPERTIES TIMEOUT 60)
+        set_tests_properties(stm32-mcuboot-model PROPERTIES TIMEOUT 600)
     endif()
     add_executable(canview-stm-flash-guard-tests tests/ota/test_stm32_flash_guard.c
         firmware/communicator/stm32/platform/stm32g474/flash_guard.c)

@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-107 ECC post-fix·IO source | `481a805` → `122924c` | 원 A/B | [기록](adversarial/2026-09-19-T-107-ecc-post.md), 양쪽 PASS·P1/P2 세 건 FIXED; 전체 task/boot/merge 미승인 |
 | 2026-09-19 | T-107 guarded read 중간 source 리뷰 | `f3283fb` → `481a805` | NMI/runtime / SDK·검사기·build | [기록](adversarial/2026-09-19-T-107-ecc.md), A BLOCK/B CONDITIONAL; P1 RDERR와 P2 검사기2건 수정·원 reviewer 재확인 대기, 전체 task/merge 미승인 |
 | 2026-09-19 | T-007 전체 수용·증거 closure | PR base → `77b84cf` | C/target / native/시험/CI | [기록](adversarial/2026-09-19-T-007-final-acceptance.md), 양쪽 CONDITIONAL의 최신 CI 조건 확인·추가 결함 없음·closure CI/merge 대기 |
 | 2026-09-19 | T-007 stage post-fix2 | `82c5193` → `77b84cf` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post2.md), 양쪽 정적 PASS·B-STAGE-01 FIXED·전체 수용/CI 별도 |

@@ -135,7 +135,7 @@ def main():
             p.write_bytes(primary)
             s.write_bytes(secondary)
             result = subprocess.run([str(args.probe.resolve()), mode, str(public), str(p), str(s)],
-                                    capture_output=True, text=True, timeout=15)
+                                    capture_output=True, text=True, timeout=240)
             if result.returncode != 0:
                 raise AssertionError(f"case {index}/{mode}: {result.stdout}\n{result.stderr}")
             print(result.stdout.strip())

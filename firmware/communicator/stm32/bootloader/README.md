@@ -71,10 +71,12 @@ Arm primary-debug/primary-release도 같은 인자로 library compile을 검사�
 `tests/ota/test_mcuboot_model.py`는 메모리 전용 임시 개인키로 공식 imgtool image를
 생성하고 `mcuboot_model.c`의 실제 `boot_go`를 실행한다. 공개 DER와 합성 image만
 임시 파일로 전달하며 종료 시 제거한다. 정상/최대 크기, 잘린 image, header/TLV/서명
-변조, 미신뢰 key, test-swap, 미확정 revert, 확정을 검사한다. 모델은 8B write/2KiB erase,
-`0xff` doubleword까지 포함한 중복 program 거절과 보호 영역 불변을 검사한다.
-현재 cut sweep는 작은 image의 swap120/revert138 API 전후 경계이며 매 중단 뒤
-RAM CFI 상태를 reset하고 Flash만 보존해 이전 정상 image 복귀를 확인한다.
+변조, 미신뢰 key, test-swap, 미확정 revert, 확정을 검사한다. 이제 제품용 `flash_io.c`를
+그대로 link하고 bounded read와 한8B program/한2KiB erase primitive만 모형으로 대체한다.
+FF 입력은 IO에서 program하지 않고, 실제 program된 doubleword의 중복은 모형이 거절한다.
+cut sweep는 작은 image의 모든8B program/2KiB erase 전후를 대상으로 한다. 매 중단 뒤
+RAM CFI 상태를 reset하고 Flash/프로그램 이력만 보존해 이전 정상 image 복귀를 확인한다.
+한 명령 내부의 torn word/page나 실제 ECC/시간은 이 모형이 증명하지 않는다.
 
 정상 키로 다시 서명한 잘못된 board/role/layout/epoch/ABI와 metadata 길이·reserved,
 identity 공급 실패·잘못된 로컬 role·Flash read 실패도 거절한다. 일반 TLV 길이만
@@ -178,8 +180,9 @@ read는256B 이하, write는8B, erase는2KiB 단위로 기존 primitive를 호�
   버려야 한다. 실패한 write/erase도 이전 단위의 효과가 남을 수 있다. API 단위 원자성을
   약속하지 않으며, 기존 MCUboot swap/trailer와 상위 재개 정책이 이를 소유한다.
 - `stm32-flash-io`는 fake primitive로 chunk/단위 순서, 중복·FF skip, 모든 read-back
-  위치의 오류, 잘못된 성공 데이터, 보호 영역 불변을 검사한다. 기존 `stm32-mcuboot-model`은
-  별도 host backend를 사용하므로 이 adapter의 실제 `boot_go` 통합 증거로 재분류하지 않는다.
+  위치의 오류, 잘못된 성공 데이터, 보호 영역 불변을 검사한다. `stm32-mcuboot-model`도
+  같은 IO를 실제 `boot_go`에 link한다. 이전 별도 backend 결과를 소급 재분류하지 않고
+  이 연결 뒤의 시험 결과로만 통합 여부를 판단한다.
 
 Arm archive에서 실제 read/명령/IO를 컴파일하지만 최종 SRAM linker/copy·전체 stack·
 boot executable과 T-205 정책은 미완료다. SRAM 검사는 매 target build에 실행하며,

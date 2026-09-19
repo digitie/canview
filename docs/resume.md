@@ -57,14 +57,16 @@ ECC 오류 주소만 신뢰한 자동 erase는 금지하며 세부 근거는 위
 
 bounded ECC guarded read C와 register 오류 주입 시험을 추가했다. 오류 시 출력 불변과
 임시 NMI/vector/cache 복원을 검사한다. 이어 read/write/erase IO primitive adapter를
-추가했으나 boot executable과 기존 boot_go host 모형에는 아직 연결하지 않았다.
+추가했고 제품 IO를 실제 boot_go host 모형에 연결했다.108시나리오·11240 primitive 전후
+cut을 Windows D/R·GNU·ASan/UBSan에서 확인했다. boot executable 연결은 아직이다.
 세부 전제와 physical NOT_RUN은 위 포트 설명에 둔다.
 
 481a805의 중간 독립 리뷰에서 A가 post-load RDERR 누락 P1, B가 SRAM 검사기/증분
 검사 의존성 P2 두 건을 보고했다. 원문은 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-ecc.md)에
-보존했다. 수정 후 원 reviewer 재확인 전에는 닫힌 것으로 표시하지 않는다.
+보존했다. [122924c 재검토](reviews/adversarial/2026-09-19-T-107-ecc-post.md)에서
+원 A/B 모두 source PASS, 세 finding FIXED를 확인했다. 전체 task/merge 승인은 아니다.
 
-다음은 finding 재확인과 Flash IO/SRAM linker의 최종 연결, 신뢰된 BSP identity 공급,
+다음은 Flash IO/SRAM linker의 최종 연결, 신뢰된 BSP identity 공급,
 bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 

@@ -111,7 +111,8 @@ read 전용 NMI는 [포트 설명](../../firmware/communicator/stm32/bootloader/
 실제 IO backend·복구 정책·SRAM linker와 물리 ECC/NMI 검증이 남아 AC는 체크하지 않는다.
 
 이어 IO primitive adapter와 [중간 독립 리뷰](../reviews/adversarial/2026-09-19-T-107-ecc.md)를 추가했다.
-post-load RDERR P1과 SRAM 검사기 P2 두 건은 수정·원 reviewer 재확인 대상으로 유지한다.
+post-load RDERR P1과 SRAM 검사기 P2 두 건은 [원 A/B 재검토](../reviews/adversarial/2026-09-19-T-107-ecc-post.md)에서
+FIXED로 확인했다. `122924c` source 단위 PASS이며 전체 task/merge 승인은 아니다.
 IO의 단위별 read-back/부분 실패 계약은 위 포트 설명에 두며 최종 boot 실행은 아직이다.
 
 ## 고정 결정

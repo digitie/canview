@@ -1,5 +1,41 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, ECC finding closure와 제품 IO의 MCUboot 모형 통합)
+
+`122924c`를 commit/push하고 원 A/B의 [post-fix 원본과 disposition](reviews/adversarial/2026-09-19-T-107-ecc-post.md)을
+보존했다. 양쪽 source PASS, A-01 P1·B-01/B-02 P2는 FIXED다. 과거 원본 verdict는 바꾸지 않았다.
+전체 task나 boot 실행 승인은 아니며 아래 후속 모형 변경은 해당 리뷰 candidate 밖이다.
+
+기존 `mcuboot_model.c`의 별도 IO 구현을 없애고 제품 `flash_io.c`를 실제 boot_go에 link했다.
+모형은 bounded read와 한8B program/한2KiB erase만 대체한다. FF skip·read-back은 제품 C를
+그대로 실행한다. 기존 API 단위 cut 대신 작은 image의 모든 primitive 전후를 중단한다.
+swap5610/revert5630, 합계11240 cut에서 이전 정상 image 복귀와 중복 program0을 확인했다.
+명령 내부 torn word/page, 실제 ECC/NMI나 시간은 여전히 NOT_RUN이다.
+
+- Windows Debug 통합시험1/1 319.41초, Release1/1 44.41초. 각각108 image/identity/IO 시나리오.
+  Debug 결과는 실행 도구 stdout, Release는 `build/t107-io-model-release-test.log`에 남았다.
+- 나머지156개를 별도 실행해 Debug156/156 29.11초, Release156/156 27.95초 성공.
+  따라서 두 구성 모두 전체157개를 검증했으며 단일 CTest run이라고 주장하지 않는다.
+  로그 `build/t107-io-model-{debug,release}-other-retest.log`.
+- 최초 나머지 시험은 README를 포함하는 source hash 불일치로 python-unit이 실패했다.
+  hash 산식을 완화하지 않고 합성 fixture/기대값을 재계산해 위 재시험했다.
+  digest `220c06d99eeb4aa2b106787647513d9b161f24b24204e4fb5eaad771a846c1de`.
+- WSL Clang21.1.8 ASan/UBSan Debug의 exhaustive cut은240초 timeout으로 실패했다.
+  새 `/tmp/canview-t107-io-model-sanitize` RelWithDebInfo에서 sanitizer·FIH/assert를 유지하고
+  같은108시나리오/11240cut을 다시 실행해1/1 234.02초 성공했다. timeout 실패를 성공으로
+  바꾸지 않는다. `build/t107-io-model-sanitize.log`, `build/t107-io-model-sanitize-optimized.log`.
+- GNU15.2 Release에서도 동일 통합1/1 44.32초 성공. 첫 기존 build에는 MCUboot root가
+  없어 target 미존재로 실패했고, pinned SDK/Python을 명시한 재configure 뒤 실행했다.
+  `build/t107-io-model-gcc.log`, `build/t107-io-model-gcc-retest.log`.
+- 이번 delta는 시험 연결·문서이며 제품 C는122924c와 동일하다. 새 target binary나 새 coverage를
+  생성했다고 주장하지 않는다. 제품 IO의 이전 unit coverage와 Arm 검증 근거는 직전 항목에 있다.
+- PR37 body는 현재 scope/test/review/미완료 gate 중심으로 줄이고 상세 이력은 이 journal에 보존했다.
+  `122924c` CI35437256268은 현재5/6 성공, target job 진행 중으로 아직 전체 성공이 아니다.
+
+다음은 최종 SRAM linker/copy·trusted BSP identity/공개키·boot executable/handoff와 시간 정책이다.
+T-107 IN_PROGRESS / PR37 Draft 유지. Physical/HIL NOT_RUN, 차량 TX NO-GO. 사용자 checkout·SDK와
+이전 evidence를 보존했으며 실제 Flash/option-byte/provisioning 변경은 하지 않았다.
+
 ## 2026-09-19 (codex, T-107 ECC 리뷰 수정과 Flash IO primitive 연결)
 
 481a805의 독립 A/B 원문과 전달 manifest를 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-ecc.md)에
