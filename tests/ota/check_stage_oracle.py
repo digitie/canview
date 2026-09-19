@@ -28,6 +28,7 @@ def main():
         ("ignore-native-failure", "if (status == CANVIEW_OK) { stage->state = CANVIEW_OTA_STAGE_NATIVE_MATCHED; }",
          "if (true) { stage->state = CANVIEW_OTA_STAGE_NATIVE_MATCHED; status = CANVIEW_OK; }"),
         ("hash-context-overlap", "stage_overlaps(stage, hash->context, 1U)", "false"),
+        ("identity-overlap", "stage_overlaps(stage, identity, sizeof(*identity))", "false"),
     )
     variants = [("baseline", source, 0)]
     for name, old, new in edits:

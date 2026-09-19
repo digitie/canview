@@ -335,6 +335,7 @@ static void argument_guards(const uint8_t *data, size_t size, size_t prefix_size
         if (item == 5U) { invalid.context = &stage; }
         CHECK(canview_ota_stage_open(&stage, data, prefix_size, &identity, &runtime, &floor, signature,
             &fixture, &hash, item == 6U ? NULL : &invalid) == CANVIEW_INVALID_ARGUMENT);
+        CHECK(stage.body.state == CANVIEW_OTA_BODY_EMPTY);
         CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
     }
     /* 정렬된 stage 내부에 실제 유효 값을 복사한다. 제어/함수표 영역은 건드리지 않는다. */
@@ -355,15 +356,19 @@ static void argument_guards(const uint8_t *data, size_t size, size_t prefix_size
             item == 1U ? inside : &identity, item == 2U ? inside : &runtime, item == 3U ? inside : &floor,
             signature, item == 4U ? (void *)&stage : (void *)&fixture,
             item == 5U ? inside : &hash, item == 6U ? inside : &storage) == CANVIEW_INVALID_ARGUMENT);
+        /* 같은 오류라도 하위 parser가 인자를 지운 뒤 거절한 경우는 실패다. */
+        CHECK(stage.body.state == CANVIEW_OTA_BODY_EMPTY);
         CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
     }
     hash.context = &stage;
     CHECK(canview_ota_stage_open(&stage, data, prefix_size, &identity, &runtime, &floor, signature,
         &fixture, &hash, &storage) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(stage.body.state == CANVIEW_OTA_BODY_EMPTY);
     CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
     hash.context = &fixture;
     CHECK(canview_ota_stage_open(&stage, data, SIZE_MAX, &identity, &runtime,
         &floor, signature, &fixture, &hash, &storage) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(stage.body.state == CANVIEW_OTA_BODY_EMPTY);
     CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
     CHECK(fixture.begins == 1U && fixture.writes == 0U && fixture.verifies == 0U && fixture.closes == 1U);
 }

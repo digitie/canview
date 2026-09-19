@@ -1,5 +1,25 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, identity overlap 사전 거절 oracle)
+
+[82c5193 재검토](reviews/adversarial/2026-09-19-T-007-stage-post.md)에서 원 A는 PASS,
+원 B는 identity 사례의 B-STAGE-01 잔존 P2로 CONDITIONAL을 반환했다. 양쪽 원문을
+보존하고 B의 OPEN을 유지했다. 해당 조건만 삭제한 C mutant가 기존 시험에서 exit0인
+것을 실제 재현했다. reset 전에 body EMPTY를 검사해 하위 parser가 입력을 지운 후
+같은 오류를 반환하는 경로와 사전 거절을 구별한다. Production C는 변경하지 않았다.
+
+다섯 실제 C mutant와 baseline, model/CNG stage27그룹씩 통과했다. 전체 Debug150/150
+27.52초·Release150/15023.42초, 수정 모형 ASan/UBSan27그룹도 통과했다.
+로그: build/t007-stage-post2-{debug,release}-test.log,
+before-fix 재현은 build/t007-stage-identity-before-fix.log다. source/합성 digest를 먼저
+고정하고 전체 시험을 실행했다. 원 A/B의 재확인과 새 candidate CI는 아직 남아 있다.
+
+569cc83 CI35424935438은6/6, target21개 bytes/hash·source7개·target logs28개
+warning/error0을 대조했다. Manifest SHA256:
+`707b25dc3d9234cea85e581e4418e91e591309950d628db257d6718cfdadf30b`.
+82c5193 독립 Linux clone ASan/UBSan139/13919.30초와 구분한다. 정적 예산 기록
+부족은 원 A/B FIXED지만 physical/HIL·총 자원/시간은 NOT_RUN, 차량 TX NO-GO다.
+
 ## 2026-09-19 (codex, stage 인자 방어 oracle 수정)
 
 569cc83의 [독립 리뷰](reviews/adversarial/2026-09-19-T-007-stage.md)는 A 정적 PASS,

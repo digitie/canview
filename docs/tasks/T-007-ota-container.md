@@ -156,7 +156,10 @@ SDK 전체 stack/heap/시간의 실측값은 아니다. storage/native callback�
 [stage 독립 리뷰](../reviews/adversarial/2026-09-19-T-007-stage.md)는 A 정적 PASS/B CONDITIONAL이다.
 B-STAGE-01 P2의 중첩 NULL 인자 false PASS를 실제 C mutant로 재현했다. 정상 입력
 양성 대조 뒤 한 인자만 바꾸도록 수정하고 hash context 방어 삭제 mutant를 추가했다.
-다음은 수정본의 원 A/B 재확인과 최종 CI/수용 감사다.
+[82c5193 재검토](../reviews/adversarial/2026-09-19-T-007-stage-post.md)는 A PASS/B CONDITIONAL이다.
+Identity 중첩 조건 삭제가 parser 초기화 후 같은 오류로 가려짐을 실제 재현해 reset 전
+body EMPTY 확인과 다섯 번째 mutant를 추가했다. 정적 예산 기록 부족은 원 A/B FIXED이며
+실제 장치 측정은 NOT_RUN이다. 새 수정본 재확인과 최종 CI/수용 감사는 남아 있다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 

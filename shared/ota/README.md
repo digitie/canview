@@ -315,8 +315,10 @@ callback 재진입·cleanup 재시도와 출력 상태를 검사한다. Windows�
 callback은 양쪽 모두 모형이며 실제 Flash/장치 서명 검증 증거가 아니다.
 Open 인자 방어는 정상 입력의 begin/close 양성 대조 뒤 한 인자만 바꿔 검사한다.
 중첩 시험은 정렬된 stage storage에 유효 값을 복사하고 제어 필드는 보존한다.
-`ota-stage-oracle`은 사전 begin·거절 후 write·native 오류 무시·hash context 중첩 방어
-삭제의 네 실제 C mutant를 컴파일해 정상 exit0/변이 CHECK 실패 exit1을 요구한다.
+Reset 전에 body가 EMPTY인지 확인해 하위 parser가 입력을 지운 뒤 같은 오류를
+반환하는 경우와 사전 거절을 구별한다. `ota-stage-oracle`은 사전 begin·거절 후
+write·native 오류 무시·hash context 및 identity 중첩 방어 삭제의 다섯 실제 C
+mutant를 컴파일해 정상 exit0/변이 CHECK 실패 exit1을 요구한다.
 SDK fixture는 stage 네 API를 compile/link하고 NULL 계약만 연결한다. 이 단계에서도
 실제 writer allowlist·장치 실행·total stack/heap/WCET는 NOT_RUN/후속 gate다.
 

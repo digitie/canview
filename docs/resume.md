@@ -144,7 +144,10 @@ warning/error0을 대조했다. manifest SHA256은
 새 C `stage`의 [독립 리뷰](reviews/adversarial/2026-09-19-T-007-stage.md)는
 A 정적 PASS/B CONDITIONAL이다. B-STAGE-01 P2의 NULL 인자 중첩에 가려진 방어를
 실제 C mutant로 재현하고, 정상 입력에서 인자 하나만 바꾸는 시험으로 수정했다.
-다음은 수정 candidate의 원 A/B 확인과 최종 CI·전체 수용 감사다.
+[82c5193 재검토](reviews/adversarial/2026-09-19-T-007-stage-post.md)에서 A PASS/B CONDITIONAL이며
+identity 중첩이 parser의 초기화 뒤 같은 오류로 가려지는 사례가 남았다. 실제 mutant로
+재현하고 reset 전 body EMPTY 확인과 다섯 번째 mutant를 추가했다. 원 A/B 재확인이 다음이다.
+양쪽은 정적 예산 기록 부족을 FIXED로 확인했지만 실제 장치 측정은 NOT_RUN이다.
 기존 body 사전 검사 뒤에만 BSP 저장 callback을 호출하고 전체 body 뒤 native 검증을
 호출한다. Windows Debug/Release150/150, 모형 ASan/UBSan·행100%·분기90/92,
 실제 C 변이3개 검출, SDK fixture ELF/MAP/BIN·경고0과 strict docs를 확인했다.
