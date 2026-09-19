@@ -217,9 +217,32 @@ read는256B 이하, write는8B, erase는2KiB 단위로 기존 primitive를 호�
   같은 IO를 실제 `boot_go`에 link한다. 이전 별도 backend 결과를 소급 재분류하지 않고
   이 연결 뒤의 시험 결과로만 통합 여부를 판단한다.
 
-Arm archive에서 실제 read/명령/IO를 컴파일하지만 최종 SRAM linker/copy·전체 stack·
-boot executable과 T-205 정책은 미완료다. SRAM 검사는 매 target build에 실행하며,
+Arm archive에서 실제 read/명령/IO를 컴파일하고 아래 SRAM link 시험으로 배치를 확인한다.
+전체 stack·boot executable과 T-205 정책은 미완료다. SRAM 검사는 매 target build에 실행하며,
 실제 Arm assembler로 만든 조건부 간접 분기·`blx lr` negative object도 거절한다.
+
+## Boot SRAM 배치와 SDK 초기화 복사
+
+`ld/STM32G474CEUx_BOOT.ld`는 boot64KiB, SRAM96KiB와 stack8KiB를 제한한다.
+첫 dummy4B 뒤의 command/read SRAM code와 `.data`를 VMA/LMA 양쪽에서 연속 배치해
+기존 Cube SDK Reset_Handler의 `_sidata` → `_sdata.._edata` word-copy를 재사용한다.
+별도 복사 framework나 heap은 없다. `.bss`는 복사 뒤 초기화하며 preinit의
+`startup_flash_ram.c`가 DSB/ISB를 실행한 다음 main으로 간다. 이 startup 전 SRAM
+함수 호출이나 main 직접 진입은 허용하지 않는다. CCM 사용은 linker에서 거절한다.
+RX/RW ELF segment는 분리하지만 MPU 보호를 설정했다는 뜻은 아니다.
+
+`canview-boot-ram-link-test.elf/.map/.bin`은 실제 제품 Flash C와 SDK startup을
+이 배치에 link하는 **비배포 시험 image**다. boot_go, watchdog, 정책, handoff가 없으므로
+장치에 flash하지 않으며 최종 bootloader binary나 runtime 수용으로 계산하지 않는다.
+App VTOR macro는 source-global이 아닌 target-local로 바꿔 boot0x08000000과
+primary0x08010200의 SystemInit 컴파일을 분리했다. SDK 원본은 변경하지 않았다.
+
+primary-debug/release build마다 `tests/ota/test_stm32_boot_ram.py`가 ELF/BIN load byte,
+SRAM 함수/branch, copy/bss/stack symbol, 실제 SDK loop·VTOR·preinit을 검사한다.
+startup/VTOR592bit·preinit32bit 변이와 비연속/정렬/누락 입력을 거절하고, 실제 Arm
+linker의64KiB 초과·정렬·SRAM 크기·VMA gap·CCM 오류도 시험한다.
+CI는 시험 산출물6개를 기존 target evidence manifest에 별도 이름으로 보존한다.
+전체 MCUboot call-chain stack과 실제 SRAM 실행·ECC/reset/HIL은 아직 NOT_RUN이다.
 
 ## SRAM reset 전제와 ECC errata
 

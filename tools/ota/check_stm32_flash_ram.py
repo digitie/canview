@@ -9,20 +9,25 @@ import subprocess
 SECTION = ".canview_flash_ram"
 
 
-def validate(headers: str, symbols: str, relocations: str, assembly: str, kind: str = "command") -> int:
+def validate(headers: str, symbols: str, relocations: str, assembly: str, kind: str = "command", *, linked: bool = False) -> int:
     """외부 helper/상수 참조, 누락/과대 section, section 밖 직접 branch를 거절한다."""
     section, functions = {
         "command": (SECTION, ("flash_execute", "flash_fault_reset")),
         "read": (".canview_flash_read_ram", ("read_execute", "read_nmi", "read_fault_reset")),
     }[kind]
-    found = re.findall(rf"^\s*\d+\s+{re.escape(section)}\s+([0-9a-fA-F]+)\s", headers, re.M)
-    if len(found) != 1 or not 0 < int(found[0], 16) <= 2048:
+    found = re.findall(rf"^\s*\d+\s+{re.escape(section)}\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s", headers, re.M)
+    if len(found) != 1 or not 0 < int(found[0][0], 16) <= 2048:
         raise ValueError("SRAM section 누락/크기 초과")
-    size = int(found[0], 16)
+    size, start = (int(value, 16) for value in found[0])
+    end = start + size
+    if (linked and not 0x20000004 <= start < end <= 0x20018000) or (not linked and start != 0):
+        raise ValueError("SRAM section VMA 오류")
     for name in functions:
         pattern = rf"^([0-9a-fA-F]+)\s+l\s+F\s+{re.escape(section)}\s+([0-9a-fA-F]+)\s+{name}$"
         entry = re.findall(pattern, symbols, re.M)
-        if len(entry) != 1 or not 0 < int(entry[0][1], 16) or int(entry[0][0], 16) + int(entry[0][1], 16) > size:
+        if (len(entry) != 1 or not 0 < int(entry[0][1], 16) or
+                not start <= int(entry[0][0], 16) < end or
+                int(entry[0][0], 16) + int(entry[0][1], 16) > end):
             raise ValueError(f"SRAM 함수 누락/영역 밖: {name}")
     if "R_ARM_" in relocations:
         raise ValueError("busy section에 relocation 존재: 외부 함수/상수 접근 가능")
@@ -39,11 +44,11 @@ def validate(headers: str, symbols: str, relocations: str, assembly: str, kind: 
             raise ValueError("SRAM 간접 branch/call")
         if instruction in ("cbz", "cbnz"):
             target = re.fullmatch(r"r(?:[0-9]|1[0-5]),\s*([0-9a-f]+)\s+<[^>]+>", operand)
-            if not target or not 0 <= int(target[1], 16) < size:
+            if not target or not start <= int(target[1], 16) < end:
                 raise ValueError("SRAM section 밖 compare branch")
         if re.fullmatch(r"b(?:l|eq|ne|cs|cc|hs|lo|mi|pl|vs|vc|hi|ls|ge|lt|gt|le)?(?:\.[nw])?", instruction):
             target = re.match(r"([0-9a-f]+)\s+<", operand)
-            if not target or not 0 <= int(target[1], 16) < size:
+            if not target or not start <= int(target[1], 16) < end:
                 raise ValueError("SRAM section 밖 branch")
     return size
 

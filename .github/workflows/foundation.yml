@@ -363,6 +363,13 @@ jobs:
             Assert-TargetArtifact "controller" "firmware/controller/build/canview_controller.bin"
             Assert-TargetArtifact "public component fixture" "tests/fixtures/idf-public-component/build/canview_public_component_fixture.bin"
             $artifactPaths = @(
+            # 비배포 SRAM link 시험 산출물. final bootloader로 분류하지 않는다.
+            "firmware/communicator/stm32/build/primary-debug/canview-boot-ram-link-test.bin",
+            "firmware/communicator/stm32/build/primary-debug/canview-boot-ram-link-test.elf",
+            "firmware/communicator/stm32/build/primary-debug/canview-boot-ram-link-test.map",
+            "firmware/communicator/stm32/build/primary-release/canview-boot-ram-link-test.bin",
+            "firmware/communicator/stm32/build/primary-release/canview-boot-ram-link-test.elf",
+            "firmware/communicator/stm32/build/primary-release/canview-boot-ram-link-test.map",
             "firmware/communicator/stm32/build/primary-debug/canview-communicator-stm32.bin",
             "firmware/communicator/stm32/build/primary-debug/canview-communicator-stm32.elf",
             "firmware/communicator/stm32/build/primary-debug/canview-communicator-stm32.map",
@@ -419,6 +426,10 @@ jobs:
             $provenanceFiles = @(
               "firmware/communicator/stm32/ld/application-sections.ld",
               "firmware/communicator/stm32/ld/STM32G474CEUx_PRIMARY.ld",
+              "firmware/communicator/stm32/ld/STM32G474CEUx_BOOT.ld",
+              "firmware/communicator/stm32/platform/stm32g474/startup_flash_ram.c",
+              "tools/ota/check_stm32_boot_ram.py",
+              "tests/ota/test_stm32_boot_ram.py",
               "tools/ota/validate_stm32_map.py",
               "tests/ota/check_stm32_primary_image.py",
               "firmware/communicator/esp32/sdkconfig.defaults",

@@ -69,7 +69,9 @@ cut을 Windows D/R·GNU·ASan/UBSan에서 확인했다. boot executable 연결�
 명시적 공개 DER/제조 상수로 생성하는 const BSP identity 공급자를 추가했다.
 기본 키/epoch/ABI를 두지 않고 누락·오류 입력을 거절한다. 실제 제조 승인이나
 loader link 완료는 아니다. 설정과 시험 경계는 위 포트 설명을 따른다.
-다음은 Flash IO/SRAM linker의 최종 연결과 bootloader executable/handoff다.
+Boot SRAM linker와 SDK 초기화 복사를 비배포 Arm link 시험에 연결했다.
+기존 SDK 복사를 재사용하며 자세한 검증/제한은 위 포트 설명에 둔다.
+다음은 bootloader executable의 watchdog/handoff와 T-205 영속 정책 연결이다.
 Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 

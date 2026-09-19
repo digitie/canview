@@ -1,5 +1,26 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, boot SRAM linker와 SDK 복사 연결)
+
+T-107의 code/read SRAM section을 boot64KiB linker에 배치하고 기존 Cube Reset_Handler
+word-copy를 재사용했다. 별도 복사 알고리즘 없이 preinit DSB/ISB만 C로 추가했다.
+비배포 `canview-boot-ram-link-test`의 실제 Arm Debug3956B/Release2804B ELF/MAP/BIN,
+copy1048/824B와 primary 앱51768/39776B를 확인했다. 최종 loader는 아직 아니며
+부팅 정책·watchdog·handoff·전체 call-chain stack·실기 Flash/HIL은 미완료다.
+
+`build/t107-sram-primary-{debug,release}.log`에서 warning0과 실제 SRAM 함수/branch,
+ELF/BIN copy span, SDK copy/bss/preinit·VTOR 명령 및 negative linker 시험을 확인했다.
+추가592 startup/VTOR bit 변이와 preinit32bit, 주소/크기/누락 거절을 실행했다.
+primary map 기존 unit6개도 통과했다. host 전체 회귀와 독립 리뷰는 이어서 수행한다.
+
+첫 시도는 신규 object 전에 앱 stack 검사가 실행되는 의존성 누락으로 실패했다.
+다음 link에서 기존 syscall 구현 누락과 NOLOAD stack segment 배치 문제를 발견해
+기존 syscall을 재사용하고 stack을 load segment에서 제외했다. 경고 억제는 없다.
+초기 bit 시험은 동일 값을 담은 다른 SDK literal 선택 두 건을 허용했다. 고정 SDK
+literal pool 순서까지 대조하도록 보강한 뒤 모두 거절했다. 실패 로그도 보존했다.
+SDK SystemInit의 primary VTOR macro를 source-global에서 target-local로 옮겼고,
+boot의 실제 VTOR 명령도 검사한다. 사용자 checkout·SDK 원본은 변경하지 않았다.
+
 ## 2026-09-19 (codex, BSP trust 리뷰 경로 결함 수정)
 
 `6c14950`을 commit/push하고 독립 A/B 원본을 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-trust.md)에

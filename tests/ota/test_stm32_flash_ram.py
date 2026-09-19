@@ -17,6 +17,27 @@ class FlashRamTests(unittest.TestCase):
     arm_cc = None
     arm_objdump = None
 
+    def test_linked_bounds(self):
+        good = [" 4 .canview_flash_ram 00000100 20000004\n",
+                "20000004 l     F .canview_flash_ram 00000020 flash_fault_reset\n"
+                "20000024 l     F .canview_flash_ram 000000e0 flash_execute\n", "",
+                "20000004 <flash_fault_reset>:\n20000024 <flash_execute>:\n"
+                "20000034: f7ff ffff bl 20000004 <flash_fault_reset>\n"]
+        self.assertEqual(RAM.validate(*good, linked=True), 256)
+        with self.assertRaises(ValueError):
+            RAM.validate(*good)
+        for index, value in [(0, good[0].replace("20000004", "08000004")),
+                             (0, good[0].replace("20000004", "20017fff")),
+                             (1, good[1].replace("20000004", "20000000")),
+                             (1, good[1].replace("000000e0", "000000e1")),
+                             (3, good[3] + "20000040: e080 b.n 20000104 <outside>\n"),
+                             (3, good[3] + "20000040: e080 b.n 20000000 <outside>\n"),
+                             (3, good[3] + "20000040: b110 cbz r0, 20000104 <outside>\n")]:
+            bad = good.copy()
+            bad[index] = value
+            with self.subTest(index=index, value=value), self.assertRaises(ValueError):
+                RAM.validate(*bad, linked=True)
+
     def test_arm_negative_objects(self):
         if self.arm_cc is None:
             self.skipTest("actual Arm negative objects require --cc/--objdump")

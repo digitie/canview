@@ -164,7 +164,7 @@ elseif(CANVIEW_STM_IMAGE_LAYOUT STREQUAL "MCUBOOT_PRIMARY")
     set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_PRIMARY.ld")
     set(STM32_IMAGE_BASE 0x08010200)
     # 고정 SDK SystemInit의 공식 vector relocation 지원. SDK 원본은 수정하지 않는다.
-    set_property(SOURCE "${SYSTEM_SOURCE}" APPEND PROPERTY COMPILE_DEFINITIONS
+    target_compile_definitions(${TARGET_NAME} PRIVATE
         USER_VECT_TAB_ADDRESS VECT_TAB_OFFSET=0x00010200U)
 else()
     message(FATAL_ERROR "Unsupported CANVIEW_STM_IMAGE_LAYOUT: ${CANVIEW_STM_IMAGE_LAYOUT}")
@@ -249,6 +249,44 @@ if(CANVIEW_MCUBOOT_ROOT)
             -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")
         target_compile_definitions(${boot_target} PRIVATE CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1)
     endforeach()
+    # 부팅 승인/배포 image가 아닌 실제 SDK startup + SRAM 배치 통합 시험.
+    add_executable(canview-boot-ram-link-test
+        "${CANVIEW_ROOT}/tests/ota/stm32_boot_ram_link.c"
+        platform/stm32g474/startup_ram.c platform/stm32g474/startup_flash_ram.c
+        platform/stm32g474/syscalls.c
+        "${STARTUP_SOURCE}" "${SYSTEM_SOURCE}")
+    target_include_directories(canview-boot-ram-link-test PRIVATE interface)
+    target_include_directories(canview-boot-ram-link-test SYSTEM PRIVATE
+        "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
+    target_link_libraries(canview-boot-ram-link-test PRIVATE canview_boot_flash_guard canview_stm_flash_layout)
+    target_compile_definitions(canview-boot-ram-link-test PRIVATE
+        STM32G474xx CANVIEW_STM_CAPTURE_ONLY_CONTRACT=1
+        USER_VECT_TAB_ADDRESS VECT_TAB_OFFSET=0U)
+    target_compile_options(canview-boot-ram-link-test PRIVATE ${MCU_OPTIONS}
+        -Wall -Wextra -Werror -ffunction-sections -fdata-sections -fstack-usage
+        $<$<CONFIG:Debug>:-Og> $<$<CONFIG:Release>:-Os>
+        ${STM32_CAPTURE_ONLY_COMPILE_OPTIONS})
+    set_source_files_properties(platform/stm32g474/startup_flash_ram.c
+        "${CANVIEW_ROOT}/tests/ota/stm32_boot_ram_link.c" PROPERTIES
+        COMPILE_OPTIONS "-Wpedantic;-Wconversion;-Wshadow;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef;-Werror")
+    set_target_properties(canview-boot-ram-link-test PROPERTIES SUFFIX ".elf"
+        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_BOOT.ld")
+    target_link_options(canview-boot-ram-link-test PRIVATE ${MCU_OPTIONS}
+        "-T${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_BOOT.ld"
+        --specs=nano.specs --specs=nosys.specs
+        -Wl,--gc-sections -Wl,--build-id=sha1 -Wl,--wrap=SystemInit
+        -Wl,--fatal-warnings -Wl,--print-memory-usage
+        "-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/canview-boot-ram-link-test.map")
+    add_custom_command(TARGET canview-boot-ram-link-test POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:canview-boot-ram-link-test>
+            "${CMAKE_CURRENT_BINARY_DIR}/canview-boot-ram-link-test.bin")
+    add_custom_target(canview_boot_ram_link_check
+        COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tests/ota/test_stm32_boot_ram.py"
+            --elf $<TARGET_FILE:canview-boot-ram-link-test> --compiler "${CMAKE_C_COMPILER}"
+        DEPENDS canview-boot-ram-link-test
+        COMMENT "Checking linked SRAM copy/startup and actual linker negative cases (not final bootloader)")
+    # 기존 앱의 compile-database stack 검사가 새 object보다 먼저 실행되지 않게 한다.
+    add_dependencies(${TARGET_NAME} canview_boot_ram_link_check ${boot_targets})
 endif()
 
 if(CANVIEW_STM_IMAGE_LAYOUT STREQUAL "MCUBOOT_PRIMARY")

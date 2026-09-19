@@ -48,23 +48,23 @@ def symbol_address(output, name):
     return int(matches[0], 16)
 
 
-def validate(sections, symbols, map_text, elf, image):
-    """고정 primary 계약만 허용한다. 합성 unit 입력은 실제 target evidence가 아니다."""
-    if not VECTOR_BYTES <= len(image) <= PAYLOAD_MAX:
+def validate(sections, symbols, map_text, elf, image, *, vector=VECTOR, payload_max=PAYLOAD_MAX, allow_ccm=True):
+    """기본은 고정 primary 계약이며 boot 검사만 명시적64KiB/CCM 금지를 지정한다."""
+    if not VECTOR_BYTES <= len(image) <= payload_max:
         raise ValueError("primary payload 크기 오류")
     memory = re.findall(r"^FLASH\s+0x([0-9a-fA-F]+)\s+0x([0-9a-fA-F]+)\s+[^\r\n]+$",
                         map_text, re.MULTILINE)
-    if len(memory) != 1 or tuple(int(item, 16) for item in memory[0]) != (VECTOR, PAYLOAD_MAX):
+    if len(memory) != 1 or tuple(int(item, 16) for item in memory[0]) != (vector, payload_max):
         raise ValueError("linker FLASH origin/length 불일치")
     vectors = [section for section in sections if section.name == ".isr_vector"]
-    if len(vectors) != 1 or (vectors[0].vma, vectors[0].lma, vectors[0].size) != (VECTOR, VECTOR, VECTOR_BYTES):
+    if len(vectors) != 1 or (vectors[0].vma, vectors[0].lma, vectors[0].size) != (vector, vector, VECTOR_BYTES):
         raise ValueError("vector section 주소/크기 불일치")
     if not {"ALLOC", "LOAD", "CONTENTS"} <= vectors[0].flags:
         raise ValueError("vector section load 누락")
     stack, reset = struct.unpack_from("<II", image)
     if (stack != STACK_TOP or stack != symbol_address(symbols, "_estack") or reset & 1 == 0
             or reset != symbol_address(symbols, "Reset_Handler") | 1
-            or symbol_address(symbols, "g_pfnVectors") != VECTOR):
+            or symbol_address(symbols, "g_pfnVectors") != vector):
         raise ValueError("BIN/ELF vector 불일치")
     if not any({"CODE", "LOAD", "ALLOC"} <= section.flags and
                section.vma <= (reset & ~1) < section.vma + section.size for section in sections):
@@ -73,21 +73,21 @@ def validate(sections, symbols, map_text, elf, image):
     for section in sections:
         if "ALLOC" not in section.flags or section.size == 0:
             continue
-        flash_vma = VECTOR <= section.vma and section.vma + section.size <= VECTOR + PAYLOAD_MAX
+        flash_vma = vector <= section.vma and section.vma + section.size <= vector + payload_max
         ram_vma = any(base <= section.vma and section.vma + section.size <= base + size
-                      for base, size in ((0x20000000, 96 * 1024), (0x10000000, 32 * 1024)))
+                      for base, size in ((0x20000000, 96 * 1024), (0x10000000, 32 * 1024 if allow_ccm else 0)))
         if not flash_vma and not ram_vma:
             raise ValueError(f"허용 영역 밖 VMA: {section.name}")
         if "LOAD" not in section.flags:
             if not ram_vma:
                 raise ValueError(f"Flash ALLOC section의 load 누락: {section.name}")
             continue
-        if ("CONTENTS" not in section.flags or section.lma < VECTOR or
-                section.lma + section.size > VECTOR + PAYLOAD_MAX or
+        if ("CONTENTS" not in section.flags or section.lma < vector or
+                section.lma + section.size > vector + payload_max or
                 section.offset < 0 or section.offset + section.size > len(elf) or
                 (flash_vma and section.lma != section.vma)):
             raise ValueError(f"load 영역/내용 오류: {section.name}")
-        offset = section.lma - VECTOR
+        offset = section.lma - vector
         if (offset + section.size > len(image) or
                 image[offset:offset + section.size] != elf[section.offset:section.offset + section.size]):
             raise ValueError(f"ELF/BIN load byte 불일치: {section.name}")
