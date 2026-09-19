@@ -313,10 +313,42 @@ partition allowlist는 T-204/T-107, 승인·영속 정책은 T-205에서 추가 
 callback 재진입·cleanup 재시도와 출력 상태를 검사한다. Windows의
 `ota-stage-order-crypto`만 outer P256/SHA256에 실제 CNG를 사용한다. storage/native
 callback은 양쪽 모두 모형이며 실제 Flash/장치 서명 검증 증거가 아니다.
-`ota-stage-oracle`은 정상 C 실행파일과 사전 begin·거절 후 write·native 오류 무시의
-세 실제 C mutant를 컴파일해 정상 exit0/변이 CHECK 실패 exit1을 요구한다.
+Open 인자 방어는 정상 입력의 begin/close 양성 대조 뒤 한 인자만 바꿔 검사한다.
+중첩 시험은 정렬된 stage storage에 유효 값을 복사하고 제어 필드는 보존한다.
+`ota-stage-oracle`은 사전 begin·거절 후 write·native 오류 무시·hash context 중첩 방어
+삭제의 네 실제 C mutant를 컴파일해 정상 exit0/변이 CHECK 실패 exit1을 요구한다.
 SDK fixture는 stage 네 API를 compile/link하고 NULL 계약만 연결한다. 이 단계에서도
 실제 writer allowlist·장치 실행·total stack/heap/WCET는 NOT_RUN/후속 gate다.
+
+### 정적 자원 근거와 장치 측정 경계
+
+ESP-IDF6.0.3의 현재 Xtensa fixture ELF DWARF에서 prefix16488B, body856B,
+stage896B, PSA context108B를 확인했다. stage는 body를 포함하므로 둘을 더하지 않는다.
+실제 receiver는 prefix/body/PSA를 static으로 배치해17452B를 사용한다. 향후 같은
+prefix/PSA와 stage를 배치하면17492B이며, 별도16KiB chunk buffer까지 둔다면33876B다.
+후자의 합계는 통합 전 산술량이며 실제 정상 앱의 전체 RAM이나 여유량이 아니다.
+입력 native image는 호출 중 빌리며 이 context에 전체 image를 복사하지 않는다.
+
+현재 compiler의 자체 stack frame은 stage open48B·feed/finish/reset32B,
+manifest_check880B·CBOR validate208B·STM native144B다. 각 `.su` 값은 다른
+함수와 SDK 호출 chain을 포함하지 않으며 합산만으로 총 stack을 인증하지 않는다.
+[수신 fixture](../../tests/fixtures/idf-ota-image/README.md#전체-컨테이너-수신-fixture)의
+stack16384B 역시 예약량이지 측정으로 보증한 값이 아니다.
+
+CBOR는16KiB/2048item/depth8로 제한하고 재귀·heap 없이 byte/item에 선형이다.
+Manifest P256 검증은 open당1회이며 역할별 image는 최대2개, ABI 조합은 최대16개다.
+Body feed는 최대16KiB를 소비하고 image 경계에서만 hash finish/start를 수행한다.
+전체 payload의 SHA256은 image당1회이며 native 검증은 별도다. STM native 검사는
+최대180KiB image를 SHA256으로 최대2회 읽고 P256을1회 호출한다. 이 연산량 상한과
+host 시험 timeout은 MCU 실행시간/WCET가 아니다. callback 내부 지연은 portable
+core가 선점하거나 timeout으로 중단하지 못하므로 단일 owner가 watchdog·응답 예산을
+실제 target에서 검증해야 한다.
+
+PSA adapter는 volatile 공개키1개와 hash operation1개를 소유한다. SDK 내부 할당은
+없다고 가정하지 않으며 부족/실패와 cleanup 재시도를 시험한다. SDK 내부 peak heap,
+전체 stack high-water·최대 크기 입력 시간·watchdog 지연은 장비 부재로 NOT_RUN이다.
+Owner는 T-204/T-107의 target 구현자, 영속 정책 연결은 T-205, 실측 gate는 T-508 및
+해당 장치 qualification 전이다. foundation의 합성 budget fixture로 대체하지 않는다.
 
 ## 로컬 호환성 사전 검사
 

@@ -286,9 +286,6 @@ static uint32_t u32(const uint8_t *value)
 static void arguments(void)
 {
     canview_ota_stage_t stage = {0};
-    fixture_t fixture = {.stage = &stage};
-    canview_ota_hash_t hash = {&fixture, hash_start, hash_update, hash_finish, hash_reset};
-    const canview_ota_storage_t storage = {&fixture, storage_begin, storage_write, storage_verify, storage_close};
     CHECK(canview_ota_stage_open(NULL, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL, NULL) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_ota_stage_feed(NULL, 0U, NULL, 0U) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_ota_stage_finish(NULL) == CANVIEW_INVALID_ARGUMENT);
@@ -296,6 +293,37 @@ static void arguments(void)
     CHECK(canview_ota_stage_finish(&stage) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_ota_stage_feed(&stage, 0U, NULL, 0U) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
+}
+
+static canview_status_t argument_hash_start(void *context)
+{
+    /* context 방어 변이에서도 잘못된 객체를 역참조하지 않는다. 검출은 아래 CHECK다. */
+    return context == NULL ? CANVIEW_INVALID_ARGUMENT : CANVIEW_OK;
+}
+
+static void argument_guards(const uint8_t *data, size_t size, size_t prefix_size,
+    uint32_t role, const uint8_t *public_key)
+{
+    canview_ota_stage_t stage = {0};
+    fixture_t fixture = {.stage = &stage, .input = data, .size = size};
+    (void)memcpy(fixture.public_key, public_key, PUBLIC_BYTES);
+#if defined(CANVIEW_TEST_CNG)
+    canview_test_cng_hash_t native = {0};
+    fixture.inner = canview_test_cng_hash_provider(&native);
+#endif
+    const canview_ota_identity_t identity = {(canview_ota_role_t)role, "synthetic-board", "synthetic-layout", 7U, 11U};
+    const canview_ota_runtime_t runtime = {true, 1U, 1U, 1U, 1U, 2U, 2U, 1U, UINT64_MAX};
+    const canview_ota_floor_t floor = {.ready = true, .identity = identity, .count = role == 1U ? 2U : 1U,
+        .records = {{.target = role == 1U ? CANVIEW_OTA_TARGET_COMM_ESP :
+            (role == 2U ? CANVIEW_OTA_TARGET_CONTROLLER : CANVIEW_OTA_TARGET_BRIDGE)},
+            {.target = CANVIEW_OTA_TARGET_COMM_STM}}};
+    canview_ota_hash_t hash = {&fixture, argument_hash_start, hash_update, hash_finish, hash_reset};
+    const canview_ota_storage_t storage = {&fixture, storage_begin, storage_write, storage_verify, storage_close};
+    /* 같은 인자의 양성 대조. 이후 case는 한 인자/field만 바꾼다. */
+    CHECK(canview_ota_stage_open(&stage, data, prefix_size, &identity, &runtime, &floor,
+        signature, &fixture, &hash, &storage) == CANVIEW_OK);
+    CHECK(fixture.begins == 1U);
+    CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK && fixture.closes == 1U);
     for (uint32_t item = 0U; item < 7U; ++item)
     {
         canview_ota_storage_t invalid = storage;
@@ -305,27 +333,39 @@ static void arguments(void)
         if (item == 3U) { invalid.verify = NULL; }
         if (item == 4U) { invalid.close = NULL; }
         if (item == 5U) { invalid.context = &stage; }
-        CHECK(canview_ota_stage_open(&stage, NULL, 0U, NULL, NULL, NULL, signature,
+        CHECK(canview_ota_stage_open(&stage, data, prefix_size, &identity, &runtime, &floor, signature,
             &fixture, &hash, item == 6U ? NULL : &invalid) == CANVIEW_INVALID_ARGUMENT);
         CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
     }
-    for (uint32_t item = 0U; item < 8U; ++item)
+    /* 정렬된 stage 내부에 실제 유효 값을 복사한다. 제어/함수표 영역은 건드리지 않는다. */
+    CHECK(prefix_size <= sizeof(stage.body.manifest));
+    CHECK(sizeof(identity) <= sizeof(stage.body.manifest) && sizeof(runtime) <= sizeof(stage.body.manifest));
+    CHECK(sizeof(floor) <= sizeof(stage.body.manifest) && sizeof(hash) <= sizeof(stage.body.manifest));
+    CHECK(sizeof(storage) <= sizeof(stage.body.manifest));
+    for (uint32_t item = 0U; item < 7U; ++item)
     {
-        const void *inside = &stage;
-        CHECK(canview_ota_stage_open(&stage, item == 0U ? inside : NULL, item == 0U ? 1U : 0U,
-            item == 1U ? inside : NULL, item == 2U ? inside : NULL, item == 3U ? inside : NULL,
+        void *const inside = &stage;
+        if (item == 0U) { (void)memcpy(inside, data, prefix_size); }
+        if (item == 1U) { (void)memcpy(inside, &identity, sizeof(identity)); }
+        if (item == 2U) { (void)memcpy(inside, &runtime, sizeof(runtime)); }
+        if (item == 3U) { (void)memcpy(inside, &floor, sizeof(floor)); }
+        if (item == 5U) { (void)memcpy(inside, &hash, sizeof(hash)); }
+        if (item == 6U) { (void)memcpy(inside, &storage, sizeof(storage)); }
+        CHECK(canview_ota_stage_open(&stage, item == 0U ? inside : data, prefix_size,
+            item == 1U ? inside : &identity, item == 2U ? inside : &runtime, item == 3U ? inside : &floor,
             signature, item == 4U ? (void *)&stage : (void *)&fixture,
             item == 5U ? inside : &hash, item == 6U ? inside : &storage) == CANVIEW_INVALID_ARGUMENT);
         CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
     }
     hash.context = &stage;
-    CHECK(canview_ota_stage_open(&stage, NULL, 0U, NULL, NULL, NULL, signature,
+    CHECK(canview_ota_stage_open(&stage, data, prefix_size, &identity, &runtime, &floor, signature,
         &fixture, &hash, &storage) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
-    CHECK(canview_ota_stage_open(&stage, (const uint8_t *)&fixture, SIZE_MAX, NULL, NULL,
-        NULL, signature, &fixture, NULL, &storage) == CANVIEW_INVALID_ARGUMENT);
+    hash.context = &fixture;
+    CHECK(canview_ota_stage_open(&stage, data, SIZE_MAX, &identity, &runtime,
+        &floor, signature, &fixture, &hash, &storage) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_ota_stage_reset(&stage) == CANVIEW_OK);
-    CHECK(fixture.begins == 0U && fixture.writes == 0U && fixture.verifies == 0U && fixture.closes == 0U);
+    CHECK(fixture.begins == 1U && fixture.writes == 0U && fixture.verifies == 0U && fixture.closes == 1U);
 }
 
 int main(void)
@@ -348,6 +388,7 @@ int main(void)
     if (reject) { run(input, size, prefix, role, public_key, NORMAL, CANVIEW_OTA_BODY_CHUNK_MAX, true); }
     else
     {
+        argument_guards(input, size, prefix, role, public_key);
         for (uint32_t scenario = 0U; scenario < (uint32_t)SCENARIO_COUNT; ++scenario)
         {
             run(input, size, prefix, role, public_key, (scenario_t)scenario, CANVIEW_OTA_BODY_CHUNK_MAX, false);

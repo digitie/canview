@@ -1,5 +1,44 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, stage 인자 방어 oracle 수정)
+
+569cc83의 [독립 리뷰](reviews/adversarial/2026-09-19-T-007-stage.md)는 A 정적 PASS,
+B CONDITIONAL이다. B-STAGE-01 P2는 여러 잘못된 인자가 겹쳐 의도한 방어 삭제를
+검출하지 못하는 시험 결함이다. hash context overlap 조건만 삭제한 실제 C mutant가
+기존 시험에서 exit0인 것을 재현했다. production stage.c는 변경하지 않았다.
+
+유효한 입력의 begin/close 양성 대조 뒤 인자 하나만 변경하도록 시험을 고쳤다.
+중첩 구조는 stage의 정렬된 충분한 공간에 유효 값을 복사하고 제어 필드는 보존한다.
+Hash start 모형은 불법 context를 역참조하지 않는다. 같은 방어 삭제 mutant는 이제
+CHECK exit1로 실패하며 compile 오류/crash/timeout을 성공으로 세지 않는다.
+기존 call-order3개와 함께4개 mutant, model/CNG27그룹씩을 확인했다.
+
+최종 Debug150/15016.24초·Release150/15014.11초, build warning/error0이다.
+로그는 build/t007-stage-post-debug-final-test.log 및
+build/t007-stage-post-release-test.log다. 첫 Debug 전체 실행은 문서의 합성 digest를
+갱신하던 중 시작해 capture identity 시험1개가 실패했다. source/fixture를 고정한
+뒤 위 전체 회귀를 다시 실행했다. 실패 로그도 t007-stage-post-debug-test.log에 남긴다.
+수정된 stage 모형 ASan/UBSan27그룹·함수6/6·행91/91·분기90/92를 확인했다.
+기존569cc83의 독립 Linux 전체139/139와 구분한다. 원 A/B post-fix 확인·새 CI는 남았다.
+실제 Flash/HIL·장치 자원/시간은 NOT_RUN, 전체 T-007 완료는 아직 선언하지 않는다.
+
+## 2026-09-19 (codex, stage 정적 자원 근거와 Linux 전체 회귀)
+
+stage candidate569cc83의 ESP fixture DWARF에서 prefix16488B/body856B/stage896B/
+PSA108B를 재확인했다. `.su`의 자체 frame과 상한 연산량을 OTA README에 모았다.
+stage는 body를 포함하며 SDK 내부 heap·호출 chain·시간을 무사용/통과로 추정하지 않는다.
+실측은 해당 target owner와 T-508 gate에 남긴다. 문서 변경에 따른 합성 digest만
+갱신했고 Windows Python/link 회귀2/2·strict docs71 API가 통과했다.
+
+Windows worktree를 /mnt/f에서 직접 사용한 보조 Linux 전체 실행은138/139였다.
+python-unit에서 Git commit 식별자가 없어 HIL evidence validation이 실패했다.
+WSL git이 .git의 F:/dev/canview/... 포인터를 Linux 상대 경로로 해석하는 것을
+직접 재현했다. source 결함으로 우회하거나 evidence validator를 완화하지 않았다.
+새 독립 clone /tmp/canview-stage-repo-Lk67Ca에서 동일569cc83을 detached checkout해
+Clang ASan/UBSan·leak 검사139/13918.29초가 통과했다. configure/build 경고0,
+로그는 clone의 configure.log/build.log/test.log다. 기본 checkout은 변경하지 않았다.
+이 성공은 후속 문서 source나 실제 장치 Flash/HIL·시간·heap 측정 성공이 아니다.
+
 ## 2026-09-19 (codex, C 수신 저장 순서 연결)
 
 기존 parser/body를 재사용한 작은 C99 stage open/feed/finish/reset을 추가했다.

@@ -141,10 +141,14 @@ CI35423635752는6/6 성공이며 target21개 bytes/SHA256·source7개·target lo
 warning/error0을 대조했다. manifest SHA256은
 `efdfff60aa2cd3db8215bb267e1dab8b2044d3fa5f7b27ea0230f85f2b7bce9e`다.
 
-다음은 새 C `stage` 수신 순서 연결의 독립 2인 리뷰와 새 candidate CI다.
+새 C `stage`의 [독립 리뷰](reviews/adversarial/2026-09-19-T-007-stage.md)는
+A 정적 PASS/B CONDITIONAL이다. B-STAGE-01 P2의 NULL 인자 중첩에 가려진 방어를
+실제 C mutant로 재현하고, 정상 입력에서 인자 하나만 바꾸는 시험으로 수정했다.
+다음은 수정 candidate의 원 A/B 확인과 최종 CI·전체 수용 감사다.
 기존 body 사전 검사 뒤에만 BSP 저장 callback을 호출하고 전체 body 뒤 native 검증을
 호출한다. Windows Debug/Release150/150, 모형 ASan/UBSan·행100%·분기90/92,
 실제 C 변이3개 검출, SDK fixture ELF/MAP/BIN·경고0과 strict docs를 확인했다.
+후속 시험 수정은 hash context 방어 삭제 mutant도 추가했으며 이전3개와 구분한다.
 storage/native callback은 시험 모형이며 실제 Flash map enforcement나 장치 실행은
 NOT_RUN이다. 이 새 source에 이전 native CLI 리뷰/CI를 적용하지 않는다.
 AC3와 최종 target/예산·전체 수용 재검토는 OPEN이다. 정본의 T-204/T-107 writer와 T-205 영속 정책 구현을
