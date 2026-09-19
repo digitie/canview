@@ -95,6 +95,11 @@ page0..31/양방향 NRST, 다른 WRP 비활성,512KiB와 bank remap·busy/option
 
 ## 목표
 
+2026-09-19 단일 page erase/8B program C와 SRAM 전용 code/literal, 임시 vector,
+유한 busy 대기와 cleanup 시험을 추가했다. [포트 설명](../../firmware/communicator/stm32/bootloader/README.md)의
+제한대로 아직 IO backend·ECC 복구·최종 SRAM map/boot executable에 연결하지 않았으며
+RDP0 개발 profile 이외를 승인하지 않는다. AC는 계속 열어 둔다.
+
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.
 
 ## 고정 결정

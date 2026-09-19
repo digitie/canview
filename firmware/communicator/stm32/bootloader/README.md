@@ -85,6 +85,42 @@ MCUboot 모형에도 같은 guard C를 연결해 실패 시 backend write/erase 
 모형의 추가 register 상수19개는 실제 Arm 빌드에서 vendor CMSIS와 compile-time 대조한다.
 
 미구현/미검증은 실제 BSP identity 공급, 생산 보호 profile 승인/실측, 실제 G474
-Flash driver·SRAM critical path·ECC/NMI·erase stall·watchdog, 쓰기 도중 torn word/page,
+Flash backend 연결·최종 SRAM 배치·ECC 복구·erase stall·watchdog, 쓰기 도중 torn word/page,
 boot handoff, T-205 CONFIRM_INTENT/floor 연결이다. 모형의 직접 confirm은 제품 정책
 API가 아니다. Physical/HIL·Flash·option-byte/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## G474 단일 Flash 명령 — backend 연결 전
+
+`platform/stm32g474/flash_command.c`는 새 framework 없이 한 page erase와 한8B program만
+구현한다. [C 계약](../interface/canview_stm_flash_command.h)의 boot 전용 동기 호출이며
+MCUboot read/write/erase backend에는 아직 연결하지 않았다. 상위 owner는 DMA·주변장치를
+정지하고 IWDG/DWT를 먼저 준비해야 한다. ISR·RTOS·callback 재진입은 허용하지 않는다.
+
+- BSP guard와 RDP0(0xAA), lock/option lock, 오류/진행 중 명령을 확인한다. 다른 RDP는
+  자동 해제하지 않고 거절한다. SRAM 실행과 생산 보호 조합은 T-507 승인 대상이다.
+- primary/secondary만 다룬다. address/정렬/enum을 검사하고 PROGRAM의 all-FF는 거절한다.
+  상위 IO가 all-FF를 skip해야 하며, 이미 프로그램한 FF/ECC를 판독만으로 판별할 수 있다는
+  가정을 하지 않는다. read-back 비FF는 DUPLICATE지만 fresh-erase 소유와 torn-word/ECC
+  복구는 별도 backend 책임이다. 성공은 controller EOP이며 read-back 보증이 아니다.
+- `flash_execute`와 예외용 `flash_fault_reset`, literal을 `.canview_flash_ram`에 둔다.
+  code와 임시 vector가 SRAM1/2 밖이면 거절한다. 512B 정렬128-entry vector를 stack에
+  마련하고 PRIMASK를 보존한다. 최대 개별 stack frame은 Arm Debug1176B/Release1144B다.
+  최종 boot linker/startup의 전체 section 배치·복사·stack budget 검사는 아직이다.
+- busy 동안 Flash code/helper/상수를 읽지 않는다. SRAM NMI/HardFault는 reset 요청만
+  하고 복귀하지 않는다. 이는 persistent ECC에 대한 복구 정책이 아니며, 그대로 연결하면
+  reset loop가 될 수 있으므로 ECC-safe read와 recovery 선택이 연결 gate로 남는다.
+- HAL의 doubleword/erase/cache 순서를 따르되 interrupt tick 대신 DWT 차이와 유한 poll
+  상한을 사용한다. 8500000cycle(170MHz에서50ms), counter 정지 시17000000회 상한이다.
+  clock별 실제 실행 시간/IWDG 여유는 미측정이며 watchdog feed/disable은 하지 않는다.
+  BSY timeout 때는 SRAM reset 요청 후 fail-stop, 정상/오류 반환 때는 cache를 폐기하고
+  Flash lock·VTOR·PRIMASK를 복원한다. Flash가 busy인 채 Flash 호출자에게 반환하지 않는다.
+
+근거는 고정 CubeG4 v1.6.3의 `stm32g4xx_hal_flash.c`/`stm32g4xx_hal_flash_ex.c`,
+위 RM0440과 [ST G474 datasheet](https://www.st.com/resource/en/datasheet/stm32g474re.pdf)의
+page erase 최대24.47ms/64bit program83.35µs 표다. 해당 수치를 board 실측으로 표시하지 않는다.
+
+`stm32-flash-command`는 동일 C를 register 모형에 연결해 슬롯 전체49408word/193page,
+정렬/보호/RDP256값, duplicate, unlock 실패, status 오류, DWT wrap/정지, timeout,
+NMI와 정상/오류 cleanup을 검사한다. Arm post-build의 `check_stm32_flash_ram.py`는
+실제 object의 두 함수·section 크기·외부 relocation0·직접 branch 범위를 확인한다.
+Debug480B/Release364B다. 이 검사는 최종 ELF의 SRAM 주소나 실제 Flash 실행을 증명하지 않는다.

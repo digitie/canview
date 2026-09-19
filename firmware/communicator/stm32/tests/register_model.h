@@ -14,7 +14,7 @@ typedef struct
 } model_pwr_t;
 typedef struct
 {
-    volatile uint32_t ACR, SR, OPTR, WRP1AR, WRP1BR, WRP2AR, WRP2BR;
+    volatile uint32_t ACR, SR, OPTR, WRP1AR, WRP1BR, WRP2AR, WRP2BR, CR, KEYR;
 } model_flash_t;
 typedef struct
 {
@@ -26,6 +26,29 @@ extern uint16_t model_flash_size_kib;
 #define RCC_APB2ENR_SYSCFGEN UINT32_C(1)
 #define FLASH_SR_BSY UINT32_C(0x10000)
 #define FLASH_SR_OPTVERR UINT32_C(0x8000)
+#define FLASH_SR_EOP UINT32_C(1)
+#define FLASH_SR_OPERR UINT32_C(2)
+#define FLASH_SR_PROGERR UINT32_C(8)
+#define FLASH_SR_WRPERR UINT32_C(0x10)
+#define FLASH_SR_PGAERR UINT32_C(0x20)
+#define FLASH_SR_SIZERR UINT32_C(0x40)
+#define FLASH_SR_PGSERR UINT32_C(0x80)
+#define FLASH_SR_MISERR UINT32_C(0x100)
+#define FLASH_SR_FASTERR UINT32_C(0x200)
+#define FLASH_SR_RDERR UINT32_C(0x4000)
+#define FLASH_CR_PG UINT32_C(1)
+#define FLASH_CR_PER UINT32_C(2)
+#define FLASH_CR_PNB UINT32_C(0x3f8)
+#define FLASH_CR_PNB_Pos (3U)
+#define FLASH_CR_BKER UINT32_C(0x800)
+#define FLASH_CR_STRT UINT32_C(0x10000)
+#define FLASH_CR_OPTLOCK UINT32_C(0x40000000)
+#define FLASH_CR_LOCK UINT32_C(0x80000000)
+#define FLASH_ACR_ICEN UINT32_C(0x200)
+#define FLASH_ACR_DCEN UINT32_C(0x400)
+#define FLASH_ACR_ICRST UINT32_C(0x800)
+#define FLASH_ACR_DCRST UINT32_C(0x1000)
+#define FLASH_OPTR_RDP UINT32_C(0xff)
 #define FLASH_OPTR_DBANK UINT32_C(0x400000)
 #define FLASH_OPTR_BFB2 UINT32_C(0x100000)
 #define FLASH_OPTR_NRST_MODE UINT32_C(0x30000000)
@@ -148,4 +171,22 @@ uintptr_t canview_stm_test_stack_top(void);
 uintptr_t canview_stm_test_stack_low(void);
 void canview_stm_test_set_stack_pointer(uintptr_t stack_pointer);
 void canview_stm_test_corrupt_stack(void);
+
+/* Boot Flash command용 register event hook. 제품 target에서는 컴파일하지 않는다. */
+typedef struct { volatile uintptr_t VTOR; } model_scb_t;
+extern model_scb_t model_scb;
+extern uint32_t model_ipsr, model_control;
+#define SCB (&model_scb)
+#define __get_IPSR() (model_ipsr)
+#define __get_CONTROL() (model_control)
+#define __DSB() ((void)0)
+#define __ISB() ((void)0)
+uint32_t canview_stm_flash_test_load(uint32_t address);
+void canview_stm_flash_test_store(uint32_t address, uint32_t value);
+void canview_stm_flash_test_key(uint32_t value);
+void canview_stm_flash_test_clear(uint32_t value);
+void canview_stm_flash_test_start(void);
+void canview_stm_flash_test_poll(void);
+__attribute__((noreturn)) void canview_stm_flash_test_fatal(void);
+_Bool canview_stm_flash_test_ram_ready(void);
 #endif

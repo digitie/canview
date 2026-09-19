@@ -46,7 +46,11 @@ DBANK/WRP/NRST·Flash 크기·bank remap·busy/option 오류를 매번 확인한
 같은 C를 host register 모형과 actual Arm archive로 빌드한다. 생산 보호 profile의
 승인/실측과 실제 Flash IO는 별도 미완료이며 option byte를 자동 변경하지 않는다.
 
-다음은 실제 Flash/ECC driver와 SRAM 실행 경로, 신뢰된 BSP identity 공급,
+단일 Flash 명령 C를 추가해 SRAM code/literal 분리와 register 오류·timeout·NMI 경로를
+검사했다. 아직 MCUboot IO backend와 최종 boot linker/startup에는 연결하지 않았다.
+자세한 호출 전제·RDP0 제한·reset loop 위험은 위 포트 설명에 기록했다.
+
+다음은 ECC-safe read와 Flash backend/SRAM linker 연결, 신뢰된 BSP identity 공급,
 bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 

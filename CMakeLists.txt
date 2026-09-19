@@ -84,6 +84,18 @@ if(BUILD_TESTING)
     target_compile_definitions(canview-stm-flash-guard-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
     target_link_libraries(canview-stm-flash-guard-tests PRIVATE canview_warnings)
     add_test(NAME stm32-flash-guard COMMAND canview-stm-flash-guard-tests)
+    add_executable(canview-stm-flash-command-tests tests/ota/test_stm32_flash_command.c
+        firmware/communicator/stm32/platform/stm32g474/flash_command.c
+        firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+    target_include_directories(canview-stm-flash-command-tests PRIVATE
+        firmware/communicator/stm32/interface firmware/communicator/stm32/bootloader/include
+        firmware/communicator/stm32/tests firmware/communicator/stm32/bsp shared/interface)
+    target_compile_definitions(canview-stm-flash-command-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-flash-command-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-flash-command COMMAND canview-stm-flash-command-tests)
+    set_tests_properties(stm32-flash-command PROPERTIES TIMEOUT 30)
+    add_test(NAME stm32-flash-ram-validator COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/ota/test_stm32_flash_ram.py)
     add_executable(canview-stm-flash-layout-tests tests/ota/test_stm32_flash_layout.c)
     target_include_directories(canview-stm-flash-layout-tests PRIVATE firmware/communicator/stm32/bsp)
     target_link_libraries(canview-stm-flash-layout-tests PRIVATE canview_stm_flash_layout canview_warnings)

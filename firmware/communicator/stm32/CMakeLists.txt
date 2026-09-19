@@ -213,13 +213,21 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 set(CANVIEW_MCUBOOT_ROOT "$ENV{MCUBOOT_ROOT}" CACHE PATH "Pinned clean MCUboot checkout")
 if(CANVIEW_MCUBOOT_ROOT)
     add_subdirectory(bootloader)
-    add_library(canview_boot_flash_guard STATIC platform/stm32g474/flash_guard.c)
-    target_link_libraries(canview_boot_flash_guard PRIVATE canview_boot_config canview_warnings)
-    target_include_directories(canview_boot_flash_guard PRIVATE bsp)
-    target_include_directories(canview_boot_flash_guard SYSTEM PRIVATE
-        "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
-    target_compile_definitions(canview_boot_flash_guard PRIVATE STM32G474xx)
-    foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard)
+    add_library(canview_boot_flash_command OBJECT platform/stm32g474/flash_command.c)
+    add_library(canview_boot_flash_guard STATIC platform/stm32g474/flash_guard.c
+        $<TARGET_OBJECTS:canview_boot_flash_command>)
+    foreach(flash_target canview_boot_flash_guard canview_boot_flash_command)
+        target_link_libraries(${flash_target} PRIVATE canview_boot_config canview_warnings)
+        target_include_directories(${flash_target} PRIVATE bsp interface "${CANVIEW_ROOT}/shared/interface")
+        target_include_directories(${flash_target} SYSTEM PRIVATE
+            "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
+        target_compile_definitions(${flash_target} PRIVATE STM32G474xx)
+    endforeach()
+    add_custom_command(TARGET canview_boot_flash_guard POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/ota/check_stm32_flash_ram.py"
+            --object $<TARGET_OBJECTS:canview_boot_flash_command> --objdump "${CMAKE_OBJDUMP}"
+        COMMENT "Checking SRAM command code/literal closure (final placement/HIL still required)")
+    foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard canview_boot_flash_command)
         target_compile_options(${boot_target} PRIVATE ${MCU_OPTIONS}
             -ffunction-sections -fdata-sections -fstack-usage
             -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")

@@ -1,5 +1,38 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 SRAM 단일 Flash 명령)
+
+9bc5bd0/PR37 Draft와 clean worktree에서 이어 구현했다. 이전 guard 구현은 실제
+진척이며 CI35432704415도 success/completed를 확인했다. 새 candidate의 CI·최종
+artifact 감사나 독립2인 리뷰가 완료됐다는 뜻은 아니다.
+
+- 기존 platform 경계에 단일 page erase/8B program C를 추가했다. 고정 guard,
+  RDP0/lock·status 검사, 슬롯 범위·정렬·enum/all-FF/duplicate 거절, cache/lock/
+  PRIMASK/VTOR 복원을 구현한다. option-byte 변경이나 watchdog feed/disable은 없다.
+- 고정 HAL의 program/erase/cache 순서를 사용하되 tick 의존 busy 대기는 SRAM
+  DWT/유한 poll로 대체했다. NMI/HardFault와 busy timeout은 SRAM reset/fail-stop이다.
+  실제 ECC-safe read·persistent ECC recovery·상위 Flash backend는 미연결이다.
+  임시 vector/실행 전제와 reset loop 위험은 bootloader README에 명시했다.
+- Windows Clang23.1 Host Debug155/155(70.74초), Release155/155(55.10초) 성공.
+  로그: `build/t107-command-host-{debug,release}-{build,test}.log`.
+- WSL Clang21.1.8 ASan/UBSan2/2(13.84초), 새 C의 host 모형 coverage 실행1/1(3.53초).
+  region309/309, function4/4, line119/119, branch66/66=100%. target 전용 register
+  쓰기와 SRAM 주소 검사는 이 coverage에 포함되지 않는다.
+  로그: `build/t107-command-sanitize-coverage-final.log`.
+- 실제 Arm primary Debug/Release 앱 ELF/MAP/BIN 및 새 명령 archive 생성 성공.
+  object busy section은480B/364B, 두 내부 함수·literal, 외부 relocation0이며 자동
+  post-build 검사와10개 거절 mutation을 추가했다. 상수96개+DMAMUX2개는 SDK 대조
+  성공이다. 앱 BIN은51724B/39728B다. 최종 boot SRAM map/복사와 부트로더 BIN은 아직 없다.
+  로그: `build/t107-command-arm-primary-{debug,release}.log`.
+- 네 host/Arm build log의 compiler/linker/CMake warning/error scan0, board drift0,
+  문서386개/링크1466개 오류0, task49개 오류0. source digest
+  `cbfbc07fb98a615ed3953df599892bebc527381949763ad56cd32faaf341ad19`를 합성 fixture에
+  반영했으며 실제 HIL로 승격하지 않았다.
+
+다음은 ECC-safe read/Flash backend·SRAM linker/startup 연결과 boot executable이다.
+RDP 생산 정책/T-507, physical Flash/ECC·stall·watchdog·전원 fault/HIL은 NOT_RUN,
+차량 TX는 NO-GO다. T-107 AC와 리뷰·최종 CI/artifact gate는 열려 있고 merge하지 않았다.
+
 ## 2026-09-19 (codex, T-107 G474 읽기 전용 Flash 보호 guard)
 
 eaa5751 다음 단위다. 시작 시 해당 HEAD/remote와 clean 상태, CI35432132535의
