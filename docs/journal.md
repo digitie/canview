@@ -1,5 +1,400 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-007 전체 소프트웨어 수용 closure)
+
+77b84cf의 [최종 독립 A/B 감사](reviews/adversarial/2026-09-19-T-007-final-acceptance.md)는
+추가 P0–P3 없음, 다섯 AC의 구현·시험 구성 충족, 최신 CI 확인 조건의 CONDITIONAL이다.
+두 raw를 그대로 보존하고 원 verdict를 바꾸지 않았다. CI35426085834는6/6이며
+내려받은 target21개 bytes/SHA256·source7개·target logs28개 warning/error0을 대조했다.
+Manifest SHA256: `4730a7a1b8b361ab4771465e14eb00e4e15028df101e90a962784fa87556a787`.
+후속 closure commit의 CI와 merge는 아직 진행 전이다.
+
+최신77b 별도 Linux clone ASan/UBSan139/13918.72초, 실제 compile_commands 옵션 확인,
+strict Doxygen/Sphinx71API, 일반 CLI --native394310B 검사를 다시 통과했다.
+로그는 final report에 기록했다. WSL rg의 pipe quoting 조회1회는 실패했으며
+cat 출력에 PowerShell Select-String을 적용해 옵션을 확인했다. 실패를 PASS로 집계하지 않는다.
+
+Stage post2는 양쪽 PASS·B-STAGE-01 FIXED다. 전체 감사 원문은 진행 정보 응답 때문에
+wait의 최신 메시지로 교체돼 기존 원문을 재전송받고 exact 비교했다. 추가 리뷰 실행이나
+PASS 변경은 아니다. Resume는 현재 상태·다음 조치·안전 경계만 남기고 과거 이력을
+기존 journal/review로 안내한다. Production code 변경 없음. Physical/HIL·Flash·실차·
+총 자원 실측은 NOT_RUN, vehicle TX NO-GO. 사용자 checkout과 SDK/evidence를 보존했다.
+
+## 2026-09-19 (codex, identity overlap 사전 거절 oracle)
+
+[82c5193 재검토](reviews/adversarial/2026-09-19-T-007-stage-post.md)에서 원 A는 PASS,
+원 B는 identity 사례의 B-STAGE-01 잔존 P2로 CONDITIONAL을 반환했다. 양쪽 원문을
+보존하고 B의 OPEN을 유지했다. 해당 조건만 삭제한 C mutant가 기존 시험에서 exit0인
+것을 실제 재현했다. reset 전에 body EMPTY를 검사해 하위 parser가 입력을 지운 후
+같은 오류를 반환하는 경로와 사전 거절을 구별한다. Production C는 변경하지 않았다.
+
+다섯 실제 C mutant와 baseline, model/CNG stage27그룹씩 통과했다. 전체 Debug150/150
+27.52초·Release150/15023.42초, 수정 모형 ASan/UBSan27그룹도 통과했다.
+로그: build/t007-stage-post2-{debug,release}-test.log,
+before-fix 재현은 build/t007-stage-identity-before-fix.log다. source/합성 digest를 먼저
+고정하고 전체 시험을 실행했다. 원 A/B의 재확인과 새 candidate CI는 아직 남아 있다.
+
+569cc83 CI35424935438은6/6, target21개 bytes/hash·source7개·target logs28개
+warning/error0을 대조했다. Manifest SHA256:
+`707b25dc3d9234cea85e581e4418e91e591309950d628db257d6718cfdadf30b`.
+82c5193 독립 Linux clone ASan/UBSan139/13919.30초와 구분한다. 정적 예산 기록
+부족은 원 A/B FIXED지만 physical/HIL·총 자원/시간은 NOT_RUN, 차량 TX NO-GO다.
+
+## 2026-09-19 (codex, stage 인자 방어 oracle 수정)
+
+569cc83의 [독립 리뷰](reviews/adversarial/2026-09-19-T-007-stage.md)는 A 정적 PASS,
+B CONDITIONAL이다. B-STAGE-01 P2는 여러 잘못된 인자가 겹쳐 의도한 방어 삭제를
+검출하지 못하는 시험 결함이다. hash context overlap 조건만 삭제한 실제 C mutant가
+기존 시험에서 exit0인 것을 재현했다. production stage.c는 변경하지 않았다.
+
+유효한 입력의 begin/close 양성 대조 뒤 인자 하나만 변경하도록 시험을 고쳤다.
+중첩 구조는 stage의 정렬된 충분한 공간에 유효 값을 복사하고 제어 필드는 보존한다.
+Hash start 모형은 불법 context를 역참조하지 않는다. 같은 방어 삭제 mutant는 이제
+CHECK exit1로 실패하며 compile 오류/crash/timeout을 성공으로 세지 않는다.
+기존 call-order3개와 함께4개 mutant, model/CNG27그룹씩을 확인했다.
+
+최종 Debug150/15016.24초·Release150/15014.11초, build warning/error0이다.
+로그는 build/t007-stage-post-debug-final-test.log 및
+build/t007-stage-post-release-test.log다. 첫 Debug 전체 실행은 문서의 합성 digest를
+갱신하던 중 시작해 capture identity 시험1개가 실패했다. source/fixture를 고정한
+뒤 위 전체 회귀를 다시 실행했다. 실패 로그도 t007-stage-post-debug-test.log에 남긴다.
+수정된 stage 모형 ASan/UBSan27그룹·함수6/6·행91/91·분기90/92를 확인했다.
+기존569cc83의 독립 Linux 전체139/139와 구분한다. 원 A/B post-fix 확인·새 CI는 남았다.
+실제 Flash/HIL·장치 자원/시간은 NOT_RUN, 전체 T-007 완료는 아직 선언하지 않는다.
+
+## 2026-09-19 (codex, stage 정적 자원 근거와 Linux 전체 회귀)
+
+stage candidate569cc83의 ESP fixture DWARF에서 prefix16488B/body856B/stage896B/
+PSA108B를 재확인했다. `.su`의 자체 frame과 상한 연산량을 OTA README에 모았다.
+stage는 body를 포함하며 SDK 내부 heap·호출 chain·시간을 무사용/통과로 추정하지 않는다.
+실측은 해당 target owner와 T-508 gate에 남긴다. 문서 변경에 따른 합성 digest만
+갱신했고 Windows Python/link 회귀2/2·strict docs71 API가 통과했다.
+
+Windows worktree를 /mnt/f에서 직접 사용한 보조 Linux 전체 실행은138/139였다.
+python-unit에서 Git commit 식별자가 없어 HIL evidence validation이 실패했다.
+WSL git이 .git의 F:/dev/canview/... 포인터를 Linux 상대 경로로 해석하는 것을
+직접 재현했다. source 결함으로 우회하거나 evidence validator를 완화하지 않았다.
+새 독립 clone /tmp/canview-stage-repo-Lk67Ca에서 동일569cc83을 detached checkout해
+Clang ASan/UBSan·leak 검사139/13918.29초가 통과했다. configure/build 경고0,
+로그는 clone의 configure.log/build.log/test.log다. 기본 checkout은 변경하지 않았다.
+이 성공은 후속 문서 source나 실제 장치 Flash/HIL·시간·heap 측정 성공이 아니다.
+
+## 2026-09-19 (codex, C 수신 저장 순서 연결)
+
+기존 parser/body를 재사용한 작은 C99 stage open/feed/finish/reset을 추가했다.
+서명·identity·길이·호환성·floor 실패 시 begin0회, chunk 거절 뒤 write0회,
+전체 body/hash 성공 뒤 native callback1회와 실패 후 진행 차단을 검사한다.
+정상 begin/write의 양성 기준을 먼저 실행하므로 writer 부재를0회 PASS로 세지 않는다.
+heap·RTOS·설치 상태기계·영속 journal·boot selector는 추가하지 않았다.
+SDK와 Flash map의 실제 enforcement는 후속 BSP owner 책임으로 유지한다.
+
+- Windows model/CNG stage 입력27그룹씩: 각 정상 입력에서 failure/reentry/cleanup
+  시나리오와 chunk1/31/최대 길이를 실행했다. native/storage는 모형이다.
+- 실제 C mutant3종(조기 begin, 거절 후 write, native 오류 무시)은 CHECK exit1로
+  검출했다. baseline exit0을 선행하며 compiler 오류/timeout/crash는 성공이 아니다.
+- Debug150/15052.33초·Release150/15044.42초, configure/build warning/error0.
+  로그: build/t007-stage-full-{debug,release}-{build,test}.log.
+- WSL Ubuntu26.04 Clang ASan/UBSan·leak 검사 통과. build:
+  /tmp/canview-stage-check-VLrbYx. stage.c 함수6/6·행91/91·분기90/92.
+- 실제 ESP-IDF6.0.3 fixture ELF/MAP/BIN·metadata172개 음성 시험 통과,
+  build/t007-stage-sdk.log warning/error0. BIN SHA256:
+  `d6119ceb51fb4cef0f2e141aefe7bbffd6659da961eb5e61b1b49c12287d06f2`.
+  API4개 target link, DWARF stage896B, 자체 frame open48B·나머지32B.
+  실제 저장 provider나 정상 owner 연결·device 실행 근거는 아니다.
+- strict Doxygen/Sphinx 통과: build/t007-stage-docs.log, public API71개.
+  합성 HIL source digest만 갱신했으며 실제 차량 evidence는 수정하지 않았다.
+
+최초 host fixture는 stage를 context 첫 멤버로 둬 overlap 검사에서 거절됐다.
+CHECK abort의 Windows CRT 대기로 Python30초 timeout이 났고 실행 중 재링크도
+permission denied였다. 원 process 종료와 process inventory를 확인한 뒤 fixture를
+별도 stage pointer로 고치고 CHECK를 exit1로 바꿨다. 이후 위 전체 회귀가 통과했다.
+첫 WSL 변수 전달은 quoting 때문에 /configure.log 권한 오류였다. 독립 mktemp와
+확정 절대 경로로 다시 실행했으며 실패한 최초 명령은 PASS로 집계하지 않는다.
+
+native CLI6cf1106은 [원 A/B 재확인](reviews/adversarial/2026-09-19-T-007-native-post.md)에서
+정적 PASS·관련 finding FIXED다. 같은 source CI35423635752는6/6 성공이며 내려받은
+target21개 bytes/hash·source7개·target logs28개 warning/error0을 직접 대조했다.
+manifest SHA256: `efdfff60aa2cd3db8215bb267e1dab8b2044d3fa5f7b27ea0230f85f2b7bce9e`.
+이 CI/리뷰를 새 stage source에 재사용하지 않는다. stage 독립 리뷰/최종 CI와
+T-007 AC3·최종 수용 감사는 OPEN이다. 실제 Flash/HIL·device crypto·장치
+timing/heap/stack 실측은 NOT_RUN, 차량 TX NO-GO, PR36 Draft를 유지한다.
+
+## 2026-09-19 (codex, native ESP 서명 블록 결합 회귀)
+
+7cb07be의 독립 A 리뷰가 A-NCLI-01 P2를 발견했다. espsecure의 외부 공개키 서명
+검증만으로는 block의 scheme·내장 key와 결합되지 않았다. scheme와 RSA n/e/rr/m
+필드를 각각 변경하고 block CRC·outer hash·outer 서명을 갱신한5건이 기존 코드에서
+거절되지 않는 것을 실행해 확인했다. 장치 검증 우회나 Flash 실행 증거는 아니다.
+
+새 암호 구현 대신 고정 공식 pre-calculated-signature helper로 실제 RSA 서명을
+검증하고 동일 block을 재구성해 byte 단위로 대조한다. 올바른 scheme/key/digest와
+서명이 서로 다른 block에 있어도 통과하지 않는다. CRC를 갱신한 서명 변이까지
+6개 필드 거절·정상3개 슬롯·교차 block 거절을 추가했다. 도구 버전·dirty checkout·
+timeout/실행 실패와 CLI 출력 미생성 시험도 보강했다. 총8개 unittest method 통과,
+로그는 build/t007-native-block-binding-test.log다. 원 리뷰어 재확인은 아직 남아 있다.
+
+T-007에는 상위 OTA 정본과 후속 T-204/T-107/T-205의 책임을 대응했다. 실제 writer
+부재를 금지 쓰기0회 성공으로 보지 않으며 AC3 연결 시험은 여전히 OPEN이다.
+문서 링크 검사에서 잘못 적은 T-508 파일명을 실제 경로로 수정했다.
+
+앞선 c7f5780의 CI35422223529는6/6 성공이다. target artifact21개 bytes/hash와
+source7개를 Windows CRLF로 재구성해 대조했고 target log28개 warning/error0이었다.
+manifest SHA256: `32c53499dca5b0916a5d8d916034cf38b79bbf3a975259af8c64ca230cbf7985`.
+실제 ESP host RSA10건도 통과했다. 이후 native source의 CI 결과로 재사용하지 않는다.
+Physical/HIL·device crypto·Flash·장치 timing/heap은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, 일반 native-aware CLI 연결)
+
+기존 container.py에 `--native`를 연결했다. Outer 검증 뒤 공식 espsecure5.4.0의
+RSA3072·esptool ESP32-S3 image parser와 고정 clean MCUboot v2.4.0 imgtool verifier를
+사용한다. CANView metadata168B·version·정확한 u64를 비교하며 host 설치 권한을
+발급하지 않는다. 조립도 native 검사 뒤에만 새 출력을 생성한다.
+
+6개 unittest가 보존 golden, 다른 board/layout의 ESP3역할, outer가 유효한 native
+변조와 sequence/version/ABI 오류, key/SDK 오류, 기존 출력 보존을 검사한다.
+ESP 역할별 fixture는 기존 SDK image를 공식 parser로 읽고 checksum/digest를 갱신해
+공식 서명 도구에 넘겼다. 시험 개인키는 메모리에만 만들며 파일/Git에 저장하지 않는다.
+초기 시험에서 공식 signing API가 BytesIO.name을 요구해 실패했고 합성 입력 이름을
+제공하도록 수정했다. 실패를 성공으로 바꾸거나 원 golden을 변경하지 않았다.
+
+esptool에는 Windows wheel이 없어 --only-binary 다운로드가 실패했다. 공식 PyPI
+sdist SHA256과 dependency wheel, setuptools82.0.1 backend를 별도 lock에 고정했다.
+SDK를 수정하지 않고 build/ota-native-clean venv에 설치했다. 캐시 없이 sdist를 다시
+빌드한 설치와 병렬로 실행됐던 host 결과는 최종 gate로 사용하지 않고, 설치 process의
+정상 종료 뒤 Debug/Release를 다시 실행해 각각147/147 통과했다.
+pip check·generator·문서/task 검사도 통과했고 host compiler/linker/CMake 경고0이다.
+로그는 build/t007-native-*.log, 최종 시험은 t007-native-final-{debug,release}-test.log다.
+모듈 README 변경으로 합성 T103 digest를
+`de0355a890823f2bf64879c6655fdfcaadefaf130ab4ea95aec51991387c19e5`로 갱신했다.
+실제 physical evidence나 private 자료는 변경하지 않았다.
+
+receiver P2는 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-receiver-post.md)에서
+FIXED·정적 PASS다. c7f5780 CI35422223529의 Windows/Linux 등5개 job이 통과했고
+target job은 진행 중이다. 이후 native CLI 구현의 검증·리뷰는 별도다.
+T-007 전체 acceptance는 아직 OPEN/BLOCK이며 scope 충돌·writer/정책/target 예산
+gate를 생략하지 않는다. Physical/HIL/Flash/device PSA NOT_RUN, 차량 TX NO-GO다.
+
+## 2026-09-19 (codex, receiver oracle 조기 인증 오류 회귀 수정)
+
+0acdc45의 [A/B 독립 원문](reviews/adversarial/2026-09-19-T-007-receiver.md)을 보존했다.
+A PASS/B CONDITIONAL이며 B-RX-01 P2를 실제 CNG C mutant로 재현했다. 본문 마지막
+byte를 변조하기 전에 AUTH_FAILED가 나도 이전 status-only oracle은 성공했다.
+변이 feed 자체의 오류와 끝 offset을 함께 요구하도록 고쳤다. 새 회귀 CTest는
+조기 open/feed 오류에서 exit1, 이전 약한 oracle 대조에서 exit0을 확인한다.
+컴파일 실패를 기대 실패로 인정하지 않으며 제품 source는 변경하지 않는다.
+
+Windows Debug/Release146/146, SDK 재빌드·metadata172개 음성 사례·경고0을 확인했다.
+로그는 `build/t007-receiver-oracle-{test,sdk}.log`와
+`build/t007-receiver-post-{debug,release}-test.log`다. 원 reviewer 재확인과 새 CI는 남아 있다.
+0acdc45 CI35421702811의 Windows job 실패는 Doxygen 공식 ZIP 다운로드 실패다.
+진행 중인 target job은 유지했으며 개별 rerun은 GitHub가 거절했다. 이전 d87516a
+CI35420771316은6/6과 target21개/source7개/log28개 경고0을 감사했고 이후 source에
+재사용하지 않는다. 로컬 strict Doxygen/Sphinx·API71개도 통과했다.
+실제 device PSA/Flash/HIL·총 stack/heap/timing은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, 실제 SDK C parser/body 수신 연결·전체 수용 감사)
+
+기존8개 portable C 파일을 IDF component로 등록하고 read-only signed golden을
+fixture BIN에 넣었다. manifest P256/SHA256은 실제 SDK PSA를 사용하며 native
+image 검증/Flash/설치 승인 경로는 아니다. 같은 receiver.c를 실제 Windows CNG로
+실행해 정상·서명/본문 변조·identity 불일치4건을 검사했다. Debug/Release145/145다.
+Windows host driver의 fopen deprecation 실패는 fopen_s로 수정했으며 경고를 억제하지 않았다.
+
+SDK build는 `build/t007-idf-receiver-sdk-build.log`, host는
+`build/t007-receiver-{debug,release}-{configure,build,test}.log`에 남겼다.
+SDK ELF/MAP/BIN과 parser/body/PSA symbol을 확인했다. BIN SHA256은
+`17bc7bf232acc156c94690a3f331fdb955a21129afc9d383da78cec241c046bc`이며 unsigned fixture다.
+metadata168개 변이+4개 절단을 거절했다. 기존 보존 golden은 과거 provenance 입력을
+계속 사용하며 새 fixture로 재서명하지 않았다.
+
+DWARF sizeof prefix/body/PSA=16488/856/108B이며 함수 static이다. 자체 `.su`에서
+app_main480B·receiver624B·manifest_check880B를 확인했다. SDK 전체 stack은 아니다.
+fixture sdkconfig.defaults의 main stack을16384B로 예약하고 기존 ignored sdkconfig의
+같은 항목도 갱신해 재빌드했다. watchdog은 변경하지 않았다. MCU timing/high-water/
+heap/실제 PSA/Flash/HIL은 NOT_RUN이다. 새 firmware component/모듈 README 때문에
+합성 T103 source identity를 `8ac453bbece8b1f635ed989bb57b6807f8087d382be5318a43ada718e55e63f6`로
+갱신했으며 실제 physical evidence를 변경하지 않았다.
+
+d87516a의 [독립 전체 수용 감사](reviews/adversarial/2026-09-19-T-007-acceptance.md)는
+A/B BLOCK이다. 원문2개와 공통 request를 보존했다. Native 일반 검사·task 책임 충돌·
+target/예산은 OPEN, README의 구현된 prefix/golden 상태 문구는 수정 후보다.
+다음은 기존 공식 도구를 이용한 일반 native-aware CLI 연결이며 새 framework는 없다.
+기본 checkout의 사용자 dirt는 그대로 보존했다. PR36 Draft·차량 TX NO-GO를 유지한다.
+
+## 2026-09-19 (codex, PSA ready 중첩 시험·golden artifact 감사)
+
+6f078ac의 원 A/B [재검토 원문](reviews/adversarial/2026-09-19-T-007-psa-post.md)을
+보존했다. B-PSA-01 P3는 FIXED지만 동일한 신규 P2(A-PSA-POST-01/B-PSA-02)를
+받았다. union context가 unready라 signature 중첩 조건을 없애도 같은 오류로
+통과할 수 있었다. 별도 context를 정상 init한 뒤 시험하고 SDK 호출 수 불변,
+후속 정상 verify와 close, reentry 대상 교체를 확인하도록 고쳤다.
+
+Signature 중첩 조건만 제거한 실제 C mutant는 GCC 빌드 뒤 새 CHECK에서 실패했다.
+정상 source는 PASS였다. `build/t007-psa-overlap-mutant.log`가 근거다.
+이전 권한 상수를0x1000으로 되돌린 별도 header mutant도 독립 typedef 검사에서
+컴파일 실패했다. `build/t007-psa-usage-mutant.log` SHA256은
+`548c812f245b4e0f0f71bb343ba53aa04217f564e090387a43d778e1c9c6f65f`다.
+제품 provider를 수정하거나 경고를 억제하지 않았다. 새 ASan/UBSan 모형도 통과했고
+adapter 행149/149·분기114/118은 유지했다.
+Windows Debug/Release144/144와 build 경고0을 재확인했다.
+로그는 `build/t007-psa-overlap-{debug,release}-{build,test}.log`다.
+
+262bf09의 CI35418535641 target artifacts를 실제 내려받아21개 ELF/MAP/BIN
+bytes/SHA256과 source7개 Git object의 Windows CRLF byte열을 대조했다.
+28개 target log에서 실제 warning/error 진단0, 공식 ESP RSA host10건도 확인했다.
+Manifest SHA256은 `ebbccfbab14726e514d99c87610f49c37e434c985adb5f1c621a29ff8af5eec3`다.
+이 감사는 golden 수정본262bf09만의 증거이며 이후PSA source의 최종 gate가 아니다.
+PSA6f078ac CI35420077728의 GCC·Clang·sanitizer는 성공했고 Windows/target은 확인 당시
+진행 중이었다. 이번 P2 수정본의 reviewer/CI는 별도 확인해야 한다.
+
+정상 OTA owner·root·영속 policy 연결 미완료, physical/HIL NOT_RUN·차량 TX NO-GO를 유지한다.
+
+## 2026-09-19 (codex, PSA 리뷰·GCC 시험 수정)
+
+70c7a38의 [독립 원문과 disposition](reviews/adversarial/2026-09-19-T-007-psa.md)을
+보존했다. A는 정적 PASS, B는 모형 VERIFY_MESSAGE=0x1000 오류 B-PSA-01 P3를
+보고했다. 공식 값0x0800으로 고치고 host·SDK fixture 양쪽에서 독립 기대값을
+compile-time 검사한다. 실제 제품 adapter는 처음부터 공식 macro를 사용했다.
+
+CI35419613785의 GCC job105834675834가 시험의 작은 context→큰 배열 인자를
+`-Werror=stringop-overread`로 거절했다.65B union backing으로 바꿔 합법적인 크기의
+중첩 입력을 시험한다. 경고나 음성 사례를 삭제하지 않았다. 완료 job 로그는
+`gh run view --log`가 전체 run 진행 중이라 거절해 jobs API의 logs endpoint로 받았다.
+원 로그는 `build/t007-psa-ci-gcc.log`다. 수정 후 GCC O3 strict와 Clang ASan/UBSan
+모형은 통과했고 행149/149·분기114/118도 유지했다.
+
+별도 실제 PSA Windows host 실행을 시도했으나 공식 TF-PSA-Crypto의 standalone
+CMake는 clang에 MSVC 옵션(/W3,/utf-8,/WX)을 넘겨 실패했다. 같은 고정 Clang의
+clang-cl로 바꾼 뒤에는 Espressif port의 `mbedtls/bignum.h`가 필요해 빌드 실패했다.
+SDK를 수정하거나 가짜 header/암호를 넣지 않았으며 이 추가 host 실행은 NOT_RUN이다.
+실패 로그는 `build/t007-psa-host-sdk{,-cl}-{configure,build}.log`에 보존했다.
+
+실제 ESP-IDF fixture 재빌드는 경고0으로 통과했다.262144B BIN SHA256은
+`fadfa94c32694baf02caa5d0e268665b796691aa4e72431e7395fc8768a5f18d`이고
+metadata168변이·4절단 시험도 통과했다. `build/t007-psa-post-sdk-build.log`가 근거다.
+최종 수정 source의 Windows Debug/Release144/144와 build 경고0도 재확인했다.
+로그는 `build/t007-psa-final-{debug,release}-{build,test}.log`다.
+이전 golden은 바꾸지 않았다. 원 reviewer 재검토·수정본 CI는 아직 남아 있다.
+physical/HIL NOT_RUN·vehicle TX NO-GO·정상 OTA owner 미연결을 유지한다.
+
+## 2026-09-19 (codex, ESP-IDF PSA C 암호 provider)
+
+`firmware/platform/esp32s3/ota_crypto.c`에 공식 PSA API 어댑터를 추가했다.
+자체 암호 구현이나 범용 framework 없이 volatile P256 공개키 한 개와 SHA256 operation
+한 개를 단일 owner가 관리한다. 실패한 hash setup/update/finish 뒤 reset, abort/destroy 실패
+뒤 handle 보존과 재시도를 시험했다. 입력 상한·중첩·NULL과 SDK 호출8단계×오류5종,
+각 호출 중 재진입도 검사했다. 모형 암호 결과를 실제 암호 검증으로 표시하지 않는다.
+
+Windows Debug/Release는 각각144/144 통과했다. 로그는
+`build/t007-psa-{debug,release}-{build,test}.log`다. WSL Clang ASan/UBSan 모형 시험도
+통과했고 `build/t007-psa-sanitize-coverage.log`의 adapter coverage는 함수11/11,
+행149/149, 분기114/118(96.61%)이다. 전체 OTA나 target coverage로 확대하지 않는다.
+
+ESP-IDF6.0.3 `idf.py -C tests/fixtures/idf-ota-image -B build/idf-ota-image build`로
+실제 ELF/MAP/BIN을 생성했다. `build/t007-psa-sdk-build.log`의 실제 진단은 경고/오류0,
+nm으로 adapter와 psa_import_key/verify_message/hash/abort/destroy symbol을 확인했다.
+262144B BIN SHA256은 `37c90183bac8c3f7d8a90c1862d3e5ed47c123aa35dfd34e1d7ca606718449b9`다.
+합성 descriptor offset288/168개 변이/4개 절단 검사는 통과했고, 이전 signed golden은
+그 입력 source에 고정된 artifact이므로 새 unsigned BIN으로 덮어쓰지 않았다.
+synthetic HIL fixture의 source digest만 현재 source로 갱신했다. physical evidence가 아니다.
+
+앞선 signed golden 원 A/B 재검토 raw와 통합 report는6209eac에 보존했다.
+262bf09의 CI35418535641은6/6 성공했으나 그 artifact 감사는 아직 하지 않았다.
+PSA 추가분은 독립 리뷰 전이다. 정상 OTA owner·trusted root·영속 policy 통합은 남아 있고
+장치 암호 실행·Flash·physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, signed golden STM 서명 거절 경로 보강)
+
+`bd9a1a6`의 새 golden CTest를 포함해 로컬 Debug/Release는 각각143/143 통과했다.
+빌드 로그의 compiler/linker/CMake 경고는0이다. 별도 clean detached checkout에서
+public-only golden 검증도 통과했다. 그 시험은 기존 동일 C 소스의 CNG 실행파일을
+재사용했으며 새 checkout의 전체 재빌드라고 주장하지 않는다. 시험 뒤 clean 상태를
+확인해 임시 worktree만 제거했다. 추적 파일은 commit에서 재생성할 수 있다.
+
+Reviewer A 원문 A-SG-01 P2를 수용했다. 최초 STM 음성 두 건은 내부 SHA256 또는
+root hash에서 거절돼 P256 verify 실패를 직접 입증하지 못했다. payload와 내부 SHA256
+TLV·whole hash를 갱신하되 원본 서명을 유지한 네 번째 사례를 추가했다. native probe
+호출 횟수도 정상3·내부 hash 실패2·root 실패0·P256 실패3으로 대조한다.
+실제 C 소스의 verify 반환을 무시해 OK로 바꾼 임시 변이 실행파일을 경고0으로 빌드했고
+시험이 `[0,12,12,0] != [0,12,12,12]`로 실패했다. 실제 repository verifier는 바꾸지 않았다.
+변이 로그 `build/t007-golden-mutant-test.log` SHA256은
+`71351ea9c7637624b0cd917ecf94a9fea602cf28d2afd52cc5f3ae4667a5c4b8`다.
+
+Host 초기 환경 로드는 현재 worktree의 도구 cache를 중복 추출하기 시작해 해당 두
+실행만 중단했다. 검증된 `t104-stm32-uart-control`의 고정 도구 환경을 재사용했다.
+기본 checkout의 사용자 파일은 변경하지 않았다. physical/HIL NOT_RUN·차량 TX NO-GO를 유지한다.
+
+## 2026-09-19 (codex, 공식 native 서명 합성 golden)
+
+공식 espsecure5.4.0과 MCUboot imgtool v2.4.0을 재사용했다. 실제 ESP-IDF 합성
+BIN에 RSA3072/PSS 서명을 추가하고 별도의 STM 합성 payload/P256·outer manifest/P256를
+하나의394310B 컨테이너로 조립했다. SHA256은
+`68eb18e10bf35d351c1604500bf85f6e95aa41c6b49477ffbbdacd9477902655`다.
+세 시험 개인키는 메모리 전용이며 공개키·컨테이너·provenance만 보존했다.
+무작위 서명 재생성이 아니라 보존된 서명/image로 조립한 byte 일치를 재현 gate로 사용한다.
+
+첫 생성 시 ESP-IDF Python에 cbor2가 없어 실패했다. 제품 SDK 환경을 바꾸지 않고 기존
+OTA 시험 venv의 lock된 의존성에 esptool5.4.0을 추가해 생성했다. pip show의 CP949
+출력 오류는 도구 정보 출력 문제이며 이후 Python은 UTF-8로 실행했다.
+첫 CNG STM golden 시험은 시험 wire의 signed_size/hash/signature를0으로 전달해
+INVALID_ARGUMENT를 반환했다. 기존 probe의 입력 계약대로 실제 값을 전달한 뒤
+CNG 수신12건·native STM3건과 공식 imgtool 검증, ESP host RSA10건이 통과했다.
+firmware 검사를 완화하거나 실패를 성공으로 계산하지 않았다.
+
+정상 OTA owner·영속 policy·제품 signing CLI/target 통합은 남아 있다.
+장치 native 실행·Flash·physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
+
+## 2026-09-19 (codex, SDK metadata와 prefix checkpoint artifact 감사)
+
+`624848a`에서 C const custom descriptor를 실제 ESP-IDF6.0.3 시험 image에 넣었다.
+자동 서명/키/provisioning/Flash 동작 없이 ELF/MAP/BIN 경고0을 확인했고
+`tests/ota/check_sdk_metadata.py`로 offset288의168B·u64최대값과168개 byte 변이·4개
+절단 거절을 확인했다. BIN SHA256은 `e9dc9177c696a13bdba0631c1da2b3ec125b688862ab2c04921c05c0675d3735`,
+로그는 로컬 `build/t007-sdk-metadata-build.log`다. 이는 합성 descriptor 위치/값
+증거이며 native 서명·정상 device firmware·boot·HIL 성공이 아니다.
+
+앞선63c8727의 CI35416056122는6/6 성공했다. 내려받은 target21개 ELF/MAP/BIN의
+bytes/SHA256을 manifest와 대조했고 source7개도 해당 Git object의 Windows CRLF
+byte열과 일치했다. Manifest SHA256은
+`5a72e85918d474e679b1eb5fff255fef4a24bdd6aa225658a0cdacaa6fdb21d4`다.
+26개 target log에 실제 warning/error 진단은0개다. 최초 넓은 `error` 검색은 SDK의
+`error.c.obj` 컴파일 행5개를 검출했다. 내용을 읽어 source filename임을 확인했고
+warning 전체·error 진단·CMake/fatal/FAILED 패턴으로 재검사했다. 진단을 억제하지 않았다.
+Windows CI Debug/Release LastTest.log도 각각142개 성공·실패0·CNG90교차를 확인했다.
+이전63c8727 검증을 이후metadata/새HEAD 검증으로 확대하지 않는다. 이후21cb047의
+CI35416950979는 진행 중이다. 전체 T-007·native signing/golden·정상 owner 연결은 남아 있다.
+
+## 2026-09-19 (codex, T-007 prefix·packager checkpoint)
+
+`63c87272fe9f2b00b76893055bfcc8a9ca71cf26`을 Draft PR36에 push했다. C99 고정 buffer
+prefix 조립과 host detached P256 서명 조립/검사만 추가했으며 native 설치 승인은 아니다.
+기존 SDK/cryptography와 parser를 재사용한다. 실제 CNG 교차90개(collector 경로45개),
+Windows Debug/Release142/142 및 Linux 독립 checkout ASan/UBSan137/137이 통과했다.
+최초 Debug141/142는 합성 T103 fixture digest mismatch였으며 실제 계산한 source digest
+`8e128a30cfe2b153bcd0e1f17267078fe22dc12c2c4cbe374c85018bab325fe1`로 fixture5행과
+helper 기대값만 갱신했다. 실제 capture evidence는 변경하지 않았다.
+Release 최초 재실행은 실행 중 HEAD 변경에 따른 identity mismatch, WSL 최초 실행은
+Windows worktree의 `.git` 경로 해석 실패로 완료 gate를 통과하지 못했다. 고정 commit과
+Linux native Git checkout으로 재실행해 위 결과를 확인했다. 검사 기준은 완화하지 않았다.
+
+로그는 로컬 `build/t007-packager-debug.log`, `build/t007-packager-release-rerun.log`,
+`build/t007-packager-sanitize-nativegit.log`에 보존했다. 새 collector coverage의
+prefix_feed 행93.33%·분기96%, init/finish100%를 확인했다. 최초 llvm-cov 호출은
+PowerShell 인자 분리로 실패했고 `-instr-profile=...` 전체를 인용한 재실행이 성공했다.
+전체 envelope.c coverage나 MCU timing 성공으로 집계하지 않는다.
+CI35416056122의 host5개 job은 통과했고 target job은 진행 중이다.
+독립 A 정적 PASS/B CONDITIONAL의 원문을 보존했다. B의 P3 두 표현을 수정했으며
+원 reviewer 재확인 전이다. 전체 T-007 IN_PROGRESS·physical/HIL NOT_RUN·차량 TX NO-GO다.
+
+## 2026-09-19 (codex, 명시적 재개와 T-007 후속 구현)
+
+사용자가 "이어서 완주까지 진행"을 요청했다. PR35 MERGED, 열린 PR 없음과
+origin/main `6cf1b8e57840a27b83c407d1325a92f869cf2f5d`를 Git/GitHub로 확인했다.
+기본 checkout은 기존 branch/사용자 파일을 보존했다. clean T-007 worktree에서
+`codex/t007-ota-packager`를 origin/main 기준으로 만들고 로컬 SDK/evidence를 재사용한다.
+이전 source 재구현 없이 signed package 작성·검사와 C 수신 연결부터 진행한다.
+물리/HIL NOT_RUN, 차량 CAN TX NO-GO, 전체 T-007 IN_PROGRESS를 유지한다.
+
 ## 2026-09-15 (codex, 현재 PR merge 후 일시중지 범위 확정)
 
 사용자의 "지금 작업까지만 머지하고 작업 일시중지", "완료시키고 머지 후 일시중지"를

@@ -1,0 +1,17 @@
+# 기존 OTA wheel lock + 공식 espsecure(esptool5.4.0)의 host 검증 의존성.
+# 먼저 requirements-ota-native-build.lock 설치 후 --no-build-isolation을 사용한다.
+# 공식 PyPI sdist/wheel SHA256; Windows x64 CPython3.14 전용.
+-r requirements-ota.lock
+esptool==5.4.0 --hash=sha256:fd756598db0a26c9975fa18511b08687c54bf2ce7322ede80cf1f5117dad1f50
+bitarray==3.11.0 --hash=sha256:e5efe99e2525d288eeeb5f71a026a2d5280702f73c835a2bac58f2932adf6af9
+bitstring==4.4.0 --hash=sha256:feac49524fcf3ef27e6081e86f02b10d2adf6c3773bf22fbe0e7eea9534bc737
+esp-pylib==1.1.5 --hash=sha256:be04824c2da8d0af3ae891f93d0e4059c14d5f2c3c828b19a1c12d916c6a4d74
+markdown-it-py==4.2.0 --hash=sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
+mdurl==0.1.2 --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8
+pygments==2.21.0 --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9
+pyserial==3.5 --hash=sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0
+reedsolo==1.7.0 --hash=sha256:2b6a3e402a1ee3e1eea3f932f81e6c0b7bbc615588074dca1dbbcdeb055002bd
+rich==15.0.0 --hash=sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb
+rich-click==1.9.9 --hash=sha256:365e7a9d0adb42e41ea832a0a12e02c44c079a26536dee688125eb9814f97274
+tibs==0.5.7 --hash=sha256:a61d36155f8ab8642e1b6744e13822f72050fc7ec4f86ec6965295afa04949e2
+websockets==17.1 --hash=sha256:2a4dc6ef83f4559e0d05f313a375cb38f63c986096a9da99fe94fdd779d313e5

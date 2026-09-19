@@ -54,6 +54,19 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-ota-stage-probe tests/ota/stage_probe.c)
+    target_include_directories(canview-ota-stage-probe PRIVATE shared/ota/src shared/interface)
+    target_link_libraries(canview-ota-stage-probe PRIVATE canview_ota canview_warnings)
+    add_test(NAME ota-stage-order COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/ota/test_stage.py $<TARGET_FILE:canview-ota-stage-probe>)
+    set_tests_properties(ota-stage-order PROPERTIES TIMEOUT 60)
+    add_executable(canview-ota-psa-tests firmware/platform/esp32s3/ota_crypto.c tests/ota/test_esp_ota_crypto.c)
+    target_include_directories(canview-ota-psa-tests PRIVATE firmware/platform/esp32s3 tests/ota
+        shared/ota/src shared/interface)
+    target_compile_definitions(canview-ota-psa-tests PRIVATE CANVIEW_OTA_PSA_TEST=1)
+    target_link_libraries(canview-ota-psa-tests PRIVATE canview_warnings)
+    add_test(NAME ota-psa-provider COMMAND canview-ota-psa-tests)
+    set_tests_properties(ota-psa-provider PROPERTIES TIMEOUT 30)
     add_executable(canview-comm-ota-tests firmware/communicator/esp32/bsp/ota.c tests/ota/test_comm_ota.c)
     target_include_directories(canview-comm-ota-tests PRIVATE firmware/communicator/esp32/bsp
         firmware/platform/esp32s3 tests/ota shared/ota/src shared/interface)
@@ -114,6 +127,11 @@ if(BUILD_TESTING)
     target_link_libraries(canview-ota-envelope-tests PRIVATE canview_ota canview_warnings)
     add_test(NAME ota-envelope-boundaries COMMAND canview-ota-envelope-tests)
     set_tests_properties(ota-envelope-boundaries PROPERTIES TIMEOUT 30)
+    add_executable(canview-ota-prefix-tests tests/ota/test_prefix_stream.c)
+    target_include_directories(canview-ota-prefix-tests PRIVATE shared/ota/src shared/interface)
+    target_link_libraries(canview-ota-prefix-tests PRIVATE canview_ota canview_warnings)
+    add_test(NAME ota-prefix-stream COMMAND canview-ota-prefix-tests)
+    set_tests_properties(ota-prefix-stream PROPERTIES TIMEOUT 30)
     add_executable(canview-ota-manifest-probe tests/ota/manifest_probe.c)
     add_test(NAME ota-manifest-json COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         ${PROJECT_SOURCE_DIR}/tests/ota/test_manifest_json.py $<TARGET_FILE:canview-ota-manifest-probe>)
@@ -130,6 +148,28 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/tests/ota/test_body.py $<TARGET_FILE:canview-ota-body-probe>)
     set_tests_properties(ota-body-lifecycle PROPERTIES TIMEOUT 60)
     if(WIN32)
+        add_executable(canview-ota-stage-crypto-probe tests/ota/stage_probe.c tests/ota/cng_provider.c)
+        target_compile_definitions(canview-ota-stage-crypto-probe PRIVATE CANVIEW_TEST_CNG=1)
+        target_include_directories(canview-ota-stage-crypto-probe PRIVATE tests/ota shared/ota/src shared/interface)
+        target_link_libraries(canview-ota-stage-crypto-probe PRIVATE canview_ota canview_warnings bcrypt)
+        add_test(NAME ota-stage-order-crypto COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_stage.py $<TARGET_FILE:canview-ota-stage-crypto-probe> --crypto)
+        set_tests_properties(ota-stage-order-crypto PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-stage-oracle COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/check_stage_oracle.py ${CMAKE_C_COMPILER} $<TARGET_FILE:canview_ota>)
+        set_tests_properties(ota-stage-oracle PROPERTIES TIMEOUT 180)
+        add_executable(canview-ota-idf-receiver tests/ota/idf_receiver_host.c tests/ota/cng_provider.c
+            tests/fixtures/idf-ota-image/main/receiver.c)
+        target_compile_definitions(canview-ota-idf-receiver PRIVATE CANVIEW_OTA_FIXTURE_CNG=1)
+        target_include_directories(canview-ota-idf-receiver PRIVATE tests/fixtures/idf-ota-image/main tests/ota
+            shared/ota/src shared/interface)
+        target_link_libraries(canview-ota-idf-receiver PRIVATE canview_ota canview_warnings bcrypt)
+        add_test(NAME ota-idf-receiver COMMAND canview-ota-idf-receiver
+            ${PROJECT_SOURCE_DIR}/tests/fixtures/ota-signed-golden/communicator.cvota)
+        set_tests_properties(ota-idf-receiver PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-idf-receiver-oracle COMMAND ${Python3_EXECUTABLE} -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/check_receiver_oracle.py ${CMAKE_C_COMPILER} $<TARGET_FILE:canview_ota>)
+        set_tests_properties(ota-idf-receiver-oracle PROPERTIES TIMEOUT 150)
         add_executable(canview-ota-envelope-probe tests/ota/envelope_crypto_probe.c tests/ota/cng_provider.c)
         target_include_directories(canview-ota-envelope-probe PRIVATE shared/ota/src shared/interface)
         target_link_libraries(canview-ota-envelope-probe PRIVATE canview_ota canview_warnings bcrypt)
@@ -146,6 +186,9 @@ if(BUILD_TESTING)
         add_test(NAME ota-body-crypto COMMAND ${Python3_EXECUTABLE} -X utf8 -B
             ${PROJECT_SOURCE_DIR}/tests/ota/test_body.py $<TARGET_FILE:canview-ota-body-crypto-probe> --crypto)
         set_tests_properties(ota-body-crypto PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-container COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_container.py $<TARGET_FILE:canview-ota-body-crypto-probe>)
+        set_tests_properties(ota-container PROPERTIES TIMEOUT 90)
         add_executable(canview-ota-native-stm-probe tests/ota/native_stm_probe.c tests/ota/cng_provider.c)
         target_compile_definitions(canview-ota-native-stm-probe PRIVATE CANVIEW_TEST_CNG=1)
         target_include_directories(canview-ota-native-stm-probe PRIVATE shared/ota/src shared/interface)
@@ -153,6 +196,14 @@ if(BUILD_TESTING)
         add_test(NAME ota-native-stm COMMAND ${Python3_EXECUTABLE} -X utf8 -B
             ${PROJECT_SOURCE_DIR}/tests/ota/test_native_stm.py $<TARGET_FILE:canview-ota-native-stm-probe>)
         set_tests_properties(ota-native-stm PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-signed-golden COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_signed_golden.py
+            --body-probe $<TARGET_FILE:canview-ota-body-crypto-probe>
+            --stm-probe $<TARGET_FILE:canview-ota-native-stm-probe>)
+        set_tests_properties(ota-signed-golden PROPERTIES TIMEOUT 90)
+        add_test(NAME ota-native-container COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_native_container.py)
+        set_tests_properties(ota-native-container PROPERTIES TIMEOUT 90)
     endif()
     add_executable(canview-bridge-auth-tests tests/bridge_web/test_auth.c)
     target_link_libraries(canview-bridge-auth-tests PRIVATE canview_bridge_auth_host canview_warnings)

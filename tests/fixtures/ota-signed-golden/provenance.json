@@ -1,0 +1,36 @@
+{
+  "syntheticOnly": true,
+  "esptool": "5.4.0",
+  "espIdf": {
+    "version": "v6.0.3",
+    "gitCommit": "76f5dedd9950a3012fee8fb7d5586df21fc67802",
+    "repository": "https://github.com/espressif/esp-idf.git",
+    "targets": [
+      "esp32s3"
+    ]
+  },
+  "mcuboot": {
+    "version": "v2.4.0",
+    "gitCommit": "6d3b3d2c38ab20c242e5b9abb04d050086383eb2",
+    "repository": "https://github.com/mcu-tools/mcuboot.git"
+  },
+  "unsignedEspSha256": "e9dc9177c696a13bdba0631c1da2b3ec125b688862ab2c04921c05c0675d3735",
+  "files": {
+    "communicator.cvota": {
+      "bytes": 394310,
+      "sha256": "68eb18e10bf35d351c1604500bf85f6e95aa41c6b49477ffbbdacd9477902655"
+    },
+    "manifest-public.pem": {
+      "bytes": 178,
+      "sha256": "01a7ff058c7809196aab45447570c04fb943e7948696672addd4a597df84dfcb"
+    },
+    "esp-public.pem": {
+      "bytes": 625,
+      "sha256": "bc07b4a88abd41a93f8ac2c9171749e2160a64ccbb7ca697df9be8801fd2c89c"
+    },
+    "stm-public.pem": {
+      "bytes": 178,
+      "sha256": "c28064dbffdb0a027af839066fbb630f0c9635ef6c9acf0a250added91bcea0e"
+    }
+  }
+}

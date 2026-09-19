@@ -20,6 +20,23 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 전체 수용·증거 closure | PR base → `77b84cf` | C/target / native/시험/CI | [기록](adversarial/2026-09-19-T-007-final-acceptance.md), 양쪽 CONDITIONAL의 최신 CI 조건 확인·추가 결함 없음·closure CI/merge 대기 |
+| 2026-09-19 | T-007 stage post-fix2 | `82c5193` → `77b84cf` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post2.md), 양쪽 정적 PASS·B-STAGE-01 FIXED·전체 수용/CI 별도 |
+| 2026-09-19 | T-007 stage post-fix·정적 예산 | `569cc83` → `82c5193` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post.md), A PASS/B CONDITIONAL·identity oracle 잔존 P2 OPEN; 정적 예산 기록 부족 FIXED·실측 NOT_RUN |
+| 2026-09-19 | T-007 C 수신 저장 순서 | `6cf1106` → `569cc83` | C 상태·수명 / oracle·SDK | [기록](adversarial/2026-09-19-T-007-stage.md), A 정적 PASS/B CONDITIONAL·B-STAGE-01 P2 인자 시험 false PASS 재현·수정 후 재확인 대기 |
+| 2026-09-19 | T-007 native CLI post-fix | `7cb07be` → `6cf1106` | 원 A/B | [기록](adversarial/2026-09-19-T-007-native-post.md), 양쪽 정적 PASS·same-block/일반 CLI/소유권 finding FIXED; 이후 stage C·전체 task 승인 아님 |
+| 2026-09-19 | T-007 일반 native CLI | `c7f5780` → `7cb07be` | native 암호 / CLI·CI | [기록](adversarial/2026-09-19-T-007-native.md), A/B CONDITIONAL·공통 P2 block key/scheme 결합; 재현·수정 후 원 reviewer 재확인 대기 |
+| 2026-09-19 | T-007 receiver oracle post-fix | `0acdc45` → `c7f5780` | 원 A/B | [기록](adversarial/2026-09-19-T-007-receiver-post.md), A/B 정적 PASS·B-RX-01 P2 FIXED·신규 finding 없음; 이후 native CLI·전체 task 승인 아님 |
+| 2026-09-19 | T-007 C receiver SDK 연결 | `d87516a` → `0acdc45` | C·cleanup / SDK·oracle | [기록](adversarial/2026-09-19-T-007-receiver.md), A PASS/B CONDITIONAL; B-RX-01 P2 실제 조기 오류 변이 재현·수정 후 원 reviewer 재확인 대기, 전체 acceptance BLOCK 유지 |
+| 2026-09-19 | T-007 전체 수용 기준 감사 | `6cf1b8e` → `d87516a` | C·runtime / CLI·SDK·근거 | [기록](adversarial/2026-09-19-T-007-acceptance.md), A/B BLOCK; P2 native 일반 검사·task 책임·target/예산, P3 README 상태 문구; 전체 완료 미승인 |
+| 2026-09-19 | T-007 PSA 두 번째 post-fix | `6f078ac` → `1b06afd` | 원 A/B | [기록](adversarial/2026-09-19-T-007-psa-post2.md), 양쪽 정적 PASS·공통 P2 FIXED·신규 finding 없음; 전체 T007/CI/정상 owner 승인 아님 |
+| 2026-09-19 | T-007 PSA post-fix | `70c7a38` → `6f078ac` | 동일 A/B | [기록](adversarial/2026-09-19-T-007-psa-post.md), P3 FIXED·A/B 공통 신규 P2 시험 전제 수정 및 제한 C mutant 검출, 재확인 대기 |
+| 2026-09-19 | T-007 PSA provider | `6209eac` → `70c7a38` | C 수명·경계 / PSA·SDK·시험 | [기록](adversarial/2026-09-19-T-007-psa.md), A PASS·B CONDITIONAL; 시험 상수 P3 수정·GCC 음성 시험 보강, 원 reviewer 재확인 대기 |
+| 2026-09-19 | T-007 signed golden post-fix | `bd9a1a6` → `262bf09` | 동일 A/B | [기록](adversarial/2026-09-19-T-007-signed-golden-post.md), A/B 정적 PASS; 동일 P2 FIXED·신규 finding 없음, 이후 PSA/전체 task 승인 아님 |
+| 2026-09-19 | T-007 합성 signed golden | `dfe3d8a` → `bd9a1a6` | 암호·CNG / SDK·CI·근거 | [기록](adversarial/2026-09-19-T-007-signed-golden.md), A/B CONDITIONAL; 동일 P2 서명 음성 경로를 보강하고 C 변이 검출, 원 reviewer 재확인 대기 |
+| 2026-09-19 | T-007 SDK 합성 descriptor | `ec44647` → `624848a` | C layout·linker / 고정 기대값·CI | [기록](adversarial/2026-09-19-T-007-sdk-metadata.md), A/B 정적 PASS·finding0; 실제 로컬 SDK BIN 위치/값 확인, native signing/golden·전체 task 미완료 |
+| 2026-09-19 | T-007 prefix·packager post-fix | `63c8727` → `ec44647` | 동일 A/B | [기록](adversarial/2026-09-19-T-007-prefix-packager-post.md), A/B 정적 PASS; B P3 두 건 FIXED·새 finding 없음, 이후 metadata·전체 task 승인 아님 |
+| 2026-09-19 | T-007 prefix·packager checkpoint | `6cf1b8e` → `63c8727` | C bounds·ownership / 암호·근거·CI | [기록](adversarial/2026-09-19-T-007-prefix-packager.md), A 정적 PASS/B CONDITIONAL; P3 표현2건 수정·재확인 전, 전체 task 미완료 |
 | 2026-09-15 | T-007 현재 구현분 post-fix | `21909e5` → `63197e3`, 16파일 delta | 동일 A/B | [기록](adversarial/2026-09-15-T-007-current-post.md), A 정적 PASS·B CONDITIONAL; 네 finding FIXED·새 finding 없음, 현재 구현분 CI/target artifact 확인 대기 |
 | 2026-09-15 | T-007 현재 구현분 독립 리뷰 | `d229772` → `21909e5`, 82파일 | C runtime·native / schema·generator·build | [기록](adversarial/2026-09-15-T-007-current.md), A/B CONDITIONAL·P0/P1 없음; P2 두 건/P3 공통 문구 수정·원 reviewer 재확인 대기, 전체 T-007 미완료 |
 | 2026-09-13 | T-007 CBOR·단순화 원칙 checkpoint 정적 리뷰 | `490d2f8` → `6d83962`, 16파일 | C memory·자원 / oracle·CMake·문서·digest | [기록](adversarial/2026-09-13-T-007-cbor.md), A/B static PASS·finding0; 전체 T-007/서명/target/merge 승인 아님 |

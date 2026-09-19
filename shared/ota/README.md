@@ -28,6 +28,61 @@ python -B tools/ota/manifest_json.py input.json output.cbor
 다음 packager 단계에서 실제 native image 검증·서명과 결합해야 한다. 현재 schema도
 최종 독립 리뷰 전 구현 후보이며 배포 승인을 뜻하지 않는다.
 
+## 바깥 컨테이너 조립·검사
+
+`tools/ota/container.py`는 위 CBOR의 외부 detached raw P256 서명과 image들을 조립하고,
+신뢰된 공개키/identity로 manifest·전체 길이·zero padding·image SHA-256을 검사한다.
+기존 `cryptography`와 typed 검사기를 재사용하며 개인키를 생성·읽기·저장하지 않는다.
+새 파일만 만들고 기존 출력은 덮어쓰지 않는다. 입력 검증 실패 시 출력 파일을 만들지
+않으며 OS 쓰기 실패의 부분 파일도 성공으로 표시하지 않는다.
+
+```powershell
+python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD --layout LAYOUT --epoch 7 --key-id 11 assemble input.json signature.bin output.cvota esp.bin stm.bin
+python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD --layout LAYOUT --epoch 7 --key-id 11 check output.cvota
+```
+
+서명 입력은 정확한 CBOR이고 raw 서명은 big-endian `r[32] || s[32]`다. image 순서는
+manifest와 같아야 한다. 성공은 `MANIFEST_AND_HASHES_MATCHED`일 뿐 native image 서명,
+로컬 compatibility/floor, Flash 쓰기·설치 승인이 아니다. Native-aware 검사는 아래
+`--native` 경로를 사용하며 target owner 연결은 남아 있다. host 입력은 format 상한으로 제한하며 MCU에는
+전체 package를 메모리에 올리지 않는다.
+
+### 일반 native 서명·metadata 검사
+
+`--native`를 주면 기존 조립/검사 명령에서 outer 검증 뒤 공식 espsecure5.4.0의
+RSA3072 검증 및 MCUboot v2.4.0 imgtool의 SHA256/P256 검증을 실행한다.
+ESP image 구조·checksum·선택적 digest는 공식 esptool parser를 사용한다.
+MCUboot는 기존 C 검사기와 같은 비압축·비암호화512B header/176B protected TLV
+profile로 제한한 뒤 공식 verifier에 넘긴다. CANView 고정168B metadata와 version을
+signed manifest에 대조하며 release_sequence는 정수 u64 그대로 비교한다.
+package 안의 key/identity를 신뢰 root로 채택하지 않는다.
+
+```powershell
+python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota-native-build.lock
+python -m pip install --no-build-isolation --require-hashes -r tools/requirements-ota-native.lock
+python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD --layout LAYOUT --epoch 7 --key-id 11 --native --esp-public-key esp-public.pem --stm-public-key stm-public.pem --mcuboot-root C:/cv/mcuboot-2.4.0 check output.cvota
+```
+
+같은 global 옵션 뒤에 `assemble input.json signature.bin output.cvota esp.bin stm.bin`을
+사용하면 모든 요청 검증을 마친 뒤에만 새 파일을 만든다. `--native` 없이 native key
+옵션을 주면 조용히 무시하지 않고 실패한다. ESP/STM key는 해당 target이 있을 때 필수다.
+Controller/Bridge는 ESP 공개키만 필요하며 STM checkout을 요구하지 않는다.
+MCUboot checkout은 toolchain manifest의 commit 및 clean 상태를 확인한다.
+서명키 생성이나 signing service는 추가하지 않는다. 공식 도구로 이미 서명한 image와
+외부 detached manifest 서명을 받아 조립·검증하는 경계다.
+
+성공 출력은 `NATIVE_SIGNATURES_AND_METADATA_MATCHED`이며 로컬 호환성/floor·설치
+승인은 여전히 `NOT_VERIFIED`다. Host 임시 디렉터리에는 image와 공개키만 기록한다.
+공식 verifier의 실패·timeout·의존성 누락은 실패이며 Flash/serial/provisioning을 호출하지 않는다.
+입력 길이는 기존 manifest 상한을 따르지만 host의 image 복사·SDK 객체·subprocess를
+포함한 peak RAM/WCET 보장은 아니다. 모든 MCU timing/heap/HIL gate와 구분한다.
+
+Windows CPython3.14용 새 lock은 공식 PyPI의 esptool sdist와 dependency wheel hash를
+고정한다. esptool에는 wheel이 없어 고정 setuptools82.0.1을 먼저 설치한 후 build
+isolation을 끈다. SDK를 임의 patch하거나 다른 암호 구현으로 바꾸지 않는다.
+`ota-native-container` CTest는 보존 golden, 다른 identity의 ESP3역할, u64 경계,
+outer-valid/native-invalid·metadata mismatch·잘못된 key·기존 출력 보존을 검사한다.
+
 ## Head 검사
 
 - 입력은 호출 동안만 빌리고 저장하지 않는다. output과 입력은 겹치면 안 된다.
@@ -51,8 +106,8 @@ integer key profile은 내부 구현 후보이며 최종 manifest 필드 schema�
 입력은 호출 동안 읽기만 하며 보존하지 않는다. 재귀·heap·callback·공유 가변
 상태가 없어서 불변 입력을 사용하는 독립 호출은 thread-safe다. 실행량은 byte와
 item 수에 선형이지만 실제 MCU 시간·전체 call-chain stack은 별도 측정해야 한다.
-부분 입력은 INCOMPLETE이며 내부 수신 상태를 유지하지 않는다. 상위 streaming
-API는 아직 없다. OK는 구조 검사 성공일 뿐 Flash writer를 호출하지 않는다.
+부분 입력은 INCOMPLETE이며 CBOR 검사기 자체는 내부 수신 상태를 유지하지 않는다.
+부분 수신은 아래 prefix 조립기가 담당한다. OK는 구조 검사 성공일 뿐 Flash writer를 호출하지 않는다.
 
 `tools/ota/cbor.py`는 별도 Python encoder/decoder이며 동일 제한·반환 분류를
 시험한다. host 객체와 출력 buffer를 사용하므로 C의 무할당 구현과 구분한다.
@@ -61,11 +116,21 @@ API는 아직 없다. OK는 구조 검사 성공일 뿐 Flash writer를 호출�
 host build 뒤 `ctest --test-dir build/host-debug -R ota-cbor --output-on-failure`다.
 
 상위 manifest schema·서명 검사·body streaming은 아래 절의 구현을 사용한다.
-prefix 부분 수신 조립·완전한 signed packager/golden·정상 target 연결과 최종 검증은
+완전한 native signed packager/golden·정상 target 연결과 최종 검증은
 남아 있다. 현재 production app은 이 primitive를
 호출하지 않으며 physical/HIL은 NOT_RUN이다. 내부 header는 최종 public API가 아니다.
 
 ## 서명 prefix 연결 후보
+
+`canview_ota_prefix_init/feed/finish()`는 caller의 고정16KiB급 buffer에서 prefix만
+조립한다. 단일 owner가 task stack 밖에 보관하며 입력 chunk는 호출 중만 빌린다.
+호출당 최대16KiB 복사·전체 최대16472B이고 heap/암호 callback은 없다. body가 같은
+chunk에 있으면 `consumed` 뒤를 보존해 다음 단계에 전달한다. NULL/겹침/미초기화
+인자는 context를 변경하지 않으며 길이·중복·누락 오류는 init 전까지 보존한다.
+timeout/연결 종료 시 owner가 init으로 부분 입력을 폐기해야 한다. 자동 재개나 시간
+판정은 하지 않는다. 완료 OK는 미인증 byte 조립일 뿐이며 기존 body open의 서명·정책
+검사를 통과해야 한다. CTest `ota-prefix-stream`, `ota-container`가 수신 경계와
+실제 P256/SHA-256 CNG body 연결·borrowed buffer 수명을 검사한다.
 
 `src/envelope.c`는 작은 header+CBOR+서명 prefix를 검사한다. `tools/ota/envelope.py`
 는 같은 prefix 뒤에 image bytes를 순서대로 붙이는 조립 함수다. 압축/파일시스템
@@ -99,7 +164,9 @@ Windows host 교차 시험만 Microsoft CNG의 실제 P256/SHA-256을 사용한�
 `cryptography==48.0.0`으로 메모리에서 임시 개인키를 생성·서명하고 CNG가 검증한다.
 개인키는 파일/Git/장치에 저장하지 않는다. 합성 image는 부팅 가능하거나 image
 자체 서명이 검증된 firmware가 아니다. board/epoch/호환성은 아래 typed manifest와
-preflight가 검사한다. 부팅·Flash writer 연결과 영속 signed golden fixture는 남아 있다.
+preflight가 검사한다. 부팅·Flash writer 연결은 남아 있다. 별도의 보존
+[signed golden](../../tests/fixtures/ota-signed-golden/README.md)은 실제 SDK ESP BIN과
+공식 ESP/STM signing 도구를 사용하며 위 임의 bytes 시험과 구분한다.
 CNG provider는 장치 firmware에 링크하지 않는다.
 
 Windows x64 CPython3.14에서는 먼저 `python -m pip install --only-binary=:all:
@@ -214,9 +281,76 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 
 `HASHES_MATCHED`는 **native image signature/protected metadata·최신 version floor 재검증,
 설치 직전 로컬 상태 재확인, Flash read-back, 설치 또는 PREPARED 승인과 별개**다.
-이 모듈에는 writer·boot selector callback 자체가 없다. prefix의 부분 수신 조립,
-전체 signed packager/검사 CLI/golden, 실제 ESP/STM provider와 정상 target 통합은 남아 있다.
+이 모듈에는 writer·boot selector callback 자체가 없다. prefix 부분 수신과 outer 조립/
+검사 CLI·보존 signed golden과 host `--native` 연결은 구현되어 있다.
+실제 ESP/STM provider와 정상 target owner 통합·최종 검증은 남아 있다.
 schema와 서명 전 JSON 작성 도구는 위 절의 구현을 사용한다.
+
+## 수신 저장 호출 순서
+
+수신 저장과 연결할 때는 [stage.h](src/stage.h)의 수신 전용 조정 함수를 사용한다.
+순서는 `body_open(서명/identity/길이/호환성/floor) → storage.begin →
+body_feed 성공 뒤 storage.write → body_finish 뒤 storage.verify`다.
+실제 erase/write/partition 선택은 BSP provider가 소유하며, parser 안에 SDK 호출이나
+Flash 주소를 넣지 않는다. 새 설치 상태기계·journal·재부팅·비동기 queue는 없다.
+
+stage는 `{0}`인 단일 task 소유 고정 context와 기존 body를 사용한다. prefix/chunk는
+호출 중만 빌리고 복사하지 않는다. 모든 callback은 동기이고 재진입은 RESOURCE_BUSY다.
+호출 실패 뒤 추가 write/native 검증을 차단하며 reset이 storage close와 body cleanup을
+수행한다. partial begin도 close하며 cleanup 실패 시 최초 오류와 context를 보존한다.
+`EMPTY → RECEIVING → NATIVE_MATCHED`, 오류 시 `FAILED → reset → EMPTY`로 전이한다.
+NATIVE_MATCHED도 PREPARED·boot selector·사용자 승인·설치 권한이 아니다.
+
+storage.begin은 검증된 enum target을 고정 비활성 slot/staging map에만 대응해야 한다.
+write는 prefix 이후 컨테이너 절대 offset·padding을 받으며 read-back 뒤에만 OK다.
+verify는 저장된 image 전체 native hash/서명/metadata를 대조한다. provider는 prefix/
+manifest 입력을 호출 뒤 보존하지 않고 필요한 상태만 자신의 context에 복사한다.
+어떤 callback도 설치나 journal commit을 수행하면 안 된다. 로컬 freshness·전원·실제
+partition allowlist는 T-204/T-107, 승인·영속 정책은 T-205에서 추가 검증한다.
+
+`ota-stage-order`는 실제 C parser와 storage/native callback 모형을 연결한다. 세 역할,
+금지 target·wrong identity, 사전 검증 실패, 부분 입력·중복/hole·본문 변조, provider 실패,
+callback 재진입·cleanup 재시도와 출력 상태를 검사한다. Windows의
+`ota-stage-order-crypto`만 outer P256/SHA256에 실제 CNG를 사용한다. storage/native
+callback은 양쪽 모두 모형이며 실제 Flash/장치 서명 검증 증거가 아니다.
+Open 인자 방어는 정상 입력의 begin/close 양성 대조 뒤 한 인자만 바꿔 검사한다.
+중첩 시험은 정렬된 stage storage에 유효 값을 복사하고 제어 필드는 보존한다.
+Reset 전에 body가 EMPTY인지 확인해 하위 parser가 입력을 지운 뒤 같은 오류를
+반환하는 경우와 사전 거절을 구별한다. `ota-stage-oracle`은 사전 begin·거절 후
+write·native 오류 무시·hash context 및 identity 중첩 방어 삭제의 다섯 실제 C
+mutant를 컴파일해 정상 exit0/변이 CHECK 실패 exit1을 요구한다.
+SDK fixture는 stage 네 API를 compile/link하고 NULL 계약만 연결한다. 이 단계에서도
+실제 writer allowlist·장치 실행·total stack/heap/WCET는 NOT_RUN/후속 gate다.
+
+### 정적 자원 근거와 장치 측정 경계
+
+ESP-IDF6.0.3의 현재 Xtensa fixture ELF DWARF에서 prefix16488B, body856B,
+stage896B, PSA context108B를 확인했다. stage는 body를 포함하므로 둘을 더하지 않는다.
+실제 receiver는 prefix/body/PSA를 static으로 배치해17452B를 사용한다. 향후 같은
+prefix/PSA와 stage를 배치하면17492B이며, 별도16KiB chunk buffer까지 둔다면33876B다.
+후자의 합계는 통합 전 산술량이며 실제 정상 앱의 전체 RAM이나 여유량이 아니다.
+입력 native image는 호출 중 빌리며 이 context에 전체 image를 복사하지 않는다.
+
+현재 compiler의 자체 stack frame은 stage open48B·feed/finish/reset32B,
+manifest_check880B·CBOR validate208B·STM native144B다. 각 `.su` 값은 다른
+함수와 SDK 호출 chain을 포함하지 않으며 합산만으로 총 stack을 인증하지 않는다.
+[수신 fixture](../../tests/fixtures/idf-ota-image/README.md#전체-컨테이너-수신-fixture)의
+stack16384B 역시 예약량이지 측정으로 보증한 값이 아니다.
+
+CBOR는16KiB/2048item/depth8로 제한하고 재귀·heap 없이 byte/item에 선형이다.
+Manifest P256 검증은 open당1회이며 역할별 image는 최대2개, ABI 조합은 최대16개다.
+Body feed는 최대16KiB를 소비하고 image 경계에서만 hash finish/start를 수행한다.
+전체 payload의 SHA256은 image당1회이며 native 검증은 별도다. STM native 검사는
+최대180KiB image를 SHA256으로 최대2회 읽고 P256을1회 호출한다. 이 연산량 상한과
+host 시험 timeout은 MCU 실행시간/WCET가 아니다. callback 내부 지연은 portable
+core가 선점하거나 timeout으로 중단하지 못하므로 단일 owner가 watchdog·응답 예산을
+실제 target에서 검증해야 한다.
+
+PSA adapter는 volatile 공개키1개와 hash operation1개를 소유한다. SDK 내부 할당은
+없다고 가정하지 않으며 부족/실패와 cleanup 재시도를 시험한다. SDK 내부 peak heap,
+전체 stack high-water·최대 크기 입력 시간·watchdog 지연은 장비 부재로 NOT_RUN이다.
+Owner는 T-204/T-107의 target 구현자, 영속 정책 연결은 T-205, 실측 gate는 T-508 및
+해당 장치 qualification 전이다. foundation의 합성 budget fixture로 대체하지 않는다.
 
 ## 로컬 호환성 사전 검사
 
@@ -277,6 +411,24 @@ recovery 실행이나 과거 transaction 성공은 설치 증거가 아니다. �
 `ctest --test-dir build/host-debug -R 'ota-version-floor|ota-body' --output-on-failure`
 로 순수 비교와 body 연결을 검사한다. 영속 A/B·실제 앱 검사 provider·전원 차단 검증은
 아직 남아 있으며 host snapshot 모형을 물리/HIL 결과로 표시하지 않는다.
+
+## ESP-IDF 암호 provider
+
+[PSA adapter](../../firmware/platform/esp32s3/ota_crypto.h)는 기존 manifest callback과
+body SHA256 함수표에 ESP-IDF6.0.3의 PSA Crypto를 연결한다. BSP가 공급하는 역할별
+신뢰 P256 공개키를 volatile/VERIFY_MESSAGE 전용으로 import한다. 입력 package의
+공개키나 개인키·영속 key 생성은 처리하지 않는다. context마다 key1개/hash operation1개를
+소유하며 크기는 manifest/chunk16KiB, raw signature64B, digest32B로 제한한다.
+
+한 task가 직렬 호출하며 ISR/동시 호출은 금지한다. 입력은 호출 중만 빌리고, context와
+겹치는 입력/출력과 SDK 재진입은 거절한다. setup/update/finish 실패 후에는 reset을
+완료해야 재사용할 수 있다. body_reset 성공 뒤 crypto_close로 key를 해제한다.
+abort/destroy 실패 시 handle을 지우지 않고 close 재시도 동안 새 검증/hash를 차단한다.
+SDK 내부 자원 부족은 실패로 전파하며 portable core에 SDK header를 넣지 않는다.
+
+`ota-psa-provider` CTest는 실제 adapter의 실패·수명·재진입 **모형**이다. 실제 SDK
+fixture에서도 compile/link하지만 모형 PASS를 실제 PSA 암호 실행으로 표시하지 않는다.
+정상 OTA owner/BSP root provider 연결과 MCU 실행은 아직 남아 있다. 설치/Flash 권한은 없다.
 
 ## STM native image 검사
 

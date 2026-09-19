@@ -24,6 +24,105 @@ static uint32_t envelope_u32(const uint8_t *bytes)
            ((uint32_t)bytes[3] << (3U * BYTE_BITS));
 }
 
+static bool prefix_overlaps(const void *left, size_t left_size, const void *right, size_t right_size)
+{
+    const uintptr_t start_left = (uintptr_t)left;
+    const uintptr_t start_right = (uintptr_t)right;
+    if (left_size > UINTPTR_MAX - start_left || right_size > UINTPTR_MAX - start_right)
+    {
+        return true;
+    }
+    return start_left < start_right + right_size && start_right < start_left + left_size;
+}
+
+canview_status_t canview_ota_prefix_init(canview_ota_prefix_t *prefix)
+{
+    if (prefix == NULL)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    (void)memset(prefix, 0, sizeof(*prefix));
+    prefix->initialized = true;
+    return CANVIEW_OK;
+}
+
+canview_status_t canview_ota_prefix_finish(const canview_ota_prefix_t *prefix)
+{
+    if (prefix == NULL || !prefix->initialized)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (prefix->error != CANVIEW_OK)
+    {
+        return prefix->error;
+    }
+    return prefix->expected_size != 0U && prefix->received == prefix->expected_size ?
+        CANVIEW_OK : CANVIEW_INCOMPLETE;
+}
+
+canview_status_t canview_ota_prefix_feed(canview_ota_prefix_t *prefix, size_t offset,
+    const uint8_t *input, size_t size, size_t *consumed)
+{
+    if (prefix == NULL || input == NULL || consumed == NULL ||
+        prefix_overlaps(prefix, sizeof(*prefix), input, size) ||
+        prefix_overlaps(prefix, sizeof(*prefix), consumed, sizeof(*consumed)) ||
+        prefix_overlaps(input, size, consumed, sizeof(*consumed)))
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    *consumed = 0U;
+    if (!prefix->initialized)
+    {
+        return CANVIEW_INVALID_ARGUMENT;
+    }
+    if (prefix->error != CANVIEW_OK)
+    {
+        return prefix->error;
+    }
+    if (size == 0U || size > CANVIEW_OTA_PREFIX_CHUNK_MAX)
+    {
+        prefix->error = size == 0U ? CANVIEW_INVALID_ARGUMENT : CANVIEW_OVERSIZE;
+        return prefix->error;
+    }
+    if (offset != prefix->received || canview_ota_prefix_finish(prefix) == CANVIEW_OK)
+    {
+        prefix->error = offset > prefix->received ? CANVIEW_STALE : CANVIEW_DUPLICATE;
+        return prefix->error;
+    }
+    while (*consumed < size)
+    {
+        const size_t limit = prefix->expected_size == 0U ?
+            CANVIEW_OTA_ENVELOPE_HEADER_BYTES : prefix->expected_size;
+        if (limit > sizeof(prefix->data) || prefix->received >= limit)
+        {
+            prefix->error = CANVIEW_INVALID_ARGUMENT;
+            return prefix->error;
+        }
+        const size_t remaining = limit - prefix->received;
+        const size_t available = size - *consumed;
+        const size_t take = remaining < available ? remaining : available;
+        (void)memcpy(prefix->data + prefix->received, input + *consumed, take);
+        prefix->received += take;
+        *consumed += take;
+        if (prefix->expected_size == 0U && prefix->received == CANVIEW_OTA_ENVELOPE_HEADER_BYTES)
+        {
+            const uint32_t manifest_size = envelope_u32(prefix->data + ENVELOPE_MANIFEST_SIZE_OFFSET);
+            if (manifest_size == 0U || manifest_size > CANVIEW_OTA_ENVELOPE_MANIFEST_MAX)
+            {
+                prefix->error = manifest_size == 0U ? CANVIEW_MALFORMED : CANVIEW_OVERSIZE;
+                return prefix->error;
+            }
+            prefix->expected_size = CANVIEW_OTA_ENVELOPE_HEADER_BYTES + (size_t)manifest_size +
+                CANVIEW_OTA_ENVELOPE_SIGNATURE_BYTES;
+        }
+        if (canview_ota_prefix_finish(prefix) == CANVIEW_OK)
+        {
+            break;
+        }
+    }
+    return canview_ota_prefix_finish(prefix);
+}
+
 canview_status_t canview_ota_envelope_check(
     const uint8_t *prefix, size_t size, canview_ota_manifest_verify_fn verify,
     void *context, canview_ota_envelope_t *out)

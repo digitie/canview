@@ -22,7 +22,9 @@ jobs:
         shell: pwsh
         run: |
           . tools/environment/foundation-windows.ps1 -IncludeDocs
-          python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota.lock
+          python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota-native-build.lock
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m pip install --no-build-isolation --require-hashes -r tools/requirements-ota-native.lock
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $mcubootPin = (Get-Content tools/toolchain-versions.json -Raw | ConvertFrom-Json).sdk.mcuboot
           $env:MCUBOOT_ROOT = Join-Path $env:RUNNER_TEMP 'canview-mcuboot'
@@ -303,6 +305,12 @@ jobs:
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
             Invoke-TargetCommand "ota-image-sdk-set-target" { idf.py -C tests/fixtures/idf-ota-image set-target esp32s3 }
             Invoke-TargetCommand "ota-image-sdk-build" { idf.py -C tests/fixtures/idf-ota-image build }
+            Invoke-TargetCommand "ota-image-sdk-metadata" {
+              python -B tests/ota/check_sdk_metadata.py tests/fixtures/idf-ota-image/build/canview_ota_image_sdk_probe.bin
+            }
+            Invoke-TargetCommand "ota-signed-golden-esp" {
+              python -B tests/ota/test_signed_golden.py --esp-sdk
+            }
             foreach ($otaBoard in @('communicator/esp32', 'controller', 'diagnostic-bridge')) {
               $otaName = $otaBoard.Replace('/', '-')
               $otaFlash = if ($otaBoard -eq 'diagnostic-bridge') { '8MB' } else { '16MB' }
