@@ -151,6 +151,9 @@ if(BUILD_TESTING)
         add_test(NAME ota-idf-receiver COMMAND canview-ota-idf-receiver
             ${PROJECT_SOURCE_DIR}/tests/fixtures/ota-signed-golden/communicator.cvota)
         set_tests_properties(ota-idf-receiver PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-idf-receiver-oracle COMMAND ${Python3_EXECUTABLE} -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/check_receiver_oracle.py ${CMAKE_C_COMPILER} $<TARGET_FILE:canview_ota>)
+        set_tests_properties(ota-idf-receiver-oracle PROPERTIES TIMEOUT 150)
         add_executable(canview-ota-envelope-probe tests/ota/envelope_crypto_probe.c tests/ota/cng_provider.c)
         target_include_directories(canview-ota-envelope-probe PRIVATE shared/ota/src shared/interface)
         target_link_libraries(canview-ota-envelope-probe PRIVATE canview_ota canview_warnings bcrypt)

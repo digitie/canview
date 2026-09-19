@@ -1,5 +1,23 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, receiver oracle 조기 인증 오류 회귀 수정)
+
+0acdc45의 [A/B 독립 원문](reviews/adversarial/2026-09-19-T-007-receiver.md)을 보존했다.
+A PASS/B CONDITIONAL이며 B-RX-01 P2를 실제 CNG C mutant로 재현했다. 본문 마지막
+byte를 변조하기 전에 AUTH_FAILED가 나도 이전 status-only oracle은 성공했다.
+변이 feed 자체의 오류와 끝 offset을 함께 요구하도록 고쳤다. 새 회귀 CTest는
+조기 open/feed 오류에서 exit1, 이전 약한 oracle 대조에서 exit0을 확인한다.
+컴파일 실패를 기대 실패로 인정하지 않으며 제품 source는 변경하지 않는다.
+
+Windows Debug/Release146/146, SDK 재빌드·metadata172개 음성 사례·경고0을 확인했다.
+로그는 `build/t007-receiver-oracle-{test,sdk}.log`와
+`build/t007-receiver-post-{debug,release}-test.log`다. 원 reviewer 재확인과 새 CI는 남아 있다.
+0acdc45 CI35421702811의 Windows job 실패는 Doxygen 공식 ZIP 다운로드 실패다.
+진행 중인 target job은 유지했으며 개별 rerun은 GitHub가 거절했다. 이전 d87516a
+CI35420771316은6/6과 target21개/source7개/log28개 경고0을 감사했고 이후 source에
+재사용하지 않는다. 로컬 strict Doxygen/Sphinx·API71개도 통과했다.
+실제 device PSA/Flash/HIL·총 stack/heap/timing은 NOT_RUN, 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, 실제 SDK C parser/body 수신 연결·전체 수용 감사)
 
 기존8개 portable C 파일을 IDF component로 등록하고 read-only signed golden을

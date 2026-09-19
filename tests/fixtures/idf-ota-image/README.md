@@ -89,6 +89,10 @@ SDK 근거는 고정 commit `76f5dedd9950a3012fee8fb7d5586df21fc67802`의
 실제 SHA256을 수행한다. 정상·manifest 서명 변조·body 마지막 byte 변조·local identity
 불일치의4개 기대 결과를 비교한다. 동일 C 흐름은 Windows `ota-idf-receiver`에서
 실제 CNG로 실행한다. CNG 성공을 SDK PSA 장치 실행 성공으로 바꾸지 않는다.
+본문 변이 case는 마지막 byte의 변이 feed에서 AUTH_FAILED가 발생했는지 확인한다.
+`ota-idf-receiver-oracle`은 실제 C 코드를 별도 임시 디렉터리에서 컴파일해 조기
+body_open/feed 오류를 거절하는지 검사한다. 이전 status-only oracle의 false PASS도
+양성 대조한다. Compile 실패나 예외 종료를 변이 검출 성공으로 집계하지 않는다.
 
 읽기 전용 linker 영역에 보존 golden394310B를 넣는다. 공개 합성 root와 합성 floor0는
 시험 전용이며 제품 신뢰 root/영속 policy가 아니다. Native 서명 검증이나 설치 승인을

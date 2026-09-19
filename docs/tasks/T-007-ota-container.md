@@ -118,7 +118,10 @@ golden의 정상·서명/본문 변조·identity 불일치를 검사하며 Flash
 SDK ELF/MAP/BIN 생성·경고0, metadata168개 변이와4개 절단 거절을 확인했다.
 prefix16488B/body856B/PSA108B는 static이며 자체 receiver frame624B다.
 이는 SDK 전체 호출 chain이나 장치 실행시간 근거가 아니다. fixture stack16384B를
-예약했지만 high-water/heap/시간·HIL은 NOT_RUN이고 독립 리뷰는 남아 있다.
+예약했지만 high-water/heap/시간·HIL은 NOT_RUN이다. [독립 delta 리뷰](../reviews/adversarial/2026-09-19-T-007-receiver.md)는
+A PASS/B CONDITIONAL, 조기 오류도 본문 변이 성공으로 집계하는 B-RX-01 P2를 발견했다.
+변이 feed 도달/결과를 대조하도록 고쳤고 실제 조기 open/feed C mutant 거절과
+이전 oracle false PASS를 확인했다. 수정 후 Debug/Release146/146이며 원 reviewer 재확인 대기다.
 
 [전체 수용 감사](../reviews/adversarial/2026-09-19-T-007-acceptance.md)의 d87516a A/B
 판정은 BLOCK이다. 일반 native-aware CLI·target/예산 및 AC3 경계 검증은 OPEN이다.

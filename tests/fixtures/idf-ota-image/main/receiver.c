@@ -54,6 +54,7 @@ bool canview_ota_fixture_receiver_test(const uint8_t *data, size_t size)
         const canview_ota_floor_t floor = {.ready = true, .identity = identity, .count = 2U,
             .records = {{.target = CANVIEW_OTA_TARGET_COMM_ESP}, {.target = CANVIEW_OTA_TARGET_COMM_STM}}};
         canview_status_t status = canview_ota_prefix_init(&prefix);
+        bool body_tamper_rejected = false;
         size_t offset = 0U;
         while (status == CANVIEW_OK || status == CANVIEW_INCOMPLETE)
         {
@@ -82,6 +83,7 @@ bool canview_ota_fixture_receiver_test(const uint8_t *data, size_t size)
                 {
                     const uint8_t changed = data[offset] ^ 1U;
                     status = canview_ota_body_feed(&body, (uint32_t)offset, &changed, 1U);
+                    body_tamper_rejected = status == CANVIEW_AUTH_FAILED;
                     ++offset;
                     break;
                 }
@@ -91,7 +93,8 @@ bool canview_ota_fixture_receiver_test(const uint8_t *data, size_t size)
         }
         if (status == CANVIEW_OK) { status = canview_ota_body_finish(&body); }
         const canview_status_t expected = scenario == 0U ? CANVIEW_OK : CANVIEW_AUTH_FAILED;
-        passed = status == expected;
+        passed = status == expected &&
+            (scenario != FIXTURE_BODY_TAMPER || (body_tamper_rejected && offset == size));
         /* cleanup 실패면 static 자원을 보존하며 SDK close로 수명을 뒤집지 않는다. */
         if (canview_ota_body_reset(&body) != CANVIEW_OK) { return false; }
     }

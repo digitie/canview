@@ -48,7 +48,9 @@ A 정적 PASS·B P3 시험 상수 오류를 반영했고 GCC 시험 크기 경�
 현재 추가분은 기존 C parser/body를 [IDF 공용 component와 수신 fixture](../tests/fixtures/idf-ota-image/README.md)에
 연결한 것이다. 동일 C 수신 흐름의 실제 CNG4건, Windows Debug/Release145/145,
 실제 SDK ELF/MAP/BIN·경고0·metadata172개 음성 사례를 확인했다. SDK 경로의 장치
-실행은 NOT_RUN이며 이번 변경의 독립 리뷰는 아직 남아 있다.
+실행은 NOT_RUN이다. [독립 delta 리뷰](reviews/adversarial/2026-09-19-T-007-receiver.md)는
+A PASS/B CONDITIONAL이다. B-RX-01 P2의 조기 오류 false PASS를 실제 C mutant로
+재현하고 수정했다. 수정 후 Debug/Release146/146이며 원 reviewer 재확인 대기다.
 [전체 T-007 수용 감사](reviews/adversarial/2026-09-19-T-007-acceptance.md)는 d87516a에서
 A/B BLOCK이다. 다음 필수 작업은 일반 CLI의 native 서명/metadata 검사 연결이다.
 T-007 진행 문구와 architecture §12의 후속 writer/policy 소유권 충돌도 명시적으로
