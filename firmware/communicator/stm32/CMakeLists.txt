@@ -253,9 +253,11 @@ if(CANVIEW_MCUBOOT_ROOT)
     add_executable(canview-boot-ram-link-test
         "${CANVIEW_ROOT}/tests/ota/stm32_boot_ram_link.c"
         platform/stm32g474/startup_ram.c platform/stm32g474/startup_flash_ram.c
+        platform/stm32g474/boot_runtime.c platform/stm32g474/safe_gpio.c bsp/board.c
         platform/stm32g474/syscalls.c
         "${STARTUP_SOURCE}" "${SYSTEM_SOURCE}")
-    target_include_directories(canview-boot-ram-link-test PRIVATE interface)
+    target_include_directories(canview-boot-ram-link-test PRIVATE interface bsp bootloader/include
+        platform/stm32g474 "${CANVIEW_ROOT}/firmware/interface" "${CANVIEW_ROOT}/shared/interface")
     target_include_directories(canview-boot-ram-link-test SYSTEM PRIVATE
         "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
     target_link_libraries(canview-boot-ram-link-test PRIVATE canview_boot_flash_guard canview_stm_flash_layout)
@@ -266,7 +268,7 @@ if(CANVIEW_MCUBOOT_ROOT)
         -Wall -Wextra -Werror -ffunction-sections -fdata-sections -fstack-usage
         $<$<CONFIG:Debug>:-Og> $<$<CONFIG:Release>:-Os>
         ${STM32_CAPTURE_ONLY_COMPILE_OPTIONS})
-    set_source_files_properties(platform/stm32g474/startup_flash_ram.c
+    set_source_files_properties(platform/stm32g474/startup_flash_ram.c platform/stm32g474/boot_runtime.c
         "${CANVIEW_ROOT}/tests/ota/stm32_boot_ram_link.c" PROPERTIES
         COMPILE_OPTIONS "-Wpedantic;-Wconversion;-Wshadow;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef;-Werror")
     set_target_properties(canview-boot-ram-link-test PROPERTIES SUFFIX ".elf"

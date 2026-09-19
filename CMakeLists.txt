@@ -82,6 +82,15 @@ if(BUILD_TESTING)
             --ninja ${CMAKE_MAKE_PROGRAM} --mcuboot ${CANVIEW_MCUBOOT_ROOT})
         set_tests_properties(stm32-boot-trust PROPERTIES TIMEOUT 180)
     endif()
+    add_executable(canview-stm-boot-runtime-tests tests/ota/test_stm32_boot_runtime.c
+        firmware/communicator/stm32/platform/stm32g474/boot_runtime.c)
+    target_include_directories(canview-stm-boot-runtime-tests PRIVATE
+        firmware/communicator/stm32/bootloader/include firmware/communicator/stm32/tests
+        firmware/communicator/stm32/bsp shared/interface)
+    target_compile_definitions(canview-stm-boot-runtime-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-boot-runtime-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-boot-runtime COMMAND canview-stm-boot-runtime-tests)
+    set_tests_properties(stm32-boot-runtime PROPERTIES TIMEOUT 30)
     add_executable(canview-stm-flash-guard-tests tests/ota/test_stm32_flash_guard.c
         firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
     target_include_directories(canview-stm-flash-guard-tests PRIVATE

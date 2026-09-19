@@ -114,6 +114,8 @@ extern uint32_t SystemCoreClock;
 #define RCC_CSR_WWDGRSTF UINT32_C(0x40000000)
 #define RCC_CSR_LPWRRSTF UINT32_C(0x80000000)
 #define RCC_CR_HSEON UINT32_C(0x10000)
+#define RCC_CR_HSION UINT32_C(0x100)
+#define RCC_CR_HSIRDY UINT32_C(0x400)
 #define RCC_CR_HSERDY UINT32_C(0x20000)
 #define RCC_CR_HSEBYP UINT32_C(0x40000)
 #define RCC_CR_CSSON UINT32_C(0x80000)
@@ -121,6 +123,7 @@ extern uint32_t SystemCoreClock;
 #define RCC_CR_PLLRDY UINT32_C(0x2000000)
 #define RCC_CFGR_SW UINT32_C(3)
 #define RCC_CFGR_SW_PLL UINT32_C(3)
+#define RCC_CFGR_SW_HSI UINT32_C(1)
 #define RCC_CFGR_SWS UINT32_C(12)
 #define RCC_CFGR_SWS_PLL UINT32_C(12)
 #define RCC_CFGR_SWS_HSI UINT32_C(4)
@@ -158,6 +161,8 @@ extern uint32_t SystemCoreClock;
 #define RCC_CIFR_CSSF UINT32_C(0x100)
 #define RCC_CICR_CSSC UINT32_C(0x100)
 void canview_stm_test_poll(void);
+void canview_stm_boot_test_key(uint32_t value);
+void canview_stm_boot_test_reset(void);
 void canview_stm_test_reset(void);
 void canview_stm_test_before_feed(void);
 uint32_t model_systick_config(uint32_t ticks);
@@ -183,9 +188,12 @@ void canview_stm_test_corrupt_stack(void);
 typedef struct { volatile uintptr_t VTOR; } model_scb_t;
 extern model_scb_t model_scb;
 extern uint32_t model_ipsr, model_control;
+extern uint32_t model_basepri, model_faultmask;
 #define SCB (&model_scb)
 #define __get_IPSR() (model_ipsr)
 #define __get_CONTROL() (model_control)
+#define __get_BASEPRI() (model_basepri)
+#define __get_FAULTMASK() (model_faultmask)
 #if defined(CANVIEW_STM_FLASH_READ_TEST)
 void canview_stm_read_test_barrier(void);
 #define __DSB() canview_stm_read_test_barrier()

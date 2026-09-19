@@ -1,5 +1,32 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, boot bounded progress와 IWDG)
+
+T-107의 HSI16/DWT/IWDG runtime을 C99로 구현했다. 기존 BSP safe output과 SDK startup을
+재사용하고 앱 PLL/RTOS/새 timer 계층은 넣지 않았다. nominal30초 boot budget·100ms
+최소 feed 간격, context/config 검사와 fault latch의 전제는 [포트 설명](../firmware/communicator/stm32/bootloader/README.md#boot-시간원과-watchdog--최종-loader-연결-전)에 둔다.
+초기 초안의 WINR 쓰기를 없애 공식 SDK의 PR/RLR→SR 대기→reload 순서로 맞췄다.
+Window가 reset값이 아니면 거절한다. API 문서와 실제 코드의 소유권을 함께 갱신했다.
+
+새 register 시험은 lifecycle/partial init/멈춘 시간/단일 wrap/역행/deadline/context/
+설정 변이와 feed 제한을 검사했다. Windows Clang Debug와 Linux GCC가 통과했고,
+Clang ASan/UBSan·coverage는 line95.65%, branch98.75%, function100%다.
+ready 직후 deadline이 넘어가는 두 번째 방어 검사 한 분기는 host 미재현이다.
+`build/t107-runtime-sanitize-coverage.log`에 수치를 보존했다. 실제 IWDG reset이나
+debug freeze·LSI 편차·실기 swap 총 시간은 검증하지 않았다.
+
+`build/t107-runtime-final-primary-{debug,release}.log`에서 실제 Arm SRAM link 시험
+ELF/MAP/BIN4956/3660B, copy1048/824B, compiler/linker/CMake warning0을 확인했다.
+제품 runtime은 실제 SDK와 링크하지만 boot_go/정책/handoff가 없는 비배포 시험이다.
+`build/t107-runtime-docs.log`의 Doxygen/Sphinx strict·public API73개, board drift0,
+문서401/1498·task49 errors0도 확인했다. 전체 host D/R 회귀와 새 독립 리뷰는 진행 중이다.
+
+이전 기준선 ce3fe1f의 CI35440849349는 success/completed다. 내려받은 target artifact
+33개 size/SHA256, 해당 Git source15개 LF/CRLF 정규화 hash, target logs34개 warning/error0을
+별도 대조했다. `build/t107-runtime-base-ci-35440849349`가 증거 위치다. 새 후보 CI 결과로
+대체하지 않는다. Physical/HIL·Flash·option-byte·production provisioning은 NOT_RUN,
+차량 TX는 NO-GO이며 T-107은 IN_PROGRESS다. 사용자 checkout/SDK는 변경하지 않았다.
+
 ## 2026-09-19 (codex, boot SRAM linker와 SDK 복사 연결)
 
 T-107의 code/read SRAM section을 boot64KiB linker에 배치하고 기존 Cube Reset_Handler

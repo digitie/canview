@@ -28,8 +28,8 @@
   작성하지 않는다. ASN1 allocator와 키 생성용 RNG는 실패를 반환한다. 검증에 heap은
   필요하지 않으며 사용하지 않는 upstream split-image allocator도 거절한다.
 - header512B/offset-swap/primary validation/FIH MEDIUM/97 sectors를 고정한다.
-  Release에서도 upstream assert를 유지한다. 실제 watchdog 진행/시간 판정은 미구현이며
-  host의 progress count는 watchdog 검증이 아니다.
+  Release에서도 upstream assert를 유지한다. 아래 target runtime이 watchdog 진행/시간을
+  제한한다. 기존 host boot_go 모형의 progress count는 실제 watchdog 검증이 아니다.
 - `image_hooks.c`는 기존 T-007 metadata 대조 함수를 재사용한다. header512/padding,
   단일 protected TLV0xA0/168B, 일반 SHA256/keyhash/ECDSA TLV 순서·길이와 전체180KiB
   경계를 검사한다. 별도 identity 공급 계약이 board/role/layout/제조 epoch/STM ABI의
@@ -208,7 +208,7 @@ read는256B 이하, write는8B, erase는2KiB 단위로 기존 primitive를 호�
   이전 boot에서 torn word가 FF/ECC처럼 보일 때의 재개 결정은 상위 MCUboot/복구 책임이다.
 - erase는 한 page 명령 뒤256B씩 전체 page read-back이 FF인지 확인한다.
   검증된 program/page 완료에서만 기존 progress hook을 호출한다. 이 hook 호출은
-  무조건 watchdog feed가 아니며 target 시간·진행 판정 구현은 아직이다.
+  무조건 watchdog feed가 아니며 아래 runtime의 시간·상태 조건을 함께 만족해야 한다.
 - 큰 read가 실패하면 앞선 chunk가 destination에 남을 수 있으므로 호출자는 전체 출력을
   버려야 한다. 실패한 write/erase도 이전 단위의 효과가 남을 수 있다. API 단위 원자성을
   약속하지 않으며, 기존 MCUboot swap/trailer와 상위 재개 정책이 이를 소유한다.
@@ -232,7 +232,7 @@ Arm archive에서 실제 read/명령/IO를 컴파일하고 아래 SRAM link 시�
 RX/RW ELF segment는 분리하지만 MPU 보호를 설정했다는 뜻은 아니다.
 
 `canview-boot-ram-link-test.elf/.map/.bin`은 실제 제품 Flash C와 SDK startup을
-이 배치에 link하는 **비배포 시험 image**다. boot_go, watchdog, 정책, handoff가 없으므로
+이 배치에 link하는 **비배포 시험 image**다. safe output과 watchdog은 연결했지만 boot_go, 정책, handoff가 없으므로
 장치에 flash하지 않으며 최종 bootloader binary나 runtime 수용으로 계산하지 않는다.
 App VTOR macro는 source-global이 아닌 target-local로 바꿔 boot0x08000000과
 primary0x08010200의 SystemInit 컴파일을 분리했다. SDK 원본은 변경하지 않았다.
@@ -243,6 +243,36 @@ startup/VTOR592bit·preinit32bit 변이와 비연속/정렬/누락 입력을 거
 linker의64KiB 초과·정렬·SRAM 크기·VMA gap·CCM 오류도 시험한다.
 CI는 시험 산출물6개를 기존 target evidence manifest에 별도 이름으로 보존한다.
 전체 MCUboot call-chain stack과 실제 SRAM 실행·ECC/reset/HIL은 아직 NOT_RUN이다.
+
+## Boot 시간원과 watchdog — 최종 loader 연결 전
+
+`platform/stm32g474/boot_runtime.c`는 SDK startup 이후의 privileged MSP main 단일
+owner다. 기존 BSP `enter_safe_state` 성공 뒤 한 번만 시작하며, CAN/UART/DMA/IRQ를
+시작하지 않는다. 앱의 PLL·SysTick·TIM2·worker watchdog을 가져오지 않고 reset HSI16,
+DWT cycle counter, IWDG만 사용한다. API·실패 계약은
+[`canview_boot_runtime.h`](include/canview_boot_runtime.h)에 있다.
+
+- HSI16/분주 없음, boot VTOR, IPSR/CONTROL/PRIMASK/BASEPRI/FAULTMASK를 확인한다.
+  DWT 실제 증가를 최대1024회 확인하고 LSI/IWDG 동기화는 각100만회로 제한한다.
+  counter는 reset하지 않는다. 단일 wrap은 unsigned 차이로 처리하며, 정지나 역행,
+  clock/config/context 오류·시간 만료는 실패로 latch한다. 초기화 실패도 재시도하지 않는다.
+- IWDG prescaler256/reload4095를 설정하고 reset window4095는 쓰지 않는다.
+  WINR 쓰기는 암묵 reload를 일으키므로 정상 reset값이 아니면 시작부터 거절한다.
+  고정 CubeG4 v1.6.3 `stm32g4xx_hal_iwdg.c`의 PR/RLR→SR 대기→reload 순서를 따른다.
+  LSI/동기화·전체 상태 확인 후 최초 한 번, 이후 MCUboot hash/검증된 Flash progress와
+  nominal100ms 간격 조건을 만족할 때만 reload한다. ISR이나 준비 상태 조회는 feed하지 않는다.
+- nominal30초 boot budget을 넘으면 progress가 계속 와도 feed를 중단한다. 이는 초기
+  보수적 구현값이지 측정된 swap 시간이나 독립 wall-clock 증거가 아니다. DWT full-wrap
+  전에 IWDG가 reset한다는 전제, debug halt/freeze, HSI/LSI 오차, Flash stall과 전체
+  MCUboot 실행 시간은 실제 보드에서 확인해야 한다. 이 조건을 만족할 때까지 배포하지 않는다.
+- 성공한 `boot_go`만으로 앱에 진입하지 않는다. 최종 caller가 정책/서명/vector와
+  runtime readiness를 확인해야 하며 handoff는 아직 미구현이다. 실패 시 safe output을
+  유지하고 무조건 feed하지 않는다. runtime 자체가 recovery 정책이나 TX gate가 아니다.
+
+`stm32-boot-runtime`은 같은 C의 초기화·중복 호출·partial init·ISR/context·clock 설정
+변이·timeout·wrap·counter 정지·deadline·feed rate·fault latch를 register 모형에서 검사한다.
+Arm link 시험은 기존 BSP safe output을 먼저 호출하고 runtime을 실제 SDK와 링크한다.
+Host 모형은 IWDG 전기 동작·실제 reset/전원/HIL을 증명하지 않는다. 모두 NOT_RUN이다.
 
 ## SRAM reset 전제와 ECC errata
 

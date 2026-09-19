@@ -50,7 +50,7 @@ class BootRamTests(unittest.TestCase):
         commands = json.loads((build / "compile_commands.json").read_text(encoding="utf-8"))
         objects = [str((Path(c["directory"]) / c["output"]).resolve()) for c in commands
                    if "canview-boot-ram-link-test.dir" in c["output"]]
-        self.assertEqual(len(objects), 6)
+        self.assertEqual(len(objects), 9)
         source = (ROOT / "firmware/communicator/stm32/ld/STM32G474CEUx_BOOT.ld").read_text(encoding="utf-8")
         cases = [(source, None),
                  (source.replace("LENGTH = 64K", "LENGTH = 1K"), "overflowed"),
