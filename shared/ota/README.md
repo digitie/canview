@@ -28,6 +28,25 @@ python -B tools/ota/manifest_json.py input.json output.cbor
 다음 packager 단계에서 실제 native image 검증·서명과 결합해야 한다. 현재 schema도
 최종 독립 리뷰 전 구현 후보이며 배포 승인을 뜻하지 않는다.
 
+## 바깥 컨테이너 조립·검사
+
+`tools/ota/container.py`는 위 CBOR의 외부 detached raw P256 서명과 image들을 조립하고,
+신뢰된 공개키/identity로 manifest·전체 길이·zero padding·image SHA-256을 검사한다.
+기존 `cryptography`와 typed 검사기를 재사용하며 개인키를 생성·읽기·저장하지 않는다.
+새 파일만 만들고 기존 출력은 덮어쓰지 않는다. 입력 검증 실패 시 출력 파일을 만들지
+않으며 OS 쓰기 실패의 부분 파일도 성공으로 표시하지 않는다.
+
+```powershell
+python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD --layout LAYOUT --epoch 7 --key-id 11 assemble input.json signature.bin output.cvota esp.bin stm.bin
+python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD --layout LAYOUT --epoch 7 --key-id 11 check output.cvota
+```
+
+서명 입력은 정확한 CBOR이고 raw 서명은 big-endian `r[32] || s[32]`다. image 순서는
+manifest와 같아야 한다. 성공은 `MANIFEST_AND_HASHES_MATCHED`일 뿐 native image 서명,
+로컬 compatibility/floor, Flash 쓰기·설치 승인이 아니다. 정상 native packager/golden과
+target owner 연결은 아직 남아 있다. host 입력은 format 상한으로 제한하며 MCU에는
+전체 package를 메모리에 올리지 않는다.
+
 ## Head 검사
 
 - 입력은 호출 동안만 빌리고 저장하지 않는다. output과 입력은 겹치면 안 된다.
@@ -51,8 +70,8 @@ integer key profile은 내부 구현 후보이며 최종 manifest 필드 schema�
 입력은 호출 동안 읽기만 하며 보존하지 않는다. 재귀·heap·callback·공유 가변
 상태가 없어서 불변 입력을 사용하는 독립 호출은 thread-safe다. 실행량은 byte와
 item 수에 선형이지만 실제 MCU 시간·전체 call-chain stack은 별도 측정해야 한다.
-부분 입력은 INCOMPLETE이며 내부 수신 상태를 유지하지 않는다. 상위 streaming
-API는 아직 없다. OK는 구조 검사 성공일 뿐 Flash writer를 호출하지 않는다.
+부분 입력은 INCOMPLETE이며 CBOR 검사기 자체는 내부 수신 상태를 유지하지 않는다.
+부분 수신은 아래 prefix 조립기가 담당한다. OK는 구조 검사 성공일 뿐 Flash writer를 호출하지 않는다.
 
 `tools/ota/cbor.py`는 별도 Python encoder/decoder이며 동일 제한·반환 분류를
 시험한다. host 객체와 출력 buffer를 사용하므로 C의 무할당 구현과 구분한다.
@@ -61,11 +80,21 @@ API는 아직 없다. OK는 구조 검사 성공일 뿐 Flash writer를 호출�
 host build 뒤 `ctest --test-dir build/host-debug -R ota-cbor --output-on-failure`다.
 
 상위 manifest schema·서명 검사·body streaming은 아래 절의 구현을 사용한다.
-prefix 부분 수신 조립·완전한 signed packager/golden·정상 target 연결과 최종 검증은
+완전한 native signed packager/golden·정상 target 연결과 최종 검증은
 남아 있다. 현재 production app은 이 primitive를
 호출하지 않으며 physical/HIL은 NOT_RUN이다. 내부 header는 최종 public API가 아니다.
 
 ## 서명 prefix 연결 후보
+
+`canview_ota_prefix_init/feed/finish()`는 caller의 고정16KiB급 buffer에서 prefix만
+조립한다. 단일 owner가 task stack 밖에 보관하며 입력 chunk는 호출 중만 빌린다.
+호출당 최대16KiB 복사·전체 최대16472B이고 heap/암호 callback은 없다. body가 같은
+chunk에 있으면 `consumed` 뒤를 보존해 다음 단계에 전달한다. NULL/겹침/미초기화
+인자는 context를 변경하지 않으며 길이·중복·누락 오류는 init 전까지 보존한다.
+timeout/연결 종료 시 owner가 init으로 부분 입력을 폐기해야 한다. 자동 재개나 시간
+판정은 하지 않는다. 완료 OK는 미인증 byte 조립일 뿐이며 기존 body open의 서명·정책
+검사를 통과해야 한다. CTest `ota-prefix-stream`, `ota-container`가 수신 경계와
+실제 P256/SHA-256 CNG body 연결·borrowed buffer 수명을 검사한다.
 
 `src/envelope.c`는 작은 header+CBOR+서명 prefix를 검사한다. `tools/ota/envelope.py`
 는 같은 prefix 뒤에 image bytes를 순서대로 붙이는 조립 함수다. 압축/파일시스템

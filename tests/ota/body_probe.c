@@ -20,6 +20,7 @@
 #define PROBE_FAULT_FINISH (3U)
 #define PROBE_FAULT_RESET (4U)
 #define PROBE_REPEAT_CLEANUP_SCENARIO (9U)
+#define PROBE_PREFIX_STREAM_SCENARIO (10U)
 #define PROBE_CLEANUP_RETRIES (2U)
 
 #if !defined(CANVIEW_TEST_CNG)
@@ -194,6 +195,8 @@ static bool probe_arguments(void)
 
 int main(void)
 {
+    /* 시험 실행기 단일 owner storage. firmware task stack 사용 예제가 아니다. */
+    static canview_ota_prefix_t collected;
     uint8_t header[PROBE_HEADER_BYTES];
     uint8_t local_bytes[PROBE_RUNTIME_BYTES];
     uint8_t prefix[CANVIEW_OTA_ENVELOPE_PREFIX_MAX + 1U];
@@ -243,7 +246,7 @@ int main(void)
         const uint32_t policy_case = probe_u32(header + 24U);
         probe.fault = probe_u32(header + 20U);
         if (role < 1U || role > 3U || prefix_size > sizeof(prefix) || body_size > PROBE_WIRE_MAX ||
-            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > PROBE_REPEAT_CLEANUP_SCENARIO || policy_case > 5U ||
+            chunk_size == 0U || chunk_size > sizeof(chunk) || scenario > PROBE_PREFIX_STREAM_SCENARIO || policy_case > 5U ||
             (probe.fault & 0xFFU) > PROBE_FAULT_RESET || (probe.fault >> 8U) > 1U ||
             fread(local_bytes, 1U, sizeof(local_bytes), stdin) != sizeof(local_bytes) ||
             probe_u32(local_bytes) > 1U ||
@@ -278,7 +281,25 @@ int main(void)
         runtime.hardware_capabilities = (uint64_t)probe_u32(local_bytes + 32U) |
             ((uint64_t)probe_u32(local_bytes + 36U) << 32U);
         const canview_ota_floor_t *policy = policy_case == 5U ? NULL : &floor;
-        canview_status_t status = canview_ota_body_open(&body, prefix, prefix_size, &identity, &runtime, policy, probe_verify, &probe, &hash);
+        const uint8_t *assembled = prefix;
+        if (scenario == PROBE_PREFIX_STREAM_SCENARIO)
+        {
+            if (canview_ota_prefix_init(&collected) != CANVIEW_OK) { return 1; }
+            size_t offset = 0U;
+            while (offset < prefix_size)
+            {
+                const size_t count = prefix_size - offset < chunk_size ? prefix_size - offset : chunk_size;
+                size_t taken = 0U;
+                const canview_status_t partial = canview_ota_prefix_feed(&collected, offset, prefix + offset, count, &taken);
+                if ((partial != CANVIEW_OK && partial != CANVIEW_INCOMPLETE) || taken != count) { return 1; }
+                offset += taken;
+            }
+            /* 이 mode는 구조상 완전한 prefix만 받는다. collector 자체 reject는 별도 C 시험이다. */
+            if (canview_ota_prefix_finish(&collected) != CANVIEW_OK || collected.received != prefix_size) { return 1; }
+            (void)memset(prefix, 0xA5, sizeof(prefix));
+            assembled = collected.data;
+        }
+        canview_status_t status = canview_ota_body_open(&body, assembled, prefix_size, &identity, &runtime, policy, probe_verify, &probe, &hash);
         if (status != CANVIEW_OK && probe.fault == 0U && probe.start_calls != 0U)
         {
             return 1;
@@ -302,6 +323,7 @@ int main(void)
         }
         /* borrowed prefix/identity/함수표를 덮어써도 body는 자체 descriptor/함수표를 소유한다. */
         (void)memset(prefix, 0xA5, sizeof(prefix));
+        if (canview_ota_prefix_init(&collected) != CANVIEW_OK) { return 1; }
         (void)memset(&identity, 0, sizeof(identity));
         (void)memset(&runtime, 0, sizeof(runtime));
         (void)memset(&floor, 0, sizeof(floor));

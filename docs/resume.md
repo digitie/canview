@@ -10,6 +10,7 @@
 
 - worktree: `F:/dev/canview-wt/t007-ota-container`
 - branch: `codex/t007-ota-packager`
+- Draft PR: [#36](https://github.com/digitie/canview/pull/36)
 - 기준: [PR #35](https://github.com/digitie/canview/pull/35) merge
   `6cf1b8e57840a27b83c407d1325a92f869cf2f5d`, `origin/main` 확인
 - [단순한 구현 우선](../AGENTS.md#2-작업-원칙): 고정 manifest와 순차 image만 사용한다.
@@ -19,6 +20,11 @@ C99 CBOR·P256 prefix·typed manifest 뒤에 순차 image 길이/SHA-256 검사�
 연결했다. offset 중복/누락, partial input/reset, hash/provider/cleanup 실패를
 검사한다. body는 입력 chunk를 보존하지 않으며 성공 상태도 `HASHES_MATCHED`다.
 native image signature·설치 승인이 아니며 Flash writer를 호출하지 않는다.
+
+이번 재개분은 외부 detached P256 서명을 사용하는 컨테이너 조립/검사 CLI와 C prefix
+부분 수신을 추가했다. 기존 parser/암호 라이브러리를 재사용하며 개인키는 처리하지
+않는다. 실제 CNG body 경로90개 교차 사례가 통과했다. native signed golden과 정상
+target 연결은 여전히 남아 있으며 T-007 전체 완료·배포 승인으로 표시하지 않는다.
 
 별도 STM native 검사기는 공식 MCUboot v2.4.0 image의 전체 hash/P256 서명과
 protected metadata(board/role/layout/epoch/ABI/u64 sequence)를 대조한다. SDK/부트로더

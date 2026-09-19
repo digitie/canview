@@ -46,7 +46,7 @@ fixture의 BSP→SDK/metadata 함수 compile/link와 ELF/MAP/BIN 경고0도 확�
 version floor 비교는 body 시작 전에 연결했다. 낮은 sequence/CONFLICT를 거절하며
 실제 정상 앱 증거 없이 ALREADY_INSTALLED/REPAIR_REQUIRED를 추정하지 않는다.
 영속 policy/설치 상태 provider 연결, ESP native 검사의 정상 OTA owner/body 연결,
-prefix 부분 수신 조립, 정식 schema·CLI·signed golden과 실제 target
+native signing CLI·signed golden과 실제 target
 provider/통합·최종 독립 2인 리뷰는 남아 있다. Arm object compile을 최종
 ELF/MAP/BIN gate로 대체하지 않는다. physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
 [CBOR checkpoint 리뷰](../reviews/adversarial/2026-09-13-T-007-cbor.md)의 A/B static
@@ -64,7 +64,9 @@ PR #35는 최종 CI34909236819 6/6·target21개 hash/bytes·source7개·target l
 
 기존 C/Python 계약을 `schema/cvota-v2.schema.json`과
 `protocol/schema/ota-container-v2.yaml`에 기록했다. JSON→CBOR 작성 도구는 기존
-typed 검사기를 재사용하며 아직 서명된 전체 package를 만들지 않는다. native signing
+typed 검사기를 재사용한다. 2026-09-19 detached P256 서명과 image를 조립·검사하는
+host CLI 및 C 고정 buffer prefix 부분 수신을 추가했다. 실제 P256/SHA-256 CNG 경로와
+90개 교차 사례가 일치했으며 정상 native 검증/설치 권한으로 표시하지 않는다. native signing
 도구와 연결하는 packager·signed golden이 다음 작업이다. owner/app 확장 전에 이 필수
 산출물을 완성하며 정상 target·영속 policy·review gate를 생략하지 않는다.
 JSON 변환은 역할3종/u64 경계에서 기존 C typed parser와 대조했고 malformed 입력과
