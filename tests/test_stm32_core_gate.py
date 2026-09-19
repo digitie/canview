@@ -32,6 +32,13 @@ class Stm32CoreGateTests(unittest.TestCase):
         symbols = "08000210 R canview_stm_link_build_id"
         image = bytes(512) + note
         self.assertEqual(check_build_id(note, symbols, image), digest[:16].hex())
+        primary_symbols = symbols.replace("08000210", "08010410")
+        self.assertEqual(check_build_id(note, primary_symbols, image, 0x08010200), digest[:16].hex())
+        for bad_base in (0, 0x08010000, 0x08040000, -1):
+            with self.subTest(base=bad_base), self.assertRaises(RuntimeError):
+                check_build_id(note, symbols, image, bad_base)
+        with self.assertRaises(RuntimeError):
+            check_build_id(note, symbols, image, 0x08010200)
         for invalid_note in (b"", note[:-1], note + b"\0", bytes(36),
                              b"\x08" + note[1:], note[:16] + bytes(20)):
             with self.subTest(note=invalid_note), self.assertRaises(RuntimeError):

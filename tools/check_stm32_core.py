@@ -12,8 +12,10 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def check_build_id(note, symbols, image):
+def check_build_id(note, symbols, image, image_base=0x08000000):
     """GNU SHA-1 note와 BSP symbol이 실제 flash BIN의 같은 16 byte를 가리키는지 검사한다."""
+    if image_base not in (0x08000000, 0x08010200):
+        raise RuntimeError("지원하지 않는 STM32 image base")
     if (len(note) != 36 or note[:16] != struct.pack("<III4s", 4, 20, 3, b"GNU\0")
             or not any(note[16:32])):
         raise RuntimeError("STM32 GNU SHA-1 build ID note 누락/손상")
@@ -21,7 +23,7 @@ def check_build_id(note, symbols, image):
                if line.split() and line.split()[-1] == "canview_stm_link_build_id"]
     if len(matches) != 1 or len(matches[0]) != 3:
         raise RuntimeError("STM32 build ID BSP symbol 누락/중복")
-    offset = int(matches[0][0], 16) - 0x08000000 - 16
+    offset = int(matches[0][0], 16) - image_base - 16
     if offset < 0 or image[offset:offset + len(note)] != note:
         raise RuntimeError("STM32 build ID ELF/symbol/BIN 불일치")
     return note[16:32].hex()
@@ -275,6 +277,8 @@ def main():
     parser.add_argument("--elf", required=True, type=Path)
     parser.add_argument("--compiler", required=True, type=Path)
     parser.add_argument("--sdk", required=True, type=Path)
+    parser.add_argument("--image-base", type=lambda value: int(value, 0),
+                        choices=(0x08000000, 0x08010200), default=0x08000000)
     args = parser.parse_args()
     tool_dir = args.compiler.parent
     suffix = args.compiler.suffix
@@ -288,7 +292,7 @@ def main():
                         "--dump-section", f".note.gnu.build-id={note_path}", str(args.elf),
                         str(Path(temporary) / "copy.elf")], check=True)
         build_id = check_build_id(note_path.read_bytes(), symbols,
-                                  args.elf.with_suffix(".bin").read_bytes())
+                                  args.elf.with_suffix(".bin").read_bytes(), args.image_base)
     commands = json.loads((args.elf.parent / "compile_commands.json").read_text(encoding="utf-8"))
     check_compile_contract(commands, ROOT / "firmware/communicator/stm32/interface/canview_build_mode.h")
     stacks = stack_evidence(args.elf.parent, commands, lambda output: run(

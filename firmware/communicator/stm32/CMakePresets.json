@@ -26,6 +26,18 @@
       }
     },
     {
+      "name": "primary-debug",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/primary-debug",
+      "cacheVariables": {"CANVIEW_STM_IMAGE_LAYOUT": "MCUBOOT_PRIMARY"}
+    },
+    {
+      "name": "primary-release",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/primary-release",
+      "cacheVariables": {"CANVIEW_STM_IMAGE_LAYOUT": "MCUBOOT_PRIMARY"}
+    },
+    {
       "name": "release",
       "inherits": "base",
       "displayName": "STM32G474CEU6 Release",
@@ -36,6 +48,14 @@
     }
   ],
   "buildPresets": [
+    {
+      "name": "primary-debug",
+      "configurePreset": "primary-debug"
+    },
+    {
+      "name": "primary-release",
+      "configurePreset": "primary-release"
+    },
     {
       "name": "debug",
       "configurePreset": "debug"

@@ -41,6 +41,26 @@ ELF/MAP/BIN 생성 및 compiler/linker/CMake warning0이다. 최초 Arm 검증�
 DBANK/WRP/NRST profile 검사, 중복 doubleword, ECC/NMI·stall·watchdog,
 swap/revert/confirmation은 남아 있다. 실제 Flash/HIL은 NOT_RUN이다.
 
+## 2026-09-19 primary 앱 target 연결
+
+`primary-debug`/`primary-release` CMake preset과 primary linker wrapper를 추가했다.
+기본 bench와 section/RAM/stack script는 공유하되 primary vector0x08010200과
+payload179KiB를 별도로 제한한다. 고정 SDK SystemInit의 지원 macro를 사용해
+VTOR를 맞추며 SDK 원본은 수정하지 않는다. 실제 Arm ELF의 SystemInit disassembly도
+SCB VTOR(0xE000ED08)에0x08010200을 쓰는 것을 확인했다.
+
+`tools/ota/validate_stm32_map.py`는 실제 ELF/map/BIN/vector/Reset_Handler/load byte,
+gap·중첩·영역 밖을 검사하며 bench-as-primary를 거절한다. 기존 build ID gate도
+bench/primary 두 base만 허용한다. `check_stm32_primary_image.py`는 공식 imgtool로
+실제 앱 BIN과179KiB 경계 copy를 메모리 전용 임시 P256 key로 서명·검증한다.
+signed180KiB·공식 trailer2376B/page reserve4096B·secondary 추가2048B를 확인했다.
+개인키/시험 서명은 배포하지 않으며 actual bootloader 실행 증거로 사용하지 않는다.
+
+CI target matrix에 primary2개 빌드와 서명 교차 검사를 넣고 ELF/MAP/BIN6개를
+artifact/hash manifest에 추가했다. 이 변경의 CI·독립 task 리뷰는 아직이며 AC는
+체크하지 않는다. Bootloader64KiB image·Flash IO/profile·ECC·swap/revert·confirmation이
+남아 있고 actual Flash/HIL은 NOT_RUN이다.
+
 ## 목표
 
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.

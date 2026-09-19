@@ -1,5 +1,49 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 실제 primary 앱 image 연결)
+
+179ab64 다음 단위로 primary-debug/primary-release preset과 primary linker를 추가했다.
+기존 bench section/RAM/stack 내용은 application-sections.ld로 추출해 공유하며,
+primary vector0x08010200/payload179KiB를 고정한다. SDK SystemInit 공식 macro로 VTOR를
+설정한다. ISR 설계 기준에 따라 SDK startup 순서와 실제 disassembly를 확인했으며
+ISR에 새 parsing/Flash/heap 처리를 넣지 않았다. Bootloader handoff 실기 검증은 아니다.
+
+- 실제 Arm15.3.Rel1/CubeG4 v1.6.3의 primary-debug BIN51724B,
+  primary-release BIN39728B; ELF/MAP/BIN과 기존 bench 두 빌드 모두 성공.
+- `cmake --preset primary-debug/primary-release`, 같은 이름 build preset.
+  로그 `build/t107-{primary-debug,primary-release,debug,release}-layout-build.log`와
+  `build/t107-primary-{debug,release}-final-layout-build.log`. compiler/linker/CMake warning0.
+- `arm-none-eabi-objdump -d --disassemble=SystemInit`의 release 실제 명령은
+  SCB base0xE000ED00 +8에0x08010200을 store한다. Vendor 원본 변경 없음.
+- `tools/ota/validate_stm32_map.py`는 실제 ELF bytes/load span과 BIN의 byte 대조,
+  map Flash geometry·vector/Reset_Handler/stack·중첩·gap을 확인한다.
+  실제 bench ELF를 넣었을 때 primary geometry 오류로 거절하는 것도 확인했다.
+- `build/ota-native-clean/Scripts/python.exe -B tests/ota/check_stm32_primary_image.py
+  --binary firmware/communicator/stm32/build/<primary-mode>/canview-communicator-stm32.bin
+  --mcuboot C:/cv/mcuboot-2.4.0`: 실제 BIN·최대 payload183296B를 공식 imgtool로
+  임시 서명/검증하고 byte 변조 거절. 고정 SDK pin6d3b3d2/clean 확인.
+  이번 기록 실행에서 actual signed52563/40567B, 최대 padding 사례184135B,
+  trailer2376B/page reserve4096B. signed180KiB·secondary 추가2048B 안에 들어간다.
+  ECDSA DER 길이는 실행별로 달라질 수 있으므로 수치는 해당 실행값이며 deterministic
+  production 서명 artifact 주장이 아니다. 개인키는 메모리, 임시 signed file은 자동 정리.
+  로그 `build/t107-primary-{debug,release}-imgtool.log`.
+- map 검사기 mutation6개 unittest 및 기존 core gate8개 성공.
+  Host Debug151/15119.28초, Release151/15117.52초;
+  `build/t107-primary-host-{debug,release}-test.log`.
+- `CANVIEW_STM_IMAGE_LAYOUT=INVALID`는 명시 configure 오류로 거절.
+  첫 명령의 따옴표 없는 -D toolchain 인자는 PowerShell에서 분리돼 실패했으며
+  그 실패를 negative PASS로 쓰지 않았다. 인자를 인용해 재실행한
+  `build/t107-invalid-layout-quoted.log`에서 의도한 거절을 확인했다.
+- CI YAML과6개 PowerShell run script syntax 검사 성공. Primary2개 build·공식 imgtool
+  확인·artifact6개와 source provenance4개를 기존 target job에 추가했다.
+  서명 시험은 별도 임시 venv와 기존 hash lock을 써 ESP-IDF 환경을 변경하지 않는다.
+- 합성 fixture source digest는 `f18dc0834ec5ddccd06b05a27e5d3c684d61482f36942a1da83073ef7f15fada`.
+  실제 capture는 변경하지 않았다. Board/doc385개1456targets/task49개 검사 오류0.
+
+부트로더64KiB image·actual Flash API/profile/ECC·swap/revert·confirmation·독립2인
+task 리뷰는 아직 남아 있다. 이번 commit의 CI 완료/artifact 감사도 아직이다.
+T-107 IN_PROGRESS, 실제 Flash/HIL NOT_RUN, 차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, T-107 C Flash 배치 첫 구현 단위)
 
 PR37은 Draft이며 BSP `flash_layout.c/.h`, portable interface와 CTest를 추가했다.

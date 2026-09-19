@@ -153,15 +153,30 @@ target_compile_options(${TARGET_NAME} PRIVATE
     "$<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h>"
 )
 
-set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_FLASH.ld")
+set(CANVIEW_STM_IMAGE_LAYOUT "BENCH" CACHE STRING "BENCH or MCUBOOT_PRIMARY application layout")
+set_property(CACHE CANVIEW_STM_IMAGE_LAYOUT PROPERTY STRINGS BENCH MCUBOOT_PRIMARY)
+if(CANVIEW_STM_IMAGE_LAYOUT STREQUAL "BENCH")
+    set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_FLASH.ld")
+    set(STM32_IMAGE_BASE 0x08000000)
+elseif(CANVIEW_STM_IMAGE_LAYOUT STREQUAL "MCUBOOT_PRIMARY")
+    set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/ld/STM32G474CEUx_PRIMARY.ld")
+    set(STM32_IMAGE_BASE 0x08010200)
+    # 고정 SDK SystemInit의 공식 vector relocation 지원. SDK 원본은 수정하지 않는다.
+    set_property(SOURCE "${SYSTEM_SOURCE}" APPEND PROPERTY COMPILE_DEFINITIONS
+        USER_VECT_TAB_ADDRESS VECT_TAB_OFFSET=0x00010200U)
+else()
+    message(FATAL_ERROR "Unsupported CANVIEW_STM_IMAGE_LAYOUT: ${CANVIEW_STM_IMAGE_LAYOUT}")
+endif()
 set_property(TARGET ${TARGET_NAME} APPEND PROPERTY LINK_DEPENDS
-    "${LINKER_SCRIPT}" "${CANVIEW_ROOT}/tools/check_stm32_core.py"
+    "${LINKER_SCRIPT}" "${CMAKE_CURRENT_SOURCE_DIR}/ld/application-sections.ld"
+    "${CANVIEW_ROOT}/tools/check_stm32_core.py"
     "${CANVIEW_ROOT}/tools/check_stm32_fdcan_layout.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/platform/stm32g474/fdcan_message_ram.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/register_model.h")
 target_link_options(${TARGET_NAME} PRIVATE
     ${MCU_OPTIONS}
     -T${LINKER_SCRIPT}
+    -L${CMAKE_CURRENT_SOURCE_DIR}/ld
     --specs=nano.specs
     --specs=nosys.specs
     -Wl,--gc-sections
@@ -185,10 +200,19 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${TARGET_NAME}>
     COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/check_stm32_core.py"
         --elf $<TARGET_FILE:${TARGET_NAME}> --compiler "${CMAKE_C_COMPILER}"
-        --sdk "${STM32CUBE_G4_ROOT}"
+        --sdk "${STM32CUBE_G4_ROOT}" --image-base ${STM32_IMAGE_BASE}
     COMMAND ${Python3_EXECUTABLE} -X utf8 -B
         "${CANVIEW_ROOT}/tools/check_stm32_fdcan_layout.py"
         --sdk "${STM32CUBE_G4_ROOT}"
         --contract "${CMAKE_CURRENT_SOURCE_DIR}/platform/stm32g474/fdcan_message_ram.h"
     COMMENT "Generating HEX/BIN, reporting image size, and checking FDCAN RAM layout"
 )
+
+if(CANVIEW_STM_IMAGE_LAYOUT STREQUAL "MCUBOOT_PRIMARY")
+    set_property(TARGET ${TARGET_NAME} APPEND PROPERTY LINK_DEPENDS
+        "${CANVIEW_ROOT}/tools/ota/validate_stm32_map.py")
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} -X utf8 -B "${CANVIEW_ROOT}/tools/ota/validate_stm32_map.py"
+            --elf $<TARGET_FILE:${TARGET_NAME}> --compiler "${CMAKE_C_COMPILER}"
+        COMMENT "Checking MCUboot primary ELF/BIN/vector layout (not a signed bootloader qualification)")
+endif()

@@ -37,6 +37,23 @@ Pop-Location
 
 `build/<preset>/`에 ELF, HEX, BIN, MAP이 생성된다.
 
+T-107 primary 앱은 `cmake --preset primary-debug` / `primary-release`와 같은 이름의
+build preset으로 별도 생성한다. MCUboot 512B header 뒤 `0x08010200`에서 실행하고,
+SDK SystemInit의 `USER_VECT_TAB_ADDRESS`/`VECT_TAB_OFFSET`으로 VTOR를 맞춘다.
+공통 section/RAM/stack 배치는 기존 bench와 공유하고 Flash wrapper만 분리했다.
+`tools/ota/validate_stm32_map.py`는 ELF load bytes와 BIN, vector/Reset_Handler,
+map의 origin/length, section 중첩·영역 밖 배치와 gap 변조를 검사한다.
+
+앱 payload 예산은179KiB다. signed image180KiB에서 header512B와 보수적 TLV
+여유512B를 뺀 값이며 슬롯192KiB 전체가 앱 code 예산은 아니다.
+`tests/ota/check_stm32_primary_image.py --binary <primary.bin> --mcuboot <고정 SDK>`는
+실제 앱과 최대 payload padding 사례를 공식 imgtool로 서명·검증하고 변조를 거절한다.
+키는 시험 중 메모리에만 두며 임시 서명은 production 인증물로 사용하지 않는다.
+header/TLV를 포함한 서명 크기와 공식 trailer2376B의 page reserve4096B,
+secondary 추가 page2048B 경계를 별도로 확인한다. SDK 원본은 수정하지 않는다.
+이 앱 빌드는 부트로더·Flash driver·swap/revert·confirmation 완료나 실기 부팅
+증거가 아니다. Bootloader 연결 전에는 standalone primary BIN을 Flash하지 않는다.
+
 ## 현재 안전 경계
 
 - PA4/PA5를 high로 설정해 TCAN1046AV 두 채널을 standby로 둔다.
@@ -79,4 +96,4 @@ Host와 Arm은 동일 BSP C99 library를 컴파일한다. `stm32-flash-layout` C
 
 ## 현재 기반 범위 안내
 
-현재 STM32는 공용 safe-idle startup 대신 자체 app/boot와 SDK 독립 scheduler·queue를 사용한다. BSP/platform 경계와 나머지 ESP32의 공용 startup은 유지한다. T-103 source에는 profile 검증·FDCAN monitor adapter·capture ring이 있지만 기본 app은 CAN worker를 시작하지 않으며 UART와 health worker를 시작한다. CAN TX request·ARM·WDI 출력은 안전 비활성 상태이고 실제 FDCAN receive 전환은 G2 전기 시험 전까지 `NOT_RUN`이다. HSE/PLL·timer·IWDG·T-102 diagnostic source와 T-103 host/target compile은 실제 보드 flash/clock/HIL과 구분한다. linker는 전체 Flash를 사용하는 bench 전용으로 제품 OTA loader/slot image와 다르다. 세부 범위와 현재 gate는 [T-102](../../../docs/tasks/T-102-stm32-platform.md), [T-103](../../../docs/tasks/T-103-stm32-fdcan-capture.md), [core-bench](docs/core-bench.md), [FDCAN capture](docs/fdcan-capture.md)를 따른다.
+현재 STM32는 공용 safe-idle startup 대신 자체 app/boot와 SDK 독립 scheduler·queue를 사용한다. BSP/platform 경계와 나머지 ESP32의 공용 startup은 유지한다. T-103 source에는 profile 검증·FDCAN monitor adapter·capture ring이 있지만 기본 app은 CAN worker를 시작하지 않으며 UART와 health worker를 시작한다. CAN TX request·ARM·WDI 출력은 안전 비활성 상태이고 실제 FDCAN receive 전환은 G2 전기 시험 전까지 `NOT_RUN`이다. HSE/PLL·timer·IWDG·T-102 diagnostic source와 T-103 host/target compile은 실제 보드 flash/clock/HIL과 구분한다. 기본 debug/release linker는 전체 Flash bench 전용이다. 별도 primary-debug/primary-release 앱은 slot 주소로 연결되지만 OTA loader와 실기 활성화 경로는 아직 미완성이다. 세부 범위와 현재 gate는 [T-102](../../../docs/tasks/T-102-stm32-platform.md), [T-103](../../../docs/tasks/T-103-stm32-fdcan-capture.md), [core-bench](docs/core-bench.md), [FDCAN capture](docs/fdcan-capture.md)를 따른다.

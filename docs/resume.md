@@ -24,9 +24,13 @@ T-007을 다시 구현하지 않는다.
 고정 map의 C99 BSP 조회·범위 검사와 전체 byte offset 거절 시험을 추가했다.
 Host Debug/Release151/151, 새 C 파일 ASan/UBSan·분기 coverage100%, 기존 STM32
 Debug/Release target 빌드가 통과했다. 자세한 범위·제한은 [STM32 README](../firmware/communicator/stm32/README.md#t-107-flash-배치-구현-중)를 따른다.
-다음은 이 BSP를 MCUboot2.4.0 Flash API와 별도 boot/app linker에 연결하는 작업이다.
-Profile/중복 write/ECC·swap/revert는 아직 구현·검증하지 않았다. 기존 전체 Flash
-scaffold와 새 library의 Arm 컴파일을 OTA loader 완료로 표시하지 않는다.
+primary-debug/primary-release 앱 linker를 추가해 실제 vector0x08010200 ELF/MAP/BIN과
+SDK SystemInit VTOR relocation, 공식 imgtool의 실제 앱/최대 payload 서명 크기를 확인했다.
+기본 bench linker는 공유 section으로 유지한다. CI에는 primary 두 빌드·서명 검사와
+artifact6개를 추가했으며 새 CI 완료·artifact 감사는 아직이다.
+다음은 BSP를 실제 MCUboot2.4.0 bootloader/Flash API에 연결하는 작업이다.
+Profile/중복 write/ECC·swap/revert는 아직 구현·검증하지 않았다. Primary 앱 빌드를
+OTA loader·실기 부팅 완료로 표시하지 않는다.
 
 [T-102](tasks/T-102-stm32-platform.md) source/review PR29의 merge50410ba는 확인했다.
 T-102 전체 수용은 물리 측정과 T-107 map 연결 등이 남아 IN_PROGRESS다.
