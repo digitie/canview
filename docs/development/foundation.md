@@ -6,6 +6,11 @@
 
 Visual Studio C++ Build Tools와 Windows SDK, Python3.14가 필요하다. 전역 SDK나 사용자 도구를 교체하지 않는다.
 
+전체 Windows CTest의 OTA 암호 도구는 [OTA host 설치·검사](../../shared/ota/README.md#일반-native-서명metadata-검사)의
+고정 lock을 별도 venv에 설치한다. 필요하면 CMake configure에
+`-DPython3_EXECUTABLE=<venv>/Scripts/python.exe`를 명시한다. MCUboot checkout도
+toolchain manifest의 고정 commit이 필요하며 `MCUBOOT_ROOT`로 지정할 수 있다.
+
 ```powershell
 . tools/environment/foundation-windows.ps1 -IncludeDocs
 cmake --preset host-debug

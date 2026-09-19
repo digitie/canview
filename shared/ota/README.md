@@ -43,9 +43,45 @@ python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD
 
 서명 입력은 정확한 CBOR이고 raw 서명은 big-endian `r[32] || s[32]`다. image 순서는
 manifest와 같아야 한다. 성공은 `MANIFEST_AND_HASHES_MATCHED`일 뿐 native image 서명,
-로컬 compatibility/floor, Flash 쓰기·설치 승인이 아니다. 정상 native packager/golden과
-target owner 연결은 아직 남아 있다. host 입력은 format 상한으로 제한하며 MCU에는
+로컬 compatibility/floor, Flash 쓰기·설치 승인이 아니다. Native-aware 검사는 아래
+`--native` 경로를 사용하며 target owner 연결은 남아 있다. host 입력은 format 상한으로 제한하며 MCU에는
 전체 package를 메모리에 올리지 않는다.
+
+### 일반 native 서명·metadata 검사
+
+`--native`를 주면 기존 조립/검사 명령에서 outer 검증 뒤 공식 espsecure5.4.0의
+RSA3072 검증 및 MCUboot v2.4.0 imgtool의 SHA256/P256 검증을 실행한다.
+ESP image 구조·checksum·선택적 digest는 공식 esptool parser를 사용한다.
+MCUboot는 기존 C 검사기와 같은 비압축·비암호화512B header/176B protected TLV
+profile로 제한한 뒤 공식 verifier에 넘긴다. CANView 고정168B metadata와 version을
+signed manifest에 대조하며 release_sequence는 정수 u64 그대로 비교한다.
+package 안의 key/identity를 신뢰 root로 채택하지 않는다.
+
+```powershell
+python -m pip install --only-binary=:all: --require-hashes -r tools/requirements-ota-native-build.lock
+python -m pip install --no-build-isolation --require-hashes -r tools/requirements-ota-native.lock
+python -B tools/ota/container.py --public-key trusted.pem --role 1 --board BOARD --layout LAYOUT --epoch 7 --key-id 11 --native --esp-public-key esp-public.pem --stm-public-key stm-public.pem --mcuboot-root C:/cv/mcuboot-2.4.0 check output.cvota
+```
+
+같은 global 옵션 뒤에 `assemble input.json signature.bin output.cvota esp.bin stm.bin`을
+사용하면 모든 요청 검증을 마친 뒤에만 새 파일을 만든다. `--native` 없이 native key
+옵션을 주면 조용히 무시하지 않고 실패한다. ESP/STM key는 해당 target이 있을 때 필수다.
+Controller/Bridge는 ESP 공개키만 필요하며 STM checkout을 요구하지 않는다.
+MCUboot checkout은 toolchain manifest의 commit 및 clean 상태를 확인한다.
+서명키 생성이나 signing service는 추가하지 않는다. 공식 도구로 이미 서명한 image와
+외부 detached manifest 서명을 받아 조립·검증하는 경계다.
+
+성공 출력은 `NATIVE_SIGNATURES_AND_METADATA_MATCHED`이며 로컬 호환성/floor·설치
+승인은 여전히 `NOT_VERIFIED`다. Host 임시 디렉터리에는 image와 공개키만 기록한다.
+공식 verifier의 실패·timeout·의존성 누락은 실패이며 Flash/serial/provisioning을 호출하지 않는다.
+입력 길이는 기존 manifest 상한을 따르지만 host의 image 복사·SDK 객체·subprocess를
+포함한 peak RAM/WCET 보장은 아니다. 모든 MCU timing/heap/HIL gate와 구분한다.
+
+Windows CPython3.14용 새 lock은 공식 PyPI의 esptool sdist와 dependency wheel hash를
+고정한다. esptool에는 wheel이 없어 고정 setuptools82.0.1을 먼저 설치한 후 build
+isolation을 끈다. SDK를 임의 patch하거나 다른 암호 구현으로 바꾸지 않는다.
+`ota-native-container` CTest는 보존 golden, 다른 identity의 ESP3역할, u64 경계,
+outer-valid/native-invalid·metadata mismatch·잘못된 key·기존 출력 보존을 검사한다.
 
 ## Head 검사
 
@@ -246,8 +282,8 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 `HASHES_MATCHED`는 **native image signature/protected metadata·최신 version floor 재검증,
 설치 직전 로컬 상태 재확인, Flash read-back, 설치 또는 PREPARED 승인과 별개**다.
 이 모듈에는 writer·boot selector callback 자체가 없다. prefix 부분 수신과 outer 조립/
-검사 CLI·보존 signed golden은 구현되어 있다. 일반 native-aware packager/검사 연결,
-실제 ESP/STM provider와 정상 target owner 통합은 남아 있다.
+검사 CLI·보존 signed golden과 host `--native` 연결은 구현되어 있다.
+실제 ESP/STM provider와 정상 target owner 통합·최종 검증은 남아 있다.
 schema와 서명 전 JSON 작성 도구는 위 절의 구현을 사용한다.
 
 ## 로컬 호환성 사전 검사

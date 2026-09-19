@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 receiver oracle post-fix | `0acdc45` → `c7f5780` | 원 A/B | [기록](adversarial/2026-09-19-T-007-receiver-post.md), A/B 정적 PASS·B-RX-01 P2 FIXED·신규 finding 없음; 이후 native CLI·전체 task 승인 아님 |
 | 2026-09-19 | T-007 C receiver SDK 연결 | `d87516a` → `0acdc45` | C·cleanup / SDK·oracle | [기록](adversarial/2026-09-19-T-007-receiver.md), A PASS/B CONDITIONAL; B-RX-01 P2 실제 조기 오류 변이 재현·수정 후 원 reviewer 재확인 대기, 전체 acceptance BLOCK 유지 |
 | 2026-09-19 | T-007 전체 수용 기준 감사 | `6cf1b8e` → `d87516a` | C·runtime / CLI·SDK·근거 | [기록](adversarial/2026-09-19-T-007-acceptance.md), A/B BLOCK; P2 native 일반 검사·task 책임·target/예산, P3 README 상태 문구; 전체 완료 미승인 |
 | 2026-09-19 | T-007 PSA 두 번째 post-fix | `6f078ac` → `1b06afd` | 원 A/B | [기록](adversarial/2026-09-19-T-007-psa-post2.md), 양쪽 정적 PASS·공통 P2 FIXED·신규 finding 없음; 전체 T007/CI/정상 owner 승인 아님 |

@@ -50,9 +50,15 @@ A 정적 PASS·B P3 시험 상수 오류를 반영했고 GCC 시험 크기 경�
 실제 SDK ELF/MAP/BIN·경고0·metadata172개 음성 사례를 확인했다. SDK 경로의 장치
 실행은 NOT_RUN이다. [독립 delta 리뷰](reviews/adversarial/2026-09-19-T-007-receiver.md)는
 A PASS/B CONDITIONAL이다. B-RX-01 P2의 조기 오류 false PASS를 실제 C mutant로
-재현하고 수정했다. 수정 후 Debug/Release146/146이며 원 reviewer 재확인 대기다.
+재현하고 수정했다. 수정 후 Debug/Release146/146이며 c7f5780의
+[원 A/B 재확인](reviews/adversarial/2026-09-19-T-007-receiver-post.md)은 정적 PASS·P2 FIXED다.
 [전체 T-007 수용 감사](reviews/adversarial/2026-09-19-T-007-acceptance.md)는 d87516a에서
-A/B BLOCK이다. 다음 필수 작업은 일반 CLI의 native 서명/metadata 검사 연결이다.
+A/B BLOCK이다. 일반 CLI에 `--native`를 추가해 공식 ESP/MCUboot verifier와 고정
+metadata/version/u64를 대조하는 구현을 추가했다. 보존 golden·다른 identity의 ESP3역할,
+outer-valid/native-invalid·sequence 불일치·key 오류·출력 보존을 검사한다.
+새 Windows 의존성 lock은 별도 clean venv에 설치하고 캐시 없는 sdist 빌드 뒤
+Debug/Release147/147을 확인했다. 새 독립 리뷰/CI는 남아 있다.
+정상 writer·정책·장치 실행은 이 host 검사와 구분한다.
 T-007 진행 문구와 architecture §12의 후속 writer/policy 소유권 충돌도 명시적으로
 정리해야 한다. AC3와 target/자원 gate를 축소하거나 완료로 체크하지 않는다.
 

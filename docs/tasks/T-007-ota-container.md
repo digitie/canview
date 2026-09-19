@@ -121,7 +121,16 @@ prefix16488B/body856B/PSA108B는 static이며 자체 receiver frame624B다.
 예약했지만 high-water/heap/시간·HIL은 NOT_RUN이다. [독립 delta 리뷰](../reviews/adversarial/2026-09-19-T-007-receiver.md)는
 A PASS/B CONDITIONAL, 조기 오류도 본문 변이 성공으로 집계하는 B-RX-01 P2를 발견했다.
 변이 feed 도달/결과를 대조하도록 고쳤고 실제 조기 open/feed C mutant 거절과
-이전 oracle false PASS를 확인했다. 수정 후 Debug/Release146/146이며 원 reviewer 재확인 대기다.
+이전 oracle false PASS를 확인했다. 수정 후 Debug/Release146/146이며 c7f5780의
+[원 A/B 재확인](../reviews/adversarial/2026-09-19-T-007-receiver-post.md)은 정적 PASS·P2 FIXED다.
+
+일반 host CLI의 `--native`는 outer 서명/hash 뒤 공식 espsecure5.4.0와 MCUboot v2.4.0
+verifier를 호출하고 native version/metadata/u64를 manifest에 대조한다. 다른 합성
+identity의 ESP3역할·u64 경계, outer-valid/native-invalid·metadata 불일치·key 오류 및
+검증 실패 시 출력 보존을 시험한다. 개인키 생성·provisioning·Flash는 없다.
+고정 native dependency lock과 CTest/Windows CI 연결, 별도 clean venv 설치와 캐시 없는
+sdist 빌드 후 Debug/Release147/147을 확인했다. 새 독립 리뷰와
+최종 CI는 남아 있다. 이 연결의 성공은 local policy/install 승인이 아니다.
 
 [전체 수용 감사](../reviews/adversarial/2026-09-19-T-007-acceptance.md)의 d87516a A/B
 판정은 BLOCK이다. 일반 native-aware CLI·target/예산 및 AC3 경계 검증은 OPEN이다.

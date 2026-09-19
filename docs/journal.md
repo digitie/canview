@@ -1,5 +1,36 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, 일반 native-aware CLI 연결)
+
+기존 container.py에 `--native`를 연결했다. Outer 검증 뒤 공식 espsecure5.4.0의
+RSA3072·esptool ESP32-S3 image parser와 고정 clean MCUboot v2.4.0 imgtool verifier를
+사용한다. CANView metadata168B·version·정확한 u64를 비교하며 host 설치 권한을
+발급하지 않는다. 조립도 native 검사 뒤에만 새 출력을 생성한다.
+
+6개 unittest가 보존 golden, 다른 board/layout의 ESP3역할, outer가 유효한 native
+변조와 sequence/version/ABI 오류, key/SDK 오류, 기존 출력 보존을 검사한다.
+ESP 역할별 fixture는 기존 SDK image를 공식 parser로 읽고 checksum/digest를 갱신해
+공식 서명 도구에 넘겼다. 시험 개인키는 메모리에만 만들며 파일/Git에 저장하지 않는다.
+초기 시험에서 공식 signing API가 BytesIO.name을 요구해 실패했고 합성 입력 이름을
+제공하도록 수정했다. 실패를 성공으로 바꾸거나 원 golden을 변경하지 않았다.
+
+esptool에는 Windows wheel이 없어 --only-binary 다운로드가 실패했다. 공식 PyPI
+sdist SHA256과 dependency wheel, setuptools82.0.1 backend를 별도 lock에 고정했다.
+SDK를 수정하지 않고 build/ota-native-clean venv에 설치했다. 캐시 없이 sdist를 다시
+빌드한 설치와 병렬로 실행됐던 host 결과는 최종 gate로 사용하지 않고, 설치 process의
+정상 종료 뒤 Debug/Release를 다시 실행해 각각147/147 통과했다.
+pip check·generator·문서/task 검사도 통과했고 host compiler/linker/CMake 경고0이다.
+로그는 build/t007-native-*.log, 최종 시험은 t007-native-final-{debug,release}-test.log다.
+모듈 README 변경으로 합성 T103 digest를
+`de0355a890823f2bf64879c6655fdfcaadefaf130ab4ea95aec51991387c19e5`로 갱신했다.
+실제 physical evidence나 private 자료는 변경하지 않았다.
+
+receiver P2는 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-receiver-post.md)에서
+FIXED·정적 PASS다. c7f5780 CI35422223529의 Windows/Linux 등5개 job이 통과했고
+target job은 진행 중이다. 이후 native CLI 구현의 검증·리뷰는 별도다.
+T-007 전체 acceptance는 아직 OPEN/BLOCK이며 scope 충돌·writer/정책/target 예산
+gate를 생략하지 않는다. Physical/HIL/Flash/device PSA NOT_RUN, 차량 TX NO-GO다.
+
 ## 2026-09-19 (codex, receiver oracle 조기 인증 오류 회귀 수정)
 
 0acdc45의 [A/B 독립 원문](reviews/adversarial/2026-09-19-T-007-receiver.md)을 보존했다.

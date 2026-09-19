@@ -91,6 +91,10 @@ def main(argv=None) -> int:
     parser.add_argument("--layout", required=True)
     parser.add_argument("--epoch", required=True, type=int)
     parser.add_argument("--key-id", required=True, type=int)
+    parser.add_argument("--native", action="store_true", help="공식 도구로 native 서명/metadata까지 검사; 설치 승인은 아님")
+    parser.add_argument("--esp-public-key", type=Path, help="package 밖 신뢰된 RSA3072 공개키 PEM")
+    parser.add_argument("--stm-public-key", type=Path, help="package 밖 신뢰된 MCUboot P256 공개키 PEM")
+    parser.add_argument("--mcuboot-root", type=Path, help="고정된 clean MCUboot checkout")
     commands = parser.add_subparsers(dest="command", required=True)
     create = commands.add_parser("assemble")
     create.add_argument("manifest", type=Path)
@@ -109,16 +113,27 @@ def main(argv=None) -> int:
                 raise CborError(Status.MALFORMED)
             images = [_read(path, IMAGE_LIMITS[image[0]]) for path, image in zip(args.images, manifest[8])]
             data = assemble_container(manifest, images, _read(args.signature, SIGNATURE_BYTES), identity, public_key)
-            # 입력 검증 뒤에만 파일을 생성한다. 쓰기 오류의 부분 파일도 성공으로 표시하지 않는다.
-            with args.output.open("xb") as destination:
-                destination.write(data)
         else:
             data = _read(args.input, MAX_BUNDLE)
             check_container(data, identity, public_key)
+        if args.native:
+            from native import check_native_container
+            esp_public = _read(args.esp_public_key, PUBLIC_KEY_BYTES_MAX) if args.esp_public_key else None
+            stm_public = _read(args.stm_public_key, PUBLIC_KEY_BYTES_MAX) if args.stm_public_key else None
+            check_native_container(data, identity, public_key, esp_public, stm_public, args.mcuboot_root)
+        elif args.esp_public_key or args.stm_public_key or args.mcuboot_root:
+            raise ValueError("native options require --native")
+        if args.command == "assemble":
+            # 요청한 모든 검증 뒤에만 새 출력 생성. 기존 파일 덮어쓰기 금지.
+            with args.output.open("xb") as destination:
+                destination.write(data)
     except (OSError, ValueError) as error:
         print(f"container failed: {error.status.name if isinstance(error, CborError) else type(error).__name__}", file=sys.stderr)
         return 1
-    print(f"MANIFEST_AND_HASHES_MATCHED: {len(data)} bytes; native signatures/local policy/install NOT_VERIFIED")
+    if args.native:
+        print(f"NATIVE_SIGNATURES_AND_METADATA_MATCHED: {len(data)} bytes; local policy/install NOT_VERIFIED")
+    else:
+        print(f"MANIFEST_AND_HASHES_MATCHED: {len(data)} bytes; native signatures/local policy/install NOT_VERIFIED")
     return 0
 
 
