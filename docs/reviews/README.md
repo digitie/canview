@@ -20,6 +20,8 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 전체 수용·증거 closure | PR base → `77b84cf` | C/target / native/시험/CI | [기록](adversarial/2026-09-19-T-007-final-acceptance.md), 양쪽 CONDITIONAL의 최신 CI 조건 확인·추가 결함 없음·closure CI/merge 대기 |
+| 2026-09-19 | T-007 stage post-fix2 | `82c5193` → `77b84cf` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post2.md), 양쪽 정적 PASS·B-STAGE-01 FIXED·전체 수용/CI 별도 |
 | 2026-09-19 | T-007 stage post-fix·정적 예산 | `569cc83` → `82c5193` | 원 A/B | [기록](adversarial/2026-09-19-T-007-stage-post.md), A PASS/B CONDITIONAL·identity oracle 잔존 P2 OPEN; 정적 예산 기록 부족 FIXED·실측 NOT_RUN |
 | 2026-09-19 | T-007 C 수신 저장 순서 | `6cf1106` → `569cc83` | C 상태·수명 / oracle·SDK | [기록](adversarial/2026-09-19-T-007-stage.md), A 정적 PASS/B CONDITIONAL·B-STAGE-01 P2 인자 시험 false PASS 재현·수정 후 재확인 대기 |
 | 2026-09-19 | T-007 native CLI post-fix | `7cb07be` → `6cf1106` | 원 A/B | [기록](adversarial/2026-09-19-T-007-native-post.md), 양쪽 정적 PASS·same-block/일반 CLI/소유권 finding FIXED; 이후 stage C·전체 task 승인 아님 |

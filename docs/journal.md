@@ -1,5 +1,25 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-007 전체 소프트웨어 수용 closure)
+
+77b84cf의 [최종 독립 A/B 감사](reviews/adversarial/2026-09-19-T-007-final-acceptance.md)는
+추가 P0–P3 없음, 다섯 AC의 구현·시험 구성 충족, 최신 CI 확인 조건의 CONDITIONAL이다.
+두 raw를 그대로 보존하고 원 verdict를 바꾸지 않았다. CI35426085834는6/6이며
+내려받은 target21개 bytes/SHA256·source7개·target logs28개 warning/error0을 대조했다.
+Manifest SHA256: `4730a7a1b8b361ab4771465e14eb00e4e15028df101e90a962784fa87556a787`.
+후속 closure commit의 CI와 merge는 아직 진행 전이다.
+
+최신77b 별도 Linux clone ASan/UBSan139/13918.72초, 실제 compile_commands 옵션 확인,
+strict Doxygen/Sphinx71API, 일반 CLI --native394310B 검사를 다시 통과했다.
+로그는 final report에 기록했다. WSL rg의 pipe quoting 조회1회는 실패했으며
+cat 출력에 PowerShell Select-String을 적용해 옵션을 확인했다. 실패를 PASS로 집계하지 않는다.
+
+Stage post2는 양쪽 PASS·B-STAGE-01 FIXED다. 전체 감사 원문은 진행 정보 응답 때문에
+wait의 최신 메시지로 교체돼 기존 원문을 재전송받고 exact 비교했다. 추가 리뷰 실행이나
+PASS 변경은 아니다. Resume는 현재 상태·다음 조치·안전 경계만 남기고 과거 이력을
+기존 journal/review로 안내한다. Production code 변경 없음. Physical/HIL·Flash·실차·
+총 자원 실측은 NOT_RUN, vehicle TX NO-GO. 사용자 checkout과 SDK/evidence를 보존했다.
+
 ## 2026-09-19 (codex, identity overlap 사전 거절 oracle)
 
 [82c5193 재검토](reviews/adversarial/2026-09-19-T-007-stage-post.md)에서 원 A는 PASS,

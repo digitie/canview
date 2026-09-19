@@ -8,7 +8,21 @@
 2026-09-09 T-104 PR #33 merge `d229772`/origin/main 확인 뒤 시작했다.
 T-001은 완료됐으며 상세 과거 구현·검증 이력은 [journal](../journal.md)에 보존한다.
 
-## 현재 구현과 검증
+## 현재 수용 상태
+
+2026-09-19 candidate `77b84cf`의 [최종 전체 감사와 증거 closure](../reviews/adversarial/2026-09-19-T-007-final-acceptance.md)에서
+두 독립 reviewer는 다섯 AC의 소프트웨어 구성 충족·추가 결함 없음으로 판단했다.
+원 verdict CONDITIONAL의 남은 최신 CI 조건은 작성자가 확인했다: CI35426085834
+6/6, 실제 target ELF/MAP/BIN21개 bytes/hash·source7개·target logs28개 경고/오류0.
+Windows Debug/Release150/150, Linux ASan/UBSan139/139, C mutant5개와 strict docs도
+통과했다. 원문 판정을 PASS로 변경하지 않는다. 아래 AC는 T-007 계약 범위에서
+수용하며 실제 writer·영속 policy·물리 gate는 아래 기존 소유권에 유지한다.
+Closure 기록의 CI와 PR36 merge 전이므로 IN_PROGRESS다.
+
+## 과거 구현·검증 이력
+
+이 절의 미완료·다음 작업 표현은 각 checkpoint 당시 기록이다.
+현재 수용 판단은 위 절과 최종 report를 따른다.
 
 [OTA 내부 모듈](../../shared/ota/README.md)의 C99 CBOR 구조·서명 prefix·typed
 manifest와 순차 본문 길이/SHA-256 검사를 연결했다. identity/target/slot 상한,
@@ -201,12 +215,13 @@ AC3 문구는 그대로 유지한다. T-007은 사전 검증 실패·금지 targ
 연결 시험과 실제 SDK compile/link·산출물 근거를 제시해야 한다. writer가 아직 없다는
 이유만으로 쓰기0회 시험을 통과 처리하지 않는다. 후속 owner는 실제 API 연결에서 같은
 금지 조건을 다시 시험한다. 이 구분은 전체 설치 기능이나 물리 gate를 면제하지 않는다.
-현재 AC3 연결 시험·최종 target/예산·독립 재검토는 OPEN이며 task는 IN_PROGRESS다.
+AC3 연결 시험·정적 예산·독립 재검토와77b target 증거는 최종 report에서 충족했다.
+실제 writer/영속 상태 enforcement와 장치 실측은 위 후속 gate이며 미실행이다.
 
 ## 예상 변경 파일
 
-아래 schema 파일은 생성했지만 최종 리뷰 전 구현 후보다. 파일 존재만으로 수용 기준
-또는 실제 target 연결이 완료됐다고 해석하지 않는다.
+아래 파일의 구현·시험·target 연결 근거는 최종 report에 대응한다.
+파일 존재만으로 실제 장치 실행이나 전체 OTA 설치 완료로 해석하지 않는다.
 
 ```text
 schema/cvota-v2.schema.json
@@ -218,15 +233,18 @@ tests/ota/
 
 ## 수용 기준
 
-- [ ] wrong role/board/layout/key/epoch/서명·unknown critical field·duplicate CBOR key·과도한 중첩·truncated blob을 거절한다.
-- [ ] 정수 경계·겹친 blob·중복 target·서명 lengths와 header 불일치·zero/초과 길이를 C/Python에서 동일하게 거절한다.
-- [ ] manifest 서명·role/board/layout·signed length/호환성 검증 전 erase를 금지한다. 검증 후 enum map의 비활성 slot/staging에만 수신용 erase/write를 허용한다. 전체 image 검증 전 PREPARED/boot selector 변경은 금지하며 parser 결과와 writer 권한을 분리한다.
-- [ ] signed release_sequence:u64를 문자열/JavaScript 부동소수로 비교하지 않고 image와 manifest 불일치를 거절한다.
-- [ ] 정확한 공식 signing 도구 version/commit과 golden digest를 고정하고 secret 없는 clean host 환경에서 음성 fixture가 아닌 합성 binary fixture만으로 검사한다.
+- [x] wrong role/board/layout/key/epoch/서명·unknown critical field·duplicate CBOR key·과도한 중첩·truncated blob을 거절한다.
+- [x] 정수 경계·겹친 blob·중복 target·서명 lengths와 header 불일치·zero/초과 길이를 C/Python에서 동일하게 거절한다.
+- [x] manifest 서명·role/board/layout·signed length/호환성 검증 전 erase를 금지한다. 검증 후 enum map의 비활성 slot/staging에만 수신용 erase/write를 허용한다. 전체 image 검증 전 PREPARED/boot selector 변경은 금지하며 parser 결과와 writer 권한을 분리한다.
+- [x] signed release_sequence:u64를 문자열/JavaScript 부동소수로 비교하지 않고 image와 manifest 불일치를 거절한다.
+- [x] 정확한 공식 signing 도구 version/commit과 golden digest를 고정하고 secret 없는 clean host 환경에서 음성 fixture가 아닌 합성 binary fixture만으로 검사한다.
 
 ## 검증 계획
 
-이 task에서 `tests/ota/test_container.py`와 C parser CTest target을 만든 뒤 host sanitizer·C/Python golden differential test를 실행한다. 생성물 drift와 서명 실패 fixture는 CI를 실패시켜야 한다. 아직 없는 명령을 통과로 집계하지 않는다.
+구현된 `tests/ota/test_container.py`와 C parser CTest, host sanitizer·C/Python
+golden differential·native·mutant·generated drift·SDK negative 시험을 실행했다.
+정확한 candidate별 명령·결과는 최종 report에 연결했다. CI에서 동일 등록 시험을
+실행하며, 아직 없는 실제 Flash/HIL 명령을 통과로 집계하지 않는다.
 
 ## evidence와 rollback
 
