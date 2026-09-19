@@ -17,33 +17,88 @@ class Stm32CoreGateTests(unittest.TestCase):
     def startup_fixture(base=0x08000000):
         # 실제 GNU Arm 15.3 instruction bytes. 상대 branch는 주소 이동에도 같다.
         image = bytearray(512)
-        struct.pack_into("<II", image, 0, 0x20018000, base + 0x121)
-        image[0x100:0x120] = bytes.fromhex(
-            "4ff00052 1368 02f50042 1368 02f50042 1368 02f58042 1368 bff34f8f 00f02ab8")
-        image[0x120:0x128] = bytes.fromhex("0d488546 fff7ecff")
-        struct.pack_into("<I", image, 0x158, 0x20018000)
+        struct.pack_into("<II", image, 0, 0x20018000, base + 0x12D)
+        image[0x100:0x12C] = bytes.fromhex(
+            "4ff00052 0023 1360 bff34f8f 1360 bff34f8f "
+            "02f50042 1368 02f50042 1368 02f58042 1368 bff34f8f 00f02ab8")
+        image[0x12C:0x134] = bytes.fromhex("0d488546 fff7e6ff")
+        struct.pack_into("<I", image, 0x164, 0x20018000)
         symbols = "\n".join(f"{address:08x} T {name}" for name, address in (
-            ("Reset_Handler", base + 0x120), ("__wrap_SystemInit", base + 0x100),
-            ("SystemInit", base + 0x174), ("_estack", 0x20018000),
-            ("_sccmram", 0x10000000), ("_eccmram", 0x10000000)))
+            ("Reset_Handler", base + 0x12C), ("__wrap_SystemInit", base + 0x100),
+            ("SystemInit", base + 0x180), ("_estack", 0x20018000),
+            ("_sccmram", 0x10000000), ("_eccmram", 0x10000000),
+            ("startup_sram_dummy", 0x20000000), ("_sdata", 0x20000004)))
         return symbols, image
 
     def test_startup_ram_actual_sequence(self):
         for base in (0x08000000, 0x08010200):
             symbols, image = self.startup_fixture(base)
             self.assertTrue(check_startup_ram(symbols, image, base))
-            for size in range(0x176):
+            for size in range(0x182):
                 with self.subTest(base=base, truncated=size), self.assertRaises(RuntimeError):
                     check_startup_ram(symbols, image[:size], base)
 
     def test_startup_ram_instruction_and_vector_mutations(self):
         symbols, image = self.startup_fixture()
-        for offset in (*range(8), *range(0x100, 0x128), *range(0x158, 0x15C)):
+        for offset in (*range(8), *range(0x100, 0x134), *range(0x164, 0x168)):
             for bit in range(8):
                 changed = bytearray(image)
                 changed[offset] ^= 1 << bit
                 with self.subTest(offset=offset, bit=bit), self.assertRaises(RuntimeError):
                     check_startup_ram(symbols, changed, 0x08000000)
+
+    def test_startup_parity_and_first_write_loss(self):
+        # 승인한 wrapper의 실제 Thumb memory 접근을 작은 SRAM fault 모형에서 해석한다.
+        # CPU/버스 전체 emulator나 물리 parity qualification은 아니다.
+        _, image = self.startup_fixture()
+
+        def execute(code, parity, faulty_cuts):
+            cuts = (0x20000000, 0x20008000, 0x20010000, 0x20014000)
+            pending = {address for index, address in enumerate(cuts) if faulty_cuts & (1 << index)}
+            written = set()
+            touched = set()
+            address = 0
+            offset = 0
+            while offset < len(code):
+                word = struct.unpack_from("<H", code, offset)[0]
+                offset += 2
+                if word in (0xF04F, 0xF502, 0xF3BF):
+                    second = struct.unpack_from("<H", code, offset)[0]
+                    offset += 2
+                    if word == 0xF04F:
+                        self.assertEqual(second, 0x5200)
+                        address = 0x20000000
+                    elif word == 0xF502:
+                        self.assertIn(second, (0x4200, 0x4280))
+                        address += 0x8000 if second == 0x4200 else 0x4000
+                    else:
+                        self.assertEqual(second, 0x8F4F)
+                elif word == 0x2300:
+                    pass  # movs r3,#0
+                elif word in (0x6013, 0x6813):
+                    self.assertIn(address, cuts)
+                    touched.add(address)
+                    if word == 0x6013:
+                        self.assertEqual(address, 0x20000000)  # 전용 dummy 외 쓰기 금지
+                        if address not in pending:
+                            written.add(address)
+                    elif parity and address == 0x20000000 and address not in written:
+                        raise RuntimeError("미초기화 SRAM parity read")
+                    pending.discard(address)
+                else:
+                    self.fail(f"지원하지 않는 startup opcode {word:x}")
+            self.assertFalse(pending)
+            self.assertEqual(touched, set(cuts))
+            if parity:
+                self.assertIn(0x20000000, written)
+
+        for parity in (False, True):
+            for faulty_cuts in range(16):
+                with self.subTest(parity=parity, cuts=faulty_cuts):
+                    execute(image[0x100:0x128], parity, faulty_cuts)
+        # 이전 read-only startup은 parity 활성 cold boot에서 실패해야 한다.
+        with self.assertRaises(RuntimeError):
+            execute(bytes.fromhex("4ff00052 1368"), True, 0)
 
     def test_startup_ram_symbols_and_ccm_fail_closed(self):
         symbols, image = self.startup_fixture()

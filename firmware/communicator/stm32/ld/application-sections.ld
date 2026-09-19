@@ -88,6 +88,12 @@ SECTIONS
 
   _sidata = LOADADDR(.data);
 
+  /* ES0430 first-write 손실용 전용 word. SRAM1 parity를 읽기 전에 초기화한다. */
+  .startup_sram_dummy (NOLOAD) :
+  {
+    KEEP(*(.startup_sram_dummy))
+  } > RAM
+
   .data :
   {
     . = ALIGN(4);
@@ -138,7 +144,8 @@ __stack_limit = _estack - _Min_Stack_Size;
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
 
-ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.ccmram) <= 80K, "STM32 static RAM budget exceeded")
+ASSERT(ADDR(.startup_sram_dummy) == 0x20000000 && SIZEOF(.startup_sram_dummy) == 4, "STM32 startup dummy placement invalid")
+ASSERT(SIZEOF(.startup_sram_dummy) + SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.ccmram) <= 80K, "STM32 static RAM budget exceeded")
 ASSERT(SIZEOF(.note.gnu.build-id) == 36, "STM32 SHA-1 build ID note missing or invalid")
 ASSERT(_Min_Stack_Size <= 24K, "STM32 reserved stack budget exceeded")
-ASSERT(128K - SIZEOF(.data) - SIZEOF(.bss) - SIZEOF(.ccmram) - _Min_Stack_Size >= 24K, "STM32 RAM margin below 24 KiB")
+ASSERT(128K - SIZEOF(.startup_sram_dummy) - SIZEOF(.data) - SIZEOF(.bss) - SIZEOF(.ccmram) - _Min_Stack_Size >= 24K, "STM32 RAM margin below 24 KiB")

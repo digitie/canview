@@ -13,13 +13,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def check_startup_ram(symbols, image, image_base):
-    """고정 GCC startup의 실제 BIN: SRAM 첫 쓰기 전 네 cut read와 CCM 미사용.
+    """고정 GCC startup BIN: 첫 cut dummy 초기화/나머지 read와 CCM 미사용.
 
     범용 disassembler가 아니라 승인한 작은 instruction sequence를 fail-closed로
     대조한다. SDK/toolchain이 sequence를 바꾸면 명시적인 재검토가 필요하다.
     """
     names = ("Reset_Handler", "__wrap_SystemInit", "SystemInit", "_estack",
-             "_sccmram", "_eccmram")
+             "_sccmram", "_eccmram", "startup_sram_dummy", "_sdata")
     addresses = {}
     for name in names:
         matches = [line.split() for line in symbols.splitlines()
@@ -28,7 +28,9 @@ def check_startup_ram(symbols, image, image_base):
             raise RuntimeError(f"startup symbol 누락/중복: {name}")
         addresses[name] = int(matches[0][0], 16)
     if (addresses["_sccmram"] != 0x10000000 or addresses["_eccmram"] != 0x10000000
-            or addresses["_estack"] != 0x20018000):
+            or addresses["_estack"] != 0x20018000
+            or addresses["startup_sram_dummy"] != 0x20000000
+            or addresses["_sdata"] != 0x20000004):
         raise RuntimeError("startup SRAM stack/CCM 미사용 계약 위반")
 
     def read(address, size):
@@ -63,10 +65,11 @@ def check_startup_ram(symbols, image, image_base):
         raise RuntimeError("startup MSP literal 불일치")
     if branch_target(reset + 4, True) != wrapper:
         raise RuntimeError("startup SRAM wrapper 우회")
-    # mov.w r2,#0x20000000; 네 ldr r3,[r2]; add.w 0x8000/0x8000/0x4000; dsb sy.
-    expected = bytes.fromhex("4ff00052 1368 02f50042 1368 02f50042 1368 02f58042 1368 bff34f8f")
+    # 첫 cut: dummy=0, DSB, dummy=0, DSB. 나머지 cut: ldr 후 다음 주소로 이동.
+    expected = bytes.fromhex("4ff00052 0023 1360 bff34f8f 1360 bff34f8f "
+                             "02f50042 1368 02f50042 1368 02f58042 1368 bff34f8f")
     if read(wrapper, len(expected)) != expected:
-        raise RuntimeError("startup SRAM 네 cut read/order/opcode 불일치")
+        raise RuntimeError("startup SRAM dummy/read/order/opcode 불일치")
     if branch_target(wrapper + len(expected), False) != addresses["SystemInit"]:
         raise RuntimeError("startup SDK SystemInit tail branch 불일치")
     read(addresses["SystemInit"], 2)
@@ -384,7 +387,7 @@ def main():
     print(f"PASS: STM32 core text={text} data={data} bss+reserved-stack={bss}; "
           f"max individual stack frame={max_frame}; {len(stacks)} C object stack files; "
           f"{len(constants)} CMSIS/model + 2 DMAMUX/LL constants; "
-          f"startup SRAM read/CCM0 PASS; ELF/BIN build ID={build_id}")
+          f"startup SRAM dummy/read/CCM0 PASS; ELF/BIN build ID={build_id}")
     return 0
 
 

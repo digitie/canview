@@ -1,5 +1,39 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 startup parity 누락 수정)
+
+ecbce7d의 후속 source 검토에서 P1 수준의 전제 누락을 발견했다. 고정 CubeG4
+`stm32g4xx_hal_flash.h:408`의 SRAM parity 대상은 CCM뿐 아니라 SRAM1 첫32KiB다.
+ES0430 Rev9 §2.2.7은 parity 활성 영역에서 dummy initialization을 요구한다.
+이전 read-only wrapper는 미초기화 parity에 의한 NMI를 고려하지 않았으므로
+직전 항목의 BIN/모형 성공을 parity 활성 startup 수용 근거로 사용하지 않는다.
+독립 reviewer finding은 아니며, 독립2인 task review를 대체하지 않는다.
+
+전용4B NOLOAD dummy를 SRAM1 시작에 예약했다.44B naked wrapper가 그 word에
+zero write/DSB를 두 번 실행한다. 첫 write 소실을 허용하고 두 번째로 초기화하며,
+앱 data는0x20000004부터 배치한다. 나머지 세 cut은 기존 read를 사용한다.
+SDK 원본과 option byte는 변경하지 않는다. 새 gate는 dummy/data 주소와 실제 BIN
+명령열까지 확인하며 linker도 dummy 주소/크기를 ASSERT한다.
+
+- 단위12개 성공. 실제 opcode 접근 모형에서 parity on/off와 네 cut의 첫 write
+  손실32조합 성공. 이전 read-only 명령열은 parity 활성 오류로 재현된다.
+  512개 bit 변이·두 base의 잘림772개·symbol/CCM 오류 거절도 유지했다.
+- Windows Clang23.1 Host Debug155/155(85.59초), Release155/155(67.71초) 성공.
+  host build warning/error0. `build/t107-parity-host-{debug,release}-{build,test}.log`.
+- 실제 Arm bench Debug/Release·primary Debug/Release clean build의 ELF/MAP/BIN 성공.
+  BIN은51760/39768/51768/39776B, wrapper44B/dummy4B/CCM0B이며 compiler/linker/CMake
+  warning/error0이다. `build/t107-parity-arm-{debug,release,primary-debug,primary-release}.log`.
+- 공식 imgtool 실제/최대 payload 서명·변조 검증 성공. 실제 signed52607/40614B,
+  최대184136/184134B, trailer2376B/reserve4096B다.
+  로그: `build/t107-parity-primary-{debug,release}-imgtool.log`.
+- Board drift0, 문서386개/링크1467개와 task49개 오류0. 합성 fixture source digest는
+  `dfd9478aa1290553b0bb0766cb8217ddc4f1b6e6e8d30bc9a038acbf01449bc1`이다.
+
+이 변경은 target-only startup이므로 host sanitizer/coverage 수치로 실행을 주장하지
+않는다.32조합은 SRAM 접근 모형이며 실제 cold/warm reset·parity/전원 fault/HIL은
+NOT_RUN이다. T-107/PR37은 IN_PROGRESS/Draft, ECC-safe read·Flash backend·boot executable과
+독립2인 task review·최종 CI/artifact 감사는 미완료다. 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, T-107 SRAM reset startup 전제)
 
 4839f38/PR37 Draft에서 이어 진행했다. ECC 검토 중 ES0430 Rev9 §2.2.7과 고정

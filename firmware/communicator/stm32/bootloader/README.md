@@ -128,17 +128,25 @@ Debug480B/Release364B다. 이 검사는 최종 ELF의 SRAM 주소나 실제 Flas
 ## SRAM reset 전제와 ECC errata
 
 [ES0430 Rev9, 2024-06](https://www.st.com/resource/en/errata_sheet/es0430-stm32g471xx473xx474xx483xx484xx-device-errata-stmicroelectronics.pdf)
-§2.2.7의 첫 SRAM write 손실을 피하려고 앱 startup의 첫 `SystemInit` 호출을 linker
+§2.2.7의 첫 SRAM write 손실에 대비해 앱 startup의 첫 `SystemInit` 호출을 linker
 `--wrap`으로 받는다. 고정 CubeG4 startup 원본은 수정하지 않는다.
-`platform/stm32g474/startup_ram.c`의 최소 naked wrapper가 stack/data 쓰기 전에
-0x20000000/0x20008000/0x20010000/0x20014000을 읽고 SDK 함수로 tail branch한다.
+`platform/stm32g474/startup_ram.c`의44B naked wrapper가 stack/data 쓰기 전에
+첫 SRAM1 cut의 전용 dummy(0x20000000,4B)를 두 번 초기화한다. 첫 쓰기 손실은
+허용하며 각 DSB 뒤 두 번째 쓰기가 data/parity를 설정한다. Linker는 dummy를
+앱 data와 분리한다. 나머지0x20008000/0x20010000/0x20014000은 읽은 뒤 SDK로 tail branch한다.
 C prologue도 stack을 쓸 수 있어 이 진입부만 assembly를 사용한다.
 
+고정 HAL의 `OB_SRAM_PARITY_ENABLE` 설명처럼 parity는 CCM뿐 아니라 SRAM1 첫32KiB에도
+적용된다. 따라서 parity 설정을 바꾸거나 미초기화 parity 메모리를 먼저 읽지 않는다.
+ecbce7d의 read-only wrapper는 이 조건을 놓쳤으며 현재 구현으로 수정했다.
+
 `check_stm32_core.py`는 bench/primary 실제 BIN의 vector, MSP literal, Reset_Handler
-첫 세 명령, 네 read의 정확한 명령열과 SDK tail branch를 검사한다. CCM 초기화는
+첫 세 명령, dummy 두 write/DSB와 세 read의 명령열, SDK tail branch를 검사한다. CCM 초기화는
 구현하지 않았으므로 linker의 CCM section은0B여야 한다. CCM 사용을 추가하려면
 parity/reset 초기화를 별도로 구현해야 한다. Toolchain/SDK가 명령열을 변경하면
 검사를 느슨하게 하지 않고 다시 검토한다. 실제 reset/전원 및 SRAM 실측은 NOT_RUN이다.
+Host의 작은 접근 모형은 parity on/off와 네 cut의 첫 write 손실32조합을 시험하며,
+이전 read-only 명령열의 parity 오류도 재현한다. 이는 CPU/버스 emulator나 실기 시험은 아니다.
 
 같은 문서 §2.2.3은 중단된 Flash 작업 뒤 read 시 ECCR 정보 손상 가능성을 명시한다.
 따라서 ECCR 주소만으로 지울 page를 선택하거나 유일한 정상 이미지를 자동 erase하는
