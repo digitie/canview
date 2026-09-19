@@ -1,5 +1,26 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, BSP trust 리뷰 경로 결함 수정)
+
+`6c14950`을 commit/push하고 독립 A/B 원본을 [중간 리뷰](reviews/adversarial/2026-09-19-T-107-trust.md)에
+보존했다. A PASS/B CONDITIONAL, B-BOOT-TRUST-01 P2는 fresh configure 상대 DER
+입력의 자동 절대경로 변환이다. 유효 파일을 준비한 회귀로 Windows/WSL에서 실제
+기대 거절 실패를 재현한 뒤 STRING cache로 수정했다. 첫 직접 PowerShell 명령은
+인수 분리 오류로 실패했으므로 증거로 사용하지 않고 Python argv 경로로 재현했다.
+Windows 전체 trust1/1·GNU4개+통합·fixture13개를 다시 통과했고 원 reviewer 재확인 대기다.
+
+추가로 Doxygen1.18/Sphinx strict와71 API 계약 통과(`build/t107-trust-docs.log`),
+Debug key-only 재생성 회귀1/1(`build/t107-trust-key-only-retest.log`)를 확인했다.
+이전 CI35437256268/35437911211은 각각 전체 성공이며 target artifact27개 byte/hash,
+source11개와 target log34개 warning/error0을 감사했다. source 첫 raw hash 대조는
+로컬 LF/CI CRLF 차이로 실패해 동일 git blob의 LF/CRLF 해시를 대조했고 전부 CI CRLF와
+일치했다. binary는 줄바꿈 변환 없이 byte-exact 비교했다. 로컬 evidence는
+`build/t107-trust-base-ci-35437256268`, `build/t107-io-ci-35437911211`이다.
+현재 candidate의 CI나 새 identity의 Arm CI를 이 이전 성공으로 대체하지 않는다.
+
+최종 boot 연결·물리 gate는 그대로 미완료다. PR37 Draft/T-107 IN_PROGRESS,
+HIL/provisioning NOT_RUN, 차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, T-107 명시적 BSP identity·공개키)
 
 기존 MCUboot 공개키 ABI와 identity 계약에 const BSP 공급자를 추가했다. 표준91B

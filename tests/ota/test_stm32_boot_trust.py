@@ -79,7 +79,7 @@ def integration(args):
                    "--security-epoch", "0", "--manifest-key-id", "4294967295", "--stm-abi", "2", "--output", str(output)]
 
         def run(command, success=True):
-            result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
+            result = subprocess.run(command, cwd=work, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
             if (result.returncode == 0) != success:
                 raise AssertionError(f"unexpected status {result.returncode}: {command}\n{result.stdout}\n{result.stderr}")
             if success and "warning:" in (result.stdout + result.stderr).lower():
@@ -99,6 +99,14 @@ def integration(args):
         names = ["CANVIEW_BOOT_PUBLIC_DER", "CANVIEW_BOOT_SECURITY_EPOCH", "CANVIEW_BOOT_MANIFEST_KEY_ID", "CANVIEW_BOOT_STM_ABI"]
         values = [str(der_path), "0", "4294967295", "2"]
 
+        # 유효한 파일을 실제 준비한 fresh cache여야 FILEPATH 자동 변환을 검출한다.
+        for suffix, entry in (("untyped", "CANVIEW_BOOT_PUBLIC_DER"),
+                              ("typed", "CANVIEW_BOOT_PUBLIC_DER:FILEPATH")):
+            fresh = config.copy()
+            fresh[fresh.index("-B") + 1] = str(work / f"fresh-{suffix}")
+            run(fresh + [f"-D{entry}=public.der"] +
+                [f"-D{name}={value}" for name, value in zip(names[1:], values[1:])], False)
+
         def configure(inputs, success=True):
             return run(config + [f"-D{name}={value}" for name, value in zip(names, inputs)], success)
 
@@ -107,7 +115,7 @@ def integration(args):
             missing = values.copy()
             missing[omitted] = ""
             configure(missing, False)
-        for bad_path in ("relative.der", str(work), str(work / "missing.der")):
+        for bad_path in ("public.der", str(work), str(work / "missing.der")):
             configure([bad_path] + values[1:], False)
         configure(values)
         build = [args.cmake, "--build", str(work / "build")]

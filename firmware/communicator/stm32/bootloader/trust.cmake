@@ -1,5 +1,6 @@
 # 승인된 빌드/제조 입력만 받는다. 업데이트 image/manifest에서 추출하지 않는다.
-set(CANVIEW_BOOT_PUBLIC_DER "" CACHE FILEPATH "Trusted P-256 public SPKI DER; never a private key")
+# FILEPATH는 최초 untyped -D 상대 입력을 절대경로로 바꿔 검사를 우회한다.
+set(CANVIEW_BOOT_PUBLIC_DER "" CACHE STRING "Trusted absolute P-256 public SPKI DER; never a private key")
 set(CANVIEW_BOOT_SECURITY_EPOCH "" CACHE STRING "Explicit manufacturing security epoch")
 set(CANVIEW_BOOT_MANIFEST_KEY_ID "" CACHE STRING "Explicit separate manifest trust-root ID")
 set(CANVIEW_BOOT_STM_ABI "" CACHE STRING "Explicit supported STM image ABI")
