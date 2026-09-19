@@ -9,6 +9,11 @@
  * address는 BSP 검사를 통과한 절대 주소다. backend도 범위를 독립 검사한다.
  */
 int canview_boot_flash_read(uint32_t address, void *destination, uint32_t length);
+/** 쓰기 직전 고정 Flash 배치/보호의 필수 조건을 새로 읽는다. 0 또는 음수 오류.
+ * option byte를 변경하지 않는다. 성공은 production/RDP·서명·ECC·SRAM 실행 승인과
+ * 다르며 실제 backend는 나머지 gate도 검사해야 한다. 실패하면 write/erase 호출 금지.
+ */
+int canview_boot_flash_check(void);
 int canview_boot_flash_write(uint32_t address, const void *source, uint32_t length);
 int canview_boot_flash_erase(uint32_t address, uint32_t length);
 /** 진행 지점 알림. 실제 target의 시간/진행 조건을 만족한 경우에만 watchdog feed 허용. */

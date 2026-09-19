@@ -69,6 +69,7 @@ int flash_area_write(const struct flash_area *area, uint32_t offset, const void 
     {
         return -1;
     }
+    if (canview_boot_flash_check() != 0) { return -1; }
     return canview_boot_flash_write(address, data, length);
 }
 
@@ -79,6 +80,7 @@ int flash_area_erase(const struct flash_area *area, uint32_t offset, uint32_t le
     {
         return -1;
     }
+    if (canview_boot_flash_check() != 0) { return -1; }
     return canview_boot_flash_erase(address, length);
 }
 

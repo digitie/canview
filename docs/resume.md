@@ -41,7 +41,12 @@ MCUboot 상태 API를 재사용하며 정상 metadata도 native signature 검증
 잘못된 signed metadata·identity 공급 실패·IO 오류와 일반 TLV 길이 변이를 거절한다.
 합성 identity는 host 시험 전용이며 실제 BSP 공급과 floor 정책은 아직 미구현이다.
 
-다음은 G474 profile 검사와 실제 Flash/ECC driver, 신뢰된 BSP identity 공급,
+G474 고정 배치의 읽기 전용 guard를 MCUboot write/erase 직전에 연결했다.
+DBANK/WRP/NRST·Flash 크기·bank remap·busy/option 오류를 매번 확인한다.
+같은 C를 host register 모형과 actual Arm archive로 빌드한다. 생산 보호 profile의
+승인/실측과 실제 Flash IO는 별도 미완료이며 option byte를 자동 변경하지 않는다.
+
+다음은 실제 Flash/ECC driver와 SRAM 실행 경로, 신뢰된 BSP identity 공급,
 bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 

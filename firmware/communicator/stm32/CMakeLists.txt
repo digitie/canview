@@ -213,7 +213,13 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 set(CANVIEW_MCUBOOT_ROOT "$ENV{MCUBOOT_ROOT}" CACHE PATH "Pinned clean MCUboot checkout")
 if(CANVIEW_MCUBOOT_ROOT)
     add_subdirectory(bootloader)
-    foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map)
+    add_library(canview_boot_flash_guard STATIC platform/stm32g474/flash_guard.c)
+    target_link_libraries(canview_boot_flash_guard PRIVATE canview_boot_config canview_warnings)
+    target_include_directories(canview_boot_flash_guard PRIVATE bsp)
+    target_include_directories(canview_boot_flash_guard SYSTEM PRIVATE
+        "${CMSIS_CORE_ROOT}/Core/Include" "${CMSIS_DEVICE_ROOT}/Include")
+    target_compile_definitions(canview_boot_flash_guard PRIVATE STM32G474xx)
+    foreach(boot_target bootutil canview_boot_crypto canview_boot_flash_map canview_boot_flash_guard)
         target_compile_options(${boot_target} PRIVATE ${MCU_OPTIONS}
             -ffunction-sections -fdata-sections -fstack-usage
             -include "${CMAKE_CURRENT_SOURCE_DIR}/interface/canview_build_mode.h")

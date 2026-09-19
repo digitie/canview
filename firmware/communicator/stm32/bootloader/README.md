@@ -15,6 +15,14 @@
   내부 API이며 외부 요청 API가 아니다. close는 해제할 자원이 없는 no-op이다.
 - IO는 boot 단일 owner 전용이며 ISR/task/callback 재진입을 허용하지 않는다.
   buffer는 호출 반환까지 유효하다. 기존 앱·UART·CAN에는 연결하지 않는다.
+- write/erase 전달 직전 `canview_boot_flash_check()`를 호출한다. G474의
+  `platform/stm32g474/flash_guard.c`가 SYSCFG clock, Flash512KiB, busy/option 오류,
+  DBANK=1, BFB2=0, bank swap 없음, NRST 양방향 및 WRP1A page0..31을 매번 확인한다.
+  다른 WRP 영역은 start>end인 비활성 상태만 허용한다. option byte·상태 register를
+  쓰거나 오류를 지우지 않는다. 이 검사는 고정 배치의 필수 조건이며 T-507의 생산용
+  RDP/PCROP·유선 복구 정책 승인이나 실제 ECC/SRAM/Flash IO 검증을 대신하지 않는다.
+  [RM0440 Rev9 §3.7](https://www.st.com/resource/en/reference_manual/dm00355726-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)와
+  고정 CubeG4 v1.6.3 CMSIS register 정의를 따른다.
 - SHA-256/P-256은 고정 MCUboot의 TinyCrypt와 ASN1 parser를 사용한다. 직접 암호를
   작성하지 않는다. ASN1 allocator와 키 생성용 RNG는 실패를 반환한다. 검증에 heap은
   필요하지 않으며 사용하지 않는 upstream split-image allocator도 거절한다.
@@ -72,7 +80,11 @@ identity 공급 실패·잘못된 로컬 role·Flash read 실패도 거절한다
 바꿔도 native verifier가 허용하는 경우를 회귀시험으로 추가하고 고정 profile 검사에서
 거절한다. 이는 MCUboot 서명 검증을 자체 암호 코드로 대체하는 것이 아니다.
 
-미구현/미검증은 실제 BSP identity 공급, DBANK/WRP/NRST profile, 실제 G474
+Guard 단위시험은 option16개·size65536개·WRP65536개 조합과 register 불변을 확인한다.
+MCUboot 모형에도 같은 guard C를 연결해 실패 시 backend write/erase 미호출을 검사한다.
+모형의 추가 register 상수19개는 실제 Arm 빌드에서 vendor CMSIS와 compile-time 대조한다.
+
+미구현/미검증은 실제 BSP identity 공급, 생산 보호 profile 승인/실측, 실제 G474
 Flash driver·SRAM critical path·ECC/NMI·erase stall·watchdog, 쓰기 도중 torn word/page,
 boot handoff, T-205 CONFIRM_INTENT/floor 연결이다. 모형의 직접 confirm은 제품 정책
 API가 아니다. Physical/HIL·Flash·option-byte/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.

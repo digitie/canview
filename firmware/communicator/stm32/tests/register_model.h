@@ -6,7 +6,7 @@
 #include <stdint.h>
 typedef struct
 {
-    volatile uint32_t CR, CFGR, PLLCFGR, CSR, APB1ENR1, CCIPR, CIFR, CICR;
+    volatile uint32_t CR, CFGR, PLLCFGR, CSR, APB1ENR1, APB2ENR, CCIPR, CIFR, CICR;
 } model_rcc_t;
 typedef struct
 {
@@ -14,8 +14,34 @@ typedef struct
 } model_pwr_t;
 typedef struct
 {
-    volatile uint32_t ACR;
+    volatile uint32_t ACR, SR, OPTR, WRP1AR, WRP1BR, WRP2AR, WRP2BR;
 } model_flash_t;
+typedef struct
+{
+    volatile uint32_t MEMRMP;
+} model_syscfg_t;
+extern model_syscfg_t model_syscfg;
+extern uint16_t model_flash_size_kib;
+#define SYSCFG (&model_syscfg)
+#define RCC_APB2ENR_SYSCFGEN UINT32_C(1)
+#define FLASH_SR_BSY UINT32_C(0x10000)
+#define FLASH_SR_OPTVERR UINT32_C(0x8000)
+#define FLASH_OPTR_DBANK UINT32_C(0x400000)
+#define FLASH_OPTR_BFB2 UINT32_C(0x100000)
+#define FLASH_OPTR_NRST_MODE UINT32_C(0x30000000)
+#define SYSCFG_MEMRMP_FB_MODE UINT32_C(0x100)
+#define FLASH_WRP1AR_WRP1A_STRT UINT32_C(0x7f)
+#define FLASH_WRP1AR_WRP1A_END UINT32_C(0x7f0000)
+#define FLASH_WRP1AR_WRP1A_END_Pos (16U)
+#define FLASH_WRP1BR_WRP1B_STRT UINT32_C(0x7f)
+#define FLASH_WRP1BR_WRP1B_END UINT32_C(0x7f0000)
+#define FLASH_WRP1BR_WRP1B_END_Pos (16U)
+#define FLASH_WRP2AR_WRP2A_STRT UINT32_C(0x7f)
+#define FLASH_WRP2AR_WRP2A_END UINT32_C(0x7f0000)
+#define FLASH_WRP2AR_WRP2A_END_Pos (16U)
+#define FLASH_WRP2BR_WRP2B_STRT UINT32_C(0x7f)
+#define FLASH_WRP2BR_WRP2B_END UINT32_C(0x7f0000)
+#define FLASH_WRP2BR_WRP2B_END_Pos (16U)
 typedef struct
 {
     volatile uint32_t KR, PR, RLR, WINR, SR;

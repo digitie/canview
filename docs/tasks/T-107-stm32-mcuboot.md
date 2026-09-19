@@ -85,6 +85,14 @@ MCUboot image hook에 기존 T-007 metadata 대조를 연결했다. 신뢰된 BS
 전체 task 완료나 물리 gate 통과가 아니며 아래 AC는 계속 열어 둔다. 다음은 실제
 G474 profile/Flash/ECC·SRAM/watchdog와 bootloader 실행 파일 연결이다.
 
+## 2026-09-19 Flash 보호 guard
+
+write/erase 직전 고정 G474 배치 guard를 연결했다. DBANK1/WRP1A
+page0..31/양방향 NRST, 다른 WRP 비활성,512KiB와 bank remap·busy/option 오류를
+읽기 전용으로 확인한다. 실제 register/option-byte 쓰기는 하지 않는다. Host와 Arm이
+동일 C를 사용하며 자세한 계약은 [포트 설명](../../firmware/communicator/stm32/bootloader/README.md)에 둔다.
+이것만으로 생산 profile 승인이나 실제 보호·Flash/ECC 수용 기준을 체크하지 않는다.
+
 ## 목표
 
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.

@@ -1,5 +1,39 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 G474 읽기 전용 Flash 보호 guard)
+
+eaa5751 다음 단위다. 시작 시 해당 HEAD/remote와 clean 상태, CI35432132535의
+in_progress를 확인했다. 이전 turn은 실제 C 구현·commit/push가 있는 진행으로 분류한다.
+드라이버/architecture/cstyle/documentation 기준에 따라 MCU register 접근은 기존
+platform 경계에 두고 공용 MCUboot adapter는 필수 preflight 함수만 호출한다.
+
+- `flash_guard.c`는512KiB·DBANK1·BFB2off·bank remap 없음·양방향 NRST,
+  WRP1A page0..31과 나머지 WRP 비활성, SYSCFG clock·busy/option 오류를 확인한다.
+  매 write/erase 전달 전에 실제 값을 새로 읽고 실패하면 backend IO를 호출하지 않는다.
+  option-byte/Flash 상태 register에 쓰지 않는다. 생산용 RDP/PCROP·복구 조합 승인과
+  샘플 qualification은 T-507에 남아 있으며 guard 성공을 그 승인으로 해석하지 않는다.
+- Host 모형에도 실제 guard source를 link했다. 정상 boot_go108개 image/identity/IO
+  시나리오와 swap/revert258개 API 중단 경로를 유지한다. Guard 단위시험은 옵션16개,
+  크기65536개, WRP65536개 조합과 register 불변을 확인한다.
+- WSL Clang21.1.8 ASan/UBSan2/2(18.59초), coverage2/2(7.00초) 성공.
+  guard 자체의 region95/95·function2/2·line32/32·branch20/20은100%다.
+  전체 firmware나 물리 Flash coverage 주장이 아니다. 로그는
+  `build/t107-guard-sanitize-coverage.log`다.
+- 실제 Arm primary-debug/primary-release clean build에서 기존 앱 ELF/MAP/BIN과
+  새 guard archive를 생성했다. compiler/linker/CMake warning0, CMSIS/model 상수73개
+  (신규19개 포함)와 기존 DMAMUX2개 대조 성공. 로그는
+  `build/t107-guard-arm-primary-{debug,release}.log`다. Bootloader 최종 binary는 아직 없다.
+- Windows Clang23.1 전체 Host Debug153/153(70.00초), Release153/153(53.83초) 성공.
+  `build/t107-guard-host-{debug,release}-{build,test}.log`를 보존한다. 두 host build 로그도
+  compiler/linker/CMake warning0이다. 새 guard는 SDK 없는 host matrix에도 포함된다.
+- board generation, 문서386개/로컬 링크1464개, task49개 정합 검사 성공.
+  합성 capture fixture의 source digest만 갱신했으며 실제 HIL로 승격하지 않았다.
+
+다음은 실제 Flash program/erase·ECC/NMI·SRAM critical path와 bootloader executable다.
+현재 guard는 이 실행부를 대체하지 않는다. T-107 AC·독립2인 리뷰·최종 CI/artifact
+감사는 열어 두며 PR37은 Draft다. Physical/HIL/Flash/provisioning은 NOT_RUN,
+차량 TX는 NO-GO, Diagnostic Bridge는 read-only다.
+
 ## 2026-09-19 (codex, T-107 MCUboot protected metadata hook)
 
 430d73a 뒤의 작은 C 구현 단위다. Embedded architecture/cstyle/documentation 기준에

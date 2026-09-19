@@ -15,6 +15,7 @@
 #include "bootutil/sign_key.h"
 #include "mbedtls/platform.h"
 #include "tinycrypt/ecc_platform_specific.h"
+#include "register_model.h"
 
 /* GCC 호환 변환이 FIH 저장 객체의 volatile을 제거하지 않았음을 컴파일로 검사한다. */
 _Static_assert(_Generic(&FIH_SUCCESS, volatile int *: 1, default: 0), "FIH global remains volatile");
@@ -38,6 +39,10 @@ static flash_model_t baseline;
 static uint32_t fail_read_length;
 static uint32_t fail_read_address;
 static int identity_fault;
+model_rcc_t model_rcc;
+model_flash_t model_flash;
+model_syscfg_t model_syscfg;
+uint16_t model_flash_size_kib = 512U;
 static struct
 {
     jmp_buf reset;
@@ -305,6 +310,11 @@ static int adapter_tests(void)
     CHECK(flash_area_id_to_multi_image_slot(1, 2) == -1);
     CHECK(flash_area_align(&forged) == 0U);
     CHECK(model.writes == 0U && model.erases == 0U);
+    model_flash.OPTR &= ~FLASH_OPTR_DBANK;
+    CHECK(flash_area_write(area, 0U, data, 8U) != 0);
+    CHECK(flash_area_erase(area, 0U, 2048U) != 0);
+    CHECK(model.writes == 0U && model.erases == 0U);
+    model_flash.OPTR |= FLASH_OPTR_DBANK;
     CHECK(flash_area_write(area, 0U, data, 8U) == 0);
     CHECK(flash_area_write(area, 0U, data, 8U) != 0);
     CHECK(flash_area_erase(area, 0U, 2048U) == 0);
@@ -319,6 +329,12 @@ int main(int argc, char **argv)
     size_t key_length;
     uint32_t index;
     CHECK(argc == 5);
+    model_rcc.APB2ENR = RCC_APB2ENR_SYSCFGEN;
+    model_flash.OPTR = FLASH_OPTR_DBANK | FLASH_OPTR_NRST_MODE;
+    model_flash.WRP1AR = 31U << 16U;
+    model_flash.WRP1BR = 127U;
+    model_flash.WRP2AR = 127U;
+    model_flash.WRP2BR = 127U;
     CHECK(mbedtls_calloc(1U, 32U) == NULL);
     mbedtls_free(NULL);
     CHECK(default_CSPRNG(NULL, 0U) == 0);

@@ -62,8 +62,11 @@ target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
     if(CANVIEW_MCUBOOT_ROOT)
-        add_executable(canview-mcuboot-model tests/ota/mcuboot_model.c)
-        target_include_directories(canview-mcuboot-model PRIVATE firmware/communicator/stm32/bsp)
+        add_executable(canview-mcuboot-model tests/ota/mcuboot_model.c
+            firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+        target_compile_definitions(canview-mcuboot-model PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+        target_include_directories(canview-mcuboot-model PRIVATE firmware/communicator/stm32/bsp
+            firmware/communicator/stm32/tests)
         target_link_libraries(canview-mcuboot-model PRIVATE bootutil canview_boot_flash_map)
         set_target_properties(canview-mcuboot-model PROPERTIES C_STANDARD 11)
         target_compile_options(canview-mcuboot-model PRIVATE -Wall -Wextra -Werror)
@@ -73,6 +76,14 @@ if(BUILD_TESTING)
             --bootutil $<TARGET_PROPERTY:bootutil,SOURCE_DIR>)
         set_tests_properties(stm32-mcuboot-model PROPERTIES TIMEOUT 60)
     endif()
+    add_executable(canview-stm-flash-guard-tests tests/ota/test_stm32_flash_guard.c
+        firmware/communicator/stm32/platform/stm32g474/flash_guard.c)
+    target_include_directories(canview-stm-flash-guard-tests PRIVATE
+        firmware/communicator/stm32/bootloader/include firmware/communicator/stm32/tests
+        firmware/communicator/stm32/bsp)
+    target_compile_definitions(canview-stm-flash-guard-tests PRIVATE CANVIEW_STM_REGISTER_TEST=1)
+    target_link_libraries(canview-stm-flash-guard-tests PRIVATE canview_warnings)
+    add_test(NAME stm32-flash-guard COMMAND canview-stm-flash-guard-tests)
     add_executable(canview-stm-flash-layout-tests tests/ota/test_stm32_flash_layout.c)
     target_include_directories(canview-stm-flash-layout-tests PRIVATE firmware/communicator/stm32/bsp)
     target_link_libraries(canview-stm-flash-layout-tests PRIVATE canview_stm_flash_layout canview_warnings)
