@@ -23,6 +23,25 @@ idf.py -C tests/fixtures/idf-ota-image -B $otaImageBuild build
 필수다. 자동 signing은 끄므로 이미지 자체의 서명 성공을 주장하지 않는다.
 이 설정은 production Secure Boot/eFuse 구성이나 board sdkconfig의 대체가 아니다.
 
+## 합성 native descriptor
+
+`main/metadata.c`는 SDK의 `.rodata_custom_desc`에168B `CVIMG001`을 넣고 `-u`로
+linker 제거를 막는다. C 구조 크기·문자열 offset·little-endian을 compile-time에 확인한다.
+고정 합성 값은 Communicator/COMM_ESP, epoch7, ABI2, sequence `UINT64_MAX`,
+`synthetic-board`/`synthetic-layout`이며 app version은 `1.2.3+4`다. 제품 identity나
+배포 가능한 release가 아니다. 실제 signing/golden을 준비하는 시험 입력이다.
+
+```powershell
+python -B tests/ota/check_sdk_metadata.py build/idf-ota-image/canview_ota_image_sdk_probe.bin
+```
+
+SDK image header24B·첫 segment header8B·app descriptor256B 뒤, offset288의 실제
+BIN byte열을 검사한다. metadata168개 전 byte 변이와4개 절단을 거절하는지도 검사하며
+CI target build 뒤에도 실행한다. header/app/custom 위치 근거는 고정 SDK의
+[custom descriptor 문서](https://github.com/espressif/esp-idf/blob/76f5dedd9950a3012fee8fb7d5586df21fc67802/docs/en/api-reference/system/app_image_format.rst)다.
+이 검사는 metadata 위치/값만 대조한다. 전체 native 서명, MCU 실행 또는 Flash 설치의
+검증이 아니다. production app descriptor 삽입과 신뢰 identity provider 연결은 남아 있다.
+
 ## 구현 경계
 
 [ota_image.c](../../../firmware/platform/esp32s3/ota_image.c)는 BSP 전용 SDK adapter다.

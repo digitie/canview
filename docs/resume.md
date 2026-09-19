@@ -102,8 +102,10 @@ schema와 JSON→CBOR 작성 도구를 native image signing·검증 및 전체 `
 Flash 불변 보장·서명된 실제 descriptor 생성과 provider 연결을 확인한다.
 staging 위치/크기와 암호화 flag는 generator로 연결했고 공식 SDK partition parser로
 세 보드 template을 검사했다. [SDK fixture 계약](../tests/fixtures/idf-ota-image/README.md)을 따른다.
-본문 streaming은 구현했고 prefix 부분 수신 조립, 정식 schema·CLI·signed golden과
-실제 STM32/ESP32 provider/target 연결을 완성해야 한다. 내부 key 배정은 미배포 후보다.
+본문 streaming·prefix 부분 수신과 외부 서명 컨테이너 조립 CLI는 구현했다.
+SDK fixture에는 합성 native descriptor를 실제 BIN offset288에 넣고168개 byte 변이와
+4개 절단을 검사했다. 정식 native signing/golden과 정상 STM32/ESP32 provider/target
+연결은 남아 있다. 내부 key 배정은 미배포 후보다.
 floor 비교 성공은 영속 정책/실제 설치 상태 provider와 복구 통합 완료가 아니다.
 
 시작 파일은 [상세 task](tasks/T-007-ota-container.md)와

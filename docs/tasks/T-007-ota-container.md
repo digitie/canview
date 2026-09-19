@@ -79,6 +79,11 @@ init/finish의 행·분기100%는 collector 전용 실행 결과다. 전체 enve
 coverage로 확대하지 않는다. 독립 A/B 정적 리뷰에서 P0/P1/P2는 없으며 B의 P3 두 건
 (이전 시험 귀속·host RAM 설명)은 수정 후 원 reviewer 재확인 중이다. 전체 task는 미완료다.
 
+SDK fixture에 합성 native metadata168B와 `UINT64_MAX`를 실제 custom descriptor로
+넣었다. ESP-IDF6.0.3 ELF/MAP/BIN 생성·경고0, BIN offset288의 값·168개 변이·4개
+절단 거절을 로컬에서 확인했다. 자동 서명·Flash·production identity는 사용하지 않았다.
+다음 native signing/golden의 입력이며 정상 제품 firmware 연결 완료가 아니다.
+
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
 순차 image만 사용하고, 압축·임의 경로·플러그인·범용 패키지 기능은 추가하지 않는다.
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.

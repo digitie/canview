@@ -303,6 +303,9 @@ jobs:
             Invoke-TargetCommand "public-component-build" { idf.py -C tests/fixtures/idf-public-component build }
             Invoke-TargetCommand "ota-image-sdk-set-target" { idf.py -C tests/fixtures/idf-ota-image set-target esp32s3 }
             Invoke-TargetCommand "ota-image-sdk-build" { idf.py -C tests/fixtures/idf-ota-image build }
+            Invoke-TargetCommand "ota-image-sdk-metadata" {
+              python -B tests/ota/check_sdk_metadata.py tests/fixtures/idf-ota-image/build/canview_ota_image_sdk_probe.bin
+            }
             foreach ($otaBoard in @('communicator/esp32', 'controller', 'diagnostic-bridge')) {
               $otaName = $otaBoard.Replace('/', '-')
               $otaFlash = if ($otaBoard -eq 'diagnostic-bridge') { '8MB' } else { '16MB' }
