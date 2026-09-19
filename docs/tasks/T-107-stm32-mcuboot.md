@@ -74,6 +74,17 @@ Arm archive compile은 bootloader final binary가 아니다. 아래 AC는 계속
 다음은 board/role/ABI protected TLV와 G474 profile/실제 Flash·ECC driver 및
 bootloader executable 연결이다. 물리 검증과 production provisioning은 NOT_RUN이다.
 
+## 2026-09-19 signed metadata 부팅 검사
+
+MCUboot image hook에 기존 T-007 metadata 대조를 연결했다. 신뢰된 BSP identity 공급
+계약과 입력 이미지의 값을 분리하고, protected TLV board/role/layout/epoch/ABI를
+검사한 뒤에도 원래 P-256/hash 검증을 반드시 수행한다. 일반 TLV 길이 변이에 대한
+고정 profile 검사도 추가했다. 실제 BSP 공급·floor/activation 정책은 아직 연결하지
+않았으며 합성 identity와 직접 confirm은 host 시험에만 있다.
+
+전체 task 완료나 물리 gate 통과가 아니며 아래 AC는 계속 열어 둔다. 다음은 실제
+G474 profile/Flash/ECC·SRAM/watchdog와 bootloader 실행 파일 연결이다.
+
 ## 목표
 
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.

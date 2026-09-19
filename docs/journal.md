@@ -1,5 +1,42 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 MCUboot protected metadata hook)
+
+430d73a 뒤의 작은 C 구현 단위다. Embedded architecture/cstyle/documentation 기준에
+따라 기존 T-007 metadata parser와 MCUboot hook/loader 상태 API를 재사용했다.
+새 암호 구현·swap 엔진·범용 framework는 추가하지 않았다.
+
+- `image_hooks.c`는 고정 header/protected TLV/일반 TLV 구조와180KiB 경계를 검사한다.
+  신뢰된 identity 공급 계약의 board/role/layout/제조 epoch/ABI와 대조한 뒤에도
+  FIH_BOOT_HOOK_REGULAR를 반환해 native hash/P-256 검증을 이어간다.
+  실제 BSP 공급자는 미구현이며 합성 identity는 host model 안에만 있다.
+- 시험 중 일반 TLV info length만 변조한 image가 upstream 서명 검증을 통과했다.
+  고정 T-007 profile과 같은 SHA256/keyhash/ECDSA 순서·길이 대조로 이를 거절했다.
+  최초 hook 연결에서는 offset copy 후처리 symbol 누락으로 link가 실패했고,
+  upstream 기본값0의 no-op hook을 연결했다. 경고/검증기를 억제하지 않았다.
+- 공식 imgtool의 임시 메모리 키를 사용한108개 image/identity/IO 시나리오와
+  swap120/revert138 API 경계 중단을 실제 C boot_go로 실행했다.
+  정상 키로 재서명한 잘못된 metadata, 잘린 TLV, 길이 합 overflow/초과,
+  identity 공급 실패와 각 read 실패를 포함한다. 실제 torn word/page 시험은 아니다.
+- WSL Clang21.1.8 ASan/UBSan23.85초 PASS. 새 profile의 hook coverage는
+  line113/113·function8/8=100%, region155/158=98.10%, branch75/82=91.46%다.
+  미실행 방어 분기에는 불변 슬롯 open 실패와 upstream 상태 offset 손상 및 FIH
+  macro 경로가 포함된다. 전체 firmware coverage100%로 표시하지 않는다.
+  로그는 `build/t107-identity-sanitize-final.log`, `build/t107-identity-coverage-final.log`다.
+- 실제 Arm primary Debug/Release clean build에서 기존 앱 ELF/MAP/BIN과 변경된
+  bootutil archive를 생성했다. 앱 크기51724/39728B, vector0x08010200 검사 성공.
+  로그 `build/t107-identity-arm-primary-{debug,release}-final.log`를 보존한다.
+- Windows Clang23.1 전체 Host Debug152/15286.73초, Release152/15258.55초 성공.
+  `build/t107-identity-host-{debug,release}-{build,test}.log`를 보존한다.
+  두 host build와 두 Arm clean build 로그의 compiler/linker/CMake warning/error는0이다.
+- board generation, 문서386개/로컬 링크1463개, task49개 정합 검사 성공.
+  합성 capture fixture source digest만 갱신했으며 physical evidence로 승격하지 않았다.
+
+아직 T-107 IN_PROGRESS다. 실제 G474 Flash/profile/ECC/SRAM/watchdog와 bootloader
+실행 파일, BSP identity 공급, T-205 floor/activation/confirmation 연결 및 독립2인
+리뷰·최종 CI/artifact 감사가 남았다. Physical/HIL·provisioning은 NOT_RUN,
+차량 TX는 NO-GO이며 PR37은 Draft를 유지한다.
+
 ## 2026-09-19 (codex, T-107 MCUboot C boot_go·swap/revert 첫 연결)
 
 a2f1f9c 다음 단위다. 해당 commit CI35429702531 success/completed를 확인했다.

@@ -21,6 +21,16 @@
 - header512B/offset-swap/primary validation/FIH MEDIUM/97 sectors를 고정한다.
   Release에서도 upstream assert를 유지한다. 실제 watchdog 진행/시간 판정은 미구현이며
   host의 progress count는 watchdog 검증이 아니다.
+- `image_hooks.c`는 기존 T-007 metadata 대조 함수를 재사용한다. header512/padding,
+  단일 protected TLV0xA0/168B, 일반 SHA256/keyhash/ECDSA TLV 순서·길이와 전체180KiB
+  경계를 검사한다. 별도 identity 공급 계약이 board/role/layout/제조 epoch/STM ABI의
+  기대값을 제공하며 이미지 값으로 덮어쓰지 않는다. 실제 BSP 공급자는 아직 미구현이고
+  합성 identity는 host 시험 파일에만 있다. 제품 loader에 기본 허용값은 없다.
+- Hook은 일치 시에도 FIH_SUCCESS가 아닌 FIH_BOOT_HOOK_REGULAR를 반환한다.
+  따라서 MCUboot 원래 hash/P-256 검증은 필수다. swap/revert의 읽기 시작 위치는
+  공식 loader 상태 API에서 얻으며 offset2048을 무조건 가정하지 않는다.
+  release_sequence는 여기서 floor 승인하지 않는다. T-205의 manifest/activation/
+  confirmation 대조는 별도 미완료 gate다.
 
 ## upstream과 경고 처리
 
@@ -57,7 +67,12 @@ Arm primary-debug/primary-release도 같은 인자로 library compile을 검사�
 현재 cut sweep는 작은 image의 swap120/revert138 API 전후 경계이며 매 중단 뒤
 RAM CFI 상태를 reset하고 Flash만 보존해 이전 정상 image 복귀를 확인한다.
 
-미구현/미검증은 board/role/ABI protected TLV, DBANK/WRP/NRST profile, 실제 G474
+정상 키로 다시 서명한 잘못된 board/role/layout/epoch/ABI와 metadata 길이·reserved,
+identity 공급 실패·잘못된 로컬 role·Flash read 실패도 거절한다. 일반 TLV 길이만
+바꿔도 native verifier가 허용하는 경우를 회귀시험으로 추가하고 고정 profile 검사에서
+거절한다. 이는 MCUboot 서명 검증을 자체 암호 코드로 대체하는 것이 아니다.
+
+미구현/미검증은 실제 BSP identity 공급, DBANK/WRP/NRST profile, 실제 G474
 Flash driver·SRAM critical path·ECC/NMI·erase stall·watchdog, 쓰기 도중 torn word/page,
 boot handoff, T-205 CONFIRM_INTENT/floor 연결이다. 모형의 직접 confirm은 제품 정책
 API가 아니다. Physical/HIL·Flash·option-byte/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.

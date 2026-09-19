@@ -60,12 +60,15 @@ def main():
     private = ec.generate_private_key(ec.SECP256R1())
     key = ECDSA256P1(private)
 
-    def signed(major, size=8192, signing_key=key):
+    metadata = struct.pack("<8sHH5IQ", b"CVIMG001", 1, 168, 1, 2, 1, 2, 0, 1)
+    metadata += b"synthetic-board".ljust(64, b"\0") + b"synthetic-layout".ljust(64, b"\0")
+
+    def signed(major, size=8192, signing_key=key, tlvs=None):
         image = Image(version=decode_version(f"{major}.0.0+1"), header_size=512,
                       pad_header=True, align=8, slot_size=192 * 1024, max_sectors=97)
         image.payload = bytearray(512) + bytes((index * 7 + major) % 256 for index in range(size))
         with contextlib.redirect_stdout(io.StringIO()):
-            image.create(signing_key, "hash", None)
+            image.create(signing_key, "hash", None, custom_tlvs={0xA0: metadata} if tlvs is None else tlvs)
         return bytes(image.payload)
 
     with tempfile.TemporaryDirectory(prefix="canview-boot-model-") as temporary:
@@ -85,7 +88,10 @@ def main():
         for length in (1, 31, 511, len(first) - 32):
             cases.append(("reject", first[:length], b""))
         # header/TLV/서명 변조. keyhash와 hash를 통과하더라도 ECDSA 변조는 거절해야 한다.
-        for offset in (0, 8, 10, 12, 16, 512 + 8192, len(first) - 8):
+        for offset in (0, 4, 8, 10, 12, 16, 28, 32, 511, 512 + 8192,
+                       512 + 8192 + 2, 512 + 8192 + 4, 512 + 8192 + 6,
+                       *(512 + 8192 + 176 + index for index in (0, 2, 4, 6, 40, 42, 76, 78)),
+                       len(first) - 8):
             changed = bytearray(first)
             changed[offset] ^= 1
             cases.append(("reject", bytes(changed), b""))
@@ -93,8 +99,36 @@ def main():
         changed = bytearray(first)
         struct.pack_into("<I", changed, 12, 0xFFFFFFFF)
         cases.append(("reject", bytes(changed), b""))
+        for value in (0, 7, 184320):
+            changed = bytearray(first)
+            struct.pack_into("<I", changed, 12, value)
+            cases.append(("reject", bytes(changed), b""))
+        for length in (0, 87, 153, 65535):
+            changed = bytearray(first)
+            struct.pack_into("<H", changed, 512 + 8192 + 178, length)
+            cases.append(("reject", bytes(changed), b""))
+        # header/payload/protected는 개별 경계 안이지만 일반 TLV까지 합치면180KiB 초과.
+        payload_size = 180 * 1024 - 512 - 176 - 88
+        changed = bytearray(first[:512]) + bytes(payload_size)
+        struct.pack_into("<I", changed, 12, payload_size)
+        changed += first[512 + 8192:512 + 8192 + 176]
+        changed += struct.pack("<HH", 0x6907, 152)
+        cases.append(("reject", bytes(changed), b""))
+        for mode in ("identity-missing", "identity-role", "read-header", "read-metadata", "read-tlv",
+                     "read-tlv-body"):
+            cases.append((mode, first, b""))
         untrusted = signed(2, signing_key=ECDSA256P1(ec.generate_private_key(ec.SECP256R1())))
         cases.extend((("reject", untrusted, b""), ("bad-secondary", first, untrusted)))
+        # 정상 key로 다시 서명한 부적합 metadata도 거절해야 한다. 단순 hash 변조 시험과 다르다.
+        for offset in (0, 8, 10, 12, 16, 20, 24, 28, 40, 103, 104, 167):
+            changed_metadata = bytearray(metadata)
+            changed_metadata[offset] ^= 1
+            invalid = signed(2, tlvs={0xA0: bytes(changed_metadata)})
+            cases.extend((("reject", invalid, b""), ("bad-secondary", first, invalid)))
+        for tlvs in ({}, {0xA1: metadata}, {0xA0: metadata[:-1]}, {0xA0: metadata + b"\0"},
+                     {0xA0: metadata, 0xA1: metadata}):
+            invalid = signed(2, tlvs=tlvs)
+            cases.extend((("reject", invalid, b""), ("bad-secondary", first, invalid)))
         for index, (mode, primary, secondary) in enumerate(cases):
             p = root / "primary.bin"
             s = root / "secondary.bin"
@@ -105,6 +139,7 @@ def main():
             if result.returncode != 0:
                 raise AssertionError(f"case {index}/{mode}: {result.stdout}\n{result.stderr}")
             print(result.stdout.strip())
+        print(f"image/identity/IO scenarios={len(cases)} PASS")
     return 0
 
 

@@ -11,7 +11,8 @@ if(NOT mcuboot_head STREQUAL mcuboot_pin OR NOT mcuboot_dirty STREQUAL "")
     message(FATAL_ERROR "MCUboot pin/clean mismatch")
 endif()
 add_library(canview_boot_config INTERFACE)
-target_include_directories(canview_boot_config INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(canview_boot_config INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${canview_boot_repo}/shared/ota/src" "${canview_boot_repo}/shared/interface")
 target_compile_definitions(canview_boot_config INTERFACE MBEDTLS_CONFIG_FILE="config-asn1.h")
 if(CANVIEW_SANITIZE)
     target_compile_options(canview_boot_config INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -52,6 +53,9 @@ if(NOT CMAKE_CROSSCOMPILING)
         CANVIEW_UPSTREAM_FIH_SOURCE="${canview_bootutil_source}/src/fault_injection_hardening.c")
 endif()
 target_link_libraries(bootutil PUBLIC canview_boot_config canview_boot_crypto)
+target_sources(bootutil PRIVATE image_hooks.c "${canview_boot_repo}/shared/ota/src/native_metadata.c")
+target_include_directories(bootutil PRIVATE ../bsp
+    "${canview_boot_repo}/shared/ota/src" "${canview_boot_repo}/shared/interface")
 # upstream 안전 assert는 Release에서도 제거하지 않는다.
 target_compile_options(bootutil PRIVATE -UNDEBUG)
 # 고정 upstream은 _Static_assert를 사용한다. portable 프로젝트 C99 설정은 유지한다.

@@ -6,10 +6,12 @@
 #include <string.h>
 #include <setjmp.h>
 #include "canview_boot_flash.h"
+#include "canview_boot_identity.h"
 #include "flash_layout.h"
 #include "flash_map_backend/flash_map_backend.h"
 #include "bootutil/bootutil.h"
 #include "bootutil/bootutil_public.h"
+#include "bootutil/boot_hooks.h"
 #include "bootutil/sign_key.h"
 #include "mbedtls/platform.h"
 #include "tinycrypt/ecc_platform_specific.h"
@@ -33,6 +35,9 @@ typedef struct
 } flash_model_t;
 static flash_model_t model;
 static flash_model_t baseline;
+static uint32_t fail_read_length;
+static uint32_t fail_read_address;
+static int identity_fault;
 static struct
 {
     jmp_buf reset;
@@ -41,6 +46,18 @@ static struct
     int armed;
 } interruption;
 static const unsigned int public_key_length = PUBLIC_KEY_BYTES;
+/* 제품 기본값이 아니다. 실제 loader는 별도 BSP/provisioning 구현이 필요하다. */
+canview_status_t canview_boot_identity_read(canview_ota_identity_t *identity, uint32_t *abi)
+{
+    static const canview_ota_identity_t synthetic = {
+        CANVIEW_OTA_ROLE_COMMUNICATOR, "synthetic-board", "synthetic-layout", 1U, 1U};
+    if (identity == NULL || abi == NULL) { return CANVIEW_INVALID_ARGUMENT; }
+    if (identity_fault == 1) { return CANVIEW_AUTH_FAILED; }
+    *identity = synthetic;
+    if (identity_fault == 2) { identity->role = CANVIEW_OTA_ROLE_BRIDGE; }
+    *abi = 2U;
+    return CANVIEW_OK;
+}
 /* upstream key ABI. 시작 시 public DER만 로드하고 boot_go 실행 중 불변이다. */
 const struct bootutil_key bootutil_keys[] = {{model.public_key, &public_key_length}};
 const int bootutil_key_cnt = 1;
@@ -75,7 +92,8 @@ static int range_valid(uint32_t address, uint32_t length)
 
 int canview_boot_flash_read(uint32_t address, void *destination, uint32_t length)
 {
-    if (destination == NULL || !range_valid(address, length))
+    if (destination == NULL || !range_valid(address, length) || length == fail_read_length ||
+        address == fail_read_address)
     {
         return -1;
     }
@@ -223,6 +241,7 @@ static int cut_sweep(int reverting)
 
 static int adapter_tests(void)
 {
+    FIH_DECLARE(hook_result, FIH_FAILURE);
     const struct flash_area *area = NULL;
     struct flash_area forged;
     struct flash_sector sectors[97];
@@ -230,6 +249,14 @@ static int adapter_tests(void)
     uintptr_t base = 1U;
     uint32_t count = 95U;
     uint32_t index;
+    FIH_CALL(boot_image_check_hook, hook_result, -1, 0);
+    CHECK(FIH_EQ(hook_result, FIH_FAILURE));
+    FIH_CALL(boot_image_check_hook, hook_result, 1, 0);
+    CHECK(FIH_EQ(hook_result, FIH_FAILURE));
+    FIH_CALL(boot_image_check_hook, hook_result, 0, -1);
+    CHECK(FIH_EQ(hook_result, FIH_FAILURE));
+    FIH_CALL(boot_image_check_hook, hook_result, 0, 2);
+    CHECK(FIH_EQ(hook_result, FIH_FAILURE));
     CHECK(flash_device_base(1U, &base) != 0 && base == 1U);
     CHECK(flash_device_base(0U, NULL) != 0);
     CHECK(flash_device_base(0U, &base) == 0 && base == CANVIEW_STM_FLASH_BASE);
@@ -303,8 +330,22 @@ int main(int argc, char **argv)
     CHECK(key_length == PUBLIC_KEY_BYTES);
     CHECK(load_image(argv[3], CANVIEW_STM_PRIMARY_ADDRESS) == 0);
     CHECK(load_image(argv[4], CANVIEW_STM_SECONDARY_IMAGE) == 0);
-    if (strcmp(argv[1], "reject") == 0)
+    if (strcmp(argv[1], "identity-missing") == 0) { identity_fault = 1; }
+    if (strcmp(argv[1], "identity-role") == 0) { identity_fault = 2; }
+    if (strcmp(argv[1], "read-header") == 0) { fail_read_length = 512U; }
+    if (strcmp(argv[1], "read-metadata") == 0) { fail_read_length = 176U; }
+    if (strcmp(argv[1], "read-tlv") == 0) { fail_read_length = 4U; }
+    if (strcmp(argv[1], "read-tlv-body") == 0)
     {
+        fail_read_address = CANVIEW_STM_PRIMARY_ADDRESS + 512U + 8192U + 176U + 4U;
+    }
+    if (strcmp(argv[1], "reject") == 0 || identity_fault != 0 || fail_read_length != 0U ||
+        fail_read_address != 0U)
+    {
+        FIH_DECLARE(profile_result, FIH_FAILURE);
+        FIH_CALL(boot_image_check_hook, profile_result, 0, 0);
+        /* native signature 실패 case는 여기서 REGULAR가 정상이다. SUCCESS는 절대 금지. */
+        CHECK(FIH_NOT_EQ(profile_result, FIH_SUCCESS));
         CHECK(boot_version(-1) == 0);
     }
     else if (strcmp(argv[1], "boot") == 0)

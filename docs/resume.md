@@ -36,7 +36,12 @@ C adapter와 8B 중복 write 거절, swap/revert API cut258곳을 검증한다. 
 구성에서 같은 bootutil/crypto/adapter archive를 컴파일한다. FIH MEDIUM·volatile
 객체는 유지하고 고정 SDK build 사본의 반환형/임시 배열 경고 원인만 수정한다.
 
-다음은 board/role/ABI protected TLV, G474 profile 검사와 실제 Flash/ECC driver,
+board/role/layout/epoch/ABI protected TLV hook을 추가했다. 기존 metadata parser와
+MCUboot 상태 API를 재사용하며 정상 metadata도 native signature 검증을 생략하지 않는다.
+잘못된 signed metadata·identity 공급 실패·IO 오류와 일반 TLV 길이 변이를 거절한다.
+합성 identity는 host 시험 전용이며 실제 BSP 공급과 floor 정책은 아직 미구현이다.
+
+다음은 G474 profile 검사와 실제 Flash/ECC driver, 신뢰된 BSP identity 공급,
 bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.
 
