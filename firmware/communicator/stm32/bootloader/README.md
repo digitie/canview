@@ -124,3 +124,23 @@ page erase 최대24.47ms/64bit program83.35µs 표다. 해당 수치를 board �
 NMI와 정상/오류 cleanup을 검사한다. Arm post-build의 `check_stm32_flash_ram.py`는
 실제 object의 두 함수·section 크기·외부 relocation0·직접 branch 범위를 확인한다.
 Debug480B/Release364B다. 이 검사는 최종 ELF의 SRAM 주소나 실제 Flash 실행을 증명하지 않는다.
+
+## SRAM reset 전제와 ECC errata
+
+[ES0430 Rev9, 2024-06](https://www.st.com/resource/en/errata_sheet/es0430-stm32g471xx473xx474xx483xx484xx-device-errata-stmicroelectronics.pdf)
+§2.2.7의 첫 SRAM write 손실을 피하려고 앱 startup의 첫 `SystemInit` 호출을 linker
+`--wrap`으로 받는다. 고정 CubeG4 startup 원본은 수정하지 않는다.
+`platform/stm32g474/startup_ram.c`의 최소 naked wrapper가 stack/data 쓰기 전에
+0x20000000/0x20008000/0x20010000/0x20014000을 읽고 SDK 함수로 tail branch한다.
+C prologue도 stack을 쓸 수 있어 이 진입부만 assembly를 사용한다.
+
+`check_stm32_core.py`는 bench/primary 실제 BIN의 vector, MSP literal, Reset_Handler
+첫 세 명령, 네 read의 정확한 명령열과 SDK tail branch를 검사한다. CCM 초기화는
+구현하지 않았으므로 linker의 CCM section은0B여야 한다. CCM 사용을 추가하려면
+parity/reset 초기화를 별도로 구현해야 한다. Toolchain/SDK가 명령열을 변경하면
+검사를 느슨하게 하지 않고 다시 검토한다. 실제 reset/전원 및 SRAM 실측은 NOT_RUN이다.
+
+같은 문서 §2.2.3은 중단된 Flash 작업 뒤 read 시 ECCR 정보 손상 가능성을 명시한다.
+따라서 ECCR 주소만으로 지울 page를 선택하거나 유일한 정상 이미지를 자동 erase하는
+복구는 허용하지 않는다. 실제 ECC-safe read와 소프트웨어 작업 범위에 근거한 복구는
+아직 구현 중이며, 이번 startup 보완이 그 수용을 대신하지 않는다.

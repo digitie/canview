@@ -71,6 +71,7 @@ add_executable(${TARGET_NAME}
     platform/stm32g474/fdcan_capture.c
     platform/stm32g474/uart_dma.c
     platform/stm32g474/syscalls.c
+    platform/stm32g474/startup_ram.c
     "${STARTUP_SOURCE}"
     "${SYSTEM_SOURCE}"
 )
@@ -133,6 +134,7 @@ set_source_files_properties(
     app/main.c bsp/board.c bsp/core.c platform/stm32g474/safe_gpio.c platform/stm32g474/core_hw.c
     platform/stm32g474/fdcan_capture.c platform/stm32g474/uart_dma.c
     platform/stm32g474/syscalls.c
+    platform/stm32g474/startup_ram.c
     PROPERTIES COMPILE_OPTIONS "-Werror;-Wpedantic;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wundef")
 
 target_compile_options(${TARGET_NAME} PRIVATE
@@ -182,6 +184,7 @@ target_link_options(${TARGET_NAME} PRIVATE
     -Wl,--gc-sections
     -Wl,--build-id=sha1
     -Wl,--cref
+    -Wl,--wrap=SystemInit
     -Wl,--print-memory-usage
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.map
 )

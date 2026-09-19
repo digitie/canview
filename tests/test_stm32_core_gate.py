@@ -8,10 +8,54 @@ from copy import deepcopy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tools.check_stm32_core import (check_build_id, check_compile_contract, check_memory, check_source_safety,
-                                    check_stack, check_symbols, dmamux_model_assertions, stack_evidence)
+                                    check_stack, check_startup_ram, check_symbols,
+                                    dmamux_model_assertions, stack_evidence)
 
 
 class Stm32CoreGateTests(unittest.TestCase):
+    @staticmethod
+    def startup_fixture(base=0x08000000):
+        # 실제 GNU Arm 15.3 instruction bytes. 상대 branch는 주소 이동에도 같다.
+        image = bytearray(512)
+        struct.pack_into("<II", image, 0, 0x20018000, base + 0x121)
+        image[0x100:0x120] = bytes.fromhex(
+            "4ff00052 1368 02f50042 1368 02f50042 1368 02f58042 1368 bff34f8f 00f02ab8")
+        image[0x120:0x128] = bytes.fromhex("0d488546 fff7ecff")
+        struct.pack_into("<I", image, 0x158, 0x20018000)
+        symbols = "\n".join(f"{address:08x} T {name}" for name, address in (
+            ("Reset_Handler", base + 0x120), ("__wrap_SystemInit", base + 0x100),
+            ("SystemInit", base + 0x174), ("_estack", 0x20018000),
+            ("_sccmram", 0x10000000), ("_eccmram", 0x10000000)))
+        return symbols, image
+
+    def test_startup_ram_actual_sequence(self):
+        for base in (0x08000000, 0x08010200):
+            symbols, image = self.startup_fixture(base)
+            self.assertTrue(check_startup_ram(symbols, image, base))
+            for size in range(0x176):
+                with self.subTest(base=base, truncated=size), self.assertRaises(RuntimeError):
+                    check_startup_ram(symbols, image[:size], base)
+
+    def test_startup_ram_instruction_and_vector_mutations(self):
+        symbols, image = self.startup_fixture()
+        for offset in (*range(8), *range(0x100, 0x128), *range(0x158, 0x15C)):
+            for bit in range(8):
+                changed = bytearray(image)
+                changed[offset] ^= 1 << bit
+                with self.subTest(offset=offset, bit=bit), self.assertRaises(RuntimeError):
+                    check_startup_ram(symbols, changed, 0x08000000)
+
+    def test_startup_ram_symbols_and_ccm_fail_closed(self):
+        symbols, image = self.startup_fixture()
+        for line in symbols.splitlines():
+            for changed in (symbols.replace(line, ""), symbols + "\n" + line,
+                            symbols.replace(line, "00000000" + line[8:])):
+                with self.subTest(changed=changed), self.assertRaises(RuntimeError):
+                    check_startup_ram(changed, image, 0x08000000)
+        with self.assertRaises(RuntimeError):
+            check_startup_ram(symbols.replace("10000000 T _eccmram", "10000004 T _eccmram"),
+                              image, 0x08000000)
+
     def test_dmamux_model_assertions_fail_closed(self):
         model = "#define LL_DMAMUX_REQ_USART2_RX (26U)\n#define LL_DMAMUX_REQ_USART2_TX (27U)\n"
         source = dmamux_model_assertions(model)

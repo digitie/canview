@@ -1,5 +1,39 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 SRAM reset startup 전제)
+
+4839f38/PR37 Draft에서 이어 진행했다. ECC 검토 중 ES0430 Rev9 §2.2.7과 고정
+CubeG4 startup의 첫 SystemInit 호출을 대조해, SRAM 첫 write 이전 dummy read가
+없음을 확인했다. SDK를 복사/수정하지 않고 linker wrap과32B naked 진입부로 보완했다.
+스택을 쓰는 C prologue보다 앞서 실행해야 하는 이 부분만 최소 assembly다.
+§2.2.3에 따른 ECCR 단독 주소 기반 자동 erase 금지도 포트 설명에 기록했다.
+
+- 실제 bench Debug/Release와 primary Debug/Release ELF/MAP/BIN 생성 성공.
+  BIN 크기는 각각51748/39752/51756/39760B이며 CCM section0B다. 새 gate는 실제
+  vector/MSP/reset 명령/read4회/tail branch를 대조한다. Primary Debug는 clean build도
+  재실행했다. 로그: `build/t107-startup-arm-{debug,release,primary-debug,primary-release}.log`.
+- gate 단위11개 성공. 새 startup 시험은416개 단일 bit 변이, 두 image base의
+  잘림748개, symbol 누락/중복/주소·CCM 사용을 거절한다. 이는 물리 SRAM fault 주입이 아니다.
+- 공식 imgtool로 primary 실제/최대 payload를 다시 서명·검증했다. 실제 signed 크기
+  52594/40599B, 최대184134/184135B로180KiB 안이며 trailer2376B/reserve4096B다.
+  로그: `build/t107-startup-primary-{debug,release}-imgtool.log`. 임시 개인키는 보관하지 않는다.
+- Windows Clang23.1 Host Debug155/155(69.93초), Release155/155(68.68초) 성공.
+  로그: `build/t107-startup-host-{debug,release}-{build,test}.log`.
+- WSL ASan/UBSan MCUboot/Flash command 회귀2/2(31.74초) 성공.
+  로그: `build/t107-startup-sanitize.log`. Target-only startup assembly는 host sanitizer와
+  C coverage 대상이 아니며 실제 Arm BIN 대조로 검증한다.
+- Arm4개·host2개·sanitizer build log의 compiler/linker/CMake warning/error0.
+  board drift0, 문서386개/링크1467개와 task49개 오류0. 합성 fixture digest는
+  `e4ed1868ba2f85f2b2a054e5352e9a432dfd59bf37c691edf35654921237aa89`다.
+- 보조 조회에서 PowerShell에 shell brace 구문을 잘못 사용한 parse 오류와 imgtool
+  검사 스크립트 경로 오기가 있었다. 파일 변경 없이 수정해 실제 `tests/ota/` 경로로
+  위 검증을 실행했다. SDK 원본은 clean이며 이전 evidence/사용자 checkout은 보존했다.
+
+4839f38 CI35433675129는 확인 시 in_progress였으며 성공으로 표시하지 않는다.
+T-107은 IN_PROGRESS/PR Draft다. 다음은 ECC-safe read/Flash backend·최종 SRAM
+배치/복사와 boot executable이다. 신규 독립2인 리뷰·최종 CI/artifact 감사는 아직이며
+physical reset/ECC/Flash/HIL/provisioning은 NOT_RUN, 차량 TX는 NO-GO다.
+
 ## 2026-09-19 (codex, T-107 SRAM 단일 Flash 명령)
 
 9bc5bd0/PR37 Draft와 clean worktree에서 이어 구현했다. 이전 guard 구현은 실제

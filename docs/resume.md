@@ -50,6 +50,10 @@ DBANK/WRP/NRST·Flash 크기·bank remap·busy/option 오류를 매번 확인한
 검사했다. 아직 MCUboot IO backend와 최종 boot linker/startup에는 연결하지 않았다.
 자세한 호출 전제·RDP0 제한·reset loop 위험은 위 포트 설명에 기록했다.
 
+ES0430의 첫 SRAM write 손실에 대비해 기존 SDK SystemInit 앞에 최소 read wrapper를
+추가했다. 실제 앱 BIN의 startup 명령열·분기·CCM0을 검사하며 SDK 원본은 유지한다.
+ECC 오류 주소만 신뢰한 자동 erase는 금지하며 세부 근거는 위 포트 설명에 둔다.
+
 다음은 ECC-safe read와 Flash backend/SRAM linker 연결, 신뢰된 BSP identity 공급,
 bootloader executable/handoff 연결이다. Physical/HIL과 torn word/page는 NOT_RUN이다.
 모형이나 Arm archive를 OTA loader final binary·실기 부팅 완료로 표시하지 않는다.

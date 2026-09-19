@@ -100,6 +100,10 @@ page0..31/양방향 NRST, 다른 WRP 비활성,512KiB와 bank remap·busy/option
 제한대로 아직 IO backend·ECC 복구·최종 SRAM map/boot executable에 연결하지 않았으며
 RDP0 개발 profile 이외를 승인하지 않는다. AC는 계속 열어 둔다.
 
+ES0430 Rev9의 SRAM reset errata를 반영한 앱 startup wrapper와 실제 BIN 거절
+검사를 추가했다. [포트 설명](../../firmware/communicator/stm32/bootloader/README.md#sram-reset-전제와-ecc-errata)을
+따르며 bootloader SRAM 복사·ECC-safe read·실제 reset 수용은 아직 완료가 아니다.
+
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.
 
 ## 고정 결정
