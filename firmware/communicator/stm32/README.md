@@ -60,6 +60,23 @@ Pop-Location
 - [자동 제어 로직](../../../docs/architecture/automation.md)
 - [장치별 toolchain](../../../docs/development/toolchains.md)
 
+## T-107 Flash 배치 구현 중
+
+`bsp/flash_layout.c`와 `flash_layout.h`는 [OTA §5](../../../docs/architecture/ota.md#5-stm32-부트로더와-esp-제어)의
+고정 배치를 소유한다. `interface/canview_stm_flash_layout.h`의 조회·상대 범위 검사만
+제공하며 MCUboot ID나 외부 요청을 enum으로 직접 cast하지 않는다. 0 길이, 잘못된
+enum, overflow, 영역 끝 초과, program 8B/erase 2KiB 정렬 오류를 거절한다.
+bootloader와 예약 영역의 program/erase는 항상 거절한다. 성공 시에만 출력 주소를
+갱신한다. heap·callback·전역 가변 상태가 없어 재진입 가능하며 같은 출력 객체의
+동시 쓰기는 호출자가 직렬화한다.
+
+Host와 Arm은 동일 BSP C99 library를 컴파일한다. `stm32-flash-layout` CTest는
+문서의 literal 배치, 전체 영역의 모든 byte offset, 경계 길이와 `UINT32_MAX`를
+검사한다. 이 library는 아직 실제 Flash IO나 기존 앱에 연결되지 않았다.
+범위 검사 성공은 쓰기 권한이 아니며, DBANK/WRP/NRST 확인, 중복 doubleword 거절,
+서명·활성 슬롯 보존, ECC/NMI·bank stall, MCUboot swap/revert는 후속 연결이 필요하다.
+실제 option-byte·Flash는 변경하지 않는다. 별도 범용 Flash framework는 만들지 않는다.
+
 ## 현재 기반 범위 안내
 
 현재 STM32는 공용 safe-idle startup 대신 자체 app/boot와 SDK 독립 scheduler·queue를 사용한다. BSP/platform 경계와 나머지 ESP32의 공용 startup은 유지한다. T-103 source에는 profile 검증·FDCAN monitor adapter·capture ring이 있지만 기본 app은 CAN worker를 시작하지 않으며 UART와 health worker를 시작한다. CAN TX request·ARM·WDI 출력은 안전 비활성 상태이고 실제 FDCAN receive 전환은 G2 전기 시험 전까지 `NOT_RUN`이다. HSE/PLL·timer·IWDG·T-102 diagnostic source와 T-103 host/target compile은 실제 보드 flash/clock/HIL과 구분한다. linker는 전체 Flash를 사용하는 bench 전용으로 제품 OTA loader/slot image와 다르다. 세부 범위와 현재 gate는 [T-102](../../../docs/tasks/T-102-stm32-platform.md), [T-103](../../../docs/tasks/T-103-stm32-fdcan-capture.md), [core-bench](docs/core-bench.md), [FDCAN capture](docs/fdcan-capture.md)를 따른다.

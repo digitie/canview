@@ -7,6 +7,7 @@
 진행하며 외부 하드웨어 수용 기준은 열어 둔다.
 
 - branch: `codex/t107-stm32-mcuboot`
+- Draft PR: [37](https://github.com/digitie/canview/pull/37)
 - worktree: `F:/dev/canview-wt/t007-ota-container` (기존 SDK·evidence 보존 목적 재사용)
 - 시작 commit: `c60641f218ca5a9966781cc1e8d417df26bb2712`
 - T-107은 IN_PROGRESS, 아직 bootloader/Flash 구현·검증 완료가 아니다.
@@ -20,10 +21,12 @@ T-007을 다시 구현하지 않는다.
 
 ## 다음 한 작업
 
-T-107 상세와 [OTA §5](architecture/ota.md#5-stm32-부트로더와-esp-제어)의 고정 map을
-공식 MCUboot2.4.0 port/imgtool 계약과 대조하고 C map·profile·정렬 거절 시험부터
-구현한다. Bootloader64KiB·signed app180KiB·header512B·secondary 추가2KiB page와
-policy/config 경계는 실제 port/linker로 연결해야 한다. 기존 전체 Flash scaffold는 OTA image가 아니다.
+고정 map의 C99 BSP 조회·범위 검사와 전체 byte offset 거절 시험을 추가했다.
+Host Debug/Release151/151, 새 C 파일 ASan/UBSan·분기 coverage100%, 기존 STM32
+Debug/Release target 빌드가 통과했다. 자세한 범위·제한은 [STM32 README](../firmware/communicator/stm32/README.md#t-107-flash-배치-구현-중)를 따른다.
+다음은 이 BSP를 MCUboot2.4.0 Flash API와 별도 boot/app linker에 연결하는 작업이다.
+Profile/중복 write/ECC·swap/revert는 아직 구현·검증하지 않았다. 기존 전체 Flash
+scaffold와 새 library의 Arm 컴파일을 OTA loader 완료로 표시하지 않는다.
 
 [T-102](tasks/T-102-stm32-platform.md) source/review PR29의 merge50410ba는 확인했다.
 T-102 전체 수용은 물리 측정과 T-107 map 연결 등이 남아 IN_PROGRESS다.

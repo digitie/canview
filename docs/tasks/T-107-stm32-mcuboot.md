@@ -22,6 +22,25 @@ Branch는 `codex/t107-stm32-mcuboot`다. SDK와 evidence 보존을 위해 기존
 기존 전체 Flash linker를 OTA 지원 완료로 표시하거나 host 모형을 실제 ECC/전원
 복구 근거로 대체하지 않는다. Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO다.
 
+## 2026-09-19 첫 C 구현 단위
+
+[PR37](https://github.com/digitie/canview/pull/37)의 첫 source 단위는 BSP 고정 Flash
+배치 조회·범위 검사다. null/zero/invalid enum/정렬/overflow/영역 끝과 보호 영역
+쓰기 거절을 C로 구현했으며, heap·callback·가변 전역 상태를 추가하지 않았다.
+Host와 Arm은 같은 source를 컴파일한다. 아직 Flash IO나 앱에 연결되지 않았으며
+성공 반환은 쓰기 권한·서명·유일한 정상본 보존을 의미하지 않는다.
+
+최종 로컬 검증은 Host Debug/Release151/151, 새 `flash_layout.c` ASan/UBSan과
+line/region/function/branch coverage100%, 기존 STM32 Debug/Release target
+ELF/MAP/BIN 생성 및 compiler/linker/CMake warning0이다. 최초 Arm 검증에서
+새 library의 CAPTURE_ONLY forced include 누락을 발견해 CMake 계약을 연결했고
+검증기를 변경하지 않았다. 합성 capture fixture source digest도 함께 갱신했다.
+독립 2인 task 리뷰와 새 CI artifact 감사는 아직이며 아래 수용 기준은 체크하지 않는다.
+
+다음은 공식 MCUboot port·별도 linker·실제 imgtool 크기 경계 연결이다.
+DBANK/WRP/NRST profile 검사, 중복 doubleword, ECC/NMI·stall·watchdog,
+swap/revert/confirmation은 남아 있다. 실제 Flash/HIL은 NOT_RUN이다.
+
 ## 목표
 
 STM32 전체 Flash scaffold에서 독립 부트로더·정상 앱·offset-swap 슬롯으로 옮긴다. MCUboot는 G474 완제품이 아니므로 port와 실패 복구 근거를 직접 만든다.

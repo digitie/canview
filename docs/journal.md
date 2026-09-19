@@ -1,5 +1,47 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, T-107 C Flash 배치 첫 구현 단위)
+
+PR37은 Draft이며 BSP `flash_layout.c/.h`, portable interface와 CTest를 추가했다.
+전체512KiB의 모든 byte offset을 READ/PROGRAM/ERASE 단위로 검사하고, 문서의
+literal map·null/zero/invalid enum/UINT32_MAX/끝 경계·실패 출력 불변을 확인한다.
+BOOT/RESERVED의 변경 요청은 항상 거절한다. Library만 추가했으며 현재 앱이나
+실제 Flash IO에 연결하지 않았다. 범위 성공은 쓰기 권한이 아니다.
+
+최초 Arm build는 새 library의 CAPTURE_ONLY forced include 누락으로 post-build
+검증이 실패했다. 기존 compile 계약을 적용하고 재실행해 통과했으며 검증기를
+완화하지 않았다. 작업 중 source digest 변경과 겹친 최초 Release python-unit도
+실패했다. 합성 fixture/expected digest를 `0f722a0b1c609f97ac8fec65e1a7f49be4a3b3e1482a5d9fea4b0db72b0ea703`로
+맞춘 뒤 고정 source에서 Debug/Release 전체를 다시 실행했다. 실제 capture는 변경하지 않았다.
+
+- `ctest --preset host-debug --parallel 4`:151/151,19.41초.
+- `ctest --preset host-release --parallel 4`:151/151,18.56초.
+- 로그: `build/t107-host-{debug,release}-postfix-test.log`.
+- STM32 `cmake --build --preset debug/release`:ELF/MAP/BIN 생성,
+  새 BSP Arm object도 strict C99 컴파일. post-fix 로그의 compiler/linker/CMake warning0.
+  Debug text51712/data4/bss+stack79808; Release text39712/data4/bss+stack79808.
+- 로그: `build/t107-arm-{debug,release}-postfix-build.log`; 실패 로그도 보존했다.
+- WSL Ubuntu26.04 Clang21.1.8, 새 두 C 파일을 `-std=c99 -Wall -Wextra -Wpedantic
+  -Werror -Wconversion -Wshadow -Wstrict-prototypes -Wmissing-prototypes`로 컴파일해
+  `-fsanitize=address,undefined` 실행 성공. 출력 binary는 `/tmp/canview-t107-flash-asan`.
+- 동일 source의 `-fprofile-instr-generate -fcoverage-mapping` 실행 후 llvm-profdata/cov:
+  production `flash_layout.c` 42regions/2functions/46lines/32branches 모두100%.
+  profile은 `/tmp/canview-t107-flash.profdata`; 전체 firmware coverage 주장 아님.
+- Board 생성물 PASS, 문서385개/1456targets 오류0, task49개 오류0(아래 문서 추가 전 검사).
+
+MCUboot2.4.0 pin6d3b3d2의 PORTING.md·bootutil CMake·imgtool trailer와 offset status
+source를 읽었다. imgtool trailer 계산과 offset bootutil의 실제 상태 수가 다르므로
+별도 port의 sector/trailer 경계를 직접 연결해 검증해야 하며 현재 완료로 표시하지 않는다.
+DBANK/WRP/NRST·실제 Flash/ECC·swap/revert·bootloader binary·2인 리뷰는 남아 있다.
+
+도구는 기존 t104 worktree의 검증된 LLVM23.1.0/CMake4.4.3/Ninja1.13.2,
+Arm15.3.Rel1, `C:/cv/STM32CubeG4-1.6.3`을 재사용했다. 처음 현재 worktree의 환경
+script를 호출해 중복 LLVM 압축 해제가 시작됐으나, 해당 실행 PID/명령/부모를 확인해
+그 두 process만 중단했다. 현재 worktree `.tools/llvm-23.1.0` 부분 추출물은 사용하지
+않으며 삭제하지 않았다. 기존 SDK·evidence·사용자 checkout은 보존했다.
+
+Physical/HIL은 NOT_RUN, 차량 TX는 NO-GO, T-107은 IN_PROGRESS다.
+
 ## 2026-09-19 (codex, PR36 merge와 T-107 source 시작)
 
 e1df406 CI35427174458을 재시작 없이 기다려6/6 성공을 확인했다.
