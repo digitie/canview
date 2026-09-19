@@ -286,6 +286,38 @@ native firmware가 아닌 합성 bytes만 사용하며 개인키를 저장하지
 실제 ESP/STM provider와 정상 target owner 통합·최종 검증은 남아 있다.
 schema와 서명 전 JSON 작성 도구는 위 절의 구현을 사용한다.
 
+## 수신 저장 호출 순서
+
+수신 저장과 연결할 때는 [stage.h](src/stage.h)의 수신 전용 조정 함수를 사용한다.
+순서는 `body_open(서명/identity/길이/호환성/floor) → storage.begin →
+body_feed 성공 뒤 storage.write → body_finish 뒤 storage.verify`다.
+실제 erase/write/partition 선택은 BSP provider가 소유하며, parser 안에 SDK 호출이나
+Flash 주소를 넣지 않는다. 새 설치 상태기계·journal·재부팅·비동기 queue는 없다.
+
+stage는 `{0}`인 단일 task 소유 고정 context와 기존 body를 사용한다. prefix/chunk는
+호출 중만 빌리고 복사하지 않는다. 모든 callback은 동기이고 재진입은 RESOURCE_BUSY다.
+호출 실패 뒤 추가 write/native 검증을 차단하며 reset이 storage close와 body cleanup을
+수행한다. partial begin도 close하며 cleanup 실패 시 최초 오류와 context를 보존한다.
+`EMPTY → RECEIVING → NATIVE_MATCHED`, 오류 시 `FAILED → reset → EMPTY`로 전이한다.
+NATIVE_MATCHED도 PREPARED·boot selector·사용자 승인·설치 권한이 아니다.
+
+storage.begin은 검증된 enum target을 고정 비활성 slot/staging map에만 대응해야 한다.
+write는 prefix 이후 컨테이너 절대 offset·padding을 받으며 read-back 뒤에만 OK다.
+verify는 저장된 image 전체 native hash/서명/metadata를 대조한다. provider는 prefix/
+manifest 입력을 호출 뒤 보존하지 않고 필요한 상태만 자신의 context에 복사한다.
+어떤 callback도 설치나 journal commit을 수행하면 안 된다. 로컬 freshness·전원·실제
+partition allowlist는 T-204/T-107, 승인·영속 정책은 T-205에서 추가 검증한다.
+
+`ota-stage-order`는 실제 C parser와 storage/native callback 모형을 연결한다. 세 역할,
+금지 target·wrong identity, 사전 검증 실패, 부분 입력·중복/hole·본문 변조, provider 실패,
+callback 재진입·cleanup 재시도와 출력 상태를 검사한다. Windows의
+`ota-stage-order-crypto`만 outer P256/SHA256에 실제 CNG를 사용한다. storage/native
+callback은 양쪽 모두 모형이며 실제 Flash/장치 서명 검증 증거가 아니다.
+`ota-stage-oracle`은 정상 C 실행파일과 사전 begin·거절 후 write·native 오류 무시의
+세 실제 C mutant를 컴파일해 정상 exit0/변이 CHECK 실패 exit1을 요구한다.
+SDK fixture는 stage 네 API를 compile/link하고 NULL 계약만 연결한다. 이 단계에서도
+실제 writer allowlist·장치 실행·total stack/heap/WCET는 NOT_RUN/후속 gate다.
+
 ## 로컬 호환성 사전 검사
 
 별도 framework 대신 기존 manifest 검사 뒤에 `canview_ota_manifest_preflight()`를

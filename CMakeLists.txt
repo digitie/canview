@@ -54,6 +54,12 @@ target_include_directories(canview_bridge_web_session_host PUBLIC
 target_link_libraries(canview_bridge_web_session_host PUBLIC canview_warnings)
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(canview-ota-stage-probe tests/ota/stage_probe.c)
+    target_include_directories(canview-ota-stage-probe PRIVATE shared/ota/src shared/interface)
+    target_link_libraries(canview-ota-stage-probe PRIVATE canview_ota canview_warnings)
+    add_test(NAME ota-stage-order COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+        ${PROJECT_SOURCE_DIR}/tests/ota/test_stage.py $<TARGET_FILE:canview-ota-stage-probe>)
+    set_tests_properties(ota-stage-order PROPERTIES TIMEOUT 60)
     add_executable(canview-ota-psa-tests firmware/platform/esp32s3/ota_crypto.c tests/ota/test_esp_ota_crypto.c)
     target_include_directories(canview-ota-psa-tests PRIVATE firmware/platform/esp32s3 tests/ota
         shared/ota/src shared/interface)
@@ -142,6 +148,16 @@ if(BUILD_TESTING)
         ${PROJECT_SOURCE_DIR}/tests/ota/test_body.py $<TARGET_FILE:canview-ota-body-probe>)
     set_tests_properties(ota-body-lifecycle PROPERTIES TIMEOUT 60)
     if(WIN32)
+        add_executable(canview-ota-stage-crypto-probe tests/ota/stage_probe.c tests/ota/cng_provider.c)
+        target_compile_definitions(canview-ota-stage-crypto-probe PRIVATE CANVIEW_TEST_CNG=1)
+        target_include_directories(canview-ota-stage-crypto-probe PRIVATE tests/ota shared/ota/src shared/interface)
+        target_link_libraries(canview-ota-stage-crypto-probe PRIVATE canview_ota canview_warnings bcrypt)
+        add_test(NAME ota-stage-order-crypto COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/test_stage.py $<TARGET_FILE:canview-ota-stage-crypto-probe> --crypto)
+        set_tests_properties(ota-stage-order-crypto PROPERTIES TIMEOUT 60)
+        add_test(NAME ota-stage-oracle COMMAND ${Python3_EXECUTABLE} -X utf8 -B
+            ${PROJECT_SOURCE_DIR}/tests/ota/check_stage_oracle.py ${CMAKE_C_COMPILER} $<TARGET_FILE:canview_ota>)
+        set_tests_properties(ota-stage-oracle PROPERTIES TIMEOUT 180)
         add_executable(canview-ota-idf-receiver tests/ota/idf_receiver_host.c tests/ota/cng_provider.c
             tests/fixtures/idf-ota-image/main/receiver.c)
         target_compile_definitions(canview-ota-idf-receiver PRIVATE CANVIEW_OTA_FIXTURE_CNG=1)

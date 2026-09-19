@@ -143,7 +143,17 @@ sdist 빌드 후 Debug/Release147/147을 확인했다. 새 독립 리뷰와
 Controller/Bridge는 한 image, Communicator는 ESP/STM 최대 두 image로 구현한다.
 이미지 서명·부팅·Flash 처리는 기존 SDK/부트로더 기능을 먼저 재사용한다.
 [ADR-009](../adr/009-ota-native-image-alignment.md)의 SDK 재사용 정렬을 revision2로 구현했다.
-다음은 native CLI 리뷰 closure와 AC3 권한 경계 연결 시험이다.
+native CLI `6cf1106`의 [원 A/B 재검토](../reviews/adversarial/2026-09-19-T-007-native-post.md)는
+정적 PASS이며 same-block P2·일반 native 구현·소유권 finding을 FIXED로 확인했다.
+새 C stage는 기존 parser/body가 인증·identity·길이·호환성·floor를 확인한 뒤에만
+동기 BSP begin/write를 호출하고, 전체 body 수신 뒤에만 native verify를 호출한다.
+재진입·partial begin·오류 후 쓰기 차단·cleanup 재시도와 최초 오류 보존을 검사한다.
+Windows Debug/Release150/150, 모형 ASan/UBSan·행100%·분기90/92와 실제 C 변이3개
+검출을 확인했다. SDK fixture는4개 API 연결과 ELF/MAP/BIN·경고0만 확인했다.
+실제 Xtensa DWARF의 stage896B, 자체 stack frame open48B·feed/finish/reset32B이며
+SDK 전체 stack/heap/시간의 실측값은 아니다. storage/native callback은 시험 모형이고
+실제 Flash map·정상 OTA owner·장치 실행 성공은 주장하지 않는다. AC3는 아직 OPEN이다.
+다음은 이 stage candidate의 독립 2인 리뷰와 최종 CI/수용 감사다.
 별도 범용 기능을 추가하지 않는다. 이 순서는
 아래 수용 기준이나 OTA 정본의 호환성·복구·서명 검사를 줄이는 예외가 아니다.
 

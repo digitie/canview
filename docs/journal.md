@@ -1,5 +1,45 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, C 수신 저장 순서 연결)
+
+기존 parser/body를 재사용한 작은 C99 stage open/feed/finish/reset을 추가했다.
+서명·identity·길이·호환성·floor 실패 시 begin0회, chunk 거절 뒤 write0회,
+전체 body/hash 성공 뒤 native callback1회와 실패 후 진행 차단을 검사한다.
+정상 begin/write의 양성 기준을 먼저 실행하므로 writer 부재를0회 PASS로 세지 않는다.
+heap·RTOS·설치 상태기계·영속 journal·boot selector는 추가하지 않았다.
+SDK와 Flash map의 실제 enforcement는 후속 BSP owner 책임으로 유지한다.
+
+- Windows model/CNG stage 입력27그룹씩: 각 정상 입력에서 failure/reentry/cleanup
+  시나리오와 chunk1/31/최대 길이를 실행했다. native/storage는 모형이다.
+- 실제 C mutant3종(조기 begin, 거절 후 write, native 오류 무시)은 CHECK exit1로
+  검출했다. baseline exit0을 선행하며 compiler 오류/timeout/crash는 성공이 아니다.
+- Debug150/15052.33초·Release150/15044.42초, configure/build warning/error0.
+  로그: build/t007-stage-full-{debug,release}-{build,test}.log.
+- WSL Ubuntu26.04 Clang ASan/UBSan·leak 검사 통과. build:
+  /tmp/canview-stage-check-VLrbYx. stage.c 함수6/6·행91/91·분기90/92.
+- 실제 ESP-IDF6.0.3 fixture ELF/MAP/BIN·metadata172개 음성 시험 통과,
+  build/t007-stage-sdk.log warning/error0. BIN SHA256:
+  `d6119ceb51fb4cef0f2e141aefe7bbffd6659da961eb5e61b1b49c12287d06f2`.
+  API4개 target link, DWARF stage896B, 자체 frame open48B·나머지32B.
+  실제 저장 provider나 정상 owner 연결·device 실행 근거는 아니다.
+- strict Doxygen/Sphinx 통과: build/t007-stage-docs.log, public API71개.
+  합성 HIL source digest만 갱신했으며 실제 차량 evidence는 수정하지 않았다.
+
+최초 host fixture는 stage를 context 첫 멤버로 둬 overlap 검사에서 거절됐다.
+CHECK abort의 Windows CRT 대기로 Python30초 timeout이 났고 실행 중 재링크도
+permission denied였다. 원 process 종료와 process inventory를 확인한 뒤 fixture를
+별도 stage pointer로 고치고 CHECK를 exit1로 바꿨다. 이후 위 전체 회귀가 통과했다.
+첫 WSL 변수 전달은 quoting 때문에 /configure.log 권한 오류였다. 독립 mktemp와
+확정 절대 경로로 다시 실행했으며 실패한 최초 명령은 PASS로 집계하지 않는다.
+
+native CLI6cf1106은 [원 A/B 재확인](reviews/adversarial/2026-09-19-T-007-native-post.md)에서
+정적 PASS·관련 finding FIXED다. 같은 source CI35423635752는6/6 성공이며 내려받은
+target21개 bytes/hash·source7개·target logs28개 warning/error0을 직접 대조했다.
+manifest SHA256: `efdfff60aa2cd3db8215bb267e1dab8b2044d3fa5f7b27ea0230f85f2b7bce9e`.
+이 CI/리뷰를 새 stage source에 재사용하지 않는다. stage 독립 리뷰/최종 CI와
+T-007 AC3·최종 수용 감사는 OPEN이다. 실제 Flash/HIL·device crypto·장치
+timing/heap/stack 실측은 NOT_RUN, 차량 TX NO-GO, PR36 Draft를 유지한다.
+
 ## 2026-09-19 (codex, native ESP 서명 블록 결합 회귀)
 
 7cb07be의 독립 A 리뷰가 A-NCLI-01 P2를 발견했다. espsecure의 외부 공개키 서명

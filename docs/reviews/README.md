@@ -20,6 +20,7 @@
 
 | 날짜 | 종류 | 기준선·범위 | 리뷰어 | 결과 |
 |---|---|---|---|---|
+| 2026-09-19 | T-007 native CLI post-fix | `7cb07be` → `6cf1106` | 원 A/B | [기록](adversarial/2026-09-19-T-007-native-post.md), 양쪽 정적 PASS·same-block/일반 CLI/소유권 finding FIXED; 이후 stage C·전체 task 승인 아님 |
 | 2026-09-19 | T-007 일반 native CLI | `c7f5780` → `7cb07be` | native 암호 / CLI·CI | [기록](adversarial/2026-09-19-T-007-native.md), A/B CONDITIONAL·공통 P2 block key/scheme 결합; 재현·수정 후 원 reviewer 재확인 대기 |
 | 2026-09-19 | T-007 receiver oracle post-fix | `0acdc45` → `c7f5780` | 원 A/B | [기록](adversarial/2026-09-19-T-007-receiver-post.md), A/B 정적 PASS·B-RX-01 P2 FIXED·신규 finding 없음; 이후 native CLI·전체 task 승인 아님 |
 | 2026-09-19 | T-007 C receiver SDK 연결 | `d87516a` → `0acdc45` | C·cleanup / SDK·oracle | [기록](adversarial/2026-09-19-T-007-receiver.md), A PASS/B CONDITIONAL; B-RX-01 P2 실제 조기 오류 변이 재현·수정 후 원 reviewer 재확인 대기, 전체 acceptance BLOCK 유지 |

@@ -5,6 +5,7 @@
 #include "ota.h"
 #include "ota_crypto.h"
 #include "receiver.h"
+#include "stage.h"
 #include "esp_log.h"
 
 /* SDK EMBED_FILES가 생성한 read-only 공개 합성 package. 제품 업데이트 입력이 아니다. */
@@ -18,6 +19,11 @@ _Static_assert(PSA_KEY_USAGE_VERIFY_MESSAGE == UINT32_C(0x00000800), "PSA verify
 void app_main(void);
 void app_main(void)
 {
+    /* stage의 실제 target link/NULL 계약만 검사한다. 저장 provider는 연결하지 않는다. */
+    if (canview_ota_stage_open(NULL, NULL, 0U, NULL, NULL, NULL, NULL, NULL, NULL, NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
+    if (canview_ota_stage_feed(NULL, 0U, NULL, 0U) != CANVIEW_INVALID_ARGUMENT) { return; }
+    if (canview_ota_stage_finish(NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
+    if (canview_ota_stage_reset(NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
     if (canview_esp_ota_crypto_init(NULL, NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
     if (canview_esp_ota_crypto_close(NULL) != CANVIEW_INVALID_ARGUMENT) { return; }
     if (canview_esp_ota_manifest_verify(NULL, NULL, 0U, NULL) != CANVIEW_INVALID_ARGUMENT) { return; }

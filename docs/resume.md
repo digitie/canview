@@ -135,11 +135,19 @@ target21개 hash/bytes·source7개·target logs26 warning/error0을 확인한 �
 
 ## 다음 한 작업
 
-PR36의 native CLI candidate `7cb07be`에 대한 [A/B 독립 리뷰](reviews/adversarial/2026-09-19-T-007-native.md)는
-CONDITIONAL이다. 공통 P2인 ESP block key/scheme 결합 오류를 실제 재현하고 공식
-helper 재사용으로 수정했다. 원 reviewer의 post-fix 재확인은 남아 있다.
-CI35423062379는 진행 중이다. 먼저 이 리뷰를 닫은 뒤 AC3 권한 경계 연결 시험과
-최종 target/예산 근거를 닫는다. 정본의 T-204/T-107 writer와 T-205 영속 정책 구현을
+PR36의 native CLI `6cf1106`은 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-native-post.md)에서
+정적 PASS다. ESP same-block P2와 일반 native CLI·소유권 문서 finding은 FIXED다.
+CI35423635752는6/6 성공이며 target21개 bytes/SHA256·source7개·target logs28개
+warning/error0을 대조했다. manifest SHA256은
+`efdfff60aa2cd3db8215bb267e1dab8b2044d3fa5f7b27ea0230f85f2b7bce9e`다.
+
+다음은 새 C `stage` 수신 순서 연결의 독립 2인 리뷰와 새 candidate CI다.
+기존 body 사전 검사 뒤에만 BSP 저장 callback을 호출하고 전체 body 뒤 native 검증을
+호출한다. Windows Debug/Release150/150, 모형 ASan/UBSan·행100%·분기90/92,
+실제 C 변이3개 검출, SDK fixture ELF/MAP/BIN·경고0과 strict docs를 확인했다.
+storage/native callback은 시험 모형이며 실제 Flash map enforcement나 장치 실행은
+NOT_RUN이다. 이 새 source에 이전 native CLI 리뷰/CI를 적용하지 않는다.
+AC3와 최종 target/예산·전체 수용 재검토는 OPEN이다. 정본의 T-204/T-107 writer와 T-205 영속 정책 구현을
 T-007의 선행으로 되돌려 순환시키지 않는다. 계약·시험·실제 설치의 구분은
 [상세 task 소유권 표](tasks/T-007-ota-container.md#계약과-설치-구현의-소유권)를 따른다.
 실제 writer가 없다는 사실만으로 금지 쓰기0회 gate를 통과 처리하지 않는다.
