@@ -153,4 +153,3 @@ Finding이 없더라도 검토한 실패 시나리오와 근거는 다음과 같
 - Final `boot_go`/정책/handoff, production provisioning, 전체 MCUboot 실행 시간·최종 stack 수용은 범위 밖이다. 선언된 후속 gate가 열려 있다는 이유만으로 finding을 만들지 않았다.
 
 최종 판정은 **이 16파일 delta에 대한 PASS**다. **NONDEPLOYABLE, T-107 IN_PROGRESS, physical/HIL NOT_RUN, 차량 TX NO-GO** 경계는 유지한다.
-

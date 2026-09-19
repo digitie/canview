@@ -170,4 +170,3 @@ cmake --build build/T107-RUNTIME-A-c0f1b81-arm-{debug,release}
 - 최종 boot_go·영속 정책·handoff, production provisioning, 모든 physical/HIL은 요청대로 범위 밖이다.
 
 **최종 판정: PASS — candidate의 bounded boot runtime source delta만 승인 가능한 검토 결과다. NONDEPLOYABLE 경계와 기존 차량 TX NO-GO는 유지한다.**
-
