@@ -1,5 +1,33 @@
 # CANView 작업 일지
 
+## 2026-09-19 (codex, PSA ready 중첩 시험·golden artifact 감사)
+
+6f078ac의 원 A/B [재검토 원문](reviews/adversarial/2026-09-19-T-007-psa-post.md)을
+보존했다. B-PSA-01 P3는 FIXED지만 동일한 신규 P2(A-PSA-POST-01/B-PSA-02)를
+받았다. union context가 unready라 signature 중첩 조건을 없애도 같은 오류로
+통과할 수 있었다. 별도 context를 정상 init한 뒤 시험하고 SDK 호출 수 불변,
+후속 정상 verify와 close, reentry 대상 교체를 확인하도록 고쳤다.
+
+Signature 중첩 조건만 제거한 실제 C mutant는 GCC 빌드 뒤 새 CHECK에서 실패했다.
+정상 source는 PASS였다. `build/t007-psa-overlap-mutant.log`가 근거다.
+이전 권한 상수를0x1000으로 되돌린 별도 header mutant도 독립 typedef 검사에서
+컴파일 실패했다. `build/t007-psa-usage-mutant.log` SHA256은
+`548c812f245b4e0f0f71bb343ba53aa04217f564e090387a43d778e1c9c6f65f`다.
+제품 provider를 수정하거나 경고를 억제하지 않았다. 새 ASan/UBSan 모형도 통과했고
+adapter 행149/149·분기114/118은 유지했다.
+Windows Debug/Release144/144와 build 경고0을 재확인했다.
+로그는 `build/t007-psa-overlap-{debug,release}-{build,test}.log`다.
+
+262bf09의 CI35418535641 target artifacts를 실제 내려받아21개 ELF/MAP/BIN
+bytes/SHA256과 source7개 Git object의 Windows CRLF byte열을 대조했다.
+28개 target log에서 실제 warning/error 진단0, 공식 ESP RSA host10건도 확인했다.
+Manifest SHA256은 `ebbccfbab14726e514d99c87610f49c37e434c985adb5f1c621a29ff8af5eec3`다.
+이 감사는 golden 수정본262bf09만의 증거이며 이후PSA source의 최종 gate가 아니다.
+PSA6f078ac CI35420077728의 GCC·Clang·sanitizer는 성공했고 Windows/target은 확인 당시
+진행 중이었다. 이번 P2 수정본의 reviewer/CI는 별도 확인해야 한다.
+
+정상 OTA owner·root·영속 policy 연결 미완료, physical/HIL NOT_RUN·차량 TX NO-GO를 유지한다.
+
 ## 2026-09-19 (codex, PSA 리뷰·GCC 시험 수정)
 
 70c7a38의 [독립 원문과 disposition](reviews/adversarial/2026-09-19-T-007-psa.md)을

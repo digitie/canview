@@ -117,7 +117,6 @@ int main(void)
     CHECK(canview_esp_ota_manifest_verify(&context, message, 1U, NULL) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_manifest_verify(&context, message, sizeof(message) + 1U, signature) == CANVIEW_OVERSIZE);
     CHECK(canview_esp_ota_manifest_verify(&context, (const uint8_t *)&context, 1U, signature) == CANVIEW_INVALID_ARGUMENT);
-    CHECK(canview_esp_ota_manifest_verify(&overlap.context, message, 1U, overlap.bytes) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_manifest_verify(&context, (const uint8_t *)(UINTPTR_MAX - 3U), 8U, signature) == CANVIEW_INVALID_ARGUMENT);
     CHECK(canview_esp_ota_manifest_verify(&context, message, 1U, signature) == CANVIEW_OK);
     CHECK(canview_esp_ota_manifest_verify(&context, message, sizeof(message), signature) == CANVIEW_OK);
@@ -145,6 +144,17 @@ int main(void)
     CHECK(canview_esp_ota_crypto_close(&context) == CANVIEW_OK);
     CHECK(canview_esp_ota_crypto_close(&context) == CANVIEW_OK);
     CHECK(correct && calls[MOCK_DESTROY] == 1U && calls[MOCK_ABORT] == 1U);
+
+    /* unready 거절이 중첩 검사 누락을 가리지 않도록 실제 초기화된 context로 시험한다. */
+    reentry = &overlap.context;
+    CHECK(canview_esp_ota_crypto_init(&overlap.context, root) == CANVIEW_OK);
+    const uint32_t verify_calls = calls[MOCK_VERIFY];
+    CHECK(canview_esp_ota_manifest_verify(&overlap.context, message, 1U, overlap.bytes) == CANVIEW_INVALID_ARGUMENT);
+    CHECK(calls[MOCK_VERIFY] == verify_calls);
+    CHECK(canview_esp_ota_manifest_verify(&overlap.context, message, 1U, signature) == CANVIEW_OK);
+    CHECK(calls[MOCK_VERIFY] == verify_calls + 1U);
+    CHECK(canview_esp_ota_crypto_close(&overlap.context) == CANVIEW_OK && correct);
+    reentry = &context;
 
     const psa_status_t errors[] = {PSA_ERROR_INSUFFICIENT_MEMORY, PSA_ERROR_INVALID_SIGNATURE,
         PSA_ERROR_NOT_SUPPORTED, PSA_ERROR_INVALID_ARGUMENT, PSA_ERROR_HARDWARE_FAILURE};

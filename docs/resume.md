@@ -31,14 +31,17 @@ native image signature·설치 승인이 아니며 Flash writer를 호출하지 
 개인키는 저장하지 않았다. digest·재조립·CNG C 수신12건·native STM4건·공식 ESP RSA10건이
 로컬 통과했다. A-SG-01 P2의 서명 음성 경로를 보강하고 C 변이 검출도 확인했다.
 262bf09 수정본은 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-signed-golden-post.md)에서
-정적 PASS이며 CI35418535641도6/6 통과했다. 해당 CI의 artifact 감사는 남아 있다.
+정적 PASS이며 CI35418535641도6/6 통과했다. Target21개 hash/bytes·source7개,
+target logs28개 warning/error0도 감사했다. 이후 PSA source에 재사용하지 않는다.
 
 현재 추가분은 BSP용 C PSA 암호 어댑터다. 기존 ESP-IDF6.0.3의 P256 manifest 검증과
 SHA256을 재사용하고 volatile 공개키/hash 자원의 실패·재진입·cleanup 재시도를 검사한다.
 Windows Debug/Release144/144, 모형 ASan/UBSan·행100%/분기96.61%, 실제 SDK fixture
 ELF/MAP/BIN 생성·경고0을 확인했다. [독립 리뷰](reviews/adversarial/2026-09-19-T-007-psa.md)의
 A 정적 PASS·B P3 시험 상수 오류를 반영했고 GCC 시험 크기 경고도 수정했다.
-원 reviewer 재검토·수정본 CI와 정상 OTA owner 연결은 남아 있다.
+6f078ac의 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-psa-post.md)는 P3 FIXED,
+공통 P2 중첩 시험 전제 오류를 발견했다. ready context와 제한 C mutant로 보강했다.
+이 수정본의 원 reviewer 재확인·CI와 정상 OTA owner 연결은 남아 있다.
 실제 장치 암호 실행·provisioning·Flash/HIL 성공을 뜻하지 않는다.
 
 prefix·packager의 P3 두 표현은 ec44647에서 수정하고 [원 A/B 재검토](reviews/adversarial/2026-09-19-T-007-prefix-packager-post.md)를

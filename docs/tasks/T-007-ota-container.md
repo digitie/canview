@@ -97,7 +97,8 @@ STM4건·공식 ESP RSA10건을 로컬에서 확인했다. 최초 STM3건에는 
 정상 제품 signing CLI·OTA owner/
 영속 policy·실제 target 통합은 여전히 남아 있다. host native 암호 실행을 장치 실행이나
 설치 승인으로 표시하지 않는다. 262bf09의 [원 A/B 재검토](../reviews/adversarial/2026-09-19-T-007-signed-golden-post.md)는
-정적 PASS이고 CI35418535641은6/6 통과했다. 해당 CI artifact 감사는 남아 있다.
+정적 PASS이고 CI35418535641은6/6 통과했다. 해당 target21개 hash/bytes·source7개,
+target logs28개 warning/error0도 감사했다. 이후 source의 gate와는 구분한다.
 
 ESP-IDF6.0.3의 PSA API를 재사용하는 BSP용 C manifest/SHA256 provider를 추가했다.
 공개키만 volatile import하며 단일 owner·재진입 차단·partial hash cleanup·destroy 재시도와
@@ -105,7 +106,9 @@ ESP-IDF6.0.3의 PSA API를 재사용하는 BSP용 C manifest/SHA256 provider를 
 함수11/11·행149/149·분기114/118을 확인했다. 실제 SDK fixture의 ELF/MAP/BIN은
 경고0이며 PSA symbol까지 링크했다. 실제 암호 실행이나 정상 firmware owner 연결이
 아니다. [독립 리뷰](../reviews/adversarial/2026-09-19-T-007-psa.md)는 A 정적 PASS·B CONDITIONAL이다.
-모형 권한 상수 P3와 GCC 음성 시험 storage 크기를 수정했고 원 reviewer 재확인은 남아 있다.
+모형 권한 상수 P3는 [원 B 재검토](../reviews/adversarial/2026-09-19-T-007-psa-post.md)에서 FIXED다.
+원 A/B가 공통 발견한 중첩 시험 전제 P2를 정상 초기화된 union context로 수정했고
+해당 조건만 제거한 C mutant를 검출했다. 새 수정본의 원 reviewer 재확인은 남아 있다.
 production root/provisioning은 하지 않았다.
 
 [공통 단순화 원칙](../../AGENTS.md#2-작업-원칙)을 적용한다. 작은 서명 manifest와
